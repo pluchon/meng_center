@@ -21,6 +21,7 @@
 | 持久层 | MyBatis-Plus | 必须用 `mybatis-plus-spring-boot4-starter`（3.5.13 起） |
 | 工具库 | Hutool、Lombok | |
 | 关系库 | MySQL 8 | 每个服务独占一个库 |
+| 数据库迁移 | Flyway | 每个服务管自己的库，只前进、不改历史文件 |
 | 缓存 | Redis | 会话、限流、缓存 |
 | 消息 | RabbitMQ | 跨域事件、延迟任务 |
 | 搜索与向量 | Elasticsearch | 关键词检索和向量检索共用，不上 Milvus |
@@ -36,12 +37,15 @@
 
 ```
 meng_center/
+├── deploy/          本地中间件的 Compose 和初始化脚本
 ├── docs/            文档
 ├── java_backend/    Java 后端（Maven 多模块）
 └── vue_front/       前端
     ├── front_user/   用户端
     └── front_admin/  管理端
 ```
+
+Maven groupId 和 Java 基础包名都是 `com.pluchon.meng`。
 
 Python AI 服务的目录在搭骨架时确定。
 
@@ -160,7 +164,7 @@ java_backend/
 - 主键 BIGINT 自增，不用雪花 ID 和 UUID。
 - 业务表都带 `create_time`、`update_time`、`delete_state`，默认逻辑删除。
 - 全局唯一的字段加唯一索引，入库前归一化（去空格、邮箱转小写、手机号转成带区号的统一格式）。
-- 手机号加密存储，不落明文，唯一性靠哈希列保证（见 [auth.md](auth.md) 4.1 节）。
+- 邮箱和手机号加密存储，不落明文，唯一性靠哈希列保证（见 [auth.md](auth.md) 4.1 节）。
 - 业务状态用枚举表示，只能通过 Service 方法变更。
 - 向量索引是可重建的派生数据，归 ai 维护；帖子的关键词索引归 content。
 
@@ -170,7 +174,7 @@ java_backend/
 - 失败用真实的 HTTP 状态码（400 / 401 / 403 / 409 / 429 等），不统一返回 200。
 - 内部接口路径一律 `/{domain}/internal/**`，网关拦截所有外部流量。
 - 身份只来自网关注入的请求头，不信任前端传的用户 ID 和角色。
-- 环境变量统一加 `MENG_` 前缀，避免和本机其他项目互相覆盖。
+- 项目自己的环境变量统一加 `MENG_` 前缀，避免和本机其他项目互相覆盖；第三方账号（阿里云、SMTP 等）沿用本机已有的变量名。
 - 日志不打印密码、验证码、JWT、票据；邮箱和手机号脱敏。
 
 ## 10. 范围台账
@@ -180,8 +184,11 @@ java_backend/
 - 定位、功能范围、技术栈、服务划分、防耦合规则（本文 1 至 7 节）。
 - 模块布局：server 在顶层，api 集中放 `meng-api`。
 - 跨域最终一致可接受。
-- 认证：注册需邮箱或手机号（二选一）、允许多设备登录（见 [auth.md](auth.md)）。
-- 手机号：支持台湾等多个地区，加密存储；短信用阿里云，邮件用 Spring 邮件 starter 走 SMTP。
+- 认证：注册需邮箱或手机号（二选一）、允许多设备登录、Token 放 HttpOnly Cookie（见 [auth.md](auth.md)）。
+- 审核：被拒绝的人能重新申请；`user` 表带申请理由和拒绝原因。
+- 邮箱和手机号：都加密存储；手机号支持台湾等八个地区，默认台湾。
+- 通道：短信用阿里云（中国站），邮件用 Spring 邮件 starter 走 SMTP。
+- 工程：groupId 和基础包名 `com.pluchon.meng`；迁移用 Flyway；Compose 放 `deploy/`（见 [kickoff.md](kickoff.md)）。
 
 ### 暂缓
 
@@ -195,20 +202,16 @@ java_backend/
 
 | 项 | 当前倾向 |
 |---|---|
-| Token 存放位置 | HttpOnly Cookie |
-| 被拒绝的人能否重新申请 | 能，把同一条记录改回待审核 |
-| 是否加「申请理由」「拒绝原因」字段 | 未讨论 |
-| 邮箱是否加密存储 | 和手机号用同一套方案加密 |
-| 手机号地区名单 | 首批八个地区，默认台湾，见 [auth.md](auth.md) |
 | AI 萌萌的会话、消息、配额归哪个 Java 服务 | 未讨论 |
 | LangGraph 图执行态是否持久化 | 起步不接，需要中断续跑时再定 |
-| Python Web 框架、Python 目录位置 | 搭骨架时定 |
-| Java 基础包名和 Maven groupId | 搭骨架时定 |
-| 数据库迁移方式 | 搭骨架时定 |
+| Python Web 框架、Python 目录位置 | 做 AI 域时定 |
+| 暗色主题色值 | 未定；第一阶段只做亮色 |
 
 ### 待核实
 
 - tianai 行为验证码对 Spring Boot 4 的兼容性。
+- Flyway 在 Spring Boot 4 下的 starter 和 MySQL 支持模块。
+- 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
 - xxl-job 对 Spring Boot 4 的兼容性。
 - Elasticsearch 的 RRF 融合排序是否需要付费许可；需要的话改用加权合并或在 Python 侧实现。
 - 与 Boot 4 自带客户端匹配的 Elasticsearch 服务端版本。

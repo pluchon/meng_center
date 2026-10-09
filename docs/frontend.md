@@ -165,7 +165,7 @@ export const UserStatusLabelKey = Object.freeze({
 
 - 只有 `api/request.js` 创建 Axios 实例；页面和 store 只调 `api/` 里的函数。
 - `baseURL` 来自环境变量 `VITE_API_BASE`，超时来自常量。
-- 请求带 Cookie（`withCredentials`）。这取决于 Token 放 Cookie 的决定，见 [auth.md](auth.md) 第 12 节。
+- Token 放 HttpOnly Cookie。请求带 Cookie（`withCredentials`），前端不读也不存 Token。
 - 响应拦截器把后端统一响应解包，`api/` 里的函数直接返回数据本身。
 - GET 的参数放 `params`；POST、PUT 的请求体结构与后端 DTO 完全一致，不多套一层对象。
 
@@ -217,7 +217,7 @@ export const UserStatusLabelKey = Object.freeze({
   亮色定义在 `:root`，暗色定义在 `html.dark`。
 - 组件样式里不出现十六进制色值、`rgb()`、`hsl()` 和颜色名，只用变量。
 - `_mixins.scss` 通过 Vite 配置注入到每个组件样式，放断点等工具。
-- 水色主题的具体色值在画页面时确定，定下后只改 `tokens.scss`。
+- 亮色的色值、圆角和投影已定，见 [kickoff.md](kickoff.md) 第 8 节；暗色未定。定下后只改 `tokens.scss`。
 
 Element Plus 相关：
 
@@ -272,7 +272,6 @@ Element Plus 相关：
 
 | 项 | 说明 |
 |---|---|
-| 水色主题色值、字体、插画资源 | 画页面时确定 |
+| 暗色主题色值 | 未定；第一阶段的登录页、注册页只做亮色 |
 | 帖子编辑器和内容过滤方案 | 聊内容域时确定；用户内容必须先过滤再显示 |
 | 繁体中文语言包 | 暂缓；结构已支持，加一个语言目录即可 |
-| Token 存放位置 | 倾向 HttpOnly Cookie；改动会影响第 6 节的请求配置 |
