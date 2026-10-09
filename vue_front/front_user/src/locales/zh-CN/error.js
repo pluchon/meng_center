@@ -1,0 +1,18 @@
+export default {
+  generic: '服务暂时不可用，请稍后重试',
+  NETWORK: '连接失败，请检查网络',
+  USER_INVALID_CREDENTIALS: '用户名或密码错误',
+  USER_PENDING: '申请正在审核中',
+  USER_REJECTED: '申请未通过审核',
+  USER_INVALID_TICKET: '滑块验证已失效，请重试',
+  USER_RESET_FAILED: '重置验证失败，请检查联系方式与验证码',
+  USER_INVALID_CODE: '验证码不正确或已失效',
+  USER_CONTACT_REQUIRED: '邮箱和手机号请选择一种填写',
+  USER_CONTACT_INVALID: '联系方式格式不正确',
+  USER_USERNAME_TAKEN: '用户名已被使用',
+  USER_CONTACT_TAKEN: '联系方式已被使用',
+  USER_PASSWORD_MISMATCH: '两次输入的密码不一致',
+  USER_DELIVERY_FAILED: '验证码发送失败，请稍后重试',
+  USER_SMS_UNAVAILABLE: '短信通道尚未配置',
+  USER_LEGAL_VERSION_CHANGED: '协议已更新，请重新阅读并同意',
+}

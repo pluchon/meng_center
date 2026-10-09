@@ -1,0 +1,38 @@
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: ${MENG_REDIS_PORT}
+      password: ${MENG_REDIS_PASSWORD}
+      timeout: 3s
+  rabbitmq:
+    host: 127.0.0.1
+    port: ${MENG_RABBITMQ_PORT}
+    username: ${MENG_RABBITMQ_USERNAME}
+    password: ${MENG_RABBITMQ_PASSWORD}
+    virtual-host: meng
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 1s
+          max-interval: 3s
+        default-requeue-rejected: false
+        concurrency: 2
+        prefetch: 8
+  jackson:
+    default-property-inclusion: non_null
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+logging:
+  level:
+    root: INFO

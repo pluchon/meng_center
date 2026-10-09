@@ -1,0 +1,40 @@
+@use '@/styles/auth';
+
+.auth-heading {
+  margin-bottom: var(--meng-space-8);
+}
+
+@media (width > 760px) {
+  .auth-form {
+    padding-top: var(--meng-space-4);
+  }
+}
+
+.login-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--meng-space-2);
+}
+
+.login-options .legal-consent {
+  min-width: 0;
+}
+
+.forgot-password {
+  flex: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--meng-muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.forgot-password:hover {
+  color: var(--meng-primary);
+}
+
+.login-options {
+  align-items: flex-start;
+}

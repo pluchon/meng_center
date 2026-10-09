@@ -1,0 +1,224 @@
+@use './mixins' as *;
+
+.auth-heading {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 44px;
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: var(--meng-space-3);
+}
+
+.auth-brand {
+  display: inline-block;
+  padding: var(--meng-space-2) var(--meng-space-4);
+  background: var(--meng-warning);
+  border-radius: var(--meng-radius-note);
+  transform: rotate(-3deg);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  // 悬停时自己扶正
+  &:hover {
+    transform: rotate(0deg) scale(1.04);
+  }
+}
+
+.auth-description {
+  color: var(--meng-muted);
+  line-height: 1.8;
+  margin-bottom: var(--meng-space-7);
+}
+
+.auth-form {
+  display: grid;
+  gap: var(--meng-space-3);
+
+  label {
+    position: relative;
+    display: grid;
+    gap: var(--meng-space-2);
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  // 输入框内的错误提示在获得焦点时让开
+  label:focus-within > .field-message {
+    opacity: 0;
+  }
+
+  :deep(.el-input__wrapper),
+  :deep(.el-select__wrapper) {
+    min-height: var(--meng-small-control-height);
+    padding-inline: var(--meng-space-5);
+    background: var(--meng-bg);
+    border-radius: var(--meng-radius-pill);
+    box-shadow: 0 0 0 1px var(--meng-border) inset;
+  }
+
+  :deep(.el-input__wrapper.is-focus),
+  :deep(.el-select__wrapper.is-focused) {
+    box-shadow:
+      0 0 0 3px var(--meng-tint),
+      0 0 0 1px var(--meng-primary) inset;
+  }
+
+  :deep(.el-input__inner) {
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  :deep(.el-input__inner::placeholder) {
+    font-weight: 500;
+    color: var(--meng-placeholder);
+  }
+
+  :deep(.el-textarea__inner) {
+    border-radius: var(--meng-radius-note);
+    padding: var(--meng-space-3);
+    background: var(--meng-bg);
+  }
+}
+
+.auth-primary {
+  width: 100%;
+  height: var(--meng-small-control-height);
+  border-radius: var(--meng-radius-pill);
+  box-shadow: 0 5px 0 var(--meng-shadow-hard);
+  font-weight: 700;
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--meng-button-sheen);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+
+  &:not(:disabled):hover::after {
+    animation: button-sheen 0.65s ease-out;
+  }
+
+  &:not(:disabled):hover {
+    transform: translateY(-2px);
+  }
+
+  &:active {
+    transform: translateY(4px);
+  }
+}
+
+.auth-footer {
+  margin-top: var(--meng-space-4);
+  text-align: center;
+  color: var(--meng-muted);
+  font-size: 14px;
+}
+
+.auth-notice {
+  padding: var(--meng-space-4);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-warning);
+  line-height: 1.8;
+}
+
+.auth-error {
+  padding: var(--meng-space-4);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-danger);
+  color: var(--meng-danger-text);
+  line-height: 1.8;
+}
+
+.auth-pair {
+  --field-message-pad: var(--meng-space-3);
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--meng-space-4);
+}
+
+@include narrow {
+  .auth-heading {
+    font-size: 36px;
+  }
+
+  .auth-pair {
+    gap: var(--meng-space-2);
+    min-width: 0;
+  }
+
+  .auth-pair > label {
+    min-width: 0;
+  }
+}
+
+@media (width <= 760px) and (height <= 740px) {
+  .auth-heading {
+    font-size: 30px;
+    margin-bottom: var(--meng-space-2);
+  }
+
+  .auth-form {
+    gap: var(--meng-space-2);
+
+    label {
+      gap: var(--meng-space-1);
+      font-size: 13px;
+    }
+  }
+
+  .auth-footer {
+    margin-top: var(--meng-space-2);
+    font-size: 12px;
+  }
+}
+
+@keyframes button-sheen {
+  to {
+    transform: translateX(120%);
+  }
+}
+
+.auth-form :deep(.has-error .el-input__wrapper),
+.auth-form :deep(.has-error .el-input__wrapper.is-focus) {
+  box-shadow:
+    0 0 0 1px var(--meng-danger-text) inset,
+    0 0 0 2px var(--meng-danger);
+}
+
+.auth-form :deep(.has-error .el-input__wrapper) {
+  animation: field-shake 0.4s ease-in-out;
+}
+
+// 出错的输入框轻轻抖一下
+@keyframes field-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+
+  20% {
+    translate: -5px;
+  }
+
+  40% {
+    translate: 4px;
+  }
+
+  60% {
+    translate: -3px;
+  }
+
+  80% {
+    translate: 2px;
+  }
+}
+
+.consent-field {
+  min-width: 0;
+}

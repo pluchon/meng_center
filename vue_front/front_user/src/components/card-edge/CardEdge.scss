@@ -1,0 +1,40 @@
+// 外层用遮罩只留下贴着卡片边缘的一圈，内层是一块比卡片大的渐变色盘在慢慢转。
+// 转动只改变换，不触发卡片内容重绘
+.card-edge {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  padding: var(--meng-card-ring-width);
+  border-radius: inherit;
+  pointer-events: none;
+  container-type: size;
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+}
+
+// 边长取卡片长边的一倍半，转到任何角度都盖得住四个角
+.card-edge-flow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150cqmax;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: conic-gradient(var(--meng-card-ring));
+  animation: card-edge-flow 24s linear infinite;
+}
+
+@keyframes card-edge-flow {
+  to {
+    rotate: 1turn;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-edge-flow {
+    animation: none;
+  }
+}

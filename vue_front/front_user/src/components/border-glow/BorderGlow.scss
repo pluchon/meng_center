@@ -1,0 +1,105 @@
+.border-glow {
+  --edge-intensity: 0;
+  --edge-x: 50%;
+  --edge-y: 50%;
+
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--edge-intensity);
+  transition: opacity 0.6s ease;
+}
+
+.glow-fog,
+.glow-halo,
+.glow-rim,
+.glow-band {
+  position: absolute;
+  border-radius: inherit;
+}
+
+// 模糊加在外层：内层先用遮罩切出沿着边缘的一圈光带，再整体模糊，光带的边界才会化开
+.glow-fog,
+.glow-halo {
+  inset: 0;
+}
+
+// 远处的薄雾，范围大、很淡，缓慢呼吸
+.glow-fog {
+  filter: blur(34px);
+  animation: glow-breathe 5s ease-in-out infinite;
+}
+
+// 贴着边缘的光晕
+.glow-halo {
+  filter: blur(12px);
+}
+
+// 以卡片边缘为中线、向内外各伸出 --band 的一圈光带
+.glow-band {
+  --band: 16px;
+
+  inset: calc(var(--band) * -1);
+  padding: calc(var(--band) * 2);
+  border-radius: calc(var(--meng-radius-card) + var(--band));
+  background: radial-gradient(
+    circle calc(var(--meng-edge-spread) * 1.2) at calc(var(--edge-x) + var(--band))
+      calc(var(--edge-y) + var(--band)),
+    var(--meng-edge-haze),
+    var(--meng-edge-haze-secondary) 45%,
+    transparent 78%
+  );
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+}
+
+.glow-band-wide {
+  --band: 52px;
+
+  background: radial-gradient(
+    circle calc(var(--meng-edge-spread) * 2.1) at calc(var(--edge-x) + var(--band))
+      calc(var(--edge-y) + var(--band)),
+    var(--meng-edge-mist),
+    var(--meng-edge-mist-secondary) 50%,
+    transparent 80%
+  );
+}
+
+// 边缘上一条很细的亮线，是光源本身
+.glow-rim {
+  inset: 0;
+  padding: 1.5px;
+  background: radial-gradient(
+    circle calc(var(--meng-edge-spread) * 0.8) at var(--edge-x) var(--edge-y),
+    var(--meng-edge-core),
+    var(--meng-edge-color) 30%,
+    var(--meng-edge-secondary) 55%,
+    transparent 80%
+  );
+  filter: blur(0.5px);
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+}
+
+@keyframes glow-breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .border-glow {
+    display: none;
+  }
+}

@@ -1,0 +1,86 @@
+:root {
+  --meng-edge-color: #61c4e0;
+  --meng-edge-secondary: #bba1e7;
+  --meng-edge-mask: #000;
+  --meng-edge-spread: 180px;
+  --meng-edge-core: rgb(255 255 255 / 95%);
+  --meng-edge-haze: rgb(97 196 224 / 62%);
+  --meng-edge-haze-secondary: rgb(187 161 231 / 40%);
+  --meng-edge-mist: rgb(120 205 235 / 36%);
+  --meng-edge-mist-secondary: rgb(187 161 231 / 22%);
+  --meng-decor-sparkle: #f0cf7a;
+  --meng-decor-sakura: #f1c3d1;
+  --meng-decor-shadow: rgb(54 127 154 / 18%);
+  --meng-cursor-color: #45b9d5;
+  --meng-cursor-clear: rgb(69 185 213 / 0%);
+  --meng-cursor-secondary: #ac91db;
+  --meng-cursor-layer: 1500;
+  --meng-bg: #f4fafc;
+  --meng-surface: #fff;
+  --meng-tint: #ddf1f7;
+  --meng-primary: #367f9a;
+  --meng-text: #294653;
+  --meng-muted: #4f6b78;
+  --meng-placeholder: #56717d;
+  --meng-border: #bcd9e3;
+  --meng-success: #ddf2e8;
+  --meng-danger: #f5dde5;
+  --meng-warning: #f8edcf;
+  --meng-shadow-hard: #24586c;
+  --meng-danger-text: #a8456a;
+  --meng-danger-shadow: #7d2f4c;
+  --meng-success-text: #3e8e6a;
+  --meng-success-shadow: #2c6a4e;
+  --meng-captcha-veil: rgb(255 255 255 / 16%);
+  --meng-captcha-trail: rgb(97 196 224 / 36%);
+  --meng-captcha-trail-passed: rgb(62 142 106 / 28%);
+  --meng-captcha-trail-edge: rgb(255 255 255 / 90%);
+  --meng-captcha-piece-shadow: rgb(41 70 83 / 45%);
+  --meng-captcha-loading: rgb(244 250 252 / 78%);
+  --meng-primary-light-3: #72a5b8;
+  --meng-primary-light-5: #9bbfcd;
+  --meng-primary-light-7: #c3d9e1;
+  --meng-primary-light-8: #d7e5eb;
+  --meng-primary-light-9: #ebf2f5;
+  --meng-primary-dark-2: #2b667b;
+  --meng-legal-art-opacity: 0.46;
+  --meng-legal-veil: rgb(255 255 255 / 32%);
+  --meng-glass-surface: rgb(255 255 255 / 54%);
+  --meng-glass-border: rgb(255 255 255 / 80%);
+  --meng-glass-active: rgb(54 127 154 / 12%);
+  --meng-button-sheen: linear-gradient(
+    110deg,
+    transparent 25%,
+    rgb(255 255 255 / 24%) 50%,
+    transparent 75%
+  );
+  --meng-shadow: 0 20px 48px rgb(54 127 154 / 16%);
+  --meng-card-base: #cfe7ef;
+  --meng-shadow-card: 0 6px 0 var(--meng-card-base), 0 20px 48px rgb(54 127 154 / 16%);
+  --meng-card-ring-width: 2px;
+  --meng-card-ring: #9fd6ea, #a9e0c4, #f3dc9a, #f2b8cc, #c3b4ec, #9fd6ea;
+  --meng-radius-card: 40px;
+  --meng-radius-poster: 28px;
+  --meng-radius-dialog: 28px;
+  --meng-radius-note: 20px;
+  --meng-radius-pill: 999px;
+  --meng-space-1: 4px;
+  --meng-space-2: 8px;
+  --meng-space-3: 12px;
+  --meng-space-4: 16px;
+  --meng-space-5: 20px;
+  --meng-space-6: 24px;
+  --meng-space-7: 28px;
+  --meng-space-8: 32px;
+  --meng-space-9: 36px;
+  --meng-space-10: 40px;
+  --meng-space-12: 48px;
+  --meng-space-16: 64px;
+  --meng-control-height: 52px;
+  --meng-small-control-height: 44px;
+}
+
+// The approved first-phase artwork is light-only; dark palette is intentionally pending.
+html.dark {
+  color-scheme: light;
+}

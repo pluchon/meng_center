@@ -1,0 +1,21 @@
+export default {
+  status: { PENDING: '待审核', NORMAL: '已通过', REJECTED: '已拒绝' },
+  review: {
+    title: '注册申请',
+    description: '审核新成员的加入申请',
+    all: '全部状态',
+    username: '用户名',
+    contact: '联系方式',
+    reason: '申请理由',
+    time: '申请时间',
+    status: '状态',
+    actions: '操作',
+    approve: '通过',
+    reject: '拒绝',
+    confirmApproval: '确认通过这条注册申请？',
+    rejectTitle: '拒绝申请',
+    rejectReason: '请输入拒绝原因',
+    updated: '审核结果已保存',
+    adminOnly: '此账号没有管理权限',
+  },
+}

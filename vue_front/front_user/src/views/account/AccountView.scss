@@ -1,0 +1,15 @@
+@use '@/styles/auth';
+
+.account-layout {
+  padding: var(--meng-space-8);
+}
+
+.account-card {
+  max-width: 640px;
+  margin: auto;
+  padding: var(--meng-space-8);
+  background: var(--meng-surface);
+  border-radius: var(--meng-radius-card);
+  display: grid;
+  gap: var(--meng-space-5);
+}
