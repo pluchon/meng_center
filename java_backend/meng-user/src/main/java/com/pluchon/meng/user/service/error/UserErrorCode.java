@@ -6,7 +6,6 @@ public enum UserErrorCode implements ErrorCode {
     INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "账号或密码错误", 401),
     PENDING("USER_PENDING", "申请仍在审核中", 403),
     REJECTED("USER_REJECTED", "申请未通过审核", 403),
-    CAPTCHA_REQUIRED("USER_CAPTCHA_REQUIRED", "请完成滑块验证", 400),
     INVALID_TICKET("USER_INVALID_TICKET", "滑块验证已失效", 400),
     INVALID_CODE("USER_INVALID_CODE", "验证码不正确或已失效", 400),
     RESET_FAILED("USER_RESET_FAILED", "重置验证失败，请检查联系方式与验证码", 400),

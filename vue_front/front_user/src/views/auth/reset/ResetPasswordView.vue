@@ -3,6 +3,7 @@
     <ParticleBackground />
     <section class="reset-card" aria-labelledby="reset-title">
       <BorderGlow />
+      <AuthDecor :variant="AuthDecorVariant.RESET" />
       <img class="reset-avatar" :src="avatar" :alt="t('auth.reset.avatar')" />
       <span class="reset-comfort">{{ t('auth.reset.comfort') }}</span>
       <template v-if="!success">

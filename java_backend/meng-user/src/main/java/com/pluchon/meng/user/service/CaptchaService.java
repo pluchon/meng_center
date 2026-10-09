@@ -2,6 +2,7 @@ package com.pluchon.meng.user.service;
 
 import cloud.tianai.captcha.application.ImageCaptchaApplication;
 import cloud.tianai.captcha.application.vo.ImageCaptchaVO;
+import cloud.tianai.captcha.common.constant.CaptchaTypeConstant;
 import cloud.tianai.captcha.validator.common.model.dto.ImageCaptchaTrack;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.user.config.UserProperties;
@@ -33,15 +34,13 @@ public final class CaptchaService {
     }
 
     public ImageCaptchaVO generate() {
-        var result = captcha.generateCaptcha();
+        var result = captcha.generateCaptcha(CaptchaTypeConstant.SLIDER);
         if (!result.isSuccess()) throw new BusinessException(UserErrorCode.INVALID_TICKET);
         return result.getData();
     }
 
     public Ticket verify(String id, ImageCaptchaTrack track, String ip) {
-        if (track == null || !captcha.matching(id, track).isSuccess()) throw new BusinessException(
-            UserErrorCode.INVALID_TICKET
-        );
+        if (!matches(id, track)) throw new BusinessException(UserErrorCode.INVALID_TICKET);
         String ticket = UUID.randomUUID().toString();
         redis.opsForValue().set(TICKET_PREFIX + ticket, cipher.hash(ip), properties.verification().ticketTtl());
         return new Ticket(ticket);
@@ -51,6 +50,16 @@ public final class CaptchaService {
         if (ticket == null || ticket.isBlank()) throw new BusinessException(UserErrorCode.INVALID_TICKET);
         String expected = redis.opsForValue().getAndDelete(TICKET_PREFIX + ticket);
         if (!cipher.hash(ip).equals(expected)) throw new BusinessException(UserErrorCode.INVALID_TICKET);
+    }
+
+    // 轨迹字段不完整时轨迹校验器会抛参数异常，统一按验证未通过处理
+    private boolean matches(String id, ImageCaptchaTrack track) {
+        if (track == null) return false;
+        try {
+            return captcha.matching(id, track).isSuccess();
+        } catch (IllegalArgumentException incomplete) {
+            return false;
+        }
     }
 
     public record Ticket(String ticket) {}

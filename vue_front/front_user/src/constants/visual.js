@@ -60,4 +60,11 @@ export const CardSwapMotion = Object.freeze({
   BACK_Y: -14,
 })
 
-export const BorderGlowMotion = Object.freeze({ EDGE_DISTANCE: 72 })
+// 指针离边缘多近开始发光、光源跟随的缓动比例、停止补帧的像素阈值
+export const BorderGlowMotion = Object.freeze({ EDGE_DISTANCE: 150, FOLLOW: 0.22, SETTLE: 0.5 })
+
+export const AuthDecorVariant = Object.freeze({
+  LOGIN: 'login',
+  REGISTER: 'register',
+  RESET: 'reset',
+})

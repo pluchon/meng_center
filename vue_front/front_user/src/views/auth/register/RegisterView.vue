@@ -81,9 +81,11 @@
           @send="sendCode"
         />
         <ReasonEditor v-model="form.applyReason" />
-        <div class="consent-field" :class="{ 'consent-invalid': Boolean(errors.agreed) }">
-          <LegalConsent v-model="agreed" />
-          <FieldMessage :message="errors.agreed" :message-id="fieldId('agreed')" />
+        <div class="consent-field">
+          <LegalConsent
+            v-model="agreed"
+            :invalid="Boolean(errors.agreed)"
+          />
         </div>
         <div v-if="failure" class="auth-form-error" role="alert">
           {{ failure }}

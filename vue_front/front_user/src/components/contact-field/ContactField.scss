@@ -92,6 +92,10 @@
 }
 
 @include narrow {
+  .contact-field.is-sms {
+    --field-message-start: 114px;
+  }
+
   .contact-region {
     width: 108px;
     margin-left: var(--meng-space-1);
@@ -113,6 +117,53 @@
   box-shadow: 0 0 0 2px var(--meng-danger);
 }
 
-.contact-field > .field-message {
-  margin-top: var(--meng-space-1);
+// 外层已经描红，里面的输入框不再单独描一圈
+.contact-control.has-error :deep(.contact-input .el-input__wrapper),
+.contact-control.has-error :deep(.contact-input .el-input__wrapper.is-focus) {
+  box-shadow: none;
+  animation: none;
+}
+
+.contact-control.has-error {
+  animation: contact-shake 0.4s ease-in-out;
+}
+
+// 错误提示盖在输入区内：右侧让出切换按钮，手机号模式下左侧让出地区选择
+.contact-field {
+  --field-message-end: 46px;
+
+  position: relative;
+
+  &.is-sms {
+    --field-message-start: 138px;
+    --field-message-pad: var(--meng-space-2);
+    --field-message-radius: 0;
+  }
+
+  &:focus-within > .field-message {
+    opacity: 0;
+  }
+}
+
+@keyframes contact-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+
+  20% {
+    translate: -5px;
+  }
+
+  40% {
+    translate: 4px;
+  }
+
+  60% {
+    translate: -3px;
+  }
+
+  80% {
+    translate: 2px;
+  }
 }

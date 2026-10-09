@@ -33,7 +33,10 @@ Nacos 故障脚本短暂停止项目自己的 Nacos 容器，验证两个应用�
 ./verification/Test-Browser.ps1
 node ./verification/browser/ui-adjustments.mjs
 node ./verification/browser/reset-password.mjs
+node ./verification/browser/captcha-flow.mjs
 ```
+
+captcha-flow.mjs 是滑块专项：用户端登录每次先弹滑块、拖错会换图重来、票据随登录请求提交、再次登录要重新过滑块。登录接口用模拟响应，不产生真实的失败计数；滑块生成与校验走真实服务。浏览器脚本共用 browser/captcha.mjs 求解滑块，拖动先快后慢、总时长超过轨迹检测的下限。直接用 node 运行时，先在同一个 PowerShell 里执行 `. ./deploy/scripts/Environment.ps1; Import-MengEnvironment` 载入 Redis 凭据。
 
 使用系统 Microsoft Edge 的无头浏览器，不另装浏览器。Browser 插件当前不可用，采用 Playwright 回退。脚本拍摄参考稿与实现截图，检查本地字体/海报、地区选择、表单校验、真实滑块拖动、协议阅读、鉴权路由、管理员登录、后端分页和移动端溢出。自动化只在验证脚本里读取挑战答案，不把答案暴露给产品页面。
 

@@ -36,15 +36,9 @@ export default defineComponent({
       rejected.value = false
       submitting.value = true
       try {
-        let ticket
-        try {
-          await user.login({ username: form.username, password: form.password })
-        } catch (error) {
-          if (error.code !== 'USER_CAPTCHA_REQUIRED') throw error
-          ticket = await captcha.value.solve()
-          if (!ticket) return
-          await user.login({ username: form.username, password: form.password, ticket })
-        }
+        const ticket = await captcha.value.solve()
+        if (!ticket) return
+        await user.login({ username: form.username, password: form.password, ticket })
         const destination = route.query.redirect
         await router.replace(
           typeof destination === 'string' &&

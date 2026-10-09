@@ -50,10 +50,9 @@ export default {
   },
   captcha: {
     title: '滑块验证',
-    hint: '拖动滑块，让拼图回到正确的位置',
-    loading: '正在生成拼图',
     refresh: '换一张',
     failed: '验证失败，请再试一次',
+    passed: '验证通过',
     slider: '拖动滑块完成验证',
   },
   poster: {

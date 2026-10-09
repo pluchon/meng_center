@@ -55,7 +55,6 @@ public record UserProperties(
         @Min(1) int registrationIpDailyMax,
         @Min(1) int reapplicationDailyMax,
         @Min(1) int loginMaxFailures,
-        @Min(1) int loginCaptchaAfter,
         @NotNull Duration loginLockDuration
     ) {}
 

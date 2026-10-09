@@ -1,4 +1,5 @@
 .legal-consent {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--meng-space-2);
@@ -31,4 +32,51 @@
   color: var(--meng-muted);
   font: inherit;
   font-weight: 700;
+  transition: color 0.2s;
+}
+
+.is-invalid {
+  animation: consent-shake 0.4s ease-in-out;
+
+  .consent-checkbox {
+    outline: 2px solid var(--meng-danger-text);
+    outline-offset: 1px;
+  }
+
+  .consent-toggle {
+    color: var(--meng-danger-text);
+  }
+}
+
+// 完整的提醒只给读屏器，视觉上由勾选行自己变红表达
+.consent-alert {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@keyframes consent-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+
+  20% {
+    translate: -5px;
+  }
+
+  40% {
+    translate: 4px;
+  }
+
+  60% {
+    translate: -3px;
+  }
+
+  80% {
+    translate: 2px;
+  }
 }

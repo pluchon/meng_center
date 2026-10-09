@@ -2,6 +2,7 @@ import { chromium } from 'playwright'
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
+import { solveCaptcha } from './captcha.mjs'
 const output = fileURLToPath(new URL('../test-output/ui-adjustments/', import.meta.url))
 await fs.mkdir(output, { recursive: true })
 const browser = await chromium.launch({ channel: 'msedge', headless: true })
@@ -27,8 +28,11 @@ try {
  await page.getByRole('button', { name: '登录', exact: true }).click()
  await page.getByRole('alert').filter({ hasText: '请先阅读并同意协议' }).waitFor()
  assert.equal(requests, 0)
+ assert.equal(await page.getByRole('dialog').count(), 0)
+ await page.locator('input[autocomplete="username"]').fill('verification_pending')
+ await page.locator('input[autocomplete="current-password"]').fill('verification-password-1')
  await page.getByRole('checkbox').check()
- await page.getByRole('button', { name: '登录', exact: true }).click()
+ await solveCaptcha(page, () => page.getByRole('button', { name: '登录', exact: true }).click())
  await page.getByText('申请正在审核中', { exact: true }).waitFor()
  assert.equal(requests, 1)
  await page.getByRole('checkbox').uncheck()

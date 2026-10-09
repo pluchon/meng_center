@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-import { createClient } from 'redis'
+import { solveCaptcha } from './captcha.mjs'
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -43,33 +43,10 @@ try {
   })
   await check('registration validation and real captcha images', async () => {
     await page.getByRole('button', { name: '提交申请', exact: true }).click()
-    await page.getByRole('alert').filter({ hasText: '用户名为' }).waitFor()
+    await page.getByRole('alert').filter({ hasText: '请输入用户名' }).waitFor()
     await page.getByPlaceholder('请输入当地手机号').fill('09012345678')
-    const imageResponse = page.waitForResponse(response => response.url().endsWith('/user/captcha') && response.status() === 200)
-    await page.getByRole('button', { name: '发送验证码', exact: true }).click()
-    await page.getByRole('dialog').waitFor()
-    await page.locator('.captcha-board .background').evaluate(image => image.decode())
-    await page.locator('.captcha-board .piece').evaluate(image => image.decode())
-    await page.screenshot({ path: path.join(output, 'captcha-desktop.png'), fullPage: true })
-    const image = (await (await imageResponse).json()).data
-    const redis = createClient({ url: 'redis://127.0.0.1:' + process.env.MENG_REDIS_PORT, password: process.env.MENG_REDIS_PASSWORD })
-    await redis.connect()
-    let answer
-    try {
-      for await (const batch of redis.scanIterator({ MATCH: '*'+image.id+'*', COUNT: 100 })) {
-        for (const key of batch) { const cached = JSON.parse(await redis.get(key)); answer = Number((cached.map ?? cached).percentage) }
-      }
-    } finally { await redis.quit() }
-    assert.ok(Number.isFinite(answer))
-    const board = await page.locator('.captcha-board').boundingBox(), knob = await page.locator('.slider-knob').boundingBox()
-    const startX = knob.x + knob.width / 2, startY = knob.y + knob.height / 2
-    await page.mouse.move(startX, startY)
-    await page.mouse.down()
-    await page.mouse.move(startX + answer * board.width, startY, { steps: 18 })
-    await page.waitForTimeout(700)
-    await page.mouse.up()
-    await page.getByRole('dialog').waitFor({ state: 'hidden' })
-    await page.locator('.auth-error').filter({ hasText: '短信通道尚未配置' }).waitFor()
+    await solveCaptcha(page, () => page.getByRole('button', { name: '发送验证码', exact: true }).click(), path.join(output, 'captcha-desktop.png'))
+    await page.getByRole('alert').filter({ hasText: '短信通道尚未配置' }).first().waitFor()
   })
   await check('agreement page and missing formal text are explicit', async () => {
     await page.goto('http://127.0.0.1:5173' + await page.getByRole('link', { name: '用户协议', exact: true }).getAttribute('href'))
@@ -88,7 +65,7 @@ try {
     await page.getByRole('heading', { name: '管理后台', exact: true }).waitFor()
     await page.locator('input[autocomplete="username"]').fill(process.env.MENG_ADMIN_USERNAME)
     await page.locator('input[autocomplete="current-password"]').fill(process.env.MENG_ADMIN_PASSWORD)
-    await page.getByRole('button', { name: '登录', exact: true }).click()
+    await solveCaptcha(page, () => page.getByRole('button', { name: '登录', exact: true }).click(), path.join(output, 'captcha-admin-login.png'))
     await page.getByRole('heading', { name: '注册申请', exact: true }).waitFor()
     await page.screenshot({ path: path.join(output, 'admin-desktop.png'), fullPage: true })
     await page.getByRole('button', { name: '退出登录', exact: true }).click()

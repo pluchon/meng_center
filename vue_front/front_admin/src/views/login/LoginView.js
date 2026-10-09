@@ -21,14 +21,9 @@ export default defineComponent({
       submitting.value = true
       failure.value = ''
       try {
-        try {
-          await user.login(form)
-        } catch (error) {
-          if (error.code !== 'USER_CAPTCHA_REQUIRED') throw error
-          const ticket = await captcha.value.solve()
-          if (!ticket) return
-          await user.login({ ...form, ticket })
-        }
+        const ticket = await captcha.value.solve()
+        if (!ticket) return
+        await user.login({ ...form, ticket })
         if (user.current.role !== UserRole.ADMIN) {
           await user.logout()
           failure.value = t('user.review.adminOnly')

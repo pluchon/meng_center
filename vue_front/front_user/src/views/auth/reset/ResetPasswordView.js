@@ -1,4 +1,6 @@
 import BorderGlow from '@/components/border-glow/BorderGlow.vue'
+import AuthDecor from '@/components/auth-decor/AuthDecor.vue'
+import { AuthDecorVariant } from '@/constants/visual'
 import { useAuthValidation } from '@/composables/useAuthValidation'
 import FieldMessage from '@/components/field-message/FieldMessage.vue'
 import { defineComponent, reactive, ref, watch, onUnmounted } from 'vue'
@@ -15,6 +17,7 @@ import avatar from '@/assets/forget_password_avatar.png'
 export default defineComponent({
   name: 'ResetPasswordView',
   components: {
+    AuthDecor,
     BorderGlow,
     FieldMessage,
     ParticleBackground,
@@ -114,6 +117,7 @@ export default defineComponent({
       submit,
       Auth,
       RouteName,
+      AuthDecorVariant,
       avatar,
     }
   },

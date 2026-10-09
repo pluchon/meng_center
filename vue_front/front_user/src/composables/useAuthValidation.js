@@ -47,7 +47,7 @@ export function useAuthValidation(form, { channel, agreed } = {}) {
   function password() {
     if (!form.password) errors.password = t('auth.validation.password')
     else if (!Auth.PASSWORD_PATTERN.test(form.password))
-      errors.password = t('auth.register.passwordRule')
+      errors.password = t('auth.register.passwordRuleShort')
     if (!form.confirmPassword) errors.confirmPassword = t('auth.validation.confirmPassword')
     else if (form.password !== form.confirmPassword)
       errors.confirmPassword = t('auth.register.passwordMismatch')

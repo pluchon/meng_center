@@ -48,12 +48,7 @@ public class SessionAuthService {
         if (failures >= properties.limits().loginMaxFailures()) throw new BusinessException(
             CommonErrorCode.RATE_LIMITED
         );
-        if (failures >= properties.limits().loginCaptchaAfter()) {
-            if (request.ticket() == null || request.ticket().isBlank()) throw new BusinessException(
-                UserErrorCode.CAPTCHA_REQUIRED
-            );
-            captcha.consume(request.ticket(), ip);
-        }
+        captcha.consume(request.ticket(), ip);
         var user = mapper.lockByUsername(name);
         if (!passwords.matches(request.password(), user == null ? null : user.getPasswordHash())) {
             limits.failedLogin(name);

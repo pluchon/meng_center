@@ -46,9 +46,12 @@
         </el-button>
       </div>
       <div class="login-options">
-        <div class="consent-field" :class="{ 'consent-invalid': Boolean(errors.agreed) }">
-          <LegalConsent v-model="agreed" :origin="RouteName.LOGIN" />
-          <FieldMessage :message="errors.agreed" :message-id="fieldId('agreed')" />
+        <div class="consent-field">
+          <LegalConsent
+            v-model="agreed"
+            :origin="RouteName.LOGIN"
+            :invalid="Boolean(errors.agreed)"
+          />
         </div>
         <router-link class="forgot-password" :to="{ name: RouteName.RESET_PASSWORD }">
           {{ t('auth.login.forgotPassword') }}

@@ -1,3 +1,39 @@
 .el-textarea .el-input__count {
   background: transparent;
 }
+
+.meng-captcha-dialog {
+  border-radius: var(--meng-radius-dialog);
+  animation: meng-captcha-pop 0.28s ease-out;
+
+  // 关闭按钮是绝对定位的，去掉给它预留的右内边距，标题才是真正居中
+  .el-dialog__header,
+  .el-dialog__header.show-close {
+    padding-right: 0;
+    text-align: center;
+  }
+
+  .el-dialog__title {
+    font-weight: 800;
+  }
+}
+
+@keyframes meng-captcha-pop {
+  0% {
+    scale: 0.92;
+  }
+
+  60% {
+    scale: 1.02;
+  }
+
+  100% {
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meng-captcha-dialog {
+    animation: none;
+  }
+}

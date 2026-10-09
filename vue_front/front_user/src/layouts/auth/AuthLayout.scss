@@ -68,6 +68,9 @@
 }
 
 .form-area {
+  // 自成层叠上下文，装饰层垫在表单内容底下
+  position: relative;
+  isolation: isolate;
   padding: var(--meng-space-4) clamp(16px, 3vw, 40px);
   min-width: 0;
   align-self: center;

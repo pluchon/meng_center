@@ -59,6 +59,7 @@ export default {
     applyReason: '申请理由',
     applyHint: '说说你喜欢什么，或为什么想加入（选填）',
     consent: '我已阅读并同意',
+    consentRequired: '请先阅读并同意',
     terms: '用户协议',
     privacy: '隐私政策',
     and: '与',
@@ -66,6 +67,7 @@ export default {
     passwordMismatch: '两次输入的密码不一致',
     usernameRule: '用户名为 3–32 位字母、数字或下划线',
     passwordRule: '密码为 8～20 位，需同时包含字母和数字',
+    passwordRuleShort: '需 8～20 位字母加数字',
     emailHint: '请输入邮箱地址',
     phoneHint: '请输入当地手机号',
     codeHint: '请输入 6 位验证码',
@@ -77,10 +79,9 @@ export default {
   },
   captcha: {
     title: '滑块验证',
-    hint: '拖动滑块，让拼图回到正确的位置',
-    loading: '正在生成拼图',
     refresh: '换一张',
     failed: '验证失败，请再试一次',
+    passed: '验证通过',
     slider: '拖动滑块完成验证',
   },
   legal: {
@@ -94,6 +95,14 @@ export default {
     progress: '已读 {percent}%',
     finished: '我看完啦',
     back: '返回',
+  },
+  decor: {
+    welcome: '欢迎回来呀～',
+    wave: '(｡･ω･｡)ﾉ',
+    join: '来玩呀～',
+    cheer: '(≧▽≦)',
+    calm: '别急，马上就好～',
+    pat: '(´･ω･`)ﾉ',
   },
   poster: {
     chipOne: '嘿嘿～',

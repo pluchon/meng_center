@@ -23,6 +23,5 @@ meng_center/
 - [本地中间件](deploy/README.md)：`meng_center` 启动、端口与凭据约定
 - [独立验证](verification/README.md)：中间件验收、后端测试与版本探针
 - [当前验收记录](verification/STATUS.md)：已完成的步骤与尚未通过的验收点
-- [Postman 集合](meng_center.postman_collection.json)：第一阶段接口，密码由个人环境提供
 
 第一阶段已实现注册申请、管理员审核、多会话登录、重新申请、改密和找回密码。正式协议与短信配置仍待运营者提供，当前本地默认关闭注册提交和短信发送，具体边界见验收记录。

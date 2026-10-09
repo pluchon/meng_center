@@ -24,6 +24,7 @@
         <span class="poster-chip chip-three">{{ t('auth.poster.chipThree') }}</span>
       </aside>
       <section class="form-area" :class="{ 'login-area': !registration }">
+        <AuthDecor :variant="decor" />
         <slot />
       </section>
     </section>

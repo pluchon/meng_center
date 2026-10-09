@@ -1,7 +1,29 @@
+// 提示直接盖在输入框内部，不占版面。输入框获得焦点时由父级把它隐藏，露出占位符和已输入的内容。
+// 位置由父级的变量调整：--field-message-start / --field-message-end 让出两侧的控件，
+// --field-message-pad 对齐输入框的文字起点。父级需要是定位元素，且输入框是它最后一个在流内的子元素。
 .field-message {
-  display: block;
-  font-size: 11px;
-  font-weight: 400;
-  line-height: 1.5;
+  position: absolute;
+  z-index: 1;
+  inset: auto var(--field-message-end, 1px) 1px var(--field-message-start, 1px);
+  overflow: hidden;
+  height: calc(var(--meng-small-control-height) - 2px);
+  padding-inline: calc(var(--field-message-pad, var(--meng-space-5)) - 1px) var(--meng-space-2);
+  border-radius: var(--field-message-radius, var(--meng-radius-pill));
+  background: var(--meng-bg);
   color: var(--meng-danger-text);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: calc(var(--meng-small-control-height) - 2px);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  animation: field-message-in 0.25s ease-out;
+}
+
+@keyframes field-message-in {
+  from {
+    opacity: 0;
+    translate: -6px 0;
+  }
 }

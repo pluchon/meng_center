@@ -1,9 +1,13 @@
 <template>
-  <div class="legal-consent">
+  <div
+    class="legal-consent"
+    :class="{ 'is-invalid': invalid }"
+  >
     <input
       type="checkbox"
       class="consent-checkbox"
       :checked="modelValue"
+      :aria-invalid="invalid"
       :aria-label="t('auth.register.consent')"
       @change="$emit('update:modelValue', $event.target.checked)"
     >
@@ -13,7 +17,7 @@
         class="consent-toggle"
         @click="$emit('update:modelValue', !modelValue)"
       >
-        {{ t('auth.register.consent') }}
+        {{ t(invalid ? 'auth.register.consentRequired' : 'auth.register.consent') }}
       </button>
       <router-link
         :to="{ name: RouteName.AGREEMENT, query: { document: LegalDocument.TERMS, from: origin } }"
@@ -30,6 +34,11 @@
         rel="noopener"
       >{{ t('auth.register.privacy') }}</router-link>
     </span>
+    <span
+      v-if="invalid"
+      class="consent-alert"
+      role="alert"
+    >{{ t('auth.register.mustAgree') }}</span>
   </div>
 </template>
 <script src="./LegalConsent.js"></script>

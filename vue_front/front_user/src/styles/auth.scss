@@ -14,6 +14,12 @@
   background: var(--meng-warning);
   border-radius: var(--meng-radius-note);
   transform: rotate(-3deg);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  // 悬停时自己扶正
+  &:hover {
+    transform: rotate(0deg) scale(1.04);
+  }
 }
 
 .auth-description {
@@ -27,10 +33,16 @@
   gap: var(--meng-space-3);
 
   label {
+    position: relative;
     display: grid;
     gap: var(--meng-space-2);
     font-size: 14px;
     font-weight: 700;
+  }
+
+  // 输入框内的错误提示在获得焦点时让开
+  label:focus-within > .field-message {
+    opacity: 0;
   }
 
   :deep(.el-input__wrapper),
@@ -123,6 +135,8 @@
 }
 
 .auth-pair {
+  --field-message-pad: var(--meng-space-3);
+
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--meng-space-4);
@@ -177,6 +191,34 @@
     0 0 0 2px var(--meng-danger);
 }
 
+.auth-form :deep(.has-error .el-input__wrapper) {
+  animation: field-shake 0.4s ease-in-out;
+}
+
+// 出错的输入框轻轻抖一下
+@keyframes field-shake {
+  0%,
+  100% {
+    translate: 0;
+  }
+
+  20% {
+    translate: -5px;
+  }
+
+  40% {
+    translate: 4px;
+  }
+
+  60% {
+    translate: -3px;
+  }
+
+  80% {
+    translate: 2px;
+  }
+}
+
 .auth-form-error {
   color: var(--meng-danger-text);
   font-size: 12px;
@@ -185,16 +227,4 @@
 
 .consent-field {
   min-width: 0;
-}
-.consent-field > .field-message {
-  margin-top: var(--meng-space-1);
-}
-.consent-invalid :deep(.consent-checkbox) {
-  border-color: var(--meng-danger-text);
-}
-
-@media (height <= 740px) {
-  .auth-form:has(.field-message) {
-    row-gap: var(--meng-space-1);
-  }
 }

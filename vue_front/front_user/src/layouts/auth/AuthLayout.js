@@ -1,4 +1,6 @@
 import BorderGlow from '@/components/border-glow/BorderGlow.vue'
+import AuthDecor from '@/components/auth-decor/AuthDecor.vue'
+import { AuthDecorVariant } from '@/constants/visual'
 import { defineComponent, ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Picture as PosterIcon } from '@element-plus/icons-vue'
@@ -7,7 +9,7 @@ import registerPoster from '@/assets/register-poster.png'
 import brandIcon from '@/assets/meng_center_ico.png'
 export default defineComponent({
   name: 'AuthLayout',
-  components: { BorderGlow, PosterIcon },
+  components: { AuthDecor, BorderGlow, PosterIcon },
   props: { registration: Boolean },
   setup(props) {
     return {
@@ -15,6 +17,9 @@ export default defineComponent({
       brandIcon,
       imageFailed: ref(false),
       poster: computed(() => (props.registration ? registerPoster : loginPoster)),
+      decor: computed(() =>
+        props.registration ? AuthDecorVariant.REGISTER : AuthDecorVariant.LOGIN,
+      ),
     }
   },
 })

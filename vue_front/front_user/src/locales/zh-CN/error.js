@@ -4,7 +4,6 @@ export default {
   USER_INVALID_CREDENTIALS: '用户名或密码错误',
   USER_PENDING: '申请正在审核中',
   USER_REJECTED: '申请未通过审核',
-  USER_CAPTCHA_REQUIRED: '请完成滑块验证',
   USER_INVALID_TICKET: '滑块验证已失效，请重试',
   USER_RESET_FAILED: '重置验证失败，请检查联系方式与验证码',
   USER_INVALID_CODE: '验证码不正确或已失效',

@@ -40,6 +40,7 @@ async function request(method, route, body, cookie, headers = {}) {
 }
 function expect(response, status, code) { assert.equal(response.status, status, 'unexpected HTTP status; code=' + response.data.code); if (code) assert.equal(response.data.code, code); return response }
 async function fixtureTicket() { const ticket = crypto.randomUUID(), key = 'meng:captcha-ticket:' + ticket; keys.add(key); await redis.set(key, hash('127.0.0.1'), { EX: 120 }); return ticket }
+function humanTrack(distance, width, height, duration = 900) { const steps = 30, stopTime = Date.now(), trackList = [{ x: 0, y: 0, t: 0, type: 'DOWN' }]; for (let step = 1; step <= steps; step++) { const progress = step / steps; trackList.push({ x: distance * (1 - (1 - progress) ** 2), y: step % 3 - 1, t: duration * progress, type: 'MOVE' }) } trackList.push({ x: distance, y: 0, t: duration, type: 'UP' }); return { bgImageWidth: width, bgImageHeight: height, startTime: stopTime - duration, stopTime, trackList } }
 function trackCookie(cookie) { const claims = JSON.parse(Buffer.from(cookie.split('=')[1].split('.')[1], 'base64url').toString()); sessions.add(claims.sessionId); return claims }
 async function awaitMessage(recipient, predicate = () => true) { for (let i = 0; i < 100; i++) { const message = messages.find(item => item.recipient === recipient && predicate(item.text)); if (message) return message; await new Promise(resolve => setTimeout(resolve, 100)) } throw new Error('Local SMTP capture did not receive the expected message') }
 try {
@@ -60,18 +61,25 @@ try {
   await check('anonymous spoofed identity headers and internal path variants are blocked', async () => {
     expect(await request('GET', '/user/me', null, null, { 'X-User-Id': '1', 'X-User-Role': 'ADMIN' }), 401)
     for (const route of ['/user/internal/users?ids=1', '/prefix/user/internal/users', '/user/%69nternal/users', '/user/%2569nternal/users', '/user//internal;anything/users']) expect(await request('GET', route), 403)
-    expect(await request('POST', '/user/sessions', { username: names[0], password }, null, { Origin: 'https://untrusted.invalid' }), 403)
+    expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }, null, { Origin: 'https://untrusted.invalid' }), 403)
   })
-  await check('real captcha generation, consume-once solution and ticket replay rejection', async () => {
-    const response = expect(await request('POST', '/user/captcha'), 200), image = response.data.data
-    const candidates = []
+  async function challenge() {
+    const image = expect(await request('POST', '/user/captcha'), 200).data.data, candidates = []
+    assert.equal(image.type, 'SLIDER'); assert.equal(image.backgroundImageWidth, 600); assert.equal(image.backgroundImageHeight, 360)
     for await (const batch of redis.scanIterator({ MATCH: '*'+image.id+'*', COUNT: 100 })) candidates.push(...batch)
     assert.equal(candidates.length, 1)
-    const cached = JSON.parse(await redis.get(candidates[0]))
-    const values = cached.map ?? cached
-    const percentage = Number(values.percentage)
+    const cached = JSON.parse(await redis.get(candidates[0])), percentage = Number((cached.map ?? cached).percentage)
     assert.ok(Number.isFinite(percentage), 'Captcha answer fixture schema differs')
-    const track = { bgImageWidth: image.backgroundImageWidth, trackList: [{ x: 0, y: 0, t: 0, type: 'move' }, { x: percentage * image.backgroundImageWidth, y: 0, t: 1000, type: 'move' }] }
+    return { image, distance: percentage * image.backgroundImageWidth }
+  }
+  await check('slider-only captcha, track validation, consume-once solution, ticket replay and ticketless login rejection', async () => {
+    const instant = await challenge()
+    expect(await request('POST', '/user/captcha/verification', { id: instant.image.id, track: { bgImageWidth: instant.image.backgroundImageWidth, trackList: [{ x: 0, y: 0, t: 0, type: 'MOVE' }, { x: instant.distance, y: 0, t: 1000, type: 'MOVE' }] } }), 400, 'USER_INVALID_TICKET')
+    const hurried = await challenge()
+    expect(await request('POST', '/user/captcha/verification', { id: hurried.image.id, track: humanTrack(hurried.distance, hurried.image.backgroundImageWidth, hurried.image.backgroundImageHeight, 120) }), 400, 'USER_INVALID_TICKET')
+    expect(await request('POST', '/user/sessions', { username: names[0], password }), 400, 'USER_INVALID_TICKET')
+    const { image, distance } = await challenge()
+    const track = humanTrack(distance, image.backgroundImageWidth, image.backgroundImageHeight)
     const verified = expect(await request('POST', '/user/captcha/verification', { id: image.id, track }), 200)
     expect(await request('POST', '/user/captcha/verification', { id: image.id, track }), 400)
     const ticket = verified.data.data.ticket
@@ -85,12 +93,12 @@ try {
   await check('MQ-backed mail code, legal versions, registration, encrypted storage and pending login', async () => {
     expect(await request('POST', '/user/registrations', { ...registration(0, codeA, await fixtureTicket()), termsVersion: 'obsolete' }), 409, 'USER_LEGAL_VERSION_CHANGED')
     expect(await request('POST', '/user/registrations', registration(0, codeA, await fixtureTicket())), 200)
-    expect(await request('POST', '/user/sessions', { username: names[0], password }), 403, 'USER_PENDING')
+    expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }), 403, 'USER_PENDING')
     const [rows] = await db.execute('SELECT * FROM user WHERE username = ?', [names[0]])
     assert.equal(rows.length, 1); assert.ok(rows[0].email_cipher.startsWith('v1:')); assert.equal(rows[0].email_hash, hash(contacts[0])); assert.ok(!rows[0].email_cipher.includes(contacts[0])); assert.ok(rows[0].password_hash.startsWith('$2')); assert.equal(rows[0].terms_version, '2026-10-09'); assert.ok(rows[0].agreed_at)
   })
   await check('administrator login, masked server pagination, mandatory rejection and immediate approval', async () => {
-    const login = expect(await request('POST', '/user/sessions', { username: process.env.MENG_ADMIN_USERNAME, password: process.env.MENG_ADMIN_PASSWORD }), 200)
+    const login = expect(await request('POST', '/user/sessions', { username: process.env.MENG_ADMIN_USERNAME, password: process.env.MENG_ADMIN_PASSWORD, ticket: await fixtureTicket() }), 200)
     adminCookie = login.cookie; const claims = trackCookie(adminCookie)
     assert.deepEqual(Object.keys(claims).sort(), ['sessionId', 'userId'])
     assert.match(login.setCookie, /HttpOnly/i); assert.match(login.setCookie, /SameSite=Lax/i)
@@ -107,13 +115,13 @@ try {
     assert.deepEqual(envelope.body, { userId: row.id })
     await awaitMessage(contacts[0], text => text.includes('申请已通过'))
     expect(await request('POST', '/user/admin/registrations/'+row.id+'/approval', null, adminCookie), 409)
-    const loginUser = expect(await request('POST', '/user/sessions', { username: names[0], password }), 200); trackCookie(loginUser.cookie)
+    const loginUser = expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }), 200); trackCookie(loginUser.cookie)
     expect(await request('GET', '/user/admin/registrations', null, loginUser.cookie, { 'X-User-Id': String(claims.userId), 'X-User-Role': 'ADMIN' }), 403)
     expect(await request('DELETE', '/user/sessions/current', null, loginUser.cookie), 200)
   })
   await check('two devices, sliding TTL, single logout and password revoke all sessions', async () => {
-    const first = expect(await request('POST', '/user/sessions', { username: names[0], password }), 200)
-    const second = expect(await request('POST', '/user/sessions', { username: names[0], password }), 200)
+    const first = expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }), 200)
+    const second = expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }), 200)
     const a = trackCookie(first.cookie), b = trackCookie(second.cookie)
     assert.notEqual(a.sessionId, b.sessionId)
     await redis.expire('meng:session:'+a.sessionId, 30)
@@ -122,7 +130,7 @@ try {
     expect(await request('DELETE', '/user/sessions/current', null, first.cookie), 200)
     expect(await request('GET', '/user/me', null, first.cookie), 401)
     expect(await request('GET', '/user/me', null, second.cookie), 200)
-    const third = expect(await request('POST', '/user/sessions', { username: names[0], password }), 200); trackCookie(third.cookie)
+    const third = expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }), 200); trackCookie(third.cookie)
     const changed = 'a1' + crypto.randomBytes(8).toString('hex')
     resetOldPassword = changed
     expect(await request('PUT', '/user/me/password', { oldPassword: password, password: changed, confirmPassword: changed }, second.cookie), 200)
@@ -135,8 +143,8 @@ try {
     expect(await request('POST', '/user/registrations', registration(1, code, await fixtureTicket())), 200)
     const [rows] = await db.execute('SELECT id FROM user WHERE username = ?', [names[1]]), id = rows[0].id
     expect(await request('POST', '/user/admin/registrations/'+id+'/rejection', { reason: 'verification rejection' }, adminCookie), 200)
-    const wrong = expect(await request('POST', '/user/sessions', { username: names[1], password: 'invalid-password' }), 401); assert.equal(wrong.data.data, undefined)
-    const rejected = expect(await request('POST', '/user/sessions', { username: names[1], password }), 403, 'USER_REJECTED'); assert.equal(rejected.data.data.rejectReason, 'verification rejection')
+    const wrong = expect(await request('POST', '/user/sessions', { username: names[1], password: 'invalid-password', ticket: await fixtureTicket() }), 401); assert.equal(wrong.data.data, undefined)
+    const rejected = expect(await request('POST', '/user/sessions', { username: names[1], password, ticket: await fixtureTicket() }), 403, 'USER_REJECTED'); assert.equal(rejected.data.data.rejectReason, 'verification rejection')
     expect(await request('POST', '/user/registrations/reapplication', { username: names[1], password, applyReason: 'verification reapplication', ticket: await fixtureTicket() }), 200)
     expect(await request('POST', '/user/registrations/reapplication', { username: names[1], password, ticket: await fixtureTicket() }), 409)
     const [updated] = await db.execute('SELECT status,reject_reason FROM user WHERE id = ?', [id]); assert.equal(updated[0].status, 'PENDING'); assert.equal(updated[0].reject_reason, null)
@@ -162,8 +170,8 @@ try {
     const resetBody = async code => ({ email: accountContact, code, password: newPassword, confirmPassword: newPassword, ticket: await fixtureTicket() })
     expect(await request('POST', '/user/password-resets', await resetBody('234567')), 400, 'USER_RESET_FAILED')
     assert.equal(await redis.exists(registrationKey), 1)
-    const first = expect(await request('POST', '/user/sessions', { username: names[0], password: resetOldPassword }), 200)
-    const second = expect(await request('POST', '/user/sessions', { username: names[0], password: resetOldPassword }), 200)
+    const first = expect(await request('POST', '/user/sessions', { username: names[0], password: resetOldPassword, ticket: await fixtureTicket() }), 200)
+    const second = expect(await request('POST', '/user/sessions', { username: names[0], password: resetOldPassword, ticket: await fixtureTicket() }), 200)
     trackCookie(first.cookie); trackCookie(second.cookie)
     // Remove only this disposable fixture's send cooldown; no shared account is modified.
     await redis.del('meng:limit:send-interval:' + hash(contactHash))
@@ -179,8 +187,8 @@ try {
     expect(await request('GET', '/user/me', null, first.cookie), 401)
     expect(await request('GET', '/user/me', null, second.cookie), 401)
     expect(await request('POST', '/user/password-resets', await resetBody(resetCode)), 400, 'USER_RESET_FAILED')
-    expect(await request('POST', '/user/sessions', { username: names[0], password: resetOldPassword }), 401)
-    const loggedIn = expect(await request('POST', '/user/sessions', { username: names[0], password: newPassword }), 200)
+    expect(await request('POST', '/user/sessions', { username: names[0], password: resetOldPassword, ticket: await fixtureTicket() }), 401)
+    const loggedIn = expect(await request('POST', '/user/sessions', { username: names[0], password: newPassword, ticket: await fixtureTicket() }), 200)
     trackCookie(loggedIn.cookie)
     expect(await request('GET', '/user/me', null, loggedIn.cookie), 200)
     const [rows] = await db.execute('SELECT status FROM user WHERE username = ?', [names[0]])

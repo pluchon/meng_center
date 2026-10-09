@@ -33,7 +33,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 captcha:
   prefix: meng:captcha
-  init-default-resource: true
+  init-default-resource: false
   local-cache-enabled: false
 meng:
   user:
@@ -56,7 +56,6 @@ meng:
       registration-ip-daily-max: 3
       reapplication-daily-max: 1
       login-max-failures: 5
-      login-captcha-after: 2
       login-lock-duration: 15m
     phone-patterns:
       '[+886]': '9[0-9]{8}'

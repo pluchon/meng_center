@@ -20,3 +20,13 @@
 .code-send:not(:disabled):hover {
   background: var(--meng-tint);
 }
+
+// 错误提示盖在输入区内，右侧让出发送按钮
+.code-field {
+  --field-message-end: 112px;
+  --field-message-radius: var(--meng-radius-pill) 0 0 var(--meng-radius-pill);
+
+  &:focus-within > .field-message {
+    opacity: 0;
+  }
+}

@@ -1,0 +1,284 @@
+@use '@/styles/mixins' as *;
+
+// 铺在表单区域底下的一层，父级需要是定位元素并自成层叠上下文
+.auth-decor {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.decor-item {
+  position: absolute;
+}
+
+.sparkle-a,
+.sparkle-b {
+  fill: var(--meng-decor-sparkle);
+  animation: decor-twinkle 2.6s ease-in-out infinite;
+}
+
+.sparkle-b {
+  animation-delay: -1.2s;
+}
+
+.sakura-a {
+  animation: decor-spin 16s linear infinite;
+}
+
+.sakura-petals {
+  fill: var(--meng-decor-sakura);
+}
+
+.sakura-heart {
+  fill: var(--meng-warning);
+}
+
+.bubble-a,
+.bubble-b {
+  fill: var(--meng-surface);
+  stroke: var(--meng-border);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  animation: decor-float 5s ease-in-out infinite;
+
+  path {
+    fill: none;
+  }
+}
+
+.bubble-b {
+  animation-delay: -2.4s;
+}
+
+.cloud-a {
+  fill: var(--meng-tint);
+  animation: decor-drift 12s ease-in-out infinite;
+}
+
+.wave-a {
+  fill: none;
+  stroke: var(--meng-primary-light-5);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.sticker {
+  padding: var(--meng-space-2) var(--meng-space-4);
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  box-shadow: 0 3px 0 var(--meng-decor-shadow);
+  color: var(--meng-text);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  animation: decor-float 4.4s ease-in-out infinite;
+}
+
+.sticker-a {
+  background: var(--meng-warning);
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+}
+
+.sticker-b {
+  background: var(--meng-success);
+  animation-delay: -1.8s;
+}
+
+// 登录页：标题两侧各一点，底部的空白放云、贴纸和波浪
+.decor-login {
+  .sparkle-a {
+    top: 30px;
+    left: 5%;
+    width: 26px;
+  }
+
+  .sakura-a {
+    top: 44px;
+    right: 5%;
+    width: 28px;
+  }
+
+  .bubble-a {
+    bottom: 112px;
+    left: 4%;
+    width: 22px;
+  }
+
+  .cloud-a {
+    bottom: 18px;
+    left: 6%;
+    width: 132px;
+  }
+
+  .sticker-a {
+    bottom: 36px;
+    left: 30%;
+    rotate: -5deg;
+  }
+
+  .sticker-b {
+    right: 8%;
+    bottom: 54px;
+    rotate: 6deg;
+  }
+
+  .sparkle-b {
+    right: 24%;
+    bottom: 104px;
+    width: 16px;
+  }
+
+  .bubble-b {
+    right: 3%;
+    bottom: 118px;
+    width: 14px;
+  }
+
+  .wave-a {
+    right: 7%;
+    bottom: 20px;
+    width: 68px;
+  }
+}
+
+// 注册页表单几乎占满，只在标题两侧点缀
+.decor-register {
+  .sparkle-a {
+    top: 18px;
+    left: 6%;
+    width: 24px;
+  }
+
+  .sakura-a {
+    top: 30px;
+    right: 6%;
+    width: 26px;
+  }
+
+  .bubble-a {
+    top: 62px;
+    left: 14%;
+    width: 14px;
+  }
+
+  .sparkle-b {
+    top: 70px;
+    right: 15%;
+    width: 14px;
+  }
+
+  .bubble-b,
+  .cloud-a,
+  .wave-a,
+  .sticker {
+    display: none;
+  }
+}
+
+// 重置密码页是一张窄卡片，装饰放在四个角
+.decor-reset {
+  .sparkle-a {
+    top: 34px;
+    left: 40px;
+    width: 26px;
+  }
+
+  .sakura-a {
+    top: 72px;
+    left: 84px;
+    width: 22px;
+  }
+
+  .bubble-a {
+    top: 92px;
+    right: 44px;
+    width: 20px;
+  }
+
+  .sparkle-b {
+    top: 150px;
+    right: 84px;
+    width: 14px;
+  }
+
+  .sticker-b {
+    bottom: 18px;
+    left: 30px;
+    rotate: -6deg;
+    font-size: 12px;
+  }
+
+  .wave-a {
+    right: 36px;
+    bottom: 30px;
+    width: 60px;
+  }
+
+  .bubble-b {
+    right: 112px;
+    bottom: 24px;
+    width: 14px;
+  }
+
+  .cloud-a,
+  .sticker-a {
+    display: none;
+  }
+}
+
+@keyframes decor-twinkle {
+  0%,
+  100% {
+    scale: 1;
+    opacity: 1;
+  }
+
+  50% {
+    scale: 0.55;
+    opacity: 0.45;
+  }
+}
+
+@keyframes decor-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@keyframes decor-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 0 -7px;
+  }
+}
+
+@keyframes decor-drift {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+
+  50% {
+    translate: 14px 0;
+  }
+}
+
+// 窄屏和矮屏空间紧张，装饰全部收起
+@include narrow {
+  .auth-decor {
+    display: none;
+  }
+}
+
+@media (height <= 640px) {
+  .auth-decor {
+    display: none;
+  }
+}

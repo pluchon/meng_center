@@ -1,5 +1,8 @@
 <template>
-  <div class="contact-field">
+  <div
+    class="contact-field"
+    :class="{ 'is-sms': channel === ContactChannel.SMS }"
+  >
     <span class="contact-label">{{ t('auth.register.contact') }}</span>
     <div
       class="contact-control"
