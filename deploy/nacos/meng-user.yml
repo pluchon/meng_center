@@ -1,0 +1,97 @@
+server:
+  address: 127.0.0.1
+  port: 8101
+spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${MENG_MYSQL_PORT}/meng_user?characterEncoding=utf8&connectionTimeZone=UTC
+    username: meng_user_app
+    password: ${MENG_MYSQL_USER_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+    db-config:
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+captcha:
+  prefix: meng:captcha
+  init-default-resource: true
+  local-cache-enabled: false
+meng:
+  user:
+    legal:
+      terms-version: '2026-10-09'
+      privacy-version: '2026-10-09'
+      published: false
+    session:
+      ttl: 7d
+    verification:
+      ticket-ttl: 2m
+      code-ttl: 5m
+      max-errors: 5
+      code-digits: 6
+    limits:
+      send-interval: 60s
+      send-window: 30m
+      send-window-max: 10
+      sms-ip-daily-max: 20
+      registration-ip-daily-max: 3
+      reapplication-daily-max: 1
+      login-max-failures: 5
+      login-captcha-after: 2
+      login-lock-duration: 15m
+    phone-patterns:
+      '[+886]': '9[0-9]{8}'
+      '[+852]': '[4-9][0-9]{7}'
+      '[+853]': '6[0-9]{7}'
+      '[+86]': '1[3-9][0-9]{9}'
+      '[+81]': '[789]0[0-9]{8}'
+      '[+65]': '[89][0-9]{7}'
+      '[+60]': '1[0-9]{8,9}'
+      '[+1]': '[2-9][0-9]{9}'
+    cookie:
+      secure: false
+    notification:
+      rpc-timeout: 12s
+      code-subject: 萌部落验证码
+      code-text: '你的萌部落验证码是 {0}，5 分钟内有效。请勿向他人透露。'
+      approved-subject: 萌部落申请已通过
+      approved-text: 你的申请已通过审核，现在可以登录萌部落。
+      rejected-subject: 萌部落申请审核结果
+      rejected-text: '你的申请未通过，原因：{0}。你可以登录查看并重新申请。'
+      sender: ${MAIL_USERNAME}
+      delivery-attempt-max: 3
+    sms:
+      enabled: false
+      endpoint: dysmsapi.aliyuncs.com
+      sign-name: ''
+      domestic-code-template: ''
+      approval-notification-enabled: false
+      approved-template: ''
+      rejected-template: ''
+    international-sms:
+      enabled: false
+      endpoint: dysmsapi.ap-southeast-1.aliyuncs.com
+      sender-id: ''
+      code-text: '萌部落验证码：{0}，5 分钟内有效。请勿向他人透露。'
+      approved-text: 你的萌部落申请已通过，现在可以登录。
+      rejected-text: '你的萌部落申请未通过，原因：{0}。'
+      approval-notification-enabled: false

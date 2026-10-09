@@ -1,0 +1,12 @@
+spring:
+  datasource:
+    url: ${MENG_PROBE_MYSQL_URL}
+    username: meng_user_app
+    password: ${MENG_MYSQL_USER_PASSWORD}
+  flyway:
+    table: verification_flyway_history
+    locations: classpath:verification-migration
+    baseline-on-migrate: false
+logging:
+  level:
+    root: WARN

@@ -1,0 +1,21 @@
+{
+  "name": "meng-verification",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:browser": "node browser/check.mjs",
+    "test:functional": "node functional/check.mjs"
+  },
+  "devDependencies": {
+    "@prettier/plugin-xml": "3.4.2",
+    "amqplib": "2.2.0",
+    "mysql2": "3.24.5",
+    "nodemailer": "10.0.16",
+    "playwright": "1.64.0",
+    "prettier": "3.9.9",
+    "prettier-plugin-java": "2.11.0",
+    "redis": "6.3.0",
+    "smtp-server": "3.19.18"
+  }
+}

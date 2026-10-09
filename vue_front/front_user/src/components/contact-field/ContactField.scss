@@ -1,0 +1,118 @@
+@use '@/styles/mixins' as *;
+
+.contact-label {
+  display: block;
+  margin-bottom: var(--meng-space-2);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.contact-control {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: var(--meng-small-control-height);
+  border: 1px solid var(--meng-border);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+
+  &:focus-within {
+    border-color: var(--meng-primary);
+    box-shadow: 0 0 0 3px var(--meng-tint);
+  }
+
+  :deep(.contact-input .el-input__wrapper),
+  :deep(.contact-region .el-select__wrapper),
+  :deep(.contact-input .el-input__wrapper.is-focus),
+  :deep(.contact-region .el-select__wrapper.is-focused) {
+    padding-inline: var(--meng-space-2);
+    min-height: 0;
+    height: calc(var(--meng-small-control-height) - 4px);
+    box-shadow: none;
+    background: transparent;
+  }
+}
+
+.contact-region {
+  width: 128px;
+  flex: none;
+  margin-left: var(--meng-space-2);
+  border-right: 1px solid var(--meng-border);
+}
+
+.contact-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-switch {
+  flex: none;
+  height: 30px;
+  width: 30px;
+  margin-right: var(--meng-space-2);
+  padding: 0 var(--meng-space-2);
+  border: 0;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+  font-size: 12px;
+  gap: var(--meng-space-1);
+}
+
+.is-switching :deep(.switch-line-upper) {
+  animation: switch-from-left 0.4s ease-out;
+}
+
+.is-switching :deep(.switch-line-lower) {
+  animation: switch-from-right 0.4s ease-out;
+}
+
+@keyframes switch-from-left {
+  from {
+    transform: translateX(-8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes switch-from-right {
+  from {
+    transform: translateX(8px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@include narrow {
+  .contact-region {
+    width: 108px;
+    margin-left: var(--meng-space-1);
+  }
+
+  .contact-switch {
+    margin-right: var(--meng-space-1);
+  }
+}
+
+.email-control :deep(.contact-input .el-input__wrapper),
+.email-control :deep(.contact-input .el-input__wrapper.is-focus) {
+  padding-left: calc(var(--meng-space-5) - 1px);
+}
+
+.contact-control.has-error,
+.contact-control.has-error:focus-within {
+  border-color: var(--meng-danger-text);
+  box-shadow: 0 0 0 2px var(--meng-danger);
+}
+
+.contact-field > .field-message {
+  margin-top: var(--meng-space-1);
+}

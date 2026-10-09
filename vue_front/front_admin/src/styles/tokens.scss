@@ -1,0 +1,46 @@
+:root {
+  --meng-bg: var(--el-fill-color-light);
+  --meng-surface: var(--el-bg-color);
+  --meng-tint: #ddf1f7;
+  --meng-primary: var(--el-color-primary);
+  --meng-text: var(--el-text-color-primary);
+  --meng-muted: var(--el-text-color-secondary);
+  --meng-placeholder: #56717d;
+  --meng-border: var(--el-border-color);
+  --meng-success: #ddf2e8;
+  --meng-danger: #f5dde5;
+  --meng-warning: #f8edcf;
+  --meng-shadow-hard: #24586c;
+  --meng-danger-text: #a8456a;
+  --meng-primary-light-3: #72a5b8;
+  --meng-primary-light-5: #9bbfcd;
+  --meng-primary-light-7: #c3d9e1;
+  --meng-primary-light-8: #d7e5eb;
+  --meng-primary-light-9: #ebf2f5;
+  --meng-primary-dark-2: #2b667b;
+  --meng-shadow: 0 20px 48px rgb(54 127 154 / 16%);
+  --meng-radius-card: 40px;
+  --meng-radius-poster: 28px;
+  --meng-radius-dialog: 28px;
+  --meng-radius-note: 20px;
+  --meng-radius-pill: 999px;
+  --meng-space-1: 4px;
+  --meng-space-2: 8px;
+  --meng-space-3: 12px;
+  --meng-space-4: 16px;
+  --meng-space-5: 20px;
+  --meng-space-6: 24px;
+  --meng-space-7: 28px;
+  --meng-space-8: 32px;
+  --meng-space-9: 36px;
+  --meng-space-10: 40px;
+  --meng-space-12: 48px;
+  --meng-space-16: 64px;
+  --meng-control-height: 52px;
+  --meng-small-control-height: 44px;
+}
+
+// The approved first-phase artwork is light-only; dark palette is intentionally pending.
+html.dark {
+  color-scheme: light;
+}

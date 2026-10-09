@@ -1,4 +1,4 @@
-# 注册页 — design reference
+# 重置密码 — design reference
 
 This is a design mockup created in a visual design tool, exported as a
 standalone page. Treat it as a REFERENCE MOCKUP, not production code:
@@ -9,7 +9,7 @@ rather than copy wholesale.
 
 ## Contents
 
-- `Register.dc.html` — the artboard (a Design Component: an `<x-dc>`
+- `Reset.dc.html` — the artboard (a Design Component: an `<x-dc>`
   template + a small logic class). The values to replicate live in its
   inline `style="…"` attributes and the `<helmet><style>` block.
 - `assets/` — files uploaded to the design (images, fonts, media)
@@ -19,11 +19,11 @@ rather than copy wholesale.
 ## Uploaded files
 
 Images, fonts and media uploaded to the design are written once each under
-`assets/` — 1 in this export — and the exported files refer to them there. A
+`assets/` — 2 in this export — and the exported files refer to them there. A
 reference a script puts together while the page runs (for example
 `"/_blob/" + id`) is not rewritten and does not load from this folder.
 
 ## Viewing
 
-Serve the folder (e.g. `python3 -m http.server`) and open `Register.dc.html`;
+Serve the folder (e.g. `python3 -m http.server`) and open `Reset.dc.html`;
 some browsers block the scripts over file://.

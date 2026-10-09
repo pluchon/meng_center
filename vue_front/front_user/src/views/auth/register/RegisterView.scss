@@ -1,0 +1,13 @@
+@use '@/styles/auth';
+
+.auth-form {
+  gap: var(--meng-space-2);
+}
+
+.auth-pair :deep(.el-input__wrapper) {
+  padding-inline: var(--meng-space-3);
+}
+
+.auth-pair :deep(.el-input__inner::placeholder) {
+  font-size: 12px;
+}

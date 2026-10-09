@@ -1,0 +1,47 @@
+.hint {
+  margin-bottom: var(--meng-space-4);
+  color: var(--meng-muted);
+}
+
+.captcha-board {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.background {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.piece {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  object-fit: contain;
+}
+
+.slider-rail {
+  position: relative;
+  height: var(--meng-control-height);
+  background: var(--meng-tint);
+  border-radius: var(--meng-radius-pill);
+  margin-block: var(--meng-space-5);
+}
+
+.slider-knob {
+  position: absolute;
+  width: var(--meng-control-height);
+  height: var(--meng-control-height);
+  border: 0;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-primary);
+  color: var(--meng-surface);
+  touch-action: none;
+}
+
+.failure {
+  color: var(--meng-danger-text);
+  margin-bottom: var(--meng-space-4);
+}

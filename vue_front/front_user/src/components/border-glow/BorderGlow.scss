@@ -1,0 +1,43 @@
+.border-glow {
+  --edge-intensity: 0;
+  --edge-x: 50%;
+  --edge-y: 50%;
+
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: var(--edge-intensity);
+  transition: opacity 0.25s ease;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 2px;
+    border-radius: inherit;
+    background: radial-gradient(
+      circle var(--meng-edge-spread) at var(--edge-x) var(--edge-y),
+      var(--meng-edge-color),
+      var(--meng-edge-secondary) 35%,
+      transparent 75%
+    );
+    mask:
+      linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+      linear-gradient(var(--meng-edge-mask) 0 0);
+    mask-composite: exclude;
+  }
+
+  &::after {
+    filter: blur(7px);
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .border-glow {
+    display: none;
+  }
+}

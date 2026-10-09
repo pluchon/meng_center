@@ -1,0 +1,5 @@
+@mixin narrow {
+  @media (width <= 760px) {
+    @content;
+  }
+}

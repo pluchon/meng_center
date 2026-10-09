@@ -1,0 +1,34 @@
+.legal-consent {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+  font-size: 12px;
+  line-height: 20px;
+
+  .consent-checkbox {
+    display: block;
+    flex: none;
+    width: 14px;
+    height: 14px;
+    accent-color: var(--meng-primary);
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.consent-copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--meng-space-1);
+  min-width: 0;
+}
+
+.consent-toggle {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--meng-muted);
+  font: inherit;
+  font-weight: 700;
+}

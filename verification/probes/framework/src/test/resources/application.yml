@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: verification-framework
+  config:
+    import:
+      - nacos:verification-common.yml?group=MENG_GROUP&refreshEnabled=false
+      - nacos:verification-framework.yml?group=MENG_GROUP&refreshEnabled=false
+  cloud:
+    nacos:
+      config:
+        server-addr: ${MENG_NACOS_ADDR}
+        namespace: ${MENG_NACOS_NAMESPACE}
+        username: ${MENG_NACOS_USERNAME}
+        password: ${MENG_NACOS_PASSWORD}
+        refresh-enabled: false
+      discovery:
+        server-addr: ${MENG_NACOS_ADDR}
+        namespace: ${MENG_NACOS_NAMESPACE}
+        username: ${MENG_NACOS_USERNAME}
+        password: ${MENG_NACOS_PASSWORD}
+        group: MENG_GROUP
+        ip: 127.0.0.1
+logging:
+  level:
+    root: WARN

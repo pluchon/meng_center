@@ -1,0 +1,95 @@
+name: meng_center
+
+services:
+  mysql:
+    image: mysql:8.4@sha256:3466ba4a4828aa8d46fb7c3bc16b67b781c98413cf4ea0fac6feaa6e881faa26
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?required}
+      MENG_MYSQL_USER_PASSWORD: ${MENG_MYSQL_USER_PASSWORD:?required}
+    command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_0900_ai_ci]
+    ports:
+      - "127.0.0.1:${MENG_MYSQL_PORT:?required}:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./mysql/01-user.sh:/docker-entrypoint-initdb.d/01-user.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'MYSQL_PWD="$$MENG_MYSQL_USER_PASSWORD" mysql -h 127.0.0.1 -u meng_user_app meng_user -Nse "SELECT 1"']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  redis:
+    image: redis:7.4-alpine@sha256:6ab0b6e7381779332f97b8ca76193e45b0756f38d4c0dcda72dbb3c32061ab99
+    restart: unless-stopped
+    environment:
+      MENG_REDIS_PASSWORD: ${MENG_REDIS_PASSWORD:?required}
+    entrypoint: [/bin/sh, /opt/meng/redis-start.sh]
+    ports:
+      - "127.0.0.1:${MENG_REDIS_PORT:?required}:6379"
+    volumes:
+      - redis-data:/data
+      - ./redis/start.sh:/opt/meng/redis-start.sh:ro
+    healthcheck:
+      test: [CMD-SHELL, 'REDISCLI_AUTH="$$MENG_REDIS_PASSWORD" redis-cli ping | grep -qx PONG']
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  rabbitmq:
+    image: rabbitmq:3.13-management@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69
+    hostname: meng-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${MENG_RABBITMQ_USERNAME:?required}
+      RABBITMQ_DEFAULT_PASS: ${MENG_RABBITMQ_PASSWORD:?required}
+      RABBITMQ_DEFAULT_VHOST: meng
+    ports:
+      - "127.0.0.1:${MENG_RABBITMQ_PORT:?required}:5672"
+      - "127.0.0.1:${MENG_RABBITMQ_MANAGEMENT_PORT:?required}:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, check_running]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+
+  nacos:
+    image: nacos/nacos-server:v3.1.1@sha256:13e74786507abbacebe080fae2fc9c05aa2591eb99c97a0a78ff0e72beb21b13
+    restart: unless-stopped
+    entrypoint: [/bin/bash, /opt/meng/nacos-start.sh]
+    environment:
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "true"
+      NACOS_AUTH_ADMIN_ENABLE: "true"
+      NACOS_AUTH_CONSOLE_ENABLE: "true"
+      NACOS_AUTH_TOKEN: ${MENG_NACOS_AUTH_TOKEN:?required}
+      NACOS_AUTH_IDENTITY_KEY: ${MENG_NACOS_AUTH_IDENTITY_KEY:?required}
+      NACOS_AUTH_IDENTITY_VALUE: ${MENG_NACOS_AUTH_IDENTITY_VALUE:?required}
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+      JVM_XMN: 128m
+    ports:
+      - "127.0.0.1:${MENG_NACOS_PORT:?required}:8848"
+      - "127.0.0.1:${MENG_NACOS_GRPC_PORT:?required}:9848"
+      - "127.0.0.1:${MENG_NACOS_CONSOLE_PORT:?required}:8080"
+    volumes:
+      - nacos-data:/home/nacos/data
+      - nacos-logs:/home/nacos/logs
+      - ./nacos/start.sh:/opt/meng/nacos-start.sh:ro
+    healthcheck:
+      test: [CMD, curl, -fsS, http://127.0.0.1:8848/nacos/v3/admin/core/state/readiness]
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 60s
+
+volumes:
+  mysql-data:
+  redis-data:
+  rabbitmq-data:
+  nacos-data:
+  nacos-logs:

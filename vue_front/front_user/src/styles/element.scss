@@ -1,0 +1,23 @@
+:root {
+  --el-color-primary: var(--meng-primary);
+  --el-color-primary-light-3: var(--meng-primary-light-3);
+  --el-color-primary-light-5: var(--meng-primary-light-5);
+  --el-color-primary-light-7: var(--meng-primary-light-7);
+  --el-color-primary-light-8: var(--meng-primary-light-8);
+  --el-color-primary-light-9: var(--meng-primary-light-9);
+  --el-color-primary-dark-2: var(--meng-primary-dark-2);
+  --el-text-color-primary: var(--meng-text);
+  --el-border-radius-base: var(--meng-radius-note);
+}
+
+.el-textarea .el-input__count {
+  background: transparent;
+}
+
+.meng-region-popper {
+  border-radius: var(--meng-radius-note);
+}
+
+.meng-captcha-dialog {
+  border-radius: var(--meng-radius-dialog);
+}

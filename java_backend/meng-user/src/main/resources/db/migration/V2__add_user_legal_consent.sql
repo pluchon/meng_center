@@ -1,0 +1,4 @@
+ALTER TABLE user
+  ADD COLUMN terms_version VARCHAR(32) NULL,
+  ADD COLUMN privacy_version VARCHAR(32) NULL,
+  ADD COLUMN agreed_at DATETIME(6) NULL;

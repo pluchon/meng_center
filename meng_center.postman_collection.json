@@ -1,0 +1,579 @@
+{
+  "info": {
+    "name": "萌部落第一阶段接口",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Cookie 由 Postman Cookie Jar 管理。密钥和密码留在个人环境中，不填入仓库集合。发送验证码和注册提交分别需要新的滑块票据；正式协议和短信配置尚未提供时对应请求会明确失败。"
+  },
+  "variable": [
+    {
+      "key": "username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "confirmPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "phone",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "ticket",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "captchaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "rejectReason",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "oldPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "newPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminUsername",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "gateway",
+      "value": "http://127.0.0.1:8080",
+      "type": "string"
+    },
+    {
+      "key": "origin",
+      "value": "http://127.0.0.1:5173",
+      "type": "string"
+    },
+    {
+      "key": "countryCode",
+      "value": "+886",
+      "type": "string"
+    },
+    {
+      "key": "termsVersion",
+      "value": "2026-10-09",
+      "type": "string"
+    },
+    {
+      "key": "privacyVersion",
+      "value": "2026-10-09",
+      "type": "string"
+    },
+    {
+      "key": "captchaTrack",
+      "value": "{}",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "生成滑块",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          }
+        ],
+        "url": "{{gateway}}/user/captcha"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) pm.collectionVariables.set('captchaId', pm.response.json().data.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "校验滑块并取得一次性票据",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/captcha/verification",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id\": \"{{captchaId}}\",\n  \"track\": {{captchaTrack}}\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) pm.collectionVariables.set('ticket', pm.response.json().data.ticket);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "发送邮箱验证码（经 MQ）",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/email-codes",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "发送短信验证码（国内或国际）",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/sms-codes",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{phone}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "邮箱注册申请",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/registrations",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"confirmPassword\": \"{{confirmPassword}}\",\n  \"email\": \"{{email}}\",\n  \"code\": \"{{code}}\",\n  \"ticket\": \"{{ticket}}\",\n  \"applyReason\": \"\",\n  \"termsVersion\": \"{{termsVersion}}\",\n  \"privacyVersion\": \"{{privacyVersion}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "手机号注册申请",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/registrations",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"confirmPassword\": \"{{confirmPassword}}\",\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{phone}}\",\n  \"code\": \"{{code}}\",\n  \"ticket\": \"{{ticket}}\",\n  \"applyReason\": \"\",\n  \"termsVersion\": \"{{termsVersion}}\",\n  \"privacyVersion\": \"{{privacyVersion}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "登录",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/sessions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "当前用户",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          }
+        ],
+        "url": "{{gateway}}/user/me"
+      }
+    },
+    {
+      "name": "管理员登录",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/sessions",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{adminUsername}}\",\n  \"password\": \"{{adminPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "审核申请分页",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          }
+        ],
+        "url": "{{gateway}}/user/admin/registrations?page=1&size=20&status=PENDING"
+      }
+    },
+    {
+      "name": "通过申请",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          }
+        ],
+        "url": "{{gateway}}/user/admin/registrations/{{userId}}/approval"
+      }
+    },
+    {
+      "name": "拒绝申请（原因必填）",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/admin/registrations/{{userId}}/rejection",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"reason\": \"{{rejectReason}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "被拒后重新申请",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/registrations/reapplication",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\",\n  \"ticket\": \"{{ticket}}\",\n  \"applyReason\": \"\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "改密并撤销全部会话",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/me/password",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"oldPassword\": \"{{oldPassword}}\",\n  \"password\": \"{{newPassword}}\",\n  \"confirmPassword\": \"{{newPassword}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "退出当前会话",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          }
+        ],
+        "url": "{{gateway}}/user/sessions/current"
+      }
+    },
+    {
+      "name": "外部内部接口封锁（预期 403）",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          }
+        ],
+        "url": "{{gateway}}/user/internal/users?ids=1"
+      }
+    },
+    {
+      "name": "发送邮箱重置验证码",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/password-reset-codes",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "使用新滑块票据；重置与注册验证码用途隔离。新密码为8～20位字母数字组合。"
+      }
+    },
+    {
+      "name": "发送手机重置验证码",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/password-reset-codes",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{phone}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "使用新滑块票据；重置与注册验证码用途隔离。新密码为8～20位字母数字组合。"
+      }
+    },
+    {
+      "name": "邮箱重置密码",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/password-resets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"code\": \"{{code}}\",\n  \"password\": \"{{newPassword}}\",\n  \"confirmPassword\": \"{{confirmPassword}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "使用新滑块票据；重置与注册验证码用途隔离。新密码为8～20位字母数字组合。"
+      }
+    },
+    {
+      "name": "手机重置密码",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Origin",
+            "value": "{{origin}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{gateway}}/user/password-resets",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phone\": \"{{phone}}\",\n  \"code\": \"{{code}}\",\n  \"password\": \"{{newPassword}}\",\n  \"confirmPassword\": \"{{confirmPassword}}\",\n  \"ticket\": \"{{ticket}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "使用新滑块票据；重置与注册验证码用途隔离。新密码为8～20位字母数字组合。"
+      }
+    }
+  ]
+}

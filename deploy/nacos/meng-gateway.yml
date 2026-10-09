@@ -1,0 +1,48 @@
+server:
+  address: 127.0.0.1
+  port: 8080
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: meng-user
+              uri: lb://meng-user
+              predicates:
+                - Path=/user/**
+          discovery:
+            locator:
+              enabled: false
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+meng:
+  gateway:
+    security:
+      allowed-origins:
+        - http://localhost:5173
+        - http://127.0.0.1:5173
+        - http://localhost:5174
+        - http://127.0.0.1:5174
+      session-ttl: 7d
+      public-read: []
+      whitelist:
+        - method: POST
+          path: /user/captcha
+        - method: POST
+          path: /user/captcha/verification
+        - method: POST
+          path: /user/email-codes
+        - method: POST
+          path: /user/sms-codes
+        - method: POST
+          path: /user/registrations
+        - method: POST
+          path: /user/registrations/reapplication
+        - method: POST
+          path: /user/sessions
+        - method: POST
+          path: /user/password-reset-codes
+        - method: POST
+          path: /user/password-resets

@@ -1,0 +1,14 @@
+.glow-cursor {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: var(--meng-cursor-layer);
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce), (hover: none), (pointer: coarse) {
+  .glow-cursor {
+    display: none;
+  }
+}

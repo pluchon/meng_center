@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>萌部落 重置密码</title>
+<script src="./vendor/react.js"></script>
+<script src="./vendor/react-dom.js"></script>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&amp;family=Noto+Sans+SC:wght@400;500;700&amp;family=ZCOOL+KuaiLe&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#367F9A}a:hover{color:#294653}
+.meng-field:focus-within{border-color:#367F9A !important;background:#FFFFFF !important;box-shadow:0 0 0 4px #DDF1F7}
+.meng-field input::placeholder{color:#56717D}
+.meng-field input:focus{outline:none}
+.meng-submit:hover{translate:0 -2px;box-shadow:0 7px 0 #24586C !important}
+.meng-submit:active{translate:0 4px;box-shadow:0 1px 0 #24586C !important}
+.meng-send:hover{translate:0 -2px;box-shadow:0 6px 0 #BCD9E3 !important}
+.meng-send:active{translate:0 3px;box-shadow:0 1px 0 #BCD9E3 !important}
+.meng-knob:hover{translate:3px 0}
+.meng-back:hover{translate:-2px 0}
+.meng-swap svg{transition:rotate .25s}
+.meng-swap:hover svg{rotate:180deg}
+.meng-swap:focus-visible,.meng-region:focus-visible,.meng-region-item:focus-visible{outline:3px solid #367F9A;outline-offset:-2px}
+.meng-region-item:hover{background:#F4FAFC !important}
+.meng-submit:focus-visible,.meng-send:focus-visible,.meng-knob:focus-visible,.meng-eye:focus-visible,.meng-back:focus-visible{outline:3px solid #367F9A;outline-offset:3px}
+.meng-eye:hover{background:#DDF1F7 !important}
+@keyframes meng-float{0%,100%{translate:0 0}50%{translate:0 -10px}}
+@keyframes meng-drift{0%,100%{translate:0 0}50%{translate:20px 0}}
+@keyframes meng-twinkle{0%,100%{scale:1;opacity:1}50%{scale:.55;opacity:.45}}
+@keyframes meng-spin{to{rotate:360deg}}
+@keyframes meng-pop{0%{scale:.9;opacity:0}60%{scale:1.04;opacity:1}100%{scale:1}}
+@keyframes meng-wave-l{to{translate:-720px 0}}
+.meng-motion .mg-float{animation:meng-float 4s ease-in-out infinite}
+.meng-motion .mg-drift{animation:meng-drift 12s ease-in-out infinite}
+.meng-motion .mg-twinkle{animation:meng-twinkle 2.4s ease-in-out infinite}
+.meng-motion .mg-spin{animation:meng-spin 16s linear infinite}
+.meng-motion .mg-pop{animation:meng-pop .35s ease-out both}
+.meng-motion .mg-wave-l{animation:meng-wave-l 26s linear infinite}
+@media (prefers-reduced-motion: reduce){.meng-motion *{animation:none !important}}
+</style>
+</helmet>
+<div class="{{rootClass}}" style="position: relative; overflow: hidden; box-sizing: border-box; min-height: 100vh; padding: 88px 16px 48px; display: flex; align-items: center; justify-content: center; background: #F4FAFC; color: #294653; font-family: 'Nunito', 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif; font-size: 15px; line-height: 1.6">
+
+  <svg class="mg-drift" aria-hidden="true" width="420" height="190" viewBox="0 0 420 190" style="position: absolute; left: -90px; top: 64px"><g fill="#DDF1F7"><circle cx="110" cy="120" r="56"></circle><circle cx="200" cy="88" r="80"></circle><circle cx="300" cy="118" r="60"></circle><rect x="70" y="112" width="280" height="66" rx="33"></rect></g></svg>
+  <svg class="mg-drift" aria-hidden="true" width="260" height="118" viewBox="0 0 420 190" style="position: absolute; right: 120px; top: 30px; animation-duration: 16s; animation-direction: reverse"><g fill="#DDF1F7"><circle cx="110" cy="120" r="56"></circle><circle cx="200" cy="88" r="80"></circle><circle cx="300" cy="118" r="60"></circle><rect x="70" y="112" width="280" height="66" rx="33"></rect></g></svg>
+  <svg class="mg-drift" aria-hidden="true" width="380" height="172" viewBox="0 0 420 190" style="position: absolute; right: -120px; top: 42%; animation-duration: 18s"><g fill="#DDF1F7"><circle cx="110" cy="120" r="56"></circle><circle cx="200" cy="88" r="80"></circle><circle cx="300" cy="118" r="60"></circle><rect x="70" y="112" width="280" height="66" rx="33"></rect></g></svg>
+  <svg class="mg-drift" aria-hidden="true" width="300" height="136" viewBox="0 0 420 190" style="position: absolute; left: 8%; bottom: 150px; animation-duration: 15s; animation-direction: reverse"><g fill="#DDF1F7"><circle cx="110" cy="120" r="56"></circle><circle cx="200" cy="88" r="80"></circle><circle cx="300" cy="118" r="60"></circle><rect x="70" y="112" width="280" height="66" rx="33"></rect></g></svg>
+
+  <svg class="mg-float" aria-hidden="true" width="44" height="44" viewBox="0 0 40 40" style="position: absolute; left: 22%; top: 30%; animation-duration: 5s"><circle cx="20" cy="20" r="17" fill="#FFFFFF" stroke="#BCD9E3" stroke-width="2"></circle><path d="M11 17a10 10 0 0 1 6-6" fill="none" stroke="#BCD9E3" stroke-width="2" stroke-linecap="round"></path></svg>
+  <svg class="mg-float" aria-hidden="true" width="24" height="24" viewBox="0 0 40 40" style="position: absolute; left: 27%; bottom: 32%; animation-delay: -1.5s"><circle cx="20" cy="20" r="17" fill="#FFFFFF" stroke="#BCD9E3" stroke-width="3"></circle></svg>
+  <svg class="mg-float" aria-hidden="true" width="34" height="34" viewBox="0 0 40 40" style="position: absolute; right: 24%; top: 20%; animation-duration: 6s; animation-delay: -2s"><circle cx="20" cy="20" r="17" fill="#FFFFFF" stroke="#BCD9E3" stroke-width="2"></circle><path d="M11 17a10 10 0 0 1 6-6" fill="none" stroke="#BCD9E3" stroke-width="2" stroke-linecap="round"></path></svg>
+  <svg class="mg-float" aria-hidden="true" width="18" height="18" viewBox="0 0 40 40" style="position: absolute; right: 21%; bottom: 38%; animation-delay: -3s"><circle cx="20" cy="20" r="17" fill="#FFFFFF" stroke="#BCD9E3" stroke-width="4"></circle></svg>
+  <svg class="mg-twinkle" aria-hidden="true" width="30" height="30" viewBox="0 0 24 24" style="position: absolute; left: 18%; top: 14%"><path fill="#F0CF7A" d="M12 2c.8 6 4 9.200 10 10-6 .8-9.200 4-10 10-.8-6-4-9.200-10-10 6-.8 9.200-4 10-10z"></path></svg>
+  <svg class="mg-twinkle" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" style="position: absolute; right: 26%; bottom: 18%; animation-delay: -1.2s"><path fill="#F0CF7A" d="M12 2c.8 6 4 9.200 10 10-6 .8-9.200 4-10 10-.8-6-4-9.200-10-10 6-.8 9.200-4 10-10z"></path></svg>
+  <svg class="mg-spin" aria-hidden="true" width="34" height="34" viewBox="0 0 24 24" style="position: absolute; left: 14%; bottom: 26%"><g fill="#F1C3D1"><ellipse cx="12" cy="6.500" rx="3.200" ry="5"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(72 12 12)"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(144 12 12)"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(216 12 12)"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(288 12 12)"></ellipse></g><circle cx="12" cy="12" r="1.800" fill="#F8EDCF"></circle></svg>
+  <svg class="mg-spin" aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" style="position: absolute; right: 17%; top: 14%; animation-duration: 22s; animation-direction: reverse"><g fill="#F1C3D1"><ellipse cx="12" cy="6.500" rx="3.200" ry="5"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(72 12 12)"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(144 12 12)"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(216 12 12)"></ellipse><ellipse cx="12" cy="6.500" rx="3.200" ry="5" transform="rotate(288 12 12)"></ellipse></g><circle cx="12" cy="12" r="1.800" fill="#F8EDCF"></circle></svg>
+
+  <svg class="mg-wave-l" aria-hidden="true" width="2880" height="200" viewBox="0 0 2880 200" style="position: absolute; left: 0; bottom: 0; max-width: none"><path fill="#DDF1F7" d="M0 50Q180 0 360 50T720 50T1080 50T1440 50T1800 50T2160 50T2520 50T2880 50V200H0z"></path></svg>
+  <svg class="mg-wave-l" aria-hidden="true" width="2880" height="140" viewBox="0 0 2880 140" style="position: absolute; left: 0; bottom: 0; max-width: none; animation-duration: 18s; animation-direction: reverse"><path fill="#DDF2E8" d="M0 40Q180 80 360 40T720 40T1080 40T1440 40T1800 40T2160 40T2520 40T2880 40V140H0z"></path></svg>
+  <svg class="mg-wave-l" aria-hidden="true" width="2880" height="80" viewBox="0 0 2880 80" style="position: absolute; left: 0; bottom: 0; max-width: none; animation-duration: 14s"><path fill="#FFFFFF" d="M0 30Q180 0 360 30T720 30T1080 30T1440 30T1800 30T2160 30T2520 30T2880 30V80H0z"></path></svg>
+
+  <div style="position: relative; width: 100%; max-width: 520px">
+
+    <div style="position: relative; box-sizing: border-box; padding: 72px clamp(20px, 6vw, 44px) 24px; display: flex; flex-direction: column; border-radius: 40px; background: #FFFFFF; box-shadow: 0 20px 48px rgba(54, 127, 154, 0.16)">
+
+      <div class="mg-float" style="position: absolute; left: 50%; top: -52px; margin-left: -52px; width: 104px; height: 104px; box-sizing: border-box; overflow: hidden; border: 4px solid #FFFFFF; border-radius: 52px; background: #DDF1F7; box-shadow: 0 8px 20px rgba(54, 127, 154, 0.22); animation-duration: 5s">
+        <img src="./assets/0a6fff2a1a0367fe31952478fa63cafe.png" alt="萌部落的看板娘琪露诺" style="position: absolute; left: -79px; top: -79px; width: 220px; max-width: none; height: auto; display: block">
+      </div>
+
+      <div class="mg-float" style="position: absolute; left: calc(50% + 62px); top: -40px; rotate: 5deg; padding: 6px 14px; border: 2.5px solid #367F9A; border-radius: 20px; background: #FFFFFF; font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif; font-size: 17px; line-height: 1.4; white-space: nowrap; color: #294653; animation-duration: 4.5s; animation-delay: -1s">
+        <sc-if value="{{showForm}}" hint-placeholder-val="{{true}}"><span>忘了也没关系～</span></sc-if>
+        <sc-if value="{{done}}" hint-placeholder-val="{{false}}"><span>搞定啦！</span></sc-if>
+        <div style="position: absolute; left: 14px; bottom: -8px; width: 12px; height: 12px; box-sizing: border-box; rotate: 45deg; border-right: 2.5px solid #367F9A; border-bottom: 2.5px solid #367F9A; border-radius: 0 0 3px 0; background: #FFFFFF"></div>
+      </div>
+
+      <a class="meng-back" href="Main.dc.html" style="position: absolute; left: 20px; top: 18px; height: 44px; padding: 0 14px 0 10px; display: flex; align-items: center; gap: 4px; border-radius: 22px; background: #F4FAFC; font-size: 14px; font-weight: 800; color: #294653; text-decoration: none; transition: translate 0.12s">
+        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="M14.500 6l-6 6 6 6"></path></svg>
+        登录
+      </a>
+
+      <sc-if value="{{showForm}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-direction: column">
+
+          <h1 style="margin: 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif; font-weight: 400; font-size: 40px; line-height: 1.25; color: #294653">
+            <span>重置</span>
+            <span style="display: inline-block; rotate: -3deg; padding: 0 14px; border-radius: 18px; background: #DDF2E8">密码</span>
+            <svg class="mg-twinkle" aria-hidden="true" width="26" height="26" viewBox="0 0 24 24"><path fill="#F0CF7A" d="M12 2c.8 6 4 9.200 10 10-6 .8-9.200 4-10 10-.8-6-4-9.200-10-10 6-.8 9.200-4 10-10z"></path></svg>
+          </h1>
+
+          <div style="margin-top: 20px; display: flex; flex-direction: column; gap: 12px">
+
+            <div>
+              <label for="reset-contact" style="display: block; margin-bottom: 4px; padding-left: 6px; font-size: 14px; font-weight: 700; color: #294653"><sc-if value="{{byEmail}}" hint-placeholder-val="{{true}}"><span>注册时用的邮箱</span></sc-if><sc-if value="{{byPhone}}" hint-placeholder-val="{{false}}"><span>注册时用的手机号</span></sc-if></label>
+              <div class="meng-field" style="position: relative; box-sizing: border-box; height: 52px; padding: 0 2px 0 8px; display: flex; align-items: center; gap: 10px; border: 2px solid #BCD9E3; border-radius: 26px; background: #F4FAFC; transition: box-shadow 0.15s, border-color 0.15s">
+                <sc-if value="{{byEmail}}" hint-placeholder-val="{{true}}">
+                  <div style="flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: #DDF1F7">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"></rect><path d="M4 8l8 5.500L20 8"></path></svg>
+                  </div>
+                </sc-if>
+                <sc-if value="{{byPhone}}" hint-placeholder-val="{{false}}">
+                  <button class="meng-region" type="button" aria-label="选择国家或地区" onClick="{{toggleRegion}}" style="flex: none; height: 44px; margin-left: -4px; padding: 0 2px; display: flex; align-items: center; border: 0; border-radius: 22px; background: transparent; font: inherit; cursor: pointer">
+                    <span style="height: 32px; padding: 0 8px 0 12px; display: inline-flex; align-items: center; gap: 3px; border-radius: 16px; background: #DDF1F7; font-size: 14px; font-weight: 800; white-space: nowrap; color: #294653">
+                      <span>{{regionCode}}</span>
+                      <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.800" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9.500l6 6 6-6"></path></svg>
+                    </span>
+                  </button>
+                </sc-if>
+                <input id="reset-contact" type="{{contactType}}" placeholder="{{contactPlaceholder}}" style="flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; font: inherit; color: #294653">
+                <button class="meng-swap" type="button" aria-label="{{swapLabel}}" onClick="{{toggleContact}}" style="flex: none; height: 44px; padding: 0 4px; display: flex; align-items: center; border: 0; border-radius: 22px; background: transparent; font: inherit; cursor: pointer">
+                  <span style="height: 32px; padding: 0 12px 0 10px; display: inline-flex; align-items: center; gap: 5px; border-radius: 16px; background: #DDF1F7; font-size: 13px; font-weight: 800; white-space: nowrap; color: #294653">
+                    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13"></path><path d="M14 4.500L17.500 8 14 11.500"></path><path d="M20 16H7"></path><path d="M10 12.500L6.500 16 10 19.500"></path></svg>
+                    <sc-if value="{{byEmail}}" hint-placeholder-val="{{true}}"><span>用手机号</span></sc-if>
+                    <sc-if value="{{byPhone}}" hint-placeholder-val="{{false}}"><span>用邮箱</span></sc-if>
+                  </span>
+                </button>
+                <sc-if value="{{regionOpen}}" hint-placeholder-val="{{false}}">
+                  <div class="mg-pop" style="position: absolute; left: -2px; top: 56px; z-index: 4; box-sizing: border-box; width: 248px; max-width: 100%; max-height: 244px; overflow-y: auto; padding: 6px; display: flex; flex-direction: column; gap: 2px; border: 2px solid #DDF1F7; border-radius: 20px; background: #FFFFFF; box-shadow: 0 12px 32px rgba(41, 70, 83, 0.2)">
+                    <sc-for list="{{regions}}" as="r" hint-placeholder-count="4">
+                      <button class="meng-region-item" type="button" onClick="{{r.pick}}" style="flex: none; height: 44px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 0; border-radius: 14px; background: {{r.bg}}; font: inherit; font-size: 14px; font-weight: {{r.weight}}; color: #294653; text-align: left; cursor: pointer">
+                        <span>{{r.name}}</span>
+                        <span style="font-weight: 700; color: #4F6B78">{{r.code}}</span>
+                      </button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+
+            <div>
+              <label for="reset-code" style="display: block; margin-bottom: 4px; padding-left: 6px; font-size: 14px; font-weight: 700; color: #294653"><sc-if value="{{byEmail}}" hint-placeholder-val="{{true}}"><span>邮箱验证码</span></sc-if><sc-if value="{{byPhone}}" hint-placeholder-val="{{false}}"><span>短信验证码</span></sc-if></label>
+              <div style="display: flex; align-items: center; gap: 10px">
+                <div class="meng-field" style="flex: 1 1 auto; min-width: 0; box-sizing: border-box; height: 52px; padding: 0 16px 0 8px; display: flex; align-items: center; gap: 10px; border: 2px solid {{codeBorder}}; border-radius: 26px; background: #F4FAFC; transition: box-shadow 0.15s, border-color 0.15s">
+                  <div style="flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: #DDF1F7">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.500-3 8-7 10-4-2-7-5.500-7-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg>
+                  </div>
+                  <input id="reset-code" type="text" inputmode="numeric" placeholder="验证码" style="flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; font: inherit; color: #294653">
+                </div>
+                <sc-if value="{{codeIdle}}" hint-placeholder-val="{{true}}">
+                  <button class="meng-send" type="button" onClick="{{openCaptcha}}" style="flex: none; height: 52px; padding: 0 18px; border: 0; border-radius: 26px; background: #DDF1F7; box-shadow: 0 4px 0 #BCD9E3; color: #294653; font: inherit; font-size: 14px; font-weight: 800; white-space: nowrap; cursor: pointer; transition: translate 0.12s, box-shadow 0.12s">发送验证码</button>
+                </sc-if>
+                <sc-if value="{{codeSent}}" hint-placeholder-val="{{false}}">
+                  <button type="button" aria-disabled="true" style="flex: none; box-sizing: border-box; height: 52px; padding: 0 16px; border: 2px dashed #BCD9E3; border-radius: 26px; background: #F4FAFC; color: #4F6B78; font: inherit; font-size: 14px; font-weight: 700; white-space: nowrap; cursor: not-allowed">58 秒后重发</button>
+                </sc-if>
+              </div>
+              <sc-if value="{{codeSent}}" hint-placeholder-val="{{false}}">
+                <div class="mg-pop" style="margin-top: 8px; display: flex; align-items: flex-start; gap: 6px; padding: 6px 12px; border-radius: 14px; background: #DDF2E8; font-size: 13px; color: #294653">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3E8E6A" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round" style="flex: none; margin-top: 2px"><path d="M5 12.500l4.500 4.500L19 7.500"></path></svg>
+                  <sc-if value="{{byEmail}}" hint-placeholder-val="{{true}}"><span>如果这个邮箱注册过，验证码已经发出，5 分钟内有效</span></sc-if>
+                  <sc-if value="{{byPhone}}" hint-placeholder-val="{{false}}"><span>如果这个手机号注册过，验证码已经发出，5 分钟内有效</span></sc-if>
+                </div>
+              </sc-if>
+              <sc-if value="{{codeWrong}}" hint-placeholder-val="{{false}}">
+                <div class="mg-pop" style="margin-top: 6px; padding-left: 6px; font-size: 13px; font-weight: 700; color: #A8456A">验证码不对或者过期了，重新获取一个吧</div>
+              </sc-if>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 12px">
+              <div style="flex: 1 1 160px; min-width: 0">
+                <label for="reset-password" style="display: block; margin-bottom: 4px; padding-left: 6px; font-size: 14px; font-weight: 700; color: #294653">新密码</label>
+                <div class="meng-field" style="box-sizing: border-box; height: 52px; padding: 0 2px 0 8px; display: flex; align-items: center; gap: 10px; border: 2px solid #BCD9E3; border-radius: 26px; background: #F4FAFC; transition: box-shadow 0.15s, border-color 0.15s">
+                  <div style="flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: #DDF1F7">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="3"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+                  </div>
+                  <input id="reset-password" type="{{pwdType}}" placeholder="设置新密码" style="flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; font: inherit; color: #294653">
+                  <button class="meng-eye" type="button" aria-label="{{pwdToggleLabel}}" onClick="{{togglePwd}}" style="flex: none; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: transparent; color: #4F6B78; cursor: pointer">
+                    <sc-if value="{{pwdHidden}}" hint-placeholder-val="{{true}}">
+                      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.500 12S6 5.500 12 5.500 21.500 12 21.500 12 18 18.500 12 18.500 2.500 12 2.500 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    </sc-if>
+                    <sc-if value="{{pwdShown}}" hint-placeholder-val="{{false}}">
+                      <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l16 16"></path><path d="M10 5.700a9.400 9.400 0 0 1 2-.2c6 0 9.500 6.500 9.500 6.500a17 17 0 0 1-2.900 3.700"></path><path d="M6.400 7.500A16.600 16.600 0 0 0 2.500 12S6 18.500 12 18.500a9.300 9.300 0 0 0 4-.9"></path><path d="M9.900 9.900a3 3 0 0 0 4.200 4.200"></path></svg>
+                    </sc-if>
+                  </button>
+                </div>
+              </div>
+              <div style="flex: 1 1 160px; min-width: 0">
+                <label for="reset-confirm" style="display: block; margin-bottom: 4px; padding-left: 6px; font-size: 14px; font-weight: 700; color: #294653">确认新密码</label>
+                <div class="meng-field" style="box-sizing: border-box; height: 52px; padding: 0 16px 0 8px; display: flex; align-items: center; gap: 10px; border: 2px solid {{confirmBorder}}; border-radius: 26px; background: #F4FAFC; transition: box-shadow 0.15s, border-color 0.15s">
+                  <div style="flex: none; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 16px; background: #DDF1F7">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#367F9A" stroke-width="2.200" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="3"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path><path d="M9.500 15.500l1.800 1.800 3.200-3.300"></path></svg>
+                  </div>
+                  <input id="reset-confirm" type="{{pwdType}}" placeholder="再输一次" style="flex: 1 1 auto; min-width: 0; height: 100%; padding: 0; border: 0; background: transparent; font: inherit; color: #294653">
+                </div>
+                <sc-if value="{{pwdMismatch}}" hint-placeholder-val="{{false}}">
+                  <div class="mg-pop" style="margin-top: 6px; padding-left: 6px; font-size: 13px; font-weight: 700; color: #A8456A">两次输入的不一样哦</div>
+                </sc-if>
+              </div>
+            </div>
+
+          </div>
+
+          <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 10px">
+            <button class="meng-submit" type="button" onClick="{{submit}}" style="height: 52px; margin-bottom: 5px; padding: 0 24px; display: flex; align-items: center; justify-content: center; gap: 8px; border: 0; border-radius: 26px; background: #367F9A; box-shadow: 0 5px 0 #24586C; color: #FFFFFF; font: inherit; font-size: 17px; font-weight: 800; cursor: pointer; transition: translate 0.12s, box-shadow 0.12s">
+              <span style="letter-spacing: 0.15em; margin-right: -0.15em">重置密码</span>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24"><path fill="#FFFFFF" d="M12 2c.8 6 4 9.200 10 10-6 .8-9.200 4-10 10-.8-6-4-9.200-10-10 6-.8 9.200-4 10-10z"></path></svg>
+            </button>
+            <div style="text-align: center; font-size: 14px; color: #4F6B78">想起来了？<a href="Main.dc.html" style="display: inline-block; padding: 8px 4px; font-weight: 800; text-decoration: underline wavy #E9A9BE; text-underline-offset: 5px">去登录</a></div>
+          </div>
+
+        </div>
+      </sc-if>
+
+      <sc-if value="{{done}}" hint-placeholder-val="{{false}}">
+        <div class="mg-pop" style="padding: 4px 0 16px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center">
+          <div class="mg-float" style="rotate: -3deg; padding: 6px 20px; border-radius: 26px; background: #DDF2E8; box-shadow: 0 5px 0 rgba(54, 127, 154, 0.2); font-size: 24px; font-weight: 800; white-space: nowrap; color: #294653">＼(≧▽≦)／</div>
+          <h1 style="margin: 0; font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif; font-weight: 400; font-size: 38px; line-height: 1.25; color: #294653">密码改好啦</h1>
+          <p style="margin: 0; max-width: 300px; font-size: 15px; color: #4F6B78">其他设备上的登录都已经退出，用新密码重新登录吧。</p>
+          <a class="meng-submit" href="Main.dc.html" style="margin-top: 8px; box-sizing: border-box; width: 100%; max-width: 300px; height: 52px; display: flex; align-items: center; justify-content: center; border-radius: 26px; background: #367F9A; box-shadow: 0 5px 0 #24586C; color: #FFFFFF; font-size: 17px; font-weight: 800; text-decoration: none; transition: translate 0.12s, box-shadow 0.12s">去登录</a>
+        </div>
+      </sc-if>
+
+    </div>
+
+    <div class="mg-float" style="position: absolute; left: -34px; top: 96px; rotate: -8deg; height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border: 3px solid #FFFFFF; border-radius: 22px; background: #F8EDCF; box-shadow: 0 4px 0 rgba(54, 127, 154, 0.2); font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif; font-size: 17px; white-space: nowrap; color: #294653; animation-delay: -0.6s">别急～</div>
+    <div class="mg-float" style="position: absolute; right: -40px; top: 44%; rotate: 6deg; height: 38px; padding: 0 14px; display: inline-flex; align-items: center; border: 3px solid #FFFFFF; border-radius: 22px; background: #F5DDE5; box-shadow: 0 4px 0 rgba(54, 127, 154, 0.2); font-size: 15px; font-weight: 800; white-space: nowrap; color: #294653; animation-duration: 5s; animation-delay: -2.2s">(｡･ω･｡)ﾉ</div>
+    <div class="mg-float" style="position: absolute; left: -28px; bottom: 36px; rotate: 5deg; height: 38px; padding: 0 16px; display: inline-flex; align-items: center; border: 3px solid #FFFFFF; border-radius: 22px; background: #DDF2E8; box-shadow: 0 4px 0 rgba(54, 127, 154, 0.2); font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif; font-size: 17px; white-space: nowrap; color: #294653; animation-duration: 4.4s; animation-delay: -1.4s">马上就好</div>
+  </div>
+
+  <sc-if value="{{showCaptcha}}" hint-placeholder-val="{{false}}">
+    <div style="position: absolute; inset: 0; z-index: 5; box-sizing: border-box; padding: 16px; display: flex; align-items: center; justify-content: center; background: rgba(41, 70, 83, 0.38); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px)">
+      <div class="mg-pop" style="box-sizing: border-box; width: 100%; max-width: 372px; padding: 20px; display: flex; flex-direction: column; gap: 14px; border-radius: 28px; background: #FFFFFF; box-shadow: 0 24px 60px rgba(41, 70, 83, 0.28)">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+          <div style="display: flex; flex-direction: column">
+            <div style="font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif; font-size: 22px; line-height: 1.3; color: #294653">安全验证</div>
+            <div style="font-size: 13px; color: #4F6B78">拖动滑块，把拼图拼回去</div>
+          </div>
+          <button class="meng-eye" type="button" aria-label="关闭" onClick="{{closeCaptcha}}" style="flex: none; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: transparent; color: #4F6B78; cursor: pointer">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.400" stroke-linecap="round"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <div style="position: relative; overflow: hidden; height: 180px; border-radius: 18px; background: #DDF1F7">
+          <img src="./assets/a081d3fc017e567cb996faee14f3ae34.png" alt="" style="position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 38%; display: block">
+          <div style="position: absolute; left: 64%; top: 64px; width: 52px; height: 52px; box-sizing: border-box; border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 12px; background: rgba(41, 70, 83, 0.5)"></div>
+          <div style="position: absolute; left: 14px; top: 64px; width: 52px; height: 52px; box-sizing: border-box; border: 2.5px solid #FFFFFF; border-radius: 12px; background: rgba(255, 255, 255, 0.4); box-shadow: 0 4px 12px rgba(41, 70, 83, 0.35)"></div>
+        </div>
+        <div style="position: relative; box-sizing: border-box; height: 52px; display: flex; align-items: center; justify-content: center; border: 2px solid #BCD9E3; border-radius: 26px; background: #F4FAFC; font-size: 13px; color: #4F6B78">
+          <button class="meng-knob" type="button" aria-label="拖动滑块完成验证" onClick="{{passCaptcha}}" style="position: absolute; left: 2px; top: 2px; width: 44px; height: 44px; padding: 0; display: flex; align-items: center; justify-content: center; border: 0; border-radius: 22px; background: #367F9A; box-shadow: 0 3px 0 #24586C; color: #FFFFFF; cursor: pointer; transition: translate 0.12s">
+            <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.600" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"></path><path d="M13 6l6 6-6 6"></path></svg>
+          </button>
+          向右拖动滑块
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"step":{"editor":"enum","options":["填写","滑块验证","验证码已发送","验证码错误","两次密码不一致","重置成功"],"default":"填写","section":"流程状态"},"contact":{"editor":"enum","options":["邮箱","手机号"],"default":"邮箱","section":"联系方式"},"regionOpen":{"editor":"boolean","default":false,"section":"联系方式"},"motion":{"editor":"boolean","default":true,"section":"动效"},"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  state = { showPwd: false };
+
+  renderVals() {
+    const propStep = this.props.step ?? '填写';
+    if (this._propStep !== propStep) {
+      this._propStep = propStep;
+      this._localStep = null;
+    }
+    const step = this._localStep ?? propStep;
+    const go = (next) => () => {
+      this._localStep = next;
+      this.forceUpdate();
+    };
+    const propContact = this.props.contact ?? '邮箱';
+    if (this._propContact !== propContact) {
+      this._propContact = propContact;
+      this._localContact = null;
+    }
+    const byPhone = (this._localContact ?? propContact) === '手机号';
+    const propRegionOpen = !!(this.props.regionOpen ?? false);
+    if (this._propRegionOpen !== propRegionOpen) {
+      this._propRegionOpen = propRegionOpen;
+      this._localRegionOpen = null;
+    }
+    const regionOpen = byPhone && (this._localRegionOpen ?? propRegionOpen);
+    const regionCode = this._regionCode ?? '+886';
+    const regionList = [
+      { name: '台湾', code: '+886' },
+      { name: '香港', code: '+852' },
+      { name: '澳门', code: '+853' },
+      { name: '中国大陆', code: '+86' },
+      { name: '日本', code: '+81' },
+      { name: '新加坡', code: '+65' },
+      { name: '马来西亚', code: '+60' },
+      { name: '美国 / 加拿大', code: '+1' },
+    ];
+    const motion = this.props.motion ?? true;
+    const showPwd = !!(this.state || {}).showPwd;
+    const done = step === '重置成功';
+    const codeSent = step === '验证码已发送';
+    const codeWrong = step === '验证码错误';
+    const pwdMismatch = step === '两次密码不一致';
+    return {
+      rootClass: motion ? 'meng-motion' : '',
+      byEmail: !byPhone,
+      byPhone,
+      contactType: byPhone ? 'tel' : 'email',
+      contactPlaceholder: byPhone ? '手机号码' : '邮箱地址',
+      swapLabel: byPhone ? '改用邮箱找回' : '改用手机号找回',
+      toggleContact: () => {
+        this._localContact = byPhone ? '邮箱' : '手机号';
+        this.forceUpdate();
+      },
+      regionOpen,
+      regionCode,
+      regions: regionList.map((r) => ({
+        ...r,
+        bg: r.code === regionCode ? '#DDF1F7' : 'transparent',
+        weight: r.code === regionCode ? 800 : 600,
+        pick: () => {
+          this._regionCode = r.code;
+          this._localRegionOpen = false;
+          this.forceUpdate();
+        },
+      })),
+      toggleRegion: () => {
+        this._localRegionOpen = !regionOpen;
+        this.forceUpdate();
+      },
+      showForm: !done,
+      done,
+      showCaptcha: step === '滑块验证',
+      codeSent,
+      codeIdle: !codeSent,
+      codeWrong,
+      codeBorder: codeWrong ? '#C4587C' : '#BCD9E3',
+      pwdMismatch,
+      confirmBorder: pwdMismatch ? '#C4587C' : '#BCD9E3',
+      pwdType: showPwd ? 'text' : 'password',
+      pwdHidden: !showPwd,
+      pwdShown: showPwd,
+      pwdToggleLabel: showPwd ? '隐藏密码' : '显示密码',
+      togglePwd: () => this.setState({ showPwd: !showPwd }),
+      openCaptcha: go('滑块验证'),
+      closeCaptcha: go('填写'),
+      passCaptcha: go('验证码已发送'),
+      submit: go('重置成功'),
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -16,12 +16,13 @@
 | 项 | 选型 | 说明 |
 |---|---|---|
 | JDK | 17 | Spring Boot 4 的最低要求；本机 PATH 上是 17.0.9 |
-| 后端框架 | Spring Boot 4.0.x | 钉在 4.0.x，暂未查到适配 4.1 的 Spring Cloud Alibaba |
-| 微服务 | Spring Cloud 2025.1.x + Spring Cloud Alibaba 2025.1.0.0 | Nacos 注册与配置、Gateway；Sentinel 有证据再上 |
-| 持久层 | MyBatis-Plus | 必须用 `mybatis-plus-spring-boot4-starter`（3.5.13 起） |
+| 后端框架 | Spring Boot 4.0.8 | 钉在 4.0.x；已与下列 Cloud/Alibaba 组合完成启动探针 |
+| 微服务 | Spring Cloud 2025.1.0 + Spring Cloud Alibaba 2025.1.0.0 | Nacos 3.1.1 配置导入、服务注册、Gateway 鉴权及内部路径封锁实测通过 |
+| 持久层 | MyBatis-Plus 3.5.17 | `mybatis-plus-spring-boot4-starter`；真实 MySQL 迁移与读写探针通过 |
 | 工具库 | Hutool、Lombok | |
 | 关系库 | MySQL 8 | 每个服务独占一个库 |
-| 数据库迁移 | Flyway | 每个服务管自己的库，只前进、不改历史文件 |
+| 数据库迁移 | Flyway 11.14.1（Boot 4.0.8 BOM 管理） | `spring-boot-starter-flyway` + `flyway-mysql`；每个服务管自己的库，只前进、不改历史文件 |
+| 行为验证码 | tianai 1.5.5 | Boot 4.0.8 独立探针生成滑块、轨迹校验及重放拒绝通过 |
 | 缓存 | Redis | 会话、限流、缓存 |
 | 消息 | RabbitMQ | 跨域事件、延迟任务 |
 | 搜索与向量 | Elasticsearch | 关键词检索和向量检索共用，不上 Milvus |
@@ -190,13 +191,15 @@ java_backend/
 - 通道：短信用阿里云（中国站），邮件用 Spring 邮件 starter 走 SMTP。
 - 工程：groupId 和基础包名 `com.pluchon.meng`；迁移用 Flyway；Compose 放 `deploy/`（见 [kickoff.md](kickoff.md)）。
 
+找回密码已按仓库主人后续要求追加：独立重置验证码、邮箱/手机二选一，重置后撤销全部旧会话；不改变审核状态。
+
 ### 暂缓
 
 - 上线服务器。按当前组件量 8G 才宽裕；4G 需要砍 xxl-job 并压缩业务服务数。
 - Cloudflare、浏览器指纹。
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
-- 找回密码、封禁、第三方登录。
+- 封禁、第三方登录。
 
 ### 待定
 
@@ -209,8 +212,8 @@ java_backend/
 
 ### 待核实
 
-- tianai 行为验证码对 Spring Boot 4 的兼容性。
-- Flyway 在 Spring Boot 4 下的 starter 和 MySQL 支持模块。
+- tianai 的 Redis 存储和浏览器拖动已通过第一阶段验证，保留后续反滥用回归。
+- Flyway 11.14.1 已迁移实际 user 表并完成读写验证；MySQL 8.4 仍有高于已验证版本 8.1 的启动提示。
 - 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
 - xxl-job 对 Spring Boot 4 的兼容性。
 - Elasticsearch 的 RRF 融合排序是否需要付费许可；需要的话改用加权合并或在 Python 侧实现。

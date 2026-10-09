@@ -1,0 +1,196 @@
+.auth-layout {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: var(--meng-space-4);
+}
+
+.auth-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52% 48%;
+  width: min(1120px, 100%);
+  padding: var(--meng-space-5);
+  background: var(--meng-surface);
+  border-radius: var(--meng-radius-card);
+  box-shadow: var(--meng-shadow);
+}
+
+.poster {
+  position: relative;
+  min-height: min(600px, calc(100dvh - 64px));
+  overflow: hidden;
+  background: var(--meng-tint);
+  border-radius: var(--meng-radius-poster);
+}
+
+.poster > img {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  object-fit: cover;
+}
+
+.poster-copy {
+  position: absolute;
+  inset: auto var(--meng-space-7) var(--meng-space-7);
+  padding: var(--meng-space-5);
+  background: var(--meng-surface);
+  border-radius: var(--meng-radius-note);
+
+  h2 {
+    margin-block: var(--meng-space-2);
+    font-family: 'ZCOOL KuaiLe', sans-serif;
+    font-size: 27px;
+  }
+
+  span {
+    color: var(--meng-primary);
+    font-size: 12px;
+    letter-spacing: 0.12em;
+  }
+
+  p {
+    font-size: 14px;
+    color: var(--meng-muted);
+  }
+}
+
+.poster-fallback {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  height: 100%;
+  gap: var(--meng-space-4);
+}
+
+.form-area {
+  padding: var(--meng-space-4) clamp(16px, 3vw, 40px);
+  min-width: 0;
+  align-self: center;
+}
+
+.poster-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+
+  img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+  }
+
+  position: absolute;
+  top: var(--meng-space-4);
+  left: var(--meng-space-4);
+  padding: var(--meng-space-3) var(--meng-space-5);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  border: 2px solid var(--meng-surface);
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 24px;
+}
+
+.poster-chip {
+  position: absolute;
+  padding: var(--meng-space-3) var(--meng-space-4);
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  font-weight: 700;
+}
+
+.chip-one {
+  top: var(--meng-space-5);
+  right: var(--meng-space-4);
+  background: var(--meng-warning);
+  transform: rotate(8deg);
+}
+
+.chip-two {
+  top: 15%;
+  right: var(--meng-space-12);
+  background: var(--meng-tint);
+  transform: rotate(-8deg);
+}
+
+.chip-three {
+  bottom: 20%;
+  left: var(--meng-space-7);
+  background: var(--meng-success);
+  transform: rotate(8deg);
+}
+
+@include narrow {
+  .auth-layout {
+    padding: var(--meng-space-2);
+  }
+
+  .auth-card {
+    grid-template-columns: 1fr;
+    padding: var(--meng-space-3);
+  }
+
+  .poster {
+    min-height: 64px;
+    max-height: 64px;
+
+    > img {
+      object-position: center 38%;
+    }
+  }
+
+  .poster-chip {
+    display: none;
+  }
+
+  .poster-brand {
+    top: var(--meng-space-2);
+    left: var(--meng-space-2);
+    padding: var(--meng-space-1) var(--meng-space-3);
+    font-size: 20px;
+  }
+
+  .poster-copy {
+    inset-inline: var(--meng-space-4);
+    bottom: var(--meng-space-4);
+    padding: var(--meng-space-4);
+  }
+
+  .form-area {
+    padding: var(--meng-space-4) var(--meng-space-2);
+  }
+}
+
+@media (width <= 760px) and (height <= 740px) {
+  .auth-layout {
+    --meng-small-control-height: 36px;
+  }
+
+  .poster {
+    min-height: 48px;
+    max-height: 48px;
+  }
+
+  .poster-brand {
+    top: var(--meng-space-1);
+  }
+
+  .form-area {
+    padding-block: var(--meng-space-2);
+  }
+}
+
+@media (width > 760px) {
+  .login-area {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-top: clamp(32px, 7dvh, 64px);
+    padding-bottom: var(--meng-space-8);
+  }
+}

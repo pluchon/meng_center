@@ -1,0 +1,14 @@
+.card-swap-stage {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  perspective: 1400px;
+}
+
+.swapping {
+  overflow: clip;
+}
+
+.card-swap-stage :deep(.auth-layout) {
+  z-index: 1;
+}
