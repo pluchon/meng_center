@@ -7,34 +7,29 @@ import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.entity.UserEntity;
 import java.util.List;
 import java.util.UUID;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
+// 会话存 Redis：令牌里只有用户编号和会话编号，有效期与撤销都由 Redis 决定
 @Service
 public final class SessionService {
 
-    private final StringRedisTemplate redis;
-    private final JwtCodec jwt;
-    private final UserProperties properties;
-    private final DefaultRedisScript<Long> create = script("redis/create-session.lua");
-    private final DefaultRedisScript<Long> revokeAll = script("redis/revoke-sessions.lua");
-    private final DefaultRedisScript<Long> revokeOne = script("redis/revoke-session.lua");
+    private final DefaultRedisScript<Long> create = RedisScripts.counting("redis/create-session.lua");
+    private final DefaultRedisScript<Long> revokeOne = RedisScripts.counting("redis/revoke-session.lua");
+    private final DefaultRedisScript<Long> revokeAll = RedisScripts.counting("redis/revoke-sessions.lua");
 
-    public SessionService(StringRedisTemplate redis, JwtCodec jwt, UserProperties properties) {
-        this.redis = redis;
-        this.jwt = jwt;
-        this.properties = properties;
-    }
+    @Autowired
+    private StringRedisTemplate redis;
 
-    private static DefaultRedisScript<Long> script(String location) {
-        var script = new DefaultRedisScript<Long>();
-        script.setLocation(new ClassPathResource(location));
-        script.setResultType(Long.class);
-        return script;
-    }
+    @Autowired
+    private JwtCodec jwt;
 
+    @Autowired
+    private UserProperties properties;
+
+    // 建一个新会话并登记到该用户的会话集合，返回令牌
     public String create(UserEntity user) {
         String id = UUID.randomUUID().toString();
         redis.execute(
@@ -49,8 +44,11 @@ public final class SessionService {
         return jwt.encode(new SessionKey(user.getId(), id));
     }
 
+    // 退出当前设备
     public void revoke(long userId, String sessionId) {
-        if (sessionId == null || sessionId.isBlank()) return;
+        if (sessionId == null || sessionId.isBlank()) {
+            return;
+        }
         redis.execute(
             revokeOne,
             List.of(AuthConstants.SESSION_PREFIX + sessionId, AuthConstants.USER_SESSIONS_PREFIX + userId),
@@ -58,6 +56,7 @@ public final class SessionService {
         );
     }
 
+    // 改密或重置密码后让所有设备下线
     public void revokeAll(long userId) {
         redis.execute(revokeAll, List.of(AuthConstants.USER_SESSIONS_PREFIX + userId), AuthConstants.SESSION_PREFIX);
     }

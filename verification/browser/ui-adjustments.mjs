@@ -86,7 +86,7 @@ try {
   await passwords.first().fill(password)
   await passwords.last().fill(password)
   await page.getByRole('button', { name: '提交申请', exact: true }).click()
-  await page.getByRole('alert').filter({ hasText: '密码为 8～20 位' }).waitFor()
+  await page.getByRole('alert').filter({ hasText: '需 8～20 位字母加数字' }).waitFor()
  }
  await passwords.first().fill('Abcd1234')
  await passwords.last().fill('Different123')
@@ -111,7 +111,9 @@ try {
  report.checks.push('100-character editor: keyboard, plain paste, composition and internal scroll')
  const box = await page.locator('.legal-consent .consent-checkbox').boundingBox(), text = await page.locator('.consent-copy').boundingBox()
  assert.ok(text.x > box.x + box.width && Math.abs(text.y + text.height / 2 - box.y - box.height / 2) <= 1)
- assert.match(await page.locator('link[rel=icon]').getAttribute('href'), /meng_center_ico/)
+ // 图标在构建时缩小转码，地址不再带原文件名，改为确认它确实是一张几 KB 的 PNG
+ const icon = await page.request.get(new URL(await page.locator('link[rel=icon]').getAttribute('href'), page.url()).href)
+ assert.equal(icon.headers()['content-type'], 'image/png'); assert.ok((await icon.body()).length < 20000)
  await page.locator('.poster-brand img').evaluate(img => img.decode())
  report.checks.push('consent alignment and provided brand asset')
  const canvas = page.locator('.particle-background'), before = await canvas.evaluate(el => el.toDataURL())

@@ -1,4 +1,5 @@
 export default {
+  capsLock: '大写锁定已开启',
   validation: {
     username: '请输入用户名',
     password: '请输入密码',

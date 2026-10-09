@@ -10,8 +10,23 @@ spring:
     url: jdbc:mysql://127.0.0.1:${MENG_MYSQL_PORT}/meng_user?characterEncoding=utf8&connectionTimeZone=UTC
     username: meng_user_app
     password: ${MENG_MYSQL_USER_PASSWORD}
+    hikari:
+      # 登录在持有连接期间做密码哈希，默认 10 个连接在登录集中时会让其他查询排队
+      maximum-pool-size: 20
+      minimum-idle: 5
   flyway:
     locations: classpath:db/migration
+  rabbitmq:
+    template:
+      # 路由不到队列的消息要退回来，不能悄悄丢掉
+      mandatory: true
+      # 发验证码时请求线程等消费者回执，等待上限与指令的过期时间取同一个值
+      reply-timeout: ${meng.user.notification.rpc-timeout}
+    listener:
+      simple:
+        # 每条消息要连一次外部通道，多开几个消费者，同时发码的人不用排队
+        concurrency: 4
+        max-concurrency: 8
   mail:
     host: smtp.qq.com
     port: 465
@@ -23,6 +38,9 @@ spring:
       mail.smtp.connectiontimeout: 5000
       mail.smtp.timeout: 5000
       mail.smtp.writetimeout: 5000
+      # 不写这两项的话，握手和生成邮件编号时都要反查本机主机名，Windows 上一次可能卡一秒多
+      mail.smtp.localhost: localhost
+      mail.from: ${MAIL_USERNAME}
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

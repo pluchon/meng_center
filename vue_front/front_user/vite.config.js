@@ -1,10 +1,12 @@
 import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import { imagetools } from 'vite-imagetools'
 import { fileURLToPath, URL } from 'node:url'
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '')
   return {
-    plugins: [vue()],
+    // imagetools 按引用地址里的参数在构建时缩放、转码图片
+    plugins: [vue(), imagetools()],
     build: {
       rolldownOptions: {
         output: {

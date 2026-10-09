@@ -37,6 +37,8 @@ request.interceptors.response.use(
         (status === 403 && !error.config?.loginRequest)
       ) {
         ElMessage.error(message)
+        // 告诉调用方这条已经提示过，页面不用再弹一次
+        normalized.notified = true
       }
     }
     return Promise.reject(normalized)

@@ -1,5 +1,6 @@
 package com.pluchon.meng.user.mq;
 
+// 用户服务内部的队列、交换机、路由键和回执取值
 public final class UserMqNames {
 
     public static final String CODE_QUEUE = "meng.user.code-delivery";

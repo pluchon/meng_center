@@ -1,22 +1,33 @@
 package com.pluchon.meng.user.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.pluchon.meng.user.entity.UserEntity;
 import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Select;
 
+// 账号表访问。lock 开头的方法加行锁，只能在事务里调用
 @Mapper
 public interface UserMapper extends BaseMapper<UserEntity> {
-    @Select("SELECT * FROM user WHERE username = #{username} AND delete_state = 0 FOR UPDATE")
-    UserEntity lockByUsername(@Param("username") String username);
+    // 追加在查询末尾的行锁子句
+    String FOR_UPDATE = "FOR UPDATE";
 
-    @Select("SELECT * FROM user WHERE email_hash = #{hash} AND delete_state = 0 FOR UPDATE")
-    UserEntity lockByEmailHash(@Param("hash") String hash);
+    // 按用户名加锁读取
+    default UserEntity lockByUsername(String username) {
+        return selectOne(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getUsername, username).last(FOR_UPDATE));
+    }
 
-    @Select("SELECT * FROM user WHERE phone_hash = #{hash} AND delete_state = 0 FOR UPDATE")
-    UserEntity lockByPhoneHash(@Param("hash") String hash);
+    // 按邮箱检索哈希加锁读取
+    default UserEntity lockByEmailHash(String hash) {
+        return selectOne(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getEmailHash, hash).last(FOR_UPDATE));
+    }
 
-    @Select("SELECT * FROM user WHERE id = #{id} AND delete_state = 0 FOR UPDATE")
-    UserEntity lockById(@Param("id") long id);
+    // 按手机号检索哈希加锁读取
+    default UserEntity lockByPhoneHash(String hash) {
+        return selectOne(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getPhoneHash, hash).last(FOR_UPDATE));
+    }
+
+    // 按主键加锁读取
+    default UserEntity lockById(long id) {
+        return selectOne(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getId, id).last(FOR_UPDATE));
+    }
 }

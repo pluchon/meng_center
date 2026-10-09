@@ -1,5 +1,6 @@
 package com.pluchon.meng.common.core.security;
 
+// 鉴权相关的常量：Cookie 名、会话键前缀和密钥所在的环境变量名
 public final class AuthConstants {
 
     public static final String TOKEN_COOKIE = "meng_token";

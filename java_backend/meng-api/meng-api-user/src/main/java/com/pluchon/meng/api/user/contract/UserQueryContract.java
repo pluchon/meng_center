@@ -9,6 +9,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+// 用户服务对内的查询契约，只读；调用方在自己的服务里实现远程客户端
 public interface UserQueryContract {
     String PATH = "/user/internal/users";
 

@@ -8,6 +8,7 @@ import java.util.Map;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
+// 用户服务的业务配置，启动时整体校验，缺项直接启动失败
 @Validated
 @ConfigurationProperties("meng.user")
 public record UserProperties(
@@ -72,7 +73,7 @@ public record UserProperties(
 
     public record Cookie(boolean secure) {}
 
-    // SMS configuration must be explicitly provided. Disabled means requests fail, never pretend to send.
+    // 短信配置必须显式给出；关闭时发送请求直接失败，不假装发出去了
     public record Sms(
         boolean enabled,
         @NotBlank String endpoint,

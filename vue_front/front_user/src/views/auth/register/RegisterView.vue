@@ -16,59 +16,63 @@
         {{ t('auth.register.join') }}
         <span class="auth-brand">{{ t('common.brand') }}</span>
       </h1>
-      <form class="auth-form" novalidate @submit.prevent="submit">
-        <label
-          >{{ t('auth.login.username')
-          }}<el-input
-            v-model="form.username"
-            :class="{ 'has-error': Boolean(errors.username) }"
-            :aria-invalid="Boolean(errors.username)"
-            :aria-describedby="errors.username ? fieldId('username') : undefined"
-            autocomplete="username"
-            :placeholder="t('auth.login.usernameHint')" /><FieldMessage
-            :message="errors.username"
-            :message-id="fieldId('username')"
+      <form
+        class="auth-form"
+        novalidate
+        @submit.prevent="submit"
+      >
+        <label>{{ t('auth.login.username')
+        }}<el-input
+          v-model="form.username"
+          :class="{ 'has-error': Boolean(errors.username) }"
+          :aria-invalid="Boolean(errors.username)"
+          :aria-describedby="errors.username ? fieldId('username') : undefined"
+          autocomplete="username"
+          :placeholder="t('auth.login.usernameHint')"
+        /><FieldMessage
+          :message="errors.username"
+          :message-id="fieldId('username')"
         /></label>
         <div class="auth-pair">
-          <label
-            >{{ t('auth.login.password')
-            }}<el-input
-              v-model="form.password"
-              :class="{ 'has-error': Boolean(errors.password) }"
-              :aria-invalid="Boolean(errors.password)"
-              :aria-describedby="errors.password ? fieldId('password') : undefined"
-              type="password"
-              show-password
-              :maxlength="Auth.PASSWORD_MAX"
-              :placeholder="t('auth.register.passwordHint')"
-              :title="t('auth.register.passwordRule')"
-              autocomplete="new-password" /><FieldMessage
-              :message="errors.password"
-              :message-id="fieldId('password')"
+          <label>{{ t('auth.login.password')
+          }}<el-input
+            v-model="form.password"
+            :class="{ 'has-error': Boolean(errors.password) }"
+            :aria-invalid="Boolean(errors.password)"
+            :aria-describedby="errors.password ? fieldId('password') : undefined"
+            type="password"
+            show-password
+            :maxlength="Auth.PASSWORD_MAX"
+            :placeholder="t('auth.register.passwordHint')"
+            :title="t('auth.register.passwordRule')"
+            autocomplete="new-password"
+          /><CapsLockHint /><FieldMessage
+            :message="errors.password"
+            :message-id="fieldId('password')"
           /></label>
-          <label
-            >{{ t('auth.register.confirmPassword')
-            }}<el-input
-              v-model="form.confirmPassword"
-              :class="{ 'has-error': Boolean(errors.confirmPassword) }"
-              :aria-invalid="Boolean(errors.confirmPassword)"
-              :aria-describedby="errors.confirmPassword ? fieldId('confirmPassword') : undefined"
-              type="password"
-              show-password
-              :maxlength="Auth.PASSWORD_MAX"
-              :placeholder="t('auth.register.confirmPasswordHint')"
-              autocomplete="new-password" /><FieldMessage
-              :message="errors.confirmPassword"
-              :message-id="fieldId('confirmPassword')"
+          <label>{{ t('auth.register.confirmPassword')
+          }}<el-input
+            v-model="form.confirmPassword"
+            :class="{ 'has-error': Boolean(errors.confirmPassword) }"
+            :aria-invalid="Boolean(errors.confirmPassword)"
+            :aria-describedby="errors.confirmPassword ? fieldId('confirmPassword') : undefined"
+            type="password"
+            show-password
+            :maxlength="Auth.PASSWORD_MAX"
+            :placeholder="t('auth.register.confirmPasswordHint')"
+            autocomplete="new-password"
+          /><CapsLockHint /><FieldMessage
+            :message="errors.confirmPassword"
+            :message-id="fieldId('confirmPassword')"
           /></label>
         </div>
         <ContactField
           v-model:channel="channel"
-          :error="errors.contact"
-          :message-id="fieldId('contact')"
           v-model:email="form.email"
           v-model:phone="form.phone"
           v-model:country-code="form.countryCode"
+          :error="errors.contact"
+          :message-id="fieldId('contact')"
           :disabled="sending || submitting"
         />
         <VerificationCodeField
@@ -86,9 +90,6 @@
             v-model="agreed"
             :invalid="Boolean(errors.agreed)"
           />
-        </div>
-        <div v-if="failure" class="auth-form-error" role="alert">
-          {{ failure }}
         </div>
         <el-button
           type="primary"

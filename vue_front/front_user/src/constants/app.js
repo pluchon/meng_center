@@ -7,7 +7,12 @@ export const UserStatus = Object.freeze({
   REJECTED: 'REJECTED',
 })
 export const Theme = Object.freeze({ LIGHT: 'light', DARK: 'dark' })
-export const StorageKey = Object.freeze({ THEME: 'meng.theme' })
+export const StorageKey = Object.freeze({
+  THEME: 'meng.theme',
+  CODE_COUNTDOWN: 'meng.code-countdown.',
+})
+// 发码倒计时按用途分开记，注册和重置密码互不影响
+export const CodeScope = Object.freeze({ REGISTER: 'register', RESET: 'reset' })
 export const ContactChannel = Object.freeze({ EMAIL: 'EMAIL', SMS: 'SMS' })
 // 滑块弹窗的状态，以及拖错后停留、通过后展示的毫秒数
 export const Captcha = Object.freeze({

@@ -1,121 +1,139 @@
 package com.pluchon.meng.gateway.filter;
 
 import com.pluchon.meng.common.core.error.CommonErrorCode;
-import com.pluchon.meng.common.core.response.ApiResponse;
-import com.pluchon.meng.common.core.security.*;
+import com.pluchon.meng.common.core.security.AuthConstants;
+import com.pluchon.meng.common.core.security.IdentityHeaders;
+import com.pluchon.meng.common.core.security.JwtCodec;
+import com.pluchon.meng.common.core.security.SessionKey;
 import com.pluchon.meng.gateway.config.GatewaySecurityProperties;
 import com.pluchon.meng.gateway.service.GatewaySessionService;
-import java.nio.charset.StandardCharsets;
+import java.net.InetSocketAddress;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
-import org.springframework.http.*;
+import org.springframework.http.HttpCookie;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import org.springframework.web.server.WebFilter;
 import org.springframework.web.server.WebFilterChain;
 import reactor.core.publisher.Mono;
-import tools.jackson.databind.json.JsonMapper;
 
+// 统一鉴权：清掉客户端自带的身份头，校验来源与会话，再把可信身份写进请求头交给下游
 @Component
 public final class IdentityGatewayFilter implements WebFilter, Ordered {
 
-    private final GatewaySecurityProperties properties;
-    private final JwtCodec jwt;
-    private final GatewaySessionService sessions;
-    private final JsonMapper json = JsonMapper.builder().build();
+    // 排在路由之前执行
+    private static final int ORDER = -100;
+    private static final String UNKNOWN_IP = "unknown";
+    // 这些头只能由网关写入，客户端带来的一律丢弃
+    private static final List<String> UNTRUSTED_HEADERS = List.of(
+        IdentityHeaders.USER_ID,
+        IdentityHeaders.USER_ROLE,
+        IdentityHeaders.SESSION_ID,
+        IdentityHeaders.CLIENT_IP,
+        "X-Forwarded-For",
+        "Forwarded"
+    );
 
-    public IdentityGatewayFilter(GatewaySecurityProperties properties, JwtCodec jwt, GatewaySessionService sessions) {
-        this.properties = properties;
-        this.jwt = jwt;
-        this.sessions = sessions;
-    }
+    @Autowired
+    private GatewaySecurityProperties properties;
 
+    @Autowired
+    private JwtCodec jwt;
+
+    @Autowired
+    private GatewaySessionService sessions;
+
+    @Override
     public int getOrder() {
-        return -100;
+        return ORDER;
     }
 
+    @Override
     public Mono<Void> filter(ServerWebExchange original, WebFilterChain chain) {
+        String ip = clientIp(original.getRequest());
         ServerHttpRequest clean = original
             .getRequest()
             .mutate()
             .headers(headers -> {
-                headers.remove(IdentityHeaders.USER_ID);
-                headers.remove(IdentityHeaders.USER_ROLE);
-                headers.remove(IdentityHeaders.SESSION_ID);
-                headers.remove(IdentityHeaders.CLIENT_IP);
-                headers.remove("X-Forwarded-For");
-                headers.remove("Forwarded");
+                UNTRUSTED_HEADERS.forEach(headers::remove);
+                headers.set(IdentityHeaders.CLIENT_IP, ip);
             })
             .build();
-        var remote = original.getRequest().getRemoteAddress();
-        String ip = remote == null || remote.getAddress() == null ? "unknown" : remote.getAddress().getHostAddress();
-        clean = clean.mutate().header(IdentityHeaders.CLIENT_IP, ip).build();
-        var exchange = original.mutate().request(clean).build();
+        ServerWebExchange exchange = original.mutate().request(clean).build();
         String path;
         try {
             path = PathPolicy.normalize(clean.getURI().getRawPath());
         } catch (IllegalArgumentException exception) {
-            return reject(exchange, CommonErrorCode.INVALID_ARGUMENT);
+            return GatewayResponses.failure(exchange, CommonErrorCode.INVALID_ARGUMENT);
         }
-        if (PathPolicy.internal(path)) return reject(exchange, CommonErrorCode.FORBIDDEN);
+        // 内部接口只给服务之间调用，任何写法的 internal 路径都不对外
+        if (PathPolicy.internal(path)) {
+            return GatewayResponses.failure(exchange, CommonErrorCode.FORBIDDEN);
+        }
         HttpMethod method = clean.getMethod();
-        if (
-            method != HttpMethod.GET && !properties.allowedOrigins().contains(clean.getHeaders().getOrigin())
-        ) return reject(exchange, CommonErrorCode.FORBIDDEN);
-        if (matches(properties.whitelist(), method, path)) return chain.filter(exchange);
-        boolean publicRead = matches(properties.publicRead(), method, path);
+        // 令牌放在 Cookie 里，写操作必须来自允许的站点，防跨站请求伪造
+        if (method != HttpMethod.GET && !properties.allowedOrigins().contains(clean.getHeaders().getOrigin())) {
+            return GatewayResponses.failure(exchange, CommonErrorCode.FORBIDDEN);
+        }
+        if (matches(properties.whitelist(), method, path)) {
+            return chain.filter(exchange);
+        }
         HttpCookie cookie = clean.getCookies().getFirst(AuthConstants.TOKEN_COOKIE);
-        if (cookie == null) return publicRead
-            ? chain.filter(exchange)
-            : reject(exchange, CommonErrorCode.UNAUTHENTICATED);
+        if (cookie == null) {
+            return matches(properties.publicRead(), method, path)
+                ? chain.filter(exchange)
+                : GatewayResponses.failure(exchange, CommonErrorCode.UNAUTHENTICATED);
+        }
         SessionKey key;
         try {
             key = jwt.decode(cookie.getValue());
         } catch (RuntimeException exception) {
-            return reject(exchange, CommonErrorCode.UNAUTHENTICATED);
+            return GatewayResponses.failure(exchange, CommonErrorCode.UNAUTHENTICATED);
         }
         return sessions
             .resolve(key)
-            .flatMap(identity -> {
-                if (PathPolicy.admin(path) && !AuthConstants.ADMIN_ROLE.equals(identity.role())) return reject(
-                    exchange,
-                    CommonErrorCode.FORBIDDEN
-                ).thenReturn(false);
-                var request = exchange
-                    .getRequest()
-                    .mutate()
-                    .headers(headers -> {
-                        headers.set(IdentityHeaders.USER_ID, Long.toString(identity.userId()));
-                        headers.set(IdentityHeaders.USER_ROLE, identity.role());
-                        headers.set(IdentityHeaders.SESSION_ID, identity.sessionId());
-                    })
-                    .build();
-                return chain.filter(exchange.mutate().request(request).build()).thenReturn(true);
-            })
-            .switchIfEmpty(reject(exchange, CommonErrorCode.UNAUTHENTICATED).thenReturn(false))
+            .flatMap(identity -> forward(exchange, chain, path, identity).thenReturn(true))
+            .switchIfEmpty(GatewayResponses.failure(exchange, CommonErrorCode.UNAUTHENTICATED).thenReturn(false))
             .then();
     }
 
-    private boolean matches(
-        java.util.List<GatewaySecurityProperties.Endpoint> endpoints,
-        HttpMethod method,
-        String path
+    // 会话有效：管理路径再核对角色，然后带着身份头转发
+    private Mono<Void> forward(
+        ServerWebExchange exchange,
+        WebFilterChain chain,
+        String path,
+        GatewaySessionService.Identity identity
     ) {
+        if (PathPolicy.admin(path) && !AuthConstants.ADMIN_ROLE.equals(identity.role())) {
+            return GatewayResponses.failure(exchange, CommonErrorCode.FORBIDDEN);
+        }
+        ServerHttpRequest request = exchange
+            .getRequest()
+            .mutate()
+            .headers(headers -> {
+                headers.set(IdentityHeaders.USER_ID, Long.toString(identity.userId()));
+                headers.set(IdentityHeaders.USER_ROLE, identity.role());
+                headers.set(IdentityHeaders.SESSION_ID, identity.sessionId());
+            })
+            .build();
+        return chain.filter(exchange.mutate().request(request).build());
+    }
+
+    // 来源地址只取直连对端，不信任转发头
+    private String clientIp(ServerHttpRequest request) {
+        InetSocketAddress remote = request.getRemoteAddress();
+        return remote == null || remote.getAddress() == null ? UNKNOWN_IP : remote.getAddress().getHostAddress();
+    }
+
+    private boolean matches(List<GatewaySecurityProperties.Endpoint> endpoints, HttpMethod method, String path) {
         return (
             endpoints != null &&
             endpoints
                 .stream()
                 .anyMatch(endpoint -> endpoint.method().equals(method.name()) && endpoint.path().equals(path))
         );
-    }
-
-    private Mono<Void> reject(ServerWebExchange exchange, CommonErrorCode code) {
-        return Mono.defer(() -> {
-            if (exchange.getResponse().isCommitted()) return Mono.empty();
-            exchange.getResponse().setStatusCode(HttpStatusCode.valueOf(code.httpStatus()));
-            exchange.getResponse().getHeaders().setContentType(MediaType.APPLICATION_JSON);
-            byte[] body = json.writeValueAsBytes(ApiResponse.failure(code, null));
-            return exchange.getResponse().writeWith(Mono.just(exchange.getResponse().bufferFactory().wrap(body)));
-        });
     }
 }

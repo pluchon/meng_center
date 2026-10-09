@@ -8,11 +8,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+// 统一异常处理：业务异常按错误码返回，其余异常不向外透露细节
 @RestControllerAdvice
 public final class GlobalExceptionHandler {
 
@@ -28,9 +32,9 @@ public final class GlobalExceptionHandler {
         HandlerMethodValidationException.class,
         ConstraintViolationException.class,
         HttpMessageNotReadableException.class,
-        org.springframework.web.bind.MissingServletRequestParameterException.class,
-        org.springframework.web.bind.MissingRequestHeaderException.class,
-        org.springframework.web.method.annotation.MethodArgumentTypeMismatchException.class,
+        MissingServletRequestParameterException.class,
+        MissingRequestHeaderException.class,
+        MethodArgumentTypeMismatchException.class,
     })
     public ResponseEntity<ApiResponse<Void>> invalidArgument(Exception exception) {
         return ResponseEntity.badRequest().body(ApiResponse.failure(CommonErrorCode.INVALID_ARGUMENT, null));
@@ -48,7 +52,7 @@ public final class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> unexpected(Exception exception) {
-        // Request payloads and exception messages may contain PII, passwords or tickets.
+        // 请求内容和异常信息里可能有联系方式、密码或票据，不回显也不记录
         return ResponseEntity.internalServerError().body(ApiResponse.failure(CommonErrorCode.INTERNAL_ERROR, null));
     }
 }

@@ -2,6 +2,7 @@ package com.pluchon.meng.user.service.error;
 
 import com.pluchon.meng.common.core.error.ErrorCode;
 
+// 用户服务的业务错误码
 public enum UserErrorCode implements ErrorCode {
     INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "账号或密码错误", 401),
     PENDING("USER_PENDING", "申请仍在审核中", 403),

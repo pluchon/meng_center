@@ -36,7 +36,7 @@ async function request(method, route, body, cookie, headers = {}) {
   const response = await fetch(base + route, { method, signal: AbortSignal.timeout(20000), headers: { Origin: origin, ...(body ? { 'Content-Type': 'application/json' } : {}), ...(cookie ? { Cookie: cookie } : {}), ...headers }, body: body ? JSON.stringify(body) : undefined })
   const data = await response.json()
   const setCookie = response.headers.get('set-cookie')
-  return { status: response.status, data, cookie: setCookie?.split(';')[0], setCookie }
+  return { status: response.status, data, cookie: setCookie?.split(';')[0], setCookie, encoding: response.headers.get('content-encoding') }
 }
 function expect(response, status, code) { assert.equal(response.status, status, 'unexpected HTTP status; code=' + response.data.code); if (code) assert.equal(response.data.code, code); return response }
 async function fixtureTicket() { const ticket = crypto.randomUUID(), key = 'meng:captcha-ticket:' + ticket; keys.add(key); await redis.set(key, hash('127.0.0.1'), { EX: 120 }); return ticket }
@@ -64,7 +64,9 @@ try {
     expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }, null, { Origin: 'https://untrusted.invalid' }), 403)
   })
   async function challenge() {
-    const image = expect(await request('POST', '/user/captcha'), 200).data.data, candidates = []
+    const generated = expect(await request('POST', '/user/captcha'), 200)
+    assert.equal(generated.encoding, 'gzip', 'captcha response should be compressed by the gateway')
+    const image = generated.data.data, candidates = []
     assert.equal(image.type, 'SLIDER'); assert.equal(image.backgroundImageWidth, 600); assert.equal(image.backgroundImageHeight, 360)
     for await (const batch of redis.scanIterator({ MATCH: '*'+image.id+'*', COUNT: 100 })) candidates.push(...batch)
     assert.equal(candidates.length, 1)
@@ -95,7 +97,7 @@ try {
     expect(await request('POST', '/user/registrations', registration(0, codeA, await fixtureTicket())), 200)
     expect(await request('POST', '/user/sessions', { username: names[0], password, ticket: await fixtureTicket() }), 403, 'USER_PENDING')
     const [rows] = await db.execute('SELECT * FROM user WHERE username = ?', [names[0]])
-    assert.equal(rows.length, 1); assert.ok(rows[0].email_cipher.startsWith('v1:')); assert.equal(rows[0].email_hash, hash(contacts[0])); assert.ok(!rows[0].email_cipher.includes(contacts[0])); assert.ok(rows[0].password_hash.startsWith('$2')); assert.equal(rows[0].terms_version, '2026-10-09'); assert.ok(rows[0].agreed_at)
+    assert.equal(rows.length, 1); assert.ok(rows[0].email_cipher.startsWith('v1:')); assert.equal(rows[0].email_hash, hash(contacts[0])); assert.ok(!rows[0].email_cipher.includes(contacts[0])); assert.ok(rows[0].password_hash.startsWith('$2')); assert.equal(rows[0].terms_version, '2026-10-09'); assert.ok(rows[0].agreed_at); assert.equal(rows[0].level, 0); assert.equal(rows[0].delete_state, 0)
   })
   await check('administrator login, masked server pagination, mandatory rejection and immediate approval', async () => {
     const login = expect(await request('POST', '/user/sessions', { username: process.env.MENG_ADMIN_USERNAME, password: process.env.MENG_ADMIN_PASSWORD, ticket: await fixtureTicket() }), 200)
@@ -134,6 +136,8 @@ try {
     const changed = 'a1' + crypto.randomBytes(8).toString('hex')
     resetOldPassword = changed
     expect(await request('PUT', '/user/me/password', { oldPassword: password, password: changed, confirmPassword: changed }, second.cookie), 200)
+    const [timestamps] = await db.execute('SELECT update_time > create_time AS advanced FROM user WHERE username = ?', [names[0]])
+    assert.equal(timestamps[0].advanced, 1, 'update_time must advance after a password change')
     expect(await request('GET', '/user/me', null, second.cookie), 401)
     expect(await request('GET', '/user/me', null, third.cookie), 401)
   })

@@ -8,7 +8,7 @@ import java.util.Base64;
 import java.util.Set;
 import javax.crypto.SecretKey;
 
-/** JWT contains only the session lookup key; Redis controls expiry and revocation. */
+// 令牌里只放查会话用的用户编号和会话编号，有效期与撤销都由 Redis 决定
 public final class JwtCodec {
 
     private static final String USER_ID_CLAIM = "userId";

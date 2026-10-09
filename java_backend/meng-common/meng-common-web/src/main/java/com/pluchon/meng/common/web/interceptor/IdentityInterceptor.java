@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.servlet.AsyncHandlerInterceptor;
 
+// 把网关写入的身份头绑定到当前请求线程，请求结束时清理
 public final class IdentityInterceptor implements AsyncHandlerInterceptor {
 
     @Override

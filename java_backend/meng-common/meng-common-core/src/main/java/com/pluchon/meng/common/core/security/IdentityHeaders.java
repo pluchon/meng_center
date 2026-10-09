@@ -1,5 +1,6 @@
 package com.pluchon.meng.common.core.security;
 
+// 网关写给下游服务的身份请求头，下游只信这些头
 public final class IdentityHeaders {
 
     public static final String USER_ID = "X-User-Id";

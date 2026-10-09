@@ -9,8 +9,12 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+// 用户服务的基础组件：时钟、令牌编解码和分页插件
 @Configuration
 public class CoreConfiguration {
+
+    // 分页插件的每页上限，接口层另有参数校验，这里兜底
+    private static final long PAGE_SIZE_LIMIT = 100L;
 
     @Bean
     Clock clock() {
@@ -26,7 +30,7 @@ public class CoreConfiguration {
     MybatisPlusInterceptor pagination() {
         var interceptor = new MybatisPlusInterceptor();
         var pagination = new PaginationInnerInterceptor(DbType.MYSQL);
-        pagination.setMaxLimit(100L);
+        pagination.setMaxLimit(PAGE_SIZE_LIMIT);
         interceptor.addInnerInterceptor(pagination);
         return interceptor;
     }

@@ -14,6 +14,8 @@ import router from './router'
 import { useUserStore } from './stores/user'
 import { onUnauthorized } from './api/request'
 import { RouteName } from './router/names'
+import { favicon } from './assets/images'
+document.querySelector('link[rel="icon"]')?.setAttribute('href', favicon)
 const app = createApp(App)
 app.use(createPinia()).use(i18n).use(ElementPlus).use(router)
 onUnauthorized(async () => {

@@ -4,7 +4,7 @@ import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import java.util.Optional;
 
-/** Bound to the servlet request thread only; never propagated to MQ or async work. */
+// 当前请求的身份，只绑定在请求线程上，不会带进消息消费和异步线程
 public final class UserContext {
 
     private static final ThreadLocal<RequestIdentity> CURRENT = new ThreadLocal<>();

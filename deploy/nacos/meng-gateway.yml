@@ -1,6 +1,11 @@
 server:
   address: 127.0.0.1
   port: 8080
+  # 滑块图片的响应有九十多 KB，压缩后再发给浏览器
+  compression:
+    enabled: true
+    mime-types: application/json
+    min-response-size: 2KB
 spring:
   cloud:
     gateway:

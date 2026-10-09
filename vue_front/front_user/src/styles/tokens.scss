@@ -55,6 +55,10 @@
     transparent 75%
   );
   --meng-shadow: 0 20px 48px rgb(54 127 154 / 16%);
+  --meng-card-base: #cfe7ef;
+  --meng-shadow-card: 0 6px 0 var(--meng-card-base), 0 20px 48px rgb(54 127 154 / 16%);
+  --meng-card-ring-width: 2px;
+  --meng-card-ring: #9fd6ea, #a9e0c4, #f3dc9a, #f2b8cc, #c3b4ec, #9fd6ea;
   --meng-radius-card: 40px;
   --meng-radius-poster: 28px;
   --meng-radius-dialog: 28px;

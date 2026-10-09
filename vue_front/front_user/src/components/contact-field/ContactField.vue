@@ -61,7 +61,10 @@
         <el-icon><ContactSwitchIcon /></el-icon>
       </el-button>
     </div>
-    <FieldMessage :message="error" :message-id="messageId" />
+    <FieldMessage
+      :message="error"
+      :message-id="messageId"
+    />
   </div>
 </template>
 <script src="./ContactField.js"></script>

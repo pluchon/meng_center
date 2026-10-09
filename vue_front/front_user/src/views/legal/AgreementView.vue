@@ -2,14 +2,32 @@
   <main class="legal-layout">
     <ParticleBackground />
     <section class="legal-card">
+      <CardEdge />
       <BorderGlow />
-      <img class="legal-artwork" :src="legalArtwork" alt="" aria-hidden="true" />
+      <img
+        class="legal-artwork"
+        :src="legalArtwork"
+        alt=""
+        aria-hidden="true"
+      >
       <header class="legal-header">
-        <router-link class="legal-brand" :to="{ name: returnRoute }">
-          <img :src="brandIcon" :alt="t('common.brand')" /><span>{{ t('common.brand') }}</span>
+        <router-link
+          class="legal-brand"
+          :to="{ name: returnRoute }"
+        >
+          <img
+            :src="brandIcon"
+            :alt="t('common.brand')"
+          ><span>{{ t('common.brand') }}</span>
         </router-link>
-        <div class="legal-tabs" :class="{ 'privacy-selected': selected === LegalDocument.PRIVACY }">
-          <span class="legal-tab-indicator" aria-hidden="true" />
+        <div
+          class="legal-tabs"
+          :class="{ 'privacy-selected': selected === LegalDocument.PRIVACY }"
+        >
+          <span
+            class="legal-tab-indicator"
+            aria-hidden="true"
+          />
           <button
             v-for="kind in [LegalDocument.TERMS, LegalDocument.PRIVACY]"
             :key="kind"
@@ -33,12 +51,15 @@
             :class="{ active: active === section.id }"
             @click="jump(section.id)"
           >
-            <span class="section-number">{{ index + 1 }}</span
-            >{{ section.title }}
+            <span class="section-number">{{ index + 1 }}</span>{{ section.title }}
           </button>
           <span class="reading-note">{{ t('auth.legal.takeTime') }}</span>
         </nav>
-        <article ref="scrollArea" :key="selected" @scroll="updateActive">
+        <article
+          ref="scrollArea"
+          :key="selected"
+          @scroll="updateActive"
+        >
           <h1>
             <span>{{ t(document.titleKey) }}</span>
           </h1>
@@ -49,12 +70,18 @@
             <h2>{{ t('auth.legal.overview') }}</h2>
             <p>{{ document.sections[0].paragraphs[0] }}</p>
           </aside>
-          <section v-for="(section, index) in document.sections" :id="section.id" :key="section.id">
+          <section
+            v-for="(section, index) in document.sections"
+            :id="section.id"
+            :key="section.id"
+          >
             <h2>
-              <span class="section-number">{{ index + 1 }}</span
-              >{{ section.title }}
+              <span class="section-number">{{ index + 1 }}</span>{{ section.title }}
             </h2>
-            <p v-for="paragraph in section.paragraphs" :key="paragraph">
+            <p
+              v-for="paragraph in section.paragraphs"
+              :key="paragraph"
+            >
               {{ paragraph }}
             </p>
           </section>
@@ -62,9 +89,15 @@
       </div>
       <footer class="legal-footer">
         <div class="reading-progress">
-          <el-progress :percentage="progress" :show-text="false" />
+          <el-progress
+            :percentage="progress"
+            :show-text="false"
+          />
         </div>
-        <router-link class="legal-finished" :to="{ name: returnRoute }">
+        <router-link
+          class="legal-finished"
+          :to="{ name: returnRoute }"
+        >
           {{ t('auth.legal.finished') }}
         </router-link>
       </footer>

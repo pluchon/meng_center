@@ -1,93 +1,95 @@
 package com.pluchon.meng.user.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.pluchon.meng.common.core.error.*;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.pluchon.meng.common.core.error.BusinessException;
+import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.user.config.UserProperties;
-import com.pluchon.meng.user.controller.dto.*;
+import com.pluchon.meng.user.controller.dto.ReapplicationDTO;
+import com.pluchon.meng.user.controller.dto.RegistrationDTO;
 import com.pluchon.meng.user.entity.UserEntity;
-import com.pluchon.meng.user.entity.enums.*;
+import com.pluchon.meng.user.entity.enums.ContactChannel;
+import com.pluchon.meng.user.entity.enums.UserRole;
+import com.pluchon.meng.user.entity.enums.UserStatus;
+import com.pluchon.meng.user.entity.enums.VerificationPurpose;
 import com.pluchon.meng.user.mapper.UserMapper;
 import com.pluchon.meng.user.service.error.UserErrorCode;
-import com.pluchon.meng.user.service.security.*;
-import java.time.Duration;
-import java.util.Locale;
+import com.pluchon.meng.user.service.security.ContactService;
+import com.pluchon.meng.user.service.security.PasswordService;
+import com.pluchon.meng.user.service.security.RateLimitService;
+import com.pluchon.meng.user.service.security.UsernamePolicy;
+import com.pluchon.meng.user.service.security.VerificationCodeService;
+import java.time.Clock;
+import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+// 注册申请与被拒后的重新申请
 @Service
 public class RegistrationService {
 
-    private final UserMapper mapper;
-    private final ContactService contacts;
-    private final PasswordService passwords;
-    private final VerificationCodeService codes;
-    private final CaptchaService captcha;
-    private final RateLimitService limits;
-    private final UserProperties properties;
+    private static final String REGISTRATION_IP_SCOPE = "registration-ip";
+    private static final String REAPPLICATION_SCOPE = "reapplication";
 
-    public RegistrationService(
-        UserMapper mapper,
-        ContactService contacts,
-        PasswordService passwords,
-        VerificationCodeService codes,
-        CaptchaService captcha,
-        RateLimitService limits,
-        UserProperties properties
-    ) {
-        this.mapper = mapper;
-        this.contacts = contacts;
-        this.passwords = passwords;
-        this.codes = codes;
-        this.captcha = captcha;
-        this.limits = limits;
-        this.properties = properties;
-    }
+    @Autowired
+    private UserMapper mapper;
 
-    public static String username(String input) {
-        String value = input.strip().toLowerCase(Locale.ROOT);
-        if (!value.matches("[a-z0-9_]{3,32}")) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-        return value;
-    }
+    @Autowired
+    private CredentialService credentials;
 
-    @Transactional
+    @Autowired
+    private ContactService contacts;
+
+    @Autowired
+    private PasswordService passwords;
+
+    @Autowired
+    private VerificationCodeService codes;
+
+    @Autowired
+    private CaptchaService captcha;
+
+    @Autowired
+    private RateLimitService limits;
+
+    @Autowired
+    private UserProperties properties;
+
+    @Autowired
+    private Clock clock;
+
+    // 提交注册申请，入库后是待审核状态。验证码放在重复检查之后才消耗，重名时不白白作废
+    @Transactional(rollbackFor = Exception.class)
     public void register(RegistrationDTO request, String ip) {
-        if (!properties.legal().published()) throw new BusinessException(UserErrorCode.LEGAL_NOT_PUBLISHED);
-        if (
-            !properties.legal().termsVersion().equals(request.termsVersion()) ||
-            !properties.legal().privacyVersion().equals(request.privacyVersion())
-        ) throw new BusinessException(UserErrorCode.LEGAL_VERSION_CHANGED);
+        requireCurrentLegal(request);
         captcha.consume(request.ticket(), ip);
-        String name = username(request.username());
+        String name = UsernamePolicy.normalize(request.username());
         String password = passwords.hash(request.password(), request.confirmPassword());
-        var contact = contacts.normalize(request.email(), request.countryCode(), request.phone());
-        if (
-            mapper.selectCount(new LambdaQueryWrapper<UserEntity>().eq(UserEntity::getUsername, name)) > 0
-        ) throw new BusinessException(UserErrorCode.USERNAME_TAKEN);
-        com.baomidou.mybatisplus.core.toolkit.support.SFunction<UserEntity, String> field =
-            contact.channel() == ContactChannel.EMAIL
-                ? UserEntity::getEmailHash
-                : (com.baomidou.mybatisplus.core.toolkit.support.SFunction<
-                      UserEntity,
-                      String
-                  >) UserEntity::getPhoneHash;
-        if (
-            mapper.selectCount(new LambdaQueryWrapper<UserEntity>().eq(field, contact.hash())) > 0
-        ) throw new BusinessException(UserErrorCode.CONTACT_TAKEN);
-        codes.consume(contact, request.code());
-        limits.charge("registration-ip", ip, properties.limits().registrationIpDailyMax(), Duration.ofDays(1));
-        var user = new UserEntity();
+        ContactService.Contact contact = contacts.normalize(request.email(), request.countryCode(), request.phone());
+        boolean byEmail = contact.channel() == ContactChannel.EMAIL;
+        if (mapper.exists(Wrappers.<UserEntity>lambdaQuery().eq(UserEntity::getUsername, name))) {
+            throw new BusinessException(UserErrorCode.USERNAME_TAKEN);
+        }
+        var sameContact = Wrappers.<UserEntity>lambdaQuery()
+            .eq(byEmail, UserEntity::getEmailHash, contact.hash())
+            .eq(!byEmail, UserEntity::getPhoneHash, contact.hash());
+        if (mapper.exists(sameContact)) {
+            throw new BusinessException(UserErrorCode.CONTACT_TAKEN);
+        }
+        codes.consume(contact, request.code(), VerificationPurpose.REGISTRATION);
+        limits.chargeDaily(REGISTRATION_IP_SCOPE, ip, properties.limits().registrationIpDailyMax());
+        // 只挑申请需要的字段写入，不把请求整体复制进实体
+        UserEntity user = new UserEntity();
         user.setUsername(name);
         user.setPasswordHash(password);
-        user.setTermsVersion(request.termsVersion());
-        user.setPrivacyVersion(request.privacyVersion());
-        user.setAgreedAt(java.time.LocalDateTime.now(java.time.Clock.systemUTC()));
         user.setRole(UserRole.USER);
         user.setStatus(UserStatus.PENDING);
         user.setApplyReason(request.applyReason());
-        user.setLevel(0);
-        user.setDeleteState(0);
-        if (contact.channel() == ContactChannel.EMAIL) {
+        user.setTermsVersion(request.termsVersion());
+        user.setPrivacyVersion(request.privacyVersion());
+        user.setAgreedAt(LocalDateTime.now(clock));
+        if (byEmail) {
             user.setEmailCipher(contact.cipher());
             user.setEmailHash(contact.hash());
         } else {
@@ -97,33 +99,37 @@ public class RegistrationService {
         try {
             mapper.insert(user);
         } catch (DuplicateKeyException exception) {
+            // 并发下两个请求同时通过了上面的检查，由唯一索引兜底
             throw new BusinessException(CommonErrorCode.CONFLICT);
         }
     }
 
-    @Transactional
-    public void reapply(ReapplicationDTO request, String ip) {
-        String name = username(request.username());
-        if (limits.loginFailures(name) >= properties.limits().loginMaxFailures())
-            throw new BusinessException(CommonErrorCode.RATE_LIMITED);
-        captcha.consume(request.ticket(), ip);
-        var user = mapper.lockByUsername(name);
-        if (
-            !passwords.matches(request.password(), user == null ? null : user.getPasswordHash())
-        ) {
-            limits.failedLogin(name);
-            throw new BusinessException(UserErrorCode.INVALID_CREDENTIALS);
+    // 协议还没发布不开放注册；用户同意的版本必须是当前版本
+    private void requireCurrentLegal(RegistrationDTO request) {
+        var legal = properties.legal();
+        if (!legal.published()) {
+            throw new BusinessException(UserErrorCode.LEGAL_NOT_PUBLISHED);
         }
-        limits.clearLogin(name);
-        if (user.getStatus() != UserStatus.REJECTED) throw new BusinessException(CommonErrorCode.CONFLICT);
-        limits.charge("reapplication", name, properties.limits().reapplicationDailyMax(), Duration.ofDays(1));
-        user.setStatus(UserStatus.PENDING);
-        user.setApplyReason(request.applyReason());
-        user.setRejectReason(null);
-        // Explicit null update is required; MyBatis-Plus normally skips null entity fields.
+        if (
+            !legal.termsVersion().equals(request.termsVersion()) ||
+            !legal.privacyVersion().equals(request.privacyVersion())
+        ) {
+            throw new BusinessException(UserErrorCode.LEGAL_VERSION_CHANGED);
+        }
+    }
+
+    // 被拒后重新申请：先校验用户名和密码，只允许从已拒绝回到待审核
+    @Transactional(rollbackFor = Exception.class)
+    public void reapply(ReapplicationDTO request, String ip) {
+        UserEntity user = credentials.authenticate(request.username(), request.password(), request.ticket(), ip);
+        if (user.getStatus() != UserStatus.REJECTED) {
+            throw new BusinessException(CommonErrorCode.CONFLICT);
+        }
+        limits.chargeDaily(REAPPLICATION_SCOPE, user.getUsername(), properties.limits().reapplicationDailyMax());
+        // 按实体更新会跳过空值，清空拒绝原因必须显式写出来
         mapper.update(
             null,
-            new com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper<UserEntity>()
+            Wrappers.<UserEntity>lambdaUpdate()
                 .eq(UserEntity::getId, user.getId())
                 .set(UserEntity::getStatus, UserStatus.PENDING)
                 .set(UserEntity::getApplyReason, request.applyReason())

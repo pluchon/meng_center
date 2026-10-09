@@ -27,6 +27,7 @@
 | 组件库 | Element Plus，全量引入 |
 | 文案 | vue-i18n，当前只有简体中文 |
 | 样式 | SCSS |
+| 图片 | vite-imagetools，构建时缩放并转 WebP（目前只有用户端用到） |
 | 检查 | ESLint、Stylelint、Prettier |
 
 具体版本在搭骨架时锁定。
@@ -230,12 +231,23 @@ Element Plus 相关：
 暗色模式验收矩阵：页面、弹窗、悬停态、禁用控件、双方消息气泡、媒体加载失败态、分页器、他人视角。
 媒体加载失败要有兜底图标，前景色和背景色跟随主题。
 
+图片：
+
+- 页面用到的位图统一从 `src/assets/images.js` 引入，不在组件里直接写图片路径。
+  该文件在引用地址上写明宽度、格式和质量，`vite-imagetools` 在构建和开发时按它缩小并转成 WebP。
+- 源文件保留原图。换图只替换同名的 PNG，页面不用改。
+- 宽度按显示尺寸的两到三倍取。原图动辄一两 MB，不经转换不能直接进首屏。
+- `index.html` 里的地址不经过图片转换，标签页图标由入口脚本写入。
+
 ## 11. 检查工具
 
 | 工具 | 关键规则 |
 |---|---|
 | ESLint | Vue 官方规则；`no-console`、`no-debugger` 报错；国际化插件的「模板里不许出现写死的文字」报错 |
 | Stylelint | SCSS 标准规则；禁止十六进制色值、颜色名和颜色函数，仅 `styles/tokens.scss` 例外 |
+
+模板排版归 ESLint 管，Prettier 只管脚本和样式：`npm run format` 先用 Prettier 处理 `.js` 和 `.scss`，再跑 `eslint --fix`。
+两者对 `.vue` 模板的排法不一样，让 Prettier 碰模板会把 ESLint 的警告改回来。
 | Prettier | 统一格式 |
 
 `package.json` 脚本：`dev`、`build`、`lint`、`lint:style`。

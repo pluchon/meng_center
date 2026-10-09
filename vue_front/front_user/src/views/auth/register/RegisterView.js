@@ -1,10 +1,20 @@
 import { useAuthValidation } from '@/composables/useAuthValidation'
+import { notifyFailure } from '@/composables/useFailureNotice'
+import CapsLockHint from '@/components/caps-lock-hint/CapsLockHint.vue'
+import { useCodeCountdown } from '@/composables/useCodeCountdown'
 import FieldMessage from '@/components/field-message/FieldMessage.vue'
-import { defineComponent, reactive, ref, onUnmounted, watch } from 'vue'
+import { defineComponent, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { userApi } from '@/api/user'
-import { Auth, ContactChannel, Regions, LegalVersion, LegalDocument } from '@/constants/app'
+import {
+  Auth,
+  CodeScope,
+  ContactChannel,
+  Regions,
+  LegalVersion,
+  LegalDocument,
+} from '@/constants/app'
 import { RouteName } from '@/router/names'
 import AuthLayout from '@/layouts/auth/AuthLayout.vue'
 import ContactField from '@/components/contact-field/ContactField.vue'
@@ -15,6 +25,7 @@ import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
 export default defineComponent({
   name: 'RegisterView',
   components: {
+    CapsLockHint,
     FieldMessage,
     AuthLayout,
     CaptchaDialog,
@@ -30,8 +41,6 @@ export default defineComponent({
       captcha = ref(null),
       submitting = ref(false),
       sending = ref(false),
-      seconds = ref(0),
-      failure = ref(''),
       success = ref(false)
     const form = reactive({
       username: '',
@@ -43,11 +52,9 @@ export default defineComponent({
       code: '',
       applyReason: '',
     })
-    let countdown
-    onUnmounted(() => clearInterval(countdown))
+    const { seconds, start: startCountdown } = useCodeCountdown(CodeScope.REGISTER)
     watch(channel, () => {
       form.code = ''
-      failure.value = ''
     })
     function contact() {
       return channel.value === ContactChannel.EMAIL
@@ -61,7 +68,6 @@ export default defineComponent({
     async function sendCode() {
       if (sending.value || seconds.value) return
       sending.value = true
-      failure.value = ''
       try {
         if (!validateContact()) return
         const ticket = await captcha.value.solve()
@@ -69,12 +75,9 @@ export default defineComponent({
         const send = channel.value === ContactChannel.EMAIL ? userApi.emailCode : userApi.smsCode
         await send({ ...contact(), ticket })
         ElMessage.success(t('auth.register.sent'))
-        seconds.value = Auth.CODE_SECONDS
-        countdown = setInterval(() => {
-          if (--seconds.value <= 0) clearInterval(countdown)
-        }, 1000)
+        startCountdown()
       } catch (error) {
-        if (!serverError(error)) failure.value = error.message
+        if (!serverError(error)) notifyFailure(error)
       } finally {
         sending.value = false
       }
@@ -82,7 +85,6 @@ export default defineComponent({
     async function submit() {
       if (submitting.value) return
       submitting.value = true
-      failure.value = ''
       try {
         if (!validate('register')) return
         const ticket = await captcha.value.solve()
@@ -100,7 +102,7 @@ export default defineComponent({
         })
         success.value = true
       } catch (error) {
-        if (!serverError(error)) failure.value = error.message
+        if (!serverError(error)) notifyFailure(error)
       } finally {
         submitting.value = false
       }
@@ -115,7 +117,6 @@ export default defineComponent({
       submitting,
       sending,
       seconds,
-      failure,
       success,
       form,
       sendCode,

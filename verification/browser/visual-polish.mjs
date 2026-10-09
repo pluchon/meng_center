@@ -14,8 +14,9 @@ try {
  await page.goto('http://127.0.0.1:5173/reset-password');await page.locator('h1').waitFor();await page.evaluate(()=>document.fonts.ready)
  assert.match(await page.title(),/重置密码/)
  assert.equal(await page.getByText('用注册时的邮箱或手机号，找回你的账号。',{exact:true}).count(),0)
- assert.match(await page.locator('.reset-avatar').getAttribute('src'),/forget_password_avatar/)
+ // 头像在构建时缩小转码，地址不再带原文件名，改为确认图片确实解码成功
  await page.locator('.reset-avatar').evaluate(img=>img.decode())
+ assert.ok(await page.locator('.reset-avatar').evaluate(img=>img.naturalWidth>0))
  assert.match(await page.locator('.reset-action').evaluate(el=>getComputedStyle(el).fontFamily),/Noto Sans SC/)
  assert.equal(await page.locator('vite-error-overlay').count(),0)
  report.checks.push('new avatar, no subtitle, clearer title; page identity and no framework overlay')

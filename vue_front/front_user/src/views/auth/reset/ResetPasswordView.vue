@@ -1,24 +1,39 @@
 <template>
   <main class="reset-layout">
     <ParticleBackground />
-    <section class="reset-card" aria-labelledby="reset-title">
+    <section
+      class="reset-card"
+      aria-labelledby="reset-title"
+    >
+      <CardEdge />
       <BorderGlow />
       <AuthDecor :variant="AuthDecorVariant.RESET" />
-      <img class="reset-avatar" :src="avatar" :alt="t('auth.reset.avatar')" />
+      <img
+        class="reset-avatar"
+        :src="avatar"
+        :alt="t('auth.reset.avatar')"
+      >
       <span class="reset-comfort">{{ t('auth.reset.comfort') }}</span>
       <template v-if="!success">
-        <h1 id="reset-title" class="auth-heading">
+        <h1
+          id="reset-title"
+          class="auth-heading"
+        >
           <span class="reset-action">{{ t('auth.reset.reset') }}</span>
           <span class="reset-highlight">{{ t('auth.reset.password') }}</span>
         </h1>
-        <form class="auth-form" novalidate @submit.prevent="submit">
+        <form
+          class="auth-form"
+          novalidate
+          @submit.prevent="submit"
+        >
           <ContactField
             v-model:channel="channel"
-            :error="errors.contact"
-            :message-id="fieldId('contact')"
             v-model:email="form.email"
             v-model:phone="form.phone"
             v-model:country-code="form.countryCode"
+            :error="errors.contact"
+            :message-id="fieldId('contact')"
             :disabled="sending || submitting"
           />
           <VerificationCodeField
@@ -31,41 +46,38 @@
             @send="sendCode"
           />
           <div class="auth-pair">
-            <label
-              >{{ t('auth.reset.newPassword')
-              }}<el-input
-                v-model="form.password"
-                :class="{ 'has-error': Boolean(errors.password) }"
-                :aria-invalid="Boolean(errors.password)"
-                :aria-describedby="errors.password ? fieldId('password') : undefined"
-                type="password"
-                show-password
-                autocomplete="new-password"
-                :maxlength="Auth.PASSWORD_MAX"
-                :placeholder="t('auth.register.passwordHint')"
-                :title="t('auth.register.passwordRule')" /><FieldMessage
-                :message="errors.password"
-                :message-id="fieldId('password')"
+            <label>{{ t('auth.reset.newPassword')
+            }}<el-input
+              v-model="form.password"
+              :class="{ 'has-error': Boolean(errors.password) }"
+              :aria-invalid="Boolean(errors.password)"
+              :aria-describedby="errors.password ? fieldId('password') : undefined"
+              type="password"
+              show-password
+              autocomplete="new-password"
+              :maxlength="Auth.PASSWORD_MAX"
+              :placeholder="t('auth.register.passwordHint')"
+              :title="t('auth.register.passwordRule')"
+            /><CapsLockHint /><FieldMessage
+              :message="errors.password"
+              :message-id="fieldId('password')"
             /></label>
-            <label
-              >{{ t('auth.register.confirmPassword')
-              }}<el-input
-                v-model="form.confirmPassword"
-                :class="{ 'has-error': Boolean(errors.confirmPassword) }"
-                :aria-invalid="Boolean(errors.confirmPassword)"
-                :aria-describedby="errors.confirmPassword ? fieldId('confirmPassword') : undefined"
-                type="password"
-                show-password
-                autocomplete="new-password"
-                :maxlength="Auth.PASSWORD_MAX"
-                :placeholder="t('auth.register.confirmPasswordHint')" /><FieldMessage
-                :message="errors.confirmPassword"
-                :message-id="fieldId('confirmPassword')"
+            <label>{{ t('auth.register.confirmPassword')
+            }}<el-input
+              v-model="form.confirmPassword"
+              :class="{ 'has-error': Boolean(errors.confirmPassword) }"
+              :aria-invalid="Boolean(errors.confirmPassword)"
+              :aria-describedby="errors.confirmPassword ? fieldId('confirmPassword') : undefined"
+              type="password"
+              show-password
+              autocomplete="new-password"
+              :maxlength="Auth.PASSWORD_MAX"
+              :placeholder="t('auth.register.confirmPasswordHint')"
+            /><CapsLockHint /><FieldMessage
+              :message="errors.confirmPassword"
+              :message-id="fieldId('confirmPassword')"
             /></label>
           </div>
-          <p v-if="failure" class="auth-form-error" role="alert">
-            {{ failure }}
-          </p>
           <el-button
             type="primary"
             native-type="submit"
@@ -83,14 +95,24 @@
           </router-link>
         </p>
       </template>
-      <div v-else class="reset-success" role="status">
-        <h1 id="reset-title" class="auth-heading">
+      <div
+        v-else
+        class="reset-success"
+        role="status"
+      >
+        <h1
+          id="reset-title"
+          class="auth-heading"
+        >
           {{ t('auth.reset.success') }}
         </h1>
         <p class="reset-description">
           {{ t('auth.reset.successDescription') }}
         </p>
-        <router-link class="reset-return" :to="{ name: RouteName.LOGIN }">
+        <router-link
+          class="reset-return"
+          :to="{ name: RouteName.LOGIN }"
+        >
           {{ t('auth.reset.backLogin') }}
         </router-link>
       </div>

@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint . --max-warnings 0",
     "lint:style": "stylelint \"src/**/*.scss\" --max-warnings 0",
-    "format": "prettier --write src"
+    "format": "prettier --write \"src/**/*.{js,scss}\" && eslint . --fix"
   },
   "dependencies": {
     "@element-plus/icons-vue": "2.3.2",

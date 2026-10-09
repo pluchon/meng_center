@@ -1,9 +1,9 @@
 import BorderGlow from '@/components/border-glow/BorderGlow.vue'
+import CardEdge from '@/components/card-edge/CardEdge.vue'
 import { defineComponent, ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import legalArtwork from '@/assets/legal-cirno-garden.png'
-import brandIcon from '@/assets/meng_center_ico.png'
+import { brandIcon, legalArtwork } from '@/assets/images'
 import ParticleBackground from '@/components/particle-background/ParticleBackground.vue'
 import terms from '@/content/legal/terms'
 import privacy from '@/content/legal/privacy'
@@ -11,7 +11,7 @@ import { LegalDocument } from '@/constants/app'
 import { RouteName } from '@/router/names'
 export default defineComponent({
   name: 'AgreementView',
-  components: { BorderGlow, ParticleBackground },
+  components: { BorderGlow, CardEdge, ParticleBackground },
   setup() {
     const route = useRoute(),
       selected = ref(

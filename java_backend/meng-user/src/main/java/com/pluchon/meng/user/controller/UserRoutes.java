@@ -1,5 +1,6 @@
 package com.pluchon.meng.user.controller;
 
+// 用户服务对外接口的路径与分页默认值
 public final class UserRoutes {
 
     public static final String ROOT = "/user";
@@ -20,6 +21,8 @@ public final class UserRoutes {
     public static final String REJECTION = "/admin/registrations/{userId}/rejection";
     public static final String DEFAULT_PAGE = "1";
     public static final String DEFAULT_SIZE = "20";
+    // 每页条数上限
+    public static final long MAX_SIZE = 100;
 
     private UserRoutes() {}
 }

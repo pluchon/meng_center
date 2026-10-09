@@ -6,6 +6,7 @@ import org.springframework.amqp.core.*;
 import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
 import org.springframework.context.annotation.*;
 
+// 消息队列拓扑：验证码队列、审核通知队列、死信队列和对外的事件交换机
 @Configuration
 public class MqConfiguration {
 

@@ -1,6 +1,5 @@
 <template>
-  <label class="code-field"
-    >{{ t('auth.register.code') }}
+  <label class="code-field">{{ t('auth.register.code') }}
     <el-input
       v-model="code"
       :class="{ 'has-error': Boolean(error) }"
@@ -22,7 +21,10 @@
         </el-button>
       </template>
     </el-input>
-    <FieldMessage :message="error" :message-id="messageId" />
+    <FieldMessage
+      :message="error"
+      :message-id="messageId"
+    />
   </label>
 </template>
 <script src="./VerificationCodeField.js"></script>

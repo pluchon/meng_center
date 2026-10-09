@@ -1,5 +1,6 @@
 package com.pluchon.meng.common.core.error;
 
+// 各服务通用的错误码
 public enum CommonErrorCode implements ErrorCode {
     INVALID_ARGUMENT("COMMON_INVALID_ARGUMENT", "参数不合法", 400),
     UNAUTHENTICATED("COMMON_UNAUTHENTICATED", "请先登录", 401),

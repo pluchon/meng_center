@@ -2,6 +2,7 @@ package com.pluchon.meng.user.controller.dto;
 
 import jakarta.validation.constraints.*;
 
+// 注册申请请求，邮箱和手机号二选一
 public record RegistrationDTO(
     @NotBlank @Pattern(regexp = "[A-Za-z0-9_]{3,32}") String username,
     @NotBlank @Pattern(regexp = RegistrationConstraints.PASSWORD_PATTERN) String password,

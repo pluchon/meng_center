@@ -1,5 +1,6 @@
 import { chromium } from 'playwright'
 import { solveCaptcha } from './captcha.mjs'
+import { releaseSmsFixture } from './limits.mjs'
 import assert from 'node:assert/strict'
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -88,6 +89,8 @@ try {
   report.failure = error.message.replaceAll(process.env.MENG_ADMIN_PASSWORD || 'no-secret-match', '[redacted]')
   process.exitCode = 1
 } finally {
+  // 注册页那一步用日本号码 090-1234-5678 请求过一次短信码，把它记下的限流计数还回去
+  try { await releaseSmsFixture('+819012345678') } catch (error) { report.cleanupFailure = error.message; process.exitCode = 1 }
   await browser.close()
   await fs.writeFile(path.join(root, 'test-output', 'browser-report.json'), JSON.stringify(report, null, 2))
   console.log(JSON.stringify({ passed: report.passed, checks: report.checks.length, failure: report.failure }))

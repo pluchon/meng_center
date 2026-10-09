@@ -14,8 +14,10 @@ import com.pluchon.meng.user.service.CaptchaService;
 import com.pluchon.meng.user.service.error.UserErrorCode;
 import com.pluchon.meng.user.service.security.*;
 import java.time.Duration;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class PasswordResetServiceTest {
 
@@ -61,16 +63,18 @@ class PasswordResetServiceTest {
         when(
             passwords.hash(request.password(), request.confirmPassword())
         ).thenReturn("bcrypt");
-        service = new PasswordResetService(
-            contacts,
-            codes,
-            captcha,
-            limits,
-            properties,
-            mapper,
-            passwords,
-            sessions
-        );
+        service = new PasswordResetService();
+        // 服务用字段注入，测试里按字段名把替身装进去
+        Map.of(
+            "contacts", contacts,
+            "codes", codes,
+            "captcha", captcha,
+            "limits", limits,
+            "properties", properties,
+            "mapper", mapper,
+            "passwords", passwords,
+            "sessions", sessions
+        ).forEach((field, collaborator) -> ReflectionTestUtils.setField(service, field, collaborator));
     }
 
     private UserEntity user(UserRole role) {

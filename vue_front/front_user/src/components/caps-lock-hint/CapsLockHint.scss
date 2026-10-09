@@ -1,0 +1,32 @@
+// 锚点本身不占位置，只用来找到所在的 label；父级 label 需要是定位元素
+.caps-lock-anchor {
+  position: absolute;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.caps-lock-hint {
+  display: block;
+  padding: 1px var(--meng-space-3);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-warning);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  white-space: nowrap;
+  animation: caps-lock-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes caps-lock-in {
+  from {
+    opacity: 0;
+    scale: 0.8;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .caps-lock-hint {
+    animation: none;
+  }
+}

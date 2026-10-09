@@ -1,4 +1,4 @@
-param([ValidateSet('functional', 'browser')] [string] $Check)
+param([ValidateSet('functional', 'browser', 'load')] [string] $Check)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/../deploy/scripts/Environment.ps1"
 Import-MengEnvironment

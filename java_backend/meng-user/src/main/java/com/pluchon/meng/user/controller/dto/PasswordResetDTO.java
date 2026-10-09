@@ -2,6 +2,7 @@ package com.pluchon.meng.user.controller.dto;
 
 import jakarta.validation.constraints.*;
 
+// 重置密码请求，邮箱和手机号二选一
 public record PasswordResetDTO(
     @Size(max = 254) String email,
     @Size(max = 5) String countryCode,

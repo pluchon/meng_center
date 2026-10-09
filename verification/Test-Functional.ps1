@@ -1,3 +1,4 @@
+param([ValidateSet('functional', 'load')] [string] $Check = 'functional')
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/../deploy/scripts/Environment.ps1"
 Import-MengEnvironment
@@ -50,7 +51,7 @@ try {
     if (-not $ready) { throw 'Verification service startup timed out.' }
     $env:MENG_VERIFICATION_GATEWAY = 'http://127.0.0.1:18081'
     $env:MENG_VERIFICATION_VHOST = $vhost
-    & "$PSScriptRoot/Invoke-NodeCheck.ps1" -Check functional
+    & "$PSScriptRoot/Invoke-NodeCheck.ps1" -Check $Check
 } finally {
     foreach ($process in $processes) { if (-not $process.HasExited) { Stop-Process -Id $process.Id } }
     if ($created) {

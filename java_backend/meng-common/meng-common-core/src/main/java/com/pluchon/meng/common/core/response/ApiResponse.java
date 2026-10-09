@@ -2,6 +2,7 @@ package com.pluchon.meng.common.core.response;
 
 import com.pluchon.meng.common.core.error.ErrorCode;
 
+// 统一响应体
 public record ApiResponse<T>(String code, String message, T data) {
     public static final String SUCCESS_CODE = "OK";
 

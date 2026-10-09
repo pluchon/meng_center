@@ -4,7 +4,7 @@ import fs from 'node:fs/promises'
 
 // 验证脚本共用的滑块求解。答案只在这里从验证码库的 Redis 缓存读取，产品页面和接口从不暴露它。
 
-async function redisPort() {
+export async function redisPort() {
   if (process.env.MENG_REDIS_PORT) return process.env.MENG_REDIS_PORT
   const ports = await fs.readFile(new URL('../../deploy/ports.env', import.meta.url), 'utf8')
   const match = ports.match(/^MENG_REDIS_PORT=(\d+)\s*$/m)
