@@ -67,8 +67,7 @@ public record UserProperties(
         @NotBlank String approvedText,
         @NotBlank String rejectedSubject,
         @NotBlank String rejectedText,
-        @NotBlank String sender,
-        @Min(1) int deliveryAttemptMax
+        @NotBlank String sender
     ) {}
 
     public record Cookie(boolean secure) {}

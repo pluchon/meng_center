@@ -95,7 +95,6 @@ meng:
       rejected-subject: 萌部落申请审核结果
       rejected-text: '你的申请未通过，原因：{0}。你可以登录查看并重新申请。'
       sender: ${MAIL_USERNAME}
-      delivery-attempt-max: 3
     sms:
       enabled: false
       endpoint: dysmsapi.aliyuncs.com

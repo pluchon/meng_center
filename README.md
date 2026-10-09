@@ -10,7 +10,7 @@ meng_center/
 ├── deploy/          Docker 中间件、Nacos 配置及启动脚本
 ├── java_backend/    Java 后端（Spring Boot 4 微服务）
 ├── vue_front/       两个独立 Vue 3 前端
-└── verification/    独立探针、隔离联调和浏览器验证
+└── verification/    隔离联调、压测和浏览器验证
 ```
 
 ## 文档
@@ -19,9 +19,8 @@ meng_center/
 - [事件与内部接口](docs/contracts.md)：跨服务交互的完整清单和新增流程
 - [认证模块](docs/auth.md)：注册、登录、找回密码、审核的接口、数据、状态流转和验收点
 - [前端规范](docs/frontend.md)：项目划分、目录、三文件拆分、不硬编码的做法、检查工具
-- [开工清单](docs/kickoff.md)：开工前要定的事、密钥清单、骨架搭建顺序和每步的验收点
+- [环境、密钥与约定](docs/setup.md)：本机环境、环境变量清单、命名约定、等外部条件的事
 - [本地中间件](deploy/README.md)：`meng_center` 启动、端口与凭据约定
-- [独立验证](verification/README.md)：中间件验收、后端测试与版本探针
-- [当前验收记录](verification/STATUS.md)：已完成的步骤与尚未通过的验收点
+- [验证](verification/README.md)：后端测试、隔离联调、压测和浏览器脚本
 
-第一阶段已实现注册申请、管理员审核、多会话登录、重新申请、改密和找回密码。正式协议与短信配置仍待运营者提供，当前本地默认关闭注册提交和短信发送，具体边界见验收记录。
+第一阶段已实现注册申请、管理员审核、多会话登录、重新申请、改密和找回密码。正式协议与短信配置仍待运营者提供，当前本地默认关闭注册提交和短信发送，见[环境、密钥与约定](docs/setup.md)第 4 节。

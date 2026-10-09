@@ -15,14 +15,6 @@ try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
   const page = await context.newPage()
   page.on('pageerror', error => report.failures.push(error.name))
-  await check('reference screenshots captured', async () => {
-    await page.goto('http://127.0.0.1:5180/' + encodeURIComponent('萌部落 · 登录页-琪露诺预览.html'))
-    await page.locator('#__bundler_loading').waitFor({ state: 'hidden', timeout: 30000 })
-    await page.screenshot({ path: path.join(output, 'reference-login.png'), fullPage: true })
-    await page.goto('http://127.0.0.1:5180/Register-cirno-preview.dc.html')
-    await page.waitForTimeout(1500)
-    await page.screenshot({ path: path.join(output, 'reference-register.png'), fullPage: true })
-  })
   await check('user login and local poster/font assets render', async () => {
     await page.goto('http://127.0.0.1:5173/login')
     await page.getByRole('heading', { name: /登录.*萌部落/ }).waitFor()

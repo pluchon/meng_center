@@ -3,7 +3,7 @@ import vue from 'eslint-plugin-vue'
 import i18n from '@intlify/eslint-plugin-vue-i18n'
 import globals from 'globals'
 export default [
-  { ignores: ['node_modules/**', 'dist/**', 'pages_design/**'] },
+  { ignores: ['node_modules/**', 'dist/**'] },
   js.configs.recommended,
   ...vue.configs['flat/recommended'],
   {

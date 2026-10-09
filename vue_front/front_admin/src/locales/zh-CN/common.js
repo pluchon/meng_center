@@ -8,8 +8,5 @@ export default {
   cancel: '取消',
   confirm: '确认',
   error: '加载失败',
-  required: '请填写此项',
-  back: '返回',
-  close: '关闭',
   logout: '退出登录',
 }

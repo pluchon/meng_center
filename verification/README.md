@@ -1,50 +1,40 @@
-# 独立验证目录
+# 验证
 
-版本探针、隔离联调、浏览器脚本和输出集中在这里。test-output/ 由 Git 忽略；生产模块中的 ArchUnit、加密及安全不变量测试长期保留。
+隔离联调、压测和浏览器脚本集中在这里。`test-output/` 放报告、日志和截图，由 Git 忽略。
+各模块里的 ArchUnit、加密和安全不变量测试长期保留，随 Maven 一起跑。
 
-## 验证范围
+## 什么时候跑什么
 
-按仓库主人 2026-10-09 的要求，普通页面微调只运行受影响文件的静态检查、必要的前端构建及相关页面检查，不默认执行完整后端、版本探针或隔离联调。认证流程、数据库、接口、架构等重大变动再做完整验证。当前标题、头像、粒子与光标微调使用 `node ./verification/browser/visual-polish.mjs`，只读页面、不发送业务消息。
+普通页面微调只跑受影响文件的静态检查、前端构建和相关的浏览器脚本。
+认证流程、数据库、接口、架构这类改动，或者重构之后，再跑完整的后端测试和隔离联调。
 
-## 执行
+## 准备
 
-在仓库根目录使用 PowerShell；后端先 package，前端先 npm ci。验证工具依赖在本目录安装：
+在仓库根目录用 PowerShell。后端先 `package`，前端先 `npm ci`，验证工具自己的依赖装在本目录：
 
 ```powershell
 npm --prefix verification ci
-./verification/Test-Middleware.ps1
-./verification/Test-Backend.ps1
-./verification/Test-Compatibility.ps1
-./verification/Test-Functional.ps1
-./verification/Test-NacosFailure.ps1
 ```
 
-后端脚本自动查找 IDEA 自带 Maven，可用 -MavenPath 指定，不安装系统 Maven。兼容性探针使用 verification-* 配置和 verification_* 表，并在 finally 清理。
+后端脚本会自动找 IDEA 自带的 Maven，也可以用 `-MavenPath` 指定，不需要安装系统 Maven。
 
-功能联调启动独立 user / gateway 实例于 18101 / 18081，使用独立临时 RabbitMQ vhost，本地 SMTP 接收器监听 25250。只对验证进程启用协议及覆盖 SMTP；普通业务进程保持原配置。测试只删除自己生成的随机用户名、会话、票据和已知键；IP 注册计数在测试前保存、结束后恢复。真实 QQ SMTP 只验证连接和认证，不发送真实消息。
+## 后端
 
-Nacos 故障脚本短暂停止项目自己的 Nacos 容器，验证两个应用启动失败，finally 恢复中间件。它会影响正在使用该本地 Nacos 的业务进程，因此放在完整联调完成后执行。
+| 命令 | 内容 |
+|---|---|
+| `./verification/Test-Middleware.ps1` | 四个中间件容器健康，用应用账号做真实读写 |
+| `./verification/Test-Backend.ps1` | 全部模块的单元测试和架构测试 |
+| `./verification/Test-Functional.ps1` | 隔离联调：注册、审核、登录、重新申请、改密、重置密码的完整流程 |
+| `./verification/Test-Functional.ps1 -Check load` | 压测，见下文 |
+| `./verification/Test-NacosFailure.ps1` | 关掉 Nacos 后两个服务必须启动失败 |
+| `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 
-## 浏览器验证
+隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，
+不碰正在使用的 8080 / 8101。只对验证进程开启协议发布和替换 SMTP，业务进程的配置不变。
+脚本只删自己造的随机账号、会话、票据和限流键；来源地址的注册计数在测试前保存、结束后恢复。
+真实的 SMTP 只验证连接和认证，不发信。
 
-先启动普通 user / gateway，以及两个前端 dev server，再执行：
-
-```powershell
-./verification/Test-Browser.ps1
-node ./verification/browser/ui-adjustments.mjs
-node ./verification/browser/reset-password.mjs
-node ./verification/browser/captcha-flow.mjs
-```
-
-check.mjs 在注册页用一个固定的日本号码真的请求一次短信码，结束时由 browser/limits.mjs 把这一次记下的限流计数还回去（发送间隔、发送窗口直接删，来源地址的日计数只减一），所以需要 `MENG_PII_HASH_KEY` 在环境里。
-
-captcha-flow.mjs 是滑块专项：用户端登录每次先弹滑块、拖错会换图重来、票据随登录请求提交、再次登录要重新过滑块。登录接口用模拟响应，不产生真实的失败计数；滑块生成与校验走真实服务。浏览器脚本共用 browser/captcha.mjs 求解滑块，拖动先快后慢、总时长超过轨迹检测的下限。直接用 node 运行时，先在同一个 PowerShell 里执行 `. ./deploy/scripts/Environment.ps1; Import-MengEnvironment` 载入 Redis 凭据。
-
-使用系统 Microsoft Edge 的无头浏览器，不另装浏览器。Browser 插件当前不可用，采用 Playwright 回退。脚本拍摄参考稿与实现截图，检查本地字体/海报、地区选择、表单校验、真实滑块拖动、协议阅读、鉴权路由、管理员登录、后端分页和移动端溢出。自动化只在验证脚本里读取挑战答案，不把答案暴露给产品页面。
-
-ui-adjustments.mjs 专门验证登录勾选的请求门槛、合并联系方式、100 字编辑器的粘贴与中文输入、8～20 位字母数字注册密码、勾选对齐、纯图标切换动画、动态连线与减少动态效果、鼠标排斥和断线、标题居中、半透明插画与长进度条，以及 1366×768、390×844、375×667 三种视口。登录勾选测试使用模拟待审核响应，只检查是否发出请求；其他页面连接真实本地服务。未登录恢复会话时的 401 和该模拟 403 是预期响应，其他控制台错误和运行时错误必须为零。
-
-后续微调同时验证输入框内密码提示、邮箱占位样式、内嵌验证码按钮、找回密码入口跳转、按钮和协议标签动画。重连检查通过浏览器导入实际 particle-network.js，确认断线点靠近新的可达伙伴，同时保留阻断路径与静止模式约束；粒子画布采样仅在验证浏览器注入。
+Nacos 故障脚本会短暂停掉项目自己的 Nacos 容器，结束时恢复。它会影响正在用这个 Nacos 的业务进程，放在其他验证之后跑。
 
 ## 压测
 
@@ -52,25 +42,59 @@ ui-adjustments.mjs 专门验证登录勾选的请求门槛、合并联系方式�
 ./verification/Test-Functional.ps1 -Check load
 ```
 
-与功能联调共用同一套隔离实例（18101 / 18081、临时 vhost、本地收信器），不碰正在使用的 8080 / 8101。
-脚本先走一遍真实注册拿到服务端算出的密码哈希，再克隆出一批压测账号，结束后删掉账号、会话、票据和限流键。
-场景有七个：生成滑块、校验滑块、登录、当前用户、审核列表、登录全流程、发邮箱验证码。
-每个场景预热后按固定并发跑一段时间，报告每秒完成数和 50 / 95 / 99 分位耗时，写到 test-output/load-*.json。
+与隔离联调共用同一套实例。脚本先走一遍真实注册拿到服务端算出的密码哈希，再克隆出一批压测账号，结束后清理。
+七个场景各自预热后按固定并发跑一段时间，报告每秒完成数和 50 / 95 / 99 分位耗时，写到 `test-output/load-*.json`。
 
 可用环境变量调整：`MENG_LOAD_SECONDS`（每个场景的时长，默认 8）、`MENG_LOAD_USERS`（压测账号数，默认 40）、
 `MENG_LOAD_LABEL`（报告文件名后缀）、`MENG_LOAD_ONLY`（只跑指定场景，逗号分隔场景名）。
 
-压测客户端和服务跑在同一台机器上，互相抢处理器，数字只用来做前后对比和找明显的慢点，不代表线上容量。
+2026-10-09 在开发机（16 线程，压测端与服务同机）上的结果，作为以后对比的基线：
+
+| 场景 | 并发 | 每秒完成 | 中位耗时 | 95 分位 |
+|---|---|---|---|---|
+| 生成滑块 | 16 | 333 | 45 ms | 74 ms |
+| 校验滑块 | 16 | 292 | 8 ms | 14 ms |
+| 登录 | 16 | 154 | 98 ms | 125 ms |
+| 当前用户 | 32 | 1835 | 16 ms | 30 ms |
+| 审核列表 | 16 | 1099 | 13 ms | 23 ms |
+| 登录全流程 | 8 | 69 | 114 ms | 135 ms |
+| 发邮箱验证码 | 8 | 31 | 245 ms | 300 ms |
+
+压测端和服务抢同一台机器的处理器，数字只用来做前后对比和找明显的慢点，不代表线上容量。
+登录的瓶颈是密码哈希。「校验滑块」的每秒数受不计时的出题准备限制，看耗时即可。
 发信场景对着本地收信器，测不出真实邮件服务商的耗时。
 
-## 结果
+## 浏览器
 
-当前证据与未完成项见 [STATUS.md](STATUS.md)。详细 JSON、日志和截图位于 test-output/；源码、工具依赖锁文件和复现脚本保留。SMTP 认证、本地邮件接收以及真实短信送达分别记账，不以本地接收器冒充外部实发。
+先启动业务用的 user / gateway 和两个前端的开发服务，再执行：
 
-重置专项脚本验证 640px 卡片、参考头像、唯一返回登录入口、三种视口、注册控件复用，以及模拟接口下的滑块、发码倒计时、密码不一致、失败重试和成功返回。算法检查使用真实模块，85 点重叠时每点至多 3 条连线，连通域至多 8 点；单独构造 8 点连通域验证停止重连并向外散开。
+```powershell
+./verification/Test-Browser.ps1
+node ./verification/browser/captcha-flow.mjs
+node ./verification/browser/ui-adjustments.mjs
+node ./verification/browser/reset-password.mjs
+node ./verification/browser/visual-polish.mjs
+node ./verification/browser/card-swap.mjs
+node ./verification/browser/comet.mjs
+```
 
-完整后端联调另外使用真实 MySQL / Redis / RabbitMQ 和本地 SMTP 收信，验证注册码不能重置密码、重置码消耗一次、两台设备旧会话失效、新密码可登录。测试账号、验证码、限流键和临时 vhost 均在结束时清理。
+直接用 `node` 运行时，先在同一个 PowerShell 里执行 `. ./deploy/scripts/Environment.ps1; Import-MengEnvironment` 载入凭据。
+脚本用系统自带的 Microsoft Edge 无头模式，不另装浏览器。
 
-visual-polish.mjs 只检查重置页标题与新头像、发光渐细拖尾与空闲淡出、按钮可点击、粒子连线滞回与散开缓冲、减少动态效果、桌面/移动布局和切页后光标不重复。帧间隔采样属于本机浏览器观测，不能替代真实设备体验。
+| 脚本 | 内容 |
+|---|---|
+| `Test-Browser.ps1`（`browser/check.mjs`） | 回归：登录与注册页渲染、表单校验、真实拖动滑块、协议阅读、鉴权路由、管理员登录与分页、手机宽度不溢出 |
+| `captcha-flow.mjs` | 滑块：每次登录先过滑块、拖错停留抖动再换图、票据随登录提交、再次登录重新验证 |
+| `ui-adjustments.mjs` | 登录与注册页的交互细节：同意勾选的请求门槛、联系方式切换、申请理由编辑、密码规则、三种视口的布局 |
+| `reset-password.mjs` | 重置密码页：布局、发码倒计时、密码不一致、失败重试、成功返回 |
+| `visual-polish.mjs` | 重置页标题与头像、光标拖尾、粒子连线、减少动态效果 |
+| `card-swap.mjs` | 登录与注册之间的卡片切换动画、焦点恢复 |
+| `comet.mjs` | 彗星光标的形状、消散和不拦截点击 |
 
-`node ./verification/browser/card-swap.mjs` 仅验证邮箱输入与普通输入的文字左侧留白、登录/注册上抽与退后动画、快照 inert/清理、共享粒子背景、快速浏览器导航取消、焦点恢复、减少动态效果和移动布局。
+几点约定：
+
+- 滑块由 `browser/captcha.mjs` 求解：答案只在验证脚本里从 Redis 读取，产品页面和接口从不暴露；拖动先快后慢，总时长超过轨迹检测的下限。
+- 回归会在注册页用一个固定的日本号码真的请求一次短信码（通道未开通，返回 503），服务端照样记限流。
+  结束时 `browser/limits.mjs` 把这一次记下的计数还回去，所以环境里需要有 `MENG_PII_HASH_KEY`。
+- 未登录时恢复会话的 401 是预期响应，其他控制台错误和运行时错误必须为零。
+- 只覆盖 Edge 的桌面和手机视口，没有做真机和其他浏览器的验收；帧率采样只代表本机。

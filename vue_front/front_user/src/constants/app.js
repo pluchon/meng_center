@@ -1,16 +1,6 @@
 export const Request = Object.freeze({ TIMEOUT: 20000 })
-export const Paging = Object.freeze({ SIZE: 20, FIRST: 1 })
 export const UserRole = Object.freeze({ ADMIN: 'ADMIN', USER: 'USER' })
-export const UserStatus = Object.freeze({
-  PENDING: 'PENDING',
-  NORMAL: 'NORMAL',
-  REJECTED: 'REJECTED',
-})
-export const Theme = Object.freeze({ LIGHT: 'light', DARK: 'dark' })
-export const StorageKey = Object.freeze({
-  THEME: 'meng.theme',
-  CODE_COUNTDOWN: 'meng.code-countdown.',
-})
+export const StorageKey = Object.freeze({ CODE_COUNTDOWN: 'meng.code-countdown.' })
 // 发码倒计时按用途分开记，注册和重置密码互不影响
 export const CodeScope = Object.freeze({ REGISTER: 'register', RESET: 'reset' })
 export const ContactChannel = Object.freeze({ EMAIL: 'EMAIL', SMS: 'SMS' })

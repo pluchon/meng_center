@@ -1,6 +1,0 @@
-captcha:
-  init-default-resource: true
-  local-cache-enabled: false
-logging:
-  level:
-    root: WARN

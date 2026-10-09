@@ -15,6 +15,4 @@ export default {
   USER_DELIVERY_FAILED: '验证码发送失败，请稍后重试',
   USER_SMS_UNAVAILABLE: '短信通道尚未配置',
   USER_LEGAL_VERSION_CHANGED: '协议已更新，请重新阅读并同意',
-  FORBIDDEN: '没有操作权限',
-  RATE_LIMITED: '操作过于频繁，请稍后再试',
 }

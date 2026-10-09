@@ -13,7 +13,7 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 ./verification/Test-Middleware.ps1
 ```
 
-第一条命令只在变量不存在时生成，写入用户环境变量；已有的值保持不变。启动脚本会加载用户环境变量，无需为了本次启动重启 Codex。IDEA 需要重新打开以加载新变量。
+第一条命令只在变量不存在时生成，写入用户环境变量；已有的值保持不变。启动脚本会加载用户环境变量，不用重开终端。IDEA 需要重新打开以加载新变量。
 
 所有密钥只在用户环境变量里，不在 `ports.env`、仓库和 Nacos 中保存。请将生成的密钥备份到仓库外的配置清单，尤其是 `MENG_PII_ENC_KEY` 和 `MENG_PII_HASH_KEY`。初始化脚本不显示密钥，不负责覆盖已有密码。
 
@@ -67,7 +67,7 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 - Nacos 补充三个官方镜像必需的环境变量：`MENG_NACOS_AUTH_TOKEN`、`MENG_NACOS_AUTH_IDENTITY_KEY`、`MENG_NACOS_AUTH_IDENTITY_VALUE`。它们和业务 JWT 密钥分开。
 - Nacos 启动包装脚本关闭官方脚本的 shell 跟踪，避免将认证环境变量回显到容器日志。
 
-已有数据卷不会再次执行 MySQL 初始化或 RabbitMQ 默认账号初始化。修改凭据必须按 `docs/kickoff.md` 的事故规则处理，不删卷解决问题。
+已有数据卷不会再次执行 MySQL 初始化或 RabbitMQ 默认账号初始化。修改凭据必须按 `docs/setup.md` 第 2.1 节的事故规则处理，不删卷解决问题。
 
 ## 版本依据
 

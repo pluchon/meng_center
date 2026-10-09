@@ -42,31 +42,6 @@
   }
 }
 
-.poster-copy {
-  position: absolute;
-  inset: auto var(--meng-space-7) var(--meng-space-7);
-  padding: var(--meng-space-5);
-  background: var(--meng-surface);
-  border-radius: var(--meng-radius-note);
-
-  h2 {
-    margin-block: var(--meng-space-2);
-    font-family: 'ZCOOL KuaiLe', sans-serif;
-    font-size: 27px;
-  }
-
-  span {
-    color: var(--meng-primary);
-    font-size: 12px;
-    letter-spacing: 0.12em;
-  }
-
-  p {
-    font-size: 14px;
-    color: var(--meng-muted);
-  }
-}
-
 .poster-fallback {
   display: grid;
   place-content: center;
@@ -163,12 +138,6 @@
     left: var(--meng-space-2);
     padding: var(--meng-space-1) var(--meng-space-3);
     font-size: 20px;
-  }
-
-  .poster-copy {
-    inset-inline: var(--meng-space-4);
-    bottom: var(--meng-space-4);
-    padding: var(--meng-space-4);
   }
 
   .form-area {

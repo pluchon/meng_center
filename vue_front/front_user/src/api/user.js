@@ -13,8 +13,4 @@ export const userApi = Object.freeze({
   register: (data) => request.post(Root + '/registrations', data),
   reapply: (data) => request.post(Root + '/registrations/reapplication', data),
   password: (data) => request.put(Root + '/me/password', data),
-  registrations: (params) => request.get(Root + '/admin/registrations', { params }),
-  approve: (id) => request.post(Root + '/admin/registrations/' + id + '/approval'),
-  reject: (id, reason) =>
-    request.post(Root + '/admin/registrations/' + id + '/rejection', { reason }),
 })

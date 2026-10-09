@@ -1,7 +1,7 @@
 # 萌部落社区 · 架构设计
 
 > 2026-10-08 首版，搭骨架前的共识。
-> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[前端规范](frontend.md)、[开工清单](kickoff.md)。
+> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
 
@@ -189,7 +189,7 @@ java_backend/
 - 审核：被拒绝的人能重新申请；`user` 表带申请理由和拒绝原因。
 - 邮箱和手机号：都加密存储；手机号支持台湾等八个地区，默认台湾。
 - 通道：短信用阿里云（中国站），邮件用 Spring 邮件 starter 走 SMTP。
-- 工程：groupId 和基础包名 `com.pluchon.meng`；迁移用 Flyway；Compose 放 `deploy/`（见 [kickoff.md](kickoff.md)）。
+- 工程：groupId 和基础包名 `com.pluchon.meng`；迁移用 Flyway；Compose 放 `deploy/`（见 [setup.md](setup.md)）。
 
 找回密码已按仓库主人后续要求追加：独立重置验证码、邮箱/手机二选一，重置后撤销全部旧会话；不改变审核状态。
 
