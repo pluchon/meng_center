@@ -41,6 +41,15 @@ dist/
 # 临时测试输出
 test-output/
 
+# 不进仓库的过程产物：设计导出、生图提示词、草稿和备份，规则见 AGENTS.md
+pages_design/
+*.dc.html
+*.prompt.txt
+scratch/
+tmp/
+*.tmp
+*.bak
+
 # 系统文件
 .DS_Store
 Thumbs.db
