@@ -19,6 +19,8 @@
 | `docs/architecture.md` | 定位、技术栈、服务划分、防耦合规则 |
 | `docs/contracts.md` | 事件与内部接口清单 |
 | `docs/auth.md` | 认证模块的接口、数据、状态流转 |
+| `docs/content.md` | 内容域（帖子、评论、配图）的接口、数据、规则，以及主页、详情、发帖页的拆分 |
+| `docs/growth.md` | 成长域（签到、经验、等级）的接口、数据、规则 |
 | `docs/frontend.md` | 前端规范与设计变量 |
 | `docs/setup.md` | 本机环境、环境变量清单、命名约定、等外部条件的事 |
 | `deploy/README.md` | 本地中间件与服务怎么启动 |

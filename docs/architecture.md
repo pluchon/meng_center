@@ -1,7 +1,7 @@
 # 萌部落社区 · 架构设计
 
 > 2026-10-08 首版，搭骨架前的共识。
-> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
+> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
 
@@ -29,6 +29,8 @@
 | 定时任务 | xxl-job | 执行器嵌在各域服务里 |
 | 短信 | 阿里云短信 | 境外号码走国际/港澳台短信；只在 user 服务里用 |
 | 邮件 | Spring Boot 邮件 starter + SMTP | 只在 user 服务里用 |
+| 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
+| IP 属地 | ip2region 离线库 | 只在 content 服务里用，不调外部接口 |
 | AI 服务 | Python 3.12 + LangChain / LangGraph | 不使用 Spring AI |
 | 模型 | ChatGPT 或 Qwen | 都走 OpenAI 兼容接口，靠配置切换；embedding 也走接口 |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
@@ -154,7 +156,7 @@ java_backend/
 | user | 无 | 审核通过 | 等级变更 |
 | content | user | 发帖、改帖、删帖、评论、点赞 | 无 |
 | im | user | 无 | 审核通过、评论、点赞、等级变更、中奖 |
-| growth | 无 | 等级变更、中奖 | 审核通过、发帖、评论 |
+| growth | 无 | 等级变更、中奖 | 发帖、评论 |
 | ai | content | 无 | 发帖、改帖、删帖 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
@@ -193,6 +195,12 @@ java_backend/
 
 找回密码已按仓库主人后续要求追加：独立重置验证码、邮箱/手机二选一，重置后撤销全部旧会话；不改变审核状态。
 
+第二期（见 [content.md](content.md)、[growth.md](growth.md)）：
+
+- 内容：五个固定分类、发帖、帖子流、喜欢、收藏、浏览量、IP 属地、配图、评论。正文用 Markdown，配图存本机磁盘。
+- 成长：签到、经验与等级。成长账户按需创建。
+- 分两步交付，先做主页，再做帖子详情和发帖页。
+
 ### 暂缓
 
 - 上线服务器。按当前组件量 8G 才宽裕；4G 需要砍 xxl-job 并压缩业务服务数。
@@ -200,6 +208,7 @@ java_backend/
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
+- 发帖审核（以后接大模型）、管理端的帖子管理、资料编辑、收藏夹页面。
 
 ### 待定
 
