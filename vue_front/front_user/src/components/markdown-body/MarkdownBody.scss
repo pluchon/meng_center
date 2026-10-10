@@ -1,0 +1,74 @@
+.markdown-body {
+  color: var(--meng-text);
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body :deep(p),
+.markdown-body :deep(ul),
+.markdown-body :deep(ol),
+.markdown-body :deep(blockquote) {
+  margin-block: 0 16px;
+}
+
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3) {
+  margin-block: 20px 12px;
+}
+
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 24px;
+}
+
+.markdown-body :deep(blockquote) {
+  border-left: 4px solid var(--meng-border);
+  padding: 8px 16px;
+  background: var(--meng-tint);
+  border-radius: var(--meng-radius-note);
+}
+
+.markdown-body :deep(a) {
+  color: var(--meng-primary);
+  text-decoration: underline;
+}
+
+.markdown-body :deep(pre) {
+  max-width: 100%;
+  overflow-x: auto;
+  padding: 16px;
+  background: var(--meng-bg);
+  border-radius: var(--meng-radius-note);
+}
+
+.markdown-body :deep(code) {
+  font-family: monospace;
+  color: var(--meng-primary);
+}
+
+.markdown-body :deep(.hljs-keyword),
+.markdown-body :deep(.hljs-selector-tag) {
+  color: var(--meng-danger-text);
+}
+
+.markdown-body :deep(.hljs-string),
+.markdown-body :deep(.hljs-number) {
+  color: var(--meng-growth-green);
+}
+
+.markdown-body :deep(.hljs-comment) {
+  color: var(--meng-muted);
+}
+
+.markdown-body :deep(table) {
+  display: block;
+  overflow-x: auto;
+  border-collapse: collapse;
+}
+
+.markdown-body :deep(td),
+.markdown-body :deep(th) {
+  padding: 8px;
+  border: 1px solid var(--meng-border);
+}

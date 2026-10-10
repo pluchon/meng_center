@@ -23,7 +23,7 @@ export default defineComponent({
       active = ref('publication'),
       progress = ref(0)
     const returnRoute = computed(() =>
-      route.query.from === RouteName.LOGIN ? RouteName.LOGIN : RouteName.REGISTER,
+      [RouteName.HOME, RouteName.LOGIN].includes(route.query.from) ? route.query.from : RouteName.REGISTER,
     )
     const document = computed(() => (selected.value === LegalDocument.PRIVACY ? privacy : terms))
     function jump(id) {

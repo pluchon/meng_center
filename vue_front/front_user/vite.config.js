@@ -11,7 +11,26 @@ export default defineConfig(({ mode }) => {
       rolldownOptions: {
         output: {
           codeSplitting: {
-            groups: [{ name: 'vendor', test: /node_modules/, maxSize: 300000, priority: 10 }],
+            groups: [
+              {
+                name: 'liquid-three',
+                test: /node_modules[\\/]three[\\/]/,
+                maxSize: 300000,
+                priority: 40,
+              },
+              {
+                name: 'codemirror',
+                maxSize: 300000,
+                test: /node_modules[\\/](?:@codemirror|codemirror|@lezer)[\\/]/,
+                priority: 30,
+              },
+              {
+                name: 'markdown',
+                test: /node_modules[\\/](?:markdown-it|dompurify|highlight.js|linkify-it|uc\.micro|mdurl)[\\/]/,
+                priority: 20,
+              },
+              { name: 'vendor', test: /node_modules/, maxSize: 300000, priority: 10 },
+            ],
           },
         },
       },

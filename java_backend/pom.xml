@@ -33,10 +33,10 @@
     <module>meng-common</module>
     <module>meng-api</module>
     <module>meng-user</module>
-    <module>meng-gateway</module>
+    <module>meng-gateway</module><module>meng-content</module><module>meng-growth</module>
   </modules>
   <dependencyManagement>
-    <dependencies>
+    <dependencies><dependency><groupId>com.pluchon.meng</groupId><artifactId>meng-api-content</artifactId><version>${project.version}</version></dependency><dependency><groupId>com.pluchon.meng</groupId><artifactId>meng-api-growth</artifactId><version>${project.version}</version></dependency>
       <dependency><groupId>com.pluchon.meng</groupId><artifactId
         >meng-api-user</artifactId><version
         >${project.version}</version></dependency>

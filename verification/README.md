@@ -27,6 +27,8 @@ npm --prefix verification ci
 | `./verification/Test-Functional.ps1` | 隔离联调：注册、审核、登录、重新申请、改密、重置密码的完整流程 |
 | `./verification/Test-Functional.ps1 -Check load` | 压测，见下文 |
 | `./verification/Test-NacosFailure.ps1` | 关掉 Nacos 后两个服务必须启动失败 |
+| `./verification/Test-HomeGrowth.ps1` | 运行中的主页和成长服务联调、事件幂等与浏览器交互，结束后清理随机数据 |
+| `./verification/Test-PostEditor.ps1` | 运行中的发帖服务与浏览器联调：上传、草稿权限与配额、标签、字数、安全预览、保存恢复、发布及成长事件；结束后清理随机数据 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，
@@ -98,3 +100,15 @@ node ./verification/browser/comet.mjs
   结束时 `browser/limits.mjs` 把这一次记下的计数还回去，所以环境里需要有 `MENG_PII_HASH_KEY`。
 - 未登录时恢复会话的 401 是预期响应，其他控制台错误和运行时错误必须为零。
 - 只覆盖 Edge 的桌面和手机视口，没有做真机和其他浏览器的验收；帧率采样只代表本机。
+
+## 主页与成长
+
+```powershell
+./verification/Test-HomeGrowth.ps1
+```
+
+运行前打包并启动 8080 网关、8101 user、8102 content、8103 growth，以及 5173 用户端。脚本为 `functional/home-growth.mjs`，真实请求网关、数据库、Redis、RabbitMQ，并用 Edge 检查主页。
+
+覆盖：未登录拒绝、老用户按需账户、并发签到、伪图片及超大图片拒绝、四种图片格式与缩略图、发帖参数及配图归属、真实分页分类、热门时间窗口、重复喜欢收藏与账号隔离、发帖和评论经验上限、重复事件、等级同步、桌面手机布局、筛选刷新和后退。固定时钟的零点、周一及跨多级奖励由 `GrowthServiceTest` 验证；不验收第二步的详情、浏览、评论接口与编辑页面。
+
+脚本只建立随机前缀测试账号，使用现有管理员密码哈希作为测试登录凭据，登录消耗仅供验证的 Redis 票据；不发送邮件或短信。结束清理这些账号的帖子、配图、经验、签到、会话与限流键。报告和截图放 `test-output/home-growth/`，不作为仓库文档保留。

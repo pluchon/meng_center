@@ -53,3 +53,6 @@ tmp/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# Local design references
+vue_front/front_user/pages_refer/

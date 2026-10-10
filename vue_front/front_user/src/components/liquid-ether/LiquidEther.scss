@@ -1,0 +1,13 @@
+.liquid-ether {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: var(--meng-editor-fluid-opacity);
+}
+
+.liquid-ether :deep(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

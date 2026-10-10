@@ -1,0 +1,36 @@
+.markdown-editor {
+  height: 100%;
+  min-height: 0;
+}
+
+.markdown-editor :deep(.cm-editor) {
+  height: 100%;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+}
+
+.markdown-editor :deep(.cm-scroller) {
+  overflow: auto;
+  font-family: inherit;
+  line-height: 1.85;
+}
+
+.markdown-editor :deep(.cm-content) {
+  padding: 20px 22px;
+}
+
+.markdown-editor :deep(.cm-line) {
+  padding: 0;
+}
+
+.markdown-editor :deep(.cm-focused) {
+  outline: none;
+}
+
+.markdown-editor :deep(.cm-cursor) {
+  border-color: var(--meng-primary);
+}
+
+.markdown-editor :deep([class~='cm-selectionBackground']) {
+  background: var(--meng-tint) !important;
+}

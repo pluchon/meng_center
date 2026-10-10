@@ -1,4 +1,7 @@
 export const RouteName = Object.freeze({
+  HOME: 'home',
+  POST_NEW: 'post-new',
+  POST_DETAIL: 'post-detail',
   LOGIN: 'login',
   REGISTER: 'register',
   RESET_PASSWORD: 'reset-password',

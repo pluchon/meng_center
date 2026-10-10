@@ -52,7 +52,7 @@ export default defineComponent({
             destination.startsWith('/') &&
             !destination.startsWith('//')
             ? destination
-            : { name: RouteName.ACCOUNT },
+            : { name: RouteName.HOME },
         )
       } catch (error) {
         if (error.code === 'USER_PENDING') pending.value = true

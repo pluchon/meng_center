@@ -76,3 +76,19 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 - [Nacos 鉴权与首次管理员密码初始化](https://nacos.io/en/docs/v3.1/manual/admin/auth/)
 
 应用版本能否一起运行，以 `verification/` 中的实测为准，版本表只提供选型依据。
+
+## 内容与成长服务
+
+已有数据卷新增数据库时执行下面两条命令，不删除或重建卷：
+
+```powershell
+./deploy/scripts/Initialize-LocalEnvironment.ps1
+./deploy/scripts/Initialize-DomainDatabases.ps1
+./deploy/scripts/Publish-NacosConfiguration.ps1
+```
+
+初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD` 与 `MENG_CONTENT_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建三个域库。新生成的密码也应备份到仓库外配置清单。
+
+打包后启动 `Start-Backend.ps1 -Service meng-content` 与 `-Service meng-growth`，分别监听本机 8102、8103；网关继续用 8080，增加 `/content/**`、`/growth/**` 的 Nacos 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
+
+`meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。三个域各自管理 Flyway 迁移。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。

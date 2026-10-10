@@ -1,0 +1,27 @@
+server:
+  address: 127.0.0.1
+  port: 8103
+spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${MENG_MYSQL_PORT}/meng_growth?characterEncoding=utf8&connectionTimeZone=UTC
+    username: meng_growth_app
+    password: ${MENG_MYSQL_GROWTH_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+meng.growth:
+  timezone: Asia/Taipei
+  check-in-exp: 5
+  post-exp: 10
+  comment-exp: 2
+  post-daily-max: 3
+  comment-daily-max: 10
+  thresholds: [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000]

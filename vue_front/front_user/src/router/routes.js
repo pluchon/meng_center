@@ -1,6 +1,23 @@
 import { RouteName } from './names'
 export const routes = [
-  { path: '/', redirect: { name: RouteName.LOGIN } },
+  {
+    path: '/posts/new',
+    name: RouteName.POST_NEW,
+    component: () => import('@/views/post/editor/PostEditorView.vue'),
+    meta: { titleKey: 'editor.pageTitle', requiresAuth: true },
+  },
+  {
+    path: '/posts/:id(\\d+)',
+    name: RouteName.POST_DETAIL,
+    component: () => import('@/views/post/detail/PostDetailView.vue'),
+    meta: { titleKey: 'editor.detailTitle', requiresAuth: true },
+  },
+  {
+    path: '/',
+    name: RouteName.HOME,
+    component: () => import('@/views/home/HomeView.vue'),
+    meta: { titleKey: 'home.title', requiresAuth: true },
+  },
   {
     path: '/login',
     name: RouteName.LOGIN,
