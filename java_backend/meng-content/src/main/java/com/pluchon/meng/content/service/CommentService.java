@@ -13,6 +13,7 @@ import com.pluchon.meng.content.controller.vo.CommentVO;
 import com.pluchon.meng.content.converter.CommentConverter;
 import com.pluchon.meng.content.entity.CommentEntity;
 import com.pluchon.meng.content.entity.CommentImageEntity;
+import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.CommentImageMapper;
 import com.pluchon.meng.content.mapper.CommentMapper;
@@ -31,6 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 // 评论创建、回复、点赞与删除
 @Service
 public class CommentService {
+
+    // 作者的每日互动统计
+    @Autowired
+    private AuthorStatisticsService statistics;
 
     // 评论数据存取
     @Autowired
@@ -193,6 +198,7 @@ public class CommentService {
         ) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         if (c.getRootId() != 0) comments.incrementReplyCount(c.getRootId(), 1);
         posts.incrementCommentCount(post, 1, properties.commentWeight());
+        statistics.record(p.getAuthorId(), CreatorMetric.COMMENT);
         events.publishEvent(
             new PostReadModelEvent(
                 post,

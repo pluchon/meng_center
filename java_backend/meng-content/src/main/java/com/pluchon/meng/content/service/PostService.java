@@ -13,6 +13,7 @@ import com.pluchon.meng.content.controller.vo.PostFeedVO;
 import com.pluchon.meng.content.converter.PostConverter;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.PostImageEntity;
+import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.entity.enums.PostImageKind;
 import com.pluchon.meng.content.entity.enums.PostSort;
@@ -38,6 +39,10 @@ import org.springframework.transaction.annotation.Transactional;
 // 帖子发布、展示、编辑与互动
 @Service
 public class PostService {
+
+    // 作者的每日互动统计
+    @Autowired
+    private AuthorStatisticsService statistics;
 
     // 帖子数据存取
     @Autowired
@@ -244,10 +249,20 @@ public class PostService {
     public void like(long id, boolean enabled) {
         long user = UserContext.require().userId();
         var post = requirePost(id);
+        var created = enabled ? null : relations.selectLikeCreateTime(id, user);
         int changed = enabled
             ? relations.insertLike(id, user)
             : relations.deleteLike(id, user);
         if (changed == 1) {
+            if (enabled) statistics.record(
+                post.getAuthorId(),
+                CreatorMetric.LIKE
+            );
+            else statistics.cancel(
+                post.getAuthorId(),
+                CreatorMetric.LIKE,
+                created
+            );
             long delta = (enabled ? 1L : -1L) * properties.likeWeight();
             posts.incrementLikeCount(id, enabled ? 1 : -1, delta);
             events.publishEvent(
@@ -266,10 +281,22 @@ public class PostService {
     public void favorite(long id, boolean enabled) {
         long user = UserContext.require().userId();
         var post = requirePost(id);
+        var created = enabled
+            ? null
+            : relations.selectFavoriteCreateTime(id, user);
         int changed = enabled
             ? relations.insertFavorite(id, user)
             : relations.deleteFavorite(id, user);
         if (changed == 1) {
+            if (enabled) statistics.record(
+                post.getAuthorId(),
+                CreatorMetric.FAVORITE
+            );
+            else statistics.cancel(
+                post.getAuthorId(),
+                CreatorMetric.FAVORITE,
+                created
+            );
             long delta = (enabled ? 1L : -1L) * properties.favoriteWeight();
             posts.incrementHotScore(id, delta);
             events.publishEvent(

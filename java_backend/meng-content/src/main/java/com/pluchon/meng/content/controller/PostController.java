@@ -4,10 +4,12 @@ import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.core.response.ApiResponse;
 import com.pluchon.meng.common.core.security.IdentityHeaders;
 import com.pluchon.meng.content.controller.dto.CreatePostDTO;
+import com.pluchon.meng.content.controller.vo.CreatorPostVO;
 import com.pluchon.meng.content.controller.vo.PostDetailVO;
 import com.pluchon.meng.content.controller.vo.PostFeedVO;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.entity.enums.PostSort;
+import com.pluchon.meng.content.service.CreatorService;
 import com.pluchon.meng.content.service.PostDetailService;
 import com.pluchon.meng.content.service.PostService;
 import jakarta.validation.Valid;
@@ -32,6 +34,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/content/posts")
 @Validated
 public class PostController {
+
+    // 自己发布的帖子查询
+    @Autowired
+    private CreatorService creator;
+
+    /** 分页查询当前作者自己的帖子。 */
+    @GetMapping("/mine")
+    public ApiResponse<PageResult<CreatorPostVO>> mine(
+        @RequestParam(defaultValue = "1") @Min(1) long page,
+        @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size
+    ) {
+        return ApiResponse.success(creator.mine(page, size));
+    }
 
     // 帖子详情查询
     @Autowired

@@ -8,6 +8,7 @@ import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.controller.vo.PostDetailVO;
 import com.pluchon.meng.content.converter.PostConverter;
 import com.pluchon.meng.content.entity.PostImageEntity;
+import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.enums.PostImageKind;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.PostImageMapper;
@@ -24,6 +25,10 @@ import org.springframework.transaction.support.TransactionTemplate;
 // 帖子详情读取与浏览计数
 @Service
 public class PostDetailService {
+
+    // 作者的每日互动统计
+    @Autowired
+    private AuthorStatisticsService statistics;
 
     // 帖子数据存取
     @Autowired
@@ -84,6 +89,7 @@ public class PostDetailService {
                     if (
                         posts.incrementViews(id, properties.viewWeight()) != 1
                     ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+                    statistics.record(author, CreatorMetric.VIEW);
                     events.publishEvent(
                         new PostReadModelEvent(
                             id,

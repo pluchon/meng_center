@@ -1,6 +1,7 @@
 package com.pluchon.meng.content.mapper;
 
 import com.pluchon.meng.content.entity.PostFavoriteCount;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
@@ -13,6 +14,31 @@ import org.apache.ibatis.annotations.Select;
 // 帖子点赞与收藏关系存取
 @Mapper
 public interface PostRelationMapper {
+    // 只统计当前作者现存帖子的收藏关系
+    @Select(
+        "SELECT COUNT(*) FROM post_favorite f JOIN post p ON p.id=f.post_id " +
+            "WHERE p.author_id=#{author} AND p.delete_state=0"
+    )
+    long selectCreatorFavoriteCount(long author);
+
+    // 在帖子锁内读取取消关系的原始时间
+    @Select(
+        "SELECT create_time FROM post_like WHERE post_id=#{post} AND user_id=#{user}"
+    )
+    LocalDateTime selectLikeCreateTime(
+        @Param("post") long post,
+        @Param("user") long user
+    );
+
+    // 在帖子锁内读取收藏关系的原始时间
+    @Select(
+        "SELECT create_time FROM post_favorite WHERE post_id=#{post} AND user_id=#{user}"
+    )
+    LocalDateTime selectFavoriteCreateTime(
+        @Param("post") long post,
+        @Param("user") long user
+    );
+
     @Select(
         "<script>SELECT post_id,COUNT(*) AS count FROM post_favorite WHERE post_id IN <foreach" +
             " collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach>" +

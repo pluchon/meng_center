@@ -2,6 +2,8 @@ package com.pluchon.meng.content.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.pluchon.meng.content.entity.AuthorPublicationCount;
+import com.pluchon.meng.content.entity.CreatorTotals;
 import com.pluchon.meng.content.entity.PostEntity;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,6 +15,27 @@ import org.apache.ibatis.annotations.Update;
 // 帖子查询、锁定与计数更新
 @Mapper
 public interface PostMapper extends BaseMapper<PostEntity> {
+    // 按作者汇总现存帖子的计数
+    @Select(
+        "SELECT COUNT(*) post_count,COALESCE(SUM(view_count),0) view_count," +
+            "COALESCE(SUM(like_count),0) like_count,COALESCE(SUM(comment_count),0) comment_count " +
+            "FROM post WHERE author_id=#{author} AND delete_state=0"
+    )
+    CreatorTotals selectCreatorTotals(long author);
+
+    // 按业务时区日期汇总当前作者在区间内发布的帖子
+    @Select(
+        "SELECT DATE(DATE_ADD(create_time, INTERVAL #{offset} SECOND)) date,COUNT(*) count " +
+            "FROM post WHERE author_id=#{author} AND delete_state=0 AND create_time>=#{start} " +
+            "AND create_time<#{end} GROUP BY DATE(DATE_ADD(create_time, INTERVAL #{offset} SECOND))"
+    )
+    List<AuthorPublicationCount> selectPublicationCounts(
+        @Param("author") long author,
+        @Param("start") LocalDateTime start,
+        @Param("end") LocalDateTime end,
+        @Param("offset") int offset
+    );
+
     // 按主键游标读取维护批次，关闭总数查询并覆盖普通接口的五十条限制
     default List<PostEntity> selectRebuildBatch(
         long cursor,
