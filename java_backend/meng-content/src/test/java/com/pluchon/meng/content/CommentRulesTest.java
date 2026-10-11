@@ -1,6 +1,7 @@
 package com.pluchon.meng.content;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.content.validation.CommentRules;
@@ -10,12 +11,15 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 
 class CommentRulesTest {
+
     @Test
     void sharesAttachmentLimitBetweenEmotionsAndImages() {
         assertDoesNotThrow(() -> CommentRules.validate("[表情:水滴]".repeat(9), List.of(1L)));
-        assertThrows(BusinessException.class,
+        assertThrows(
+                BusinessException.class,
                 () -> CommentRules.validate("[表情:水滴]".repeat(10), List.of(1L)));
-        assertThrows(BusinessException.class,
+        assertThrows(
+                BusinessException.class,
                 () -> CommentRules.validate("[表情:水滴]".repeat(6), List.of(1L, 2L, 3L, 4L, 5L)));
     }
 

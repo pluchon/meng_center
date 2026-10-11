@@ -4,17 +4,16 @@ import com.pluchon.meng.api.content.event.CommentCreatedEvent;
 import com.pluchon.meng.api.content.event.PostPublishedEvent;
 import com.pluchon.meng.common.core.event.EventEnvelope;
 
-import lombok.RequiredArgsConstructor;
-
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Clock;
 import java.util.UUID;
 
+// 事务提交后发布帖子领域事件
 @Component
-@RequiredArgsConstructor
 public class PostEventPublisher {
 
     @TransactionalEventListener
@@ -27,8 +26,13 @@ public class PostEventPublisher {
                         id, CommentCreatedEvent.EVENT_TYPE, clock.instant(), id, comment));
     }
 
-    private final RabbitTemplate rabbit;
-    private final Clock clock;
+    // 领域事件发送组件
+    @Autowired
+    private RabbitTemplate rabbit;
+
+    // 业务时钟
+    @Autowired
+    private Clock clock;
 
     @TransactionalEventListener
     public void committed(PostPublishedEvent post) {

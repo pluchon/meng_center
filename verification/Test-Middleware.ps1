@@ -14,7 +14,8 @@ function Add-Check([string] $Name, [bool] $Passed) {
 try {
     $services = @(& docker @composeArguments ps --format json | ForEach-Object { $_ | ConvertFrom-Json })
     if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect middleware.' }
-    Add-Check 'Four containers healthy' ($services.Count -eq 4 -and @($services | Where-Object Health -NE 'healthy').Count -eq 0)
+    $primary = @($services | Where-Object Service -NE 'xxl-job-bridge')
+    Add-Check 'Six middleware containers healthy and internal bridge running' ($primary.Count -eq 6 -and @($primary | Where-Object Health -NE 'healthy').Count -eq 0 -and @($services | Where-Object { $_.Service -eq 'xxl-job-bridge' -and $_.State -eq 'running' }).Count -eq 1)
 
     $query = & docker @composeArguments exec -T mysql sh -c 'MYSQL_PWD="$MENG_MYSQL_USER_PASSWORD" mysql -h 127.0.0.1 -u meng_user_app meng_user -Nse "SELECT DATABASE(), CURRENT_USER(), 1"' 2>$null
     Add-Check 'MySQL application account executes real query' ($LASTEXITCODE -eq 0 -and $query -match '^meng_user\s+meng_user_app@%\s+1$')
@@ -39,6 +40,12 @@ try {
     $namespaces = Invoke-MengNacosRequest 'Get' '/v3/console/core/namespace/list' @{} $headers
     Add-Check 'Nacos login and namespace' ($namespaces.code -eq 0 -and @($namespaces.data | Where-Object namespace -EQ $env:MENG_NACOS_NAMESPACE).Count -eq 1)
 
+    $esHeaders = @{ Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("meng_content_app:$($env:MENG_ES_CONTENT_PASSWORD)")) }
+    $es = Invoke-RestMethod -Uri "http://127.0.0.1:$($ports.MENG_ES_PORT)/meng_post/_count" -Headers $esHeaders -TimeoutSec 5
+    Add-Check 'Elasticsearch application index access' ($es.count -ge 0)
+    $denied = $false
+    try { $null = Invoke-RestMethod -Uri "http://127.0.0.1:$($ports.MENG_ES_PORT)/unrelated_index/_count" -Headers $esHeaders -TimeoutSec 5 } catch { $denied = [int]$_.Exception.Response.StatusCode -eq 403 }
+    Add-Check 'Elasticsearch other index access denied' $denied
     $report['passed'] = $true
 } finally {
     $outputDirectory = Join-Path $PSScriptRoot 'test-output'

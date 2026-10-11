@@ -1,13 +1,18 @@
 package com.pluchon.meng.content.validation;
 
-import com.pluchon.meng.common.core.error.*;
+import com.pluchon.meng.common.core.error.BusinessException;
+import com.pluchon.meng.common.core.error.CommonErrorCode;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.List;
 import java.util.regex.Pattern;
 
+// 评论正文、表情和配图合计校验
 public final class CommentRules {
+
     private CommentRules() {}
 
+    // 允许的表情记号匹配规则
     private static final Pattern EMOTION = Pattern.compile("\\[表情:([^\\s\\[\\]]{1,12})\\]");
 
     public static void validate(String text, List<Long> images) {

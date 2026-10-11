@@ -8,20 +8,34 @@ import com.pluchon.meng.content.controller.vo.CommentVO;
 import com.pluchon.meng.content.service.CommentService;
 
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.Positive;
 
-import lombok.RequiredArgsConstructor;
-
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
+// 评论与回复接口
 @RestController
 @RequestMapping("/content")
 @Validated
-@RequiredArgsConstructor
 public class CommentController {
-    private final CommentService service;
 
+    // 对应接口的业务操作
+    @Autowired
+    private CommentService service;
+
+    /** 分页查询帖子一级评论。 */
     @GetMapping("/posts/{id}/comments")
     public ApiResponse<PageResult<CommentVO>> list(
             @PathVariable @Positive long id,
@@ -30,6 +44,7 @@ public class CommentController {
         return ApiResponse.success(service.list(id, page, size));
     }
 
+    /** 分页查询指定评论的回复。 */
     @GetMapping("/comments/{id}/replies")
     public ApiResponse<PageResult<CommentVO>> replies(
             @PathVariable @Positive long id,
@@ -38,6 +53,7 @@ public class CommentController {
         return ApiResponse.success(service.replies(id, page, size));
     }
 
+    /** 提交评论或回复。 */
     @PostMapping("/posts/{id}/comments")
     public ApiResponse<CommentVO> create(
             @PathVariable @Positive long id,
@@ -46,17 +62,20 @@ public class CommentController {
         return ApiResponse.success(service.create(id, body, ip));
     }
 
+    /** 删除有权限操作的评论。 */
     @DeleteMapping("/comments/{id}")
     public ApiResponse<Long> delete(@PathVariable @Positive long id) {
         return ApiResponse.success(service.delete(id));
     }
 
+    /** 点赞评论。 */
     @PutMapping("/comments/{id}/like")
     public ApiResponse<Void> like(@PathVariable @Positive long id) {
         service.like(id, true);
         return ApiResponse.success(null);
     }
 
+    /** 取消评论点赞。 */
     @DeleteMapping("/comments/{id}/like")
     public ApiResponse<Void> unlike(@PathVariable @Positive long id) {
         service.like(id, false);

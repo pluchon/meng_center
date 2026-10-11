@@ -3,10 +3,10 @@ package com.pluchon.meng.content.validation;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 
-public class CodePointLengthValidator
-    implements ConstraintValidator<CodePointLength, String>
-{
+// 校验字符串码点长度
+public class CodePointLengthValidator implements ConstraintValidator<CodePointLength, String> {
 
+    // 码点长度上限
     private int max;
 
     public void initialize(CodePointLength constraint) {

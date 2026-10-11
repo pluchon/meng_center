@@ -1,17 +1,19 @@
 package com.pluchon.meng.content;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.service.ImageStorage;
 
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.nio.file.*;
+import java.nio.file.Path;
 import java.time.Duration;
 
 import javax.imageio.ImageIO;
@@ -21,8 +23,8 @@ class ImageStorageTest {
     @TempDir Path root;
 
     ImageStorage storage() throws Exception {
-        return new ImageStorage(
-                new ContentProperties(
+        var properties =
+                (new ContentProperties(
                         root.toString(),
                         4,
                         Duration.ofSeconds(60),
@@ -35,7 +37,12 @@ class ImageStorageTest {
                         Duration.ofSeconds(10),
                         Duration.ofSeconds(10),
                         30,
-                        100));
+                        100,
+                        5));
+        var storage = new ImageStorage();
+        ReflectionTestUtils.setField(storage, "properties", properties);
+        ReflectionTestUtils.invokeMethod(storage, "initialize");
+        return storage;
     }
 
     @Test

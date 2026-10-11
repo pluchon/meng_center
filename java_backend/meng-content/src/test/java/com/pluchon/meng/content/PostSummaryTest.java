@@ -1,8 +1,9 @@
 package com.pluchon.meng.content;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import com.pluchon.meng.content.service.PostSummary;
+
 import org.junit.jupiter.api.Test;
 
 class PostSummaryTest {

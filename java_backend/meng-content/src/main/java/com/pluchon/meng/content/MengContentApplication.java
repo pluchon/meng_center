@@ -5,6 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.ConfigurationPropertiesScan;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
+// 内容域服务启动入口
 @SpringBootApplication
 @ConfigurationPropertiesScan
 @EnableFeignClients

@@ -89,9 +89,35 @@ services:
       retries: 18
       start_period: 60s
 
+  elasticsearch:
+    build: ./elasticsearch
+    image: meng-center-elasticsearch:9.2.8-ik
+    restart: unless-stopped
+    mem_limit: 1g
+    environment:
+      discovery.type: single-node
+      cluster.name: meng_center
+      xpack.security.enabled: 'true'
+      xpack.security.http.ssl.enabled: 'false'
+      xpack.security.transport.ssl.enabled: 'false'
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+      ELASTIC_PASSWORD: ${MENG_ES_ELASTIC_PASSWORD:?required}
+    ports:
+      - "127.0.0.1:${MENG_ES_PORT:?required}:9200"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: [CMD-SHELL, 'curl -fsS -u "elastic:$$ELASTIC_PASSWORD" http://localhost:9200/_cluster/health?wait_for_status=yellow']
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+
 volumes:
   mysql-data:
   redis-data:
   rabbitmq-data:
   nacos-data:
   nacos-logs:
+
+  elasticsearch-data:

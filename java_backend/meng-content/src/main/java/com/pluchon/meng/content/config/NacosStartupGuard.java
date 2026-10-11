@@ -1,6 +1,7 @@
 package com.pluchon.meng.content.config;
 
 import com.alibaba.cloud.nacos.NacosConfigManager;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -10,8 +11,10 @@ import org.springframework.stereotype.Component;
 @Component
 public final class NacosStartupGuard implements ApplicationRunner {
 
+    // 配置中心就绪检查路径
     private static final String AVAILABLE = "UP";
 
+    // 配置中心连接管理组件
     @Autowired
     private NacosConfigManager manager;
 
@@ -19,8 +22,7 @@ public final class NacosStartupGuard implements ApplicationRunner {
     public void run(ApplicationArguments arguments) {
         if (!AVAILABLE.equals(manager.getConfigService().getServerStatus())) {
             throw new IllegalStateException(
-                "Nacos is unavailable; cached configuration cannot authorize startup."
-            );
+                    "Nacos is unavailable; cached configuration cannot authorize startup.");
         }
     }
 }

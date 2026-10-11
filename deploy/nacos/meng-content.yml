@@ -26,6 +26,7 @@ spring.servlet.multipart:
 meng.content:
   image-root: ${MENG_CONTENT_IMAGE_ROOT}
   like-weight: 4
+  favorite-weight: 5
   view-weight: 1
   comment-weight: 3
   comment-interval: 10s
@@ -37,3 +38,14 @@ meng.content:
   posts-daily: 20
   uploads-daily: 100
   timezone: Asia/Taipei
+
+spring.elasticsearch:
+  uris: http://127.0.0.1:${MENG_ES_PORT}
+  username: meng_content_app
+  password: ${MENG_ES_CONTENT_PASSWORD}
+  connection-timeout: 1s
+  socket-timeout: 2s
+management.health.elasticsearch.enabled: false
+meng.content.search:
+  analyzer: ik_max_word
+  search-analyzer: ik_smart

@@ -9,6 +9,8 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 ```powershell
 ./deploy/scripts/Initialize-LocalEnvironment.ps1
 ./deploy/scripts/Start-Middleware.ps1
+./deploy/scripts/Initialize-Elasticsearch.ps1
+./deploy/scripts/Initialize-XxlJob.ps1
 ./deploy/scripts/Initialize-Nacos.ps1
 ./verification/Test-Middleware.ps1
 ```
@@ -25,6 +27,8 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 |---|---:|---:|
 | MySQL | 13306 | 3306 |
 | Redis | 16379 | 6379 |
+| Elasticsearch | 9200 | 9200 |
+| xxl-job 调度中心 | 18082 | 8080 |
 | RabbitMQ AMQP | 25672 | 5672 |
 | RabbitMQ 管理界面 | 25673 | 15672 |
 | Nacos 服务 API | 18848 | 8848 |
@@ -92,3 +96,13 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 打包后启动 `Start-Backend.ps1 -Service meng-content` 与 `-Service meng-growth`，分别监听本机 8102、8103；网关继续用 8080，增加 `/content/**`、`/growth/**` 的 Nacos 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
 
 `meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。三个域各自管理 Flyway 迁移。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
+
+## 搜索引擎
+
+Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。
+
+`Initialize-Elasticsearch.ps1` 只生成缺失的两个 ES 密码，启动容器后创建 `meng_content_app` 和角色 `meng_content`。权限限定为 `meng_post_*` 及别名 `meng_post`，不赋予集群管理权限。应用只读取自己的密码，管理员密码不发布到 Nacos。首次配置后执行 `Publish-NacosConfiguration.ps1` 并重启内容服务。
+
+内容服务启动时异步检查索引；缺失时从 MySQL 重建。管理员可调用 `POST /content/admin/hot/rebuild`、`POST /content/admin/search/rebuild` 提前执行，接口返回表示已提交任务。索引别名和 Redis 生效色标用于观察切换结果。
+
+ES 故障不阻塞发帖和服务健康检查，搜索降级为标题包含查询。索引同步使用单线程、有界队列和三次重试；失败只记录帖子 ID，下次重建修复。批量重建与实时写入在进程内串行写同一索引，搜索读取不持有写锁。

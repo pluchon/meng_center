@@ -39,6 +39,8 @@
 | `MENG_CONTENT_IMAGE_ROOT` | 配图存储目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MYSQL_ROOT_PASSWORD` | 本地 MySQL 的 root，只给初始化脚本用，应用不用 root 连库 |
 | `MENG_REDIS_PASSWORD` | Redis |
+| `MENG_ES_ELASTIC_PASSWORD` | Elasticsearch 初始化管理员，仅部署脚本使用 |
+| `MENG_ES_CONTENT_PASSWORD` | Elasticsearch 的 `meng_content_app` 账号，仅授权帖子索引与别名 |
 | `MENG_RABBITMQ_USERNAME`、`MENG_RABBITMQ_PASSWORD` | RabbitMQ 的应用账号 |
 | `MENG_NACOS_ADDR`、`MENG_NACOS_NAMESPACE`、`MENG_NACOS_USERNAME`、`MENG_NACOS_PASSWORD` | Nacos 地址、环境和凭据 |
 | `MENG_NACOS_AUTH_TOKEN`、`MENG_NACOS_AUTH_IDENTITY_KEY`、`MENG_NACOS_AUTH_IDENTITY_VALUE` | Nacos 服务端自身的鉴权参数，只给容器用 |

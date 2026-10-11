@@ -6,16 +6,22 @@ import com.pluchon.meng.content.service.ReportService;
 
 import jakarta.validation.Valid;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import org.springframework.web.bind.annotation.*;
-
+// 举报接口
 @RestController
 @RequestMapping("/content/reports")
-@RequiredArgsConstructor
 public class ReportController {
-    private final ReportService service;
 
+    // 对应接口的业务操作
+    @Autowired
+    private ReportService service;
+
+    /** 提交帖子或评论举报。 */
     @PostMapping
     public ApiResponse<Void> create(@Valid @RequestBody CreateReportDTO body) {
         service.create(body);

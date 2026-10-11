@@ -2,10 +2,18 @@ package com.pluchon.meng.content.validation;
 
 import com.pluchon.meng.common.core.error.ErrorCode;
 
+// 内容域业务错误码
 public enum ContentErrorCode implements ErrorCode {
     COMMENT_DELETED("CONTENT_COMMENT_DELETED", "评论已被删除", 404),
     REPORT_DUPLICATE("CONTENT_REPORT_DUPLICATE", "已经举报过", 409);
-    private final String code, message;
+
+    // 业务错误码
+    private final String code;
+
+    // 业务错误说明
+    private final String message;
+
+    // 处理状态
     private final int status;
 
     ContentErrorCode(String code, String message, int status) {

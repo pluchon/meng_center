@@ -1,8 +1,10 @@
 package com.pluchon.meng.content;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import com.pluchon.meng.content.service.IpRegionService;
+
 import org.junit.jupiter.api.Test;
 
 class IpRegionServiceTest {
