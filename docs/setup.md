@@ -41,6 +41,9 @@
 | `MENG_REDIS_PASSWORD` | Redis |
 | `MENG_ES_ELASTIC_PASSWORD` | Elasticsearch 初始化管理员，仅部署脚本使用 |
 | `MENG_ES_CONTENT_PASSWORD` | Elasticsearch 的 `meng_content_app` 账号，仅授权帖子索引与别名 |
+| `MENG_MYSQL_XXLJOB_PASSWORD` | 调度中心独立库 `xxl_job` 的应用账号密码 |
+| `MENG_XXL_JOB_ACCESS_TOKEN` | 执行器直接读取的环境变量；为空或官方默认值时拒绝启动 |
+| `MENG_XXL_JOB_ADMIN_PASSWORD` | 调度中心首次 `admin` 账号密码，初始化脚本不覆盖已修改密码 |
 | `MENG_RABBITMQ_USERNAME`、`MENG_RABBITMQ_PASSWORD` | RabbitMQ 的应用账号 |
 | `MENG_NACOS_ADDR`、`MENG_NACOS_NAMESPACE`、`MENG_NACOS_USERNAME`、`MENG_NACOS_PASSWORD` | Nacos 地址、环境和凭据 |
 | `MENG_NACOS_AUTH_TOKEN`、`MENG_NACOS_AUTH_IDENTITY_KEY`、`MENG_NACOS_AUTH_IDENTITY_VALUE` | Nacos 服务端自身的鉴权参数，只给容器用 |

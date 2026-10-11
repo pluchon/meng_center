@@ -113,6 +113,44 @@ services:
       retries: 20
       start_period: 45s
 
+  xxl-job:
+    image: xuxueli/xxl-job-admin:3.5.0@sha256:194e423ec1c0a892f8346355f5b4ec9a471380e5a6eb2182ee135e82f1dfca05
+    restart: unless-stopped
+    mem_limit: 512m
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: Asia/Taipei
+      JAVA_TOOL_OPTIONS: -Xms128m -Xmx256m -Duser.timezone=Asia/Taipei
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/xxl_job?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Taipei
+      SPRING_DATASOURCE_USERNAME: meng_xxl_job_app
+      SPRING_DATASOURCE_PASSWORD: ${MENG_MYSQL_XXLJOB_PASSWORD:?required}
+      SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: '1'
+      SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: '5'
+    ports:
+      - "127.0.0.1:${MENG_XXL_JOB_PORT:?required}:8080"
+    volumes:
+      - xxl-job-logs:/data/applogs
+    healthcheck:
+      test: [CMD-SHELL, 'curl -fsS http://127.0.0.1:8080/auth/login >/dev/null']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 45s
+
+  xxl-job-bridge:
+    image: alpine/socat:1.8.0.3@sha256:beb4a68d9e4fe6b0f21ea774a0fde6c31f580dde6368939ed70100c5385b015e
+    restart: unless-stopped
+    mem_limit: 32m
+    network_mode: "service:xxl-job"
+    depends_on:
+      xxl-job:
+        condition: service_started
+    command:
+      - "TCP4-LISTEN:${MENG_CONTENT_JOB_PORT:?required},bind=127.0.0.1,fork,reuseaddr"
+      - "TCP4:host.docker.internal:${MENG_CONTENT_JOB_PORT:?required}"
+
 volumes:
   mysql-data:
   redis-data:
@@ -121,3 +159,4 @@ volumes:
   nacos-logs:
 
   elasticsearch-data:
+  xxl-job-logs:

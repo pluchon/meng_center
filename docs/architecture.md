@@ -103,6 +103,8 @@ java_backend/
 - Controller 只做参数绑定、调用 Service、返回统一响应；入参用 DTO，出参用 VO，不直接返回 Entity。
 - Service 是授权、事务、状态流转的最终裁决者。
 - 对象转换放 `converter` 包；跨服务调用放 `client` 包。
+- content、growth 的 Spring 依赖使用 `@Autowired` 字段注入；事务显式声明 `rollbackFor = Exception.class`。类、字段和 Service 方法用中文单行注释，Controller 接口用一句话 Javadoc；不使用通配符导入，每行只写一条语句或一个依赖。
+- content 的新实体计数在字段处初始化为零。DTO 与实体同名同类型字段由 converter 使用 Hutool 5.8.47 `BeanUtil.copyProperties` 拷贝，record 来源已经实测；归一化、摘要、属地和当前用户仍显式赋值，每个转换方法用单元测试覆盖字段。
 
 ## 5. 服务划分
 
@@ -124,7 +126,7 @@ java_backend/
     它只监听本机；容器内端口是 8080，和网关相同，宿主机端口另取并写在 `deploy/ports.env`。容器时区设为 Asia/Taipei，任务的 cron 按这个时区理解。
   - 调度中心用同一个 MySQL 里的独立库 `xxl_job` 和独立账号 `meng_xxl_job_app`，密码来自 `MENG_MYSQL_XXLJOB_PASSWORD`。表结构用该版本官方的建表脚本，不走 Flyway。
   - 调度中心和执行器之间的令牌来自 `MENG_XXL_JOB_ACCESS_TOKEN`。初始化时把控制台默认管理员的口令换成 `MENG_XXL_JOB_ADMIN_PASSWORD`，不留默认口令。
-  - 只有真的有任务的服务才引执行器（`xxl-job-core`，和调度中心同一个版本）。执行器名用服务名，例如 `meng-content`；内嵌端口只监听本机，取服务端口加 1000，content 是 9102。
+  - 只有真的有任务的服务才引执行器（`xxl-job-core`，和调度中心同一个版本）。执行器名用服务名，例如 `meng-content`；端口取服务端口加 1000，content 是 9102。官方 3.5.0 执行器绑定所有网卡，`setIp` 只影响注册地址；靠访问令牌和宿主机防火墙保护，禁止向外开放执行器端口。令牌必须直接来自环境变量 `MENG_XXL_JOB_ACCESS_TOKEN`，为空或等于官方默认值 `default_token` 时服务启动失败并明确提示。注册地址保持 `http://127.0.0.1:9102/`，Compose 不映射执行器端口；调度中心通过同网络空间、仅绑定容器回环地址的转发器访问宿主机执行器。
   - 任务处理器放各服务的 `job` 包，只调对应的 Service 方法，不写业务逻辑。处理器名是「域加动作」，例如 `contentHotRebuild`。
   - 任务定义（cron、路由、阻塞策略、超时、重试）用初始化脚本写进调度中心的库，脚本进仓库，不靠人在控制台里点出来。
   - 默认策略：上一次没跑完时丢弃后续调度，错过的不补跑，失败重试 1 次。任务本身仍要幂等并带互斥锁，因为同一个动作还可能被启动流程或管理接口触发。
@@ -234,6 +236,4 @@ java_backend/
 - tianai 的 Redis 存储和浏览器拖动已通过第一阶段验证，保留后续反滥用回归。
 - Flyway 11.14.1 已迁移实际 user 表并完成读写验证；MySQL 8.4 仍有高于已验证版本 8.1 的启动提示。
 - 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
-- xxl-job 3.5.0 的执行器在 Spring Boot 4.0.8 里能否正常注册和被触发。调度中心自 3.3.1 起已经基于 Spring Boot 4，执行器这一侧还没有实测。
 - Elasticsearch 的 RRF 融合排序是否需要付费许可；需要的话改用加权合并或在 Python 侧实现。
-- Elasticsearch 9.2 系列有没有对应的 IK 分词插件；没有就用官方的 smartcn（见 [content.md](content.md) 第 17.1 节）。

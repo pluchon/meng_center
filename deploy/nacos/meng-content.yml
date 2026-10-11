@@ -49,3 +49,8 @@ management.health.elasticsearch.enabled: false
 meng.content.search:
   analyzer: ik_max_word
   search-analyzer: ik_smart
+meng.content.job:
+  admin-address: http://127.0.0.1:${MENG_XXL_JOB_PORT}
+  port: ${MENG_CONTENT_JOB_PORT}
+  address: http://127.0.0.1:${MENG_CONTENT_JOB_PORT}/
+  log-path: ${MENG_CONTENT_IMAGE_ROOT}/../job-logs

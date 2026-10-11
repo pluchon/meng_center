@@ -103,6 +103,14 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 
 `Initialize-Elasticsearch.ps1` 只生成缺失的两个 ES 密码，启动容器后创建 `meng_content_app` 和角色 `meng_content`。权限限定为 `meng_post_*` 及别名 `meng_post`，不赋予集群管理权限。应用只读取自己的密码，管理员密码不发布到 Nacos。首次配置后执行 `Publish-NacosConfiguration.ps1` 并重启内容服务。
 
-内容服务启动时异步检查索引；缺失时从 MySQL 重建。管理员可调用 `POST /content/admin/hot/rebuild`、`POST /content/admin/search/rebuild` 提前执行，接口返回表示已提交任务。索引别名和 Redis 生效色标用于观察切换结果。
+内容服务启动时异步检查索引；缺失时从 MySQL 重建。xxl-job 每天 04:00 调用 `contentHotRebuild` 重算热榜，04:10 调用 `contentSearchRebuild` 重建搜索索引（Asia/Taipei），没有 Spring `@Scheduled`。管理员可调用 `POST /content/admin/hot/rebuild`、`POST /content/admin/search/rebuild` 提前执行，接口返回表示已提交任务。索引别名和 Redis 生效色标用于观察切换结果。
+
+## 定时任务
+
+`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及两项任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content` 自动注册；两项任务使用 FIRST 路由、DISCARD_LATER 阻塞策略、忽略过期触发、失败重试一次，超时分别为 600/1800 秒。手动运行在调度中心任务管理中操作，失败会反馈到任务日志。
+
+内容服务的官方执行器绑定所有网卡，端口 9102；注册地址仍是 `http://127.0.0.1:9102/`。Compose 不映射或开放执行器端口，`xxl-job-bridge` 只在调度中心容器的回环地址转发到宿主机。宿主机防火墙应阻止外部访问 9102，不为它创建对外放行规则；执行器还强制校验环境变量令牌，空值和 `default_token` 会使内容服务启动失败。Nacos 只保存调度地址、执行器端口、注册地址和日志路径，不能覆盖令牌。
+
+调度中心停机不影响内容服务启动和普通请求。执行器日志保留七天，位于 `MENG_CONTENT_IMAGE_ROOT` 相邻的 `job-logs` 目录；调度中心日志在 Docker 卷中。重启调度中心容器后也重启 `xxl-job-bridge`，使其重新共享调度中心网络空间。
 
 ES 故障不阻塞发帖和服务健康检查，搜索降级为标题包含查询。索引同步使用单线程、有界队列和三次重试；失败只记录帖子 ID，下次重建修复。批量重建与实时写入在进程内串行写同一索引，搜索读取不持有写锁。
