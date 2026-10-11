@@ -1,61 +1,174 @@
 <template>
-  <CommunityLayout>
-    <section class="post-detail">
-      <router-link
-        class="detail-back"
-        :to="{name:RouteName.HOME}"
+  <CommunityLayout class="detail-layout">
+    <main class="post-detail">
+      <picture
+        class="detail-background"
+        aria-hidden="true"
       >
-        {{ t('editor.home') }}
-      </router-link><PageState
+        <source
+          media="(max-width: 760px)"
+          :srcset="detailMobileArtwork"
+        >
+        <img
+          :src="detailArtwork"
+          :srcset="detailArtworkSmall+' 1600w, '+detailArtwork+' 2560w'"
+          sizes="100vw"
+          alt=""
+          fetchpriority="high"
+          decoding="async"
+        >
+      </picture>
+      <PageState
         v-if="loading"
         state="loading"
-      /><PageState
+      />
+      <div
         v-else-if="error"
-        state="error"
-        @retry="load"
-      /><article v-else-if="post">
-        <div class="detail-heading">
-          <span class="detail-category">{{ t('home.categories.'+post.category) }}</span><h1>{{ post.title }}</h1><div class="detail-author">
-            <el-avatar :src="post.author.avatar||userAvatar" /><strong>{{ post.author.nickname||t('home.authorFallback') }}</strong><small>{{ t('home.level',{level:post.author.level}) }}</small><time :datetime="post.createTime">{{ relativeTime(post.createTime) }}</time><small v-if="post.ipRegion">{{ post.ipRegion }}</small>
-          </div><div
-            v-if="post.tags.length"
-            class="detail-tags"
+        class="detail-state"
+      >
+        <PageState
+          :state="error.status===404?'empty':'error'"
+          @retry="load"
+        /><p v-if="error.status===404">
+          {{ t('detail.missing') }}
+        </p><router-link :to="homeLink">
+          {{ t('detail.back') }}
+        </router-link>
+      </div>
+      <template v-else-if="post">
+        <article class="detail-card">
+          <div
+            class="detail-decor"
+            aria-hidden="true"
           >
-            <span
-              v-for="tag in post.tags"
-              :key="tag"
-            >{{ tag }}</span>
-          </div>
-        </div><img
-          v-if="post.cover"
-          class="detail-cover"
-          :src="contentImage(post.cover.url)"
-          :alt="t('editor.coverAlt')"
-        ><MarkdownBody :content="post.content" /><div
-          v-if="post.images.length"
-          class="detail-images"
-        >
-          <button
-            v-for="(image,index) in post.images"
-            :key="image.id"
-            type="button"
-            @click="previewIndex=index"
-          >
-            <img
-              :src="contentImage(image.thumbUrl)"
-              :alt="t('editor.imageAlt')"
-              loading="lazy"
+            <span class="detail-tape" /><span class="detail-sticker sticker-top">{{ t('detail.sticker.top') }}</span><span class="detail-sticker sticker-left">{{ t('detail.sticker.left') }}</span><span class="detail-sticker sticker-right">{{ t('detail.sticker.right') }}</span><span
+              class="detail-sparkle"
+              :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
+            /><img
+              class="detail-bubble"
+              :src="detailBubble"
+              alt=""
+            ><img
+              class="detail-flower"
+              :src="detailFlower"
+              alt=""
             >
-          </button>
-        </div><small class="detail-views">{{ t('editor.views',{count:post.viewCount}) }}</small><el-image-viewer
-          v-if="previewIndex!==null"
-          teleported
-          :url-list="post.images.map(image=>contentImage(image.url))"
-          :initial-index="previewIndex"
-          @close="previewIndex=null"
-        />
-      </article>
-    </section>
+          </div>
+          <div
+            class="detail-scroll-content"
+            tabindex="0"
+            :aria-label="t('editor.detailTitle')"
+          >
+            <header class="detail-author">
+              <router-link
+                class="detail-back"
+                :to="homeLink"
+                :aria-label="t('detail.back')"
+              >
+                <el-icon><ArrowLeft /></el-icon>
+              </router-link>
+              <el-avatar
+                :size="56"
+                :src="post.author.avatar||userAvatar"
+                :alt="post.author.nickname||t('home.authorFallback')"
+              />
+              <strong>{{ post.author.nickname||t('home.authorFallback') }}</strong><span class="author-level">{{ t('home.level',{level:post.author.level}) }}</span><time :datetime="post.createTime">{{ relativeTime(post.createTime) }}</time><span
+                v-if="post.ipRegion"
+                class="detail-region"
+              ><el-icon><Location /></el-icon>{{ post.ipRegion }}</span>
+            </header>
+            <h1>
+              <span>{{ post.title }}</span><span
+                class="title-sparkle"
+                :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
+              />
+            </h1>
+            <MarkdownBody :content="post.content" />
+            <PostImages :images="post.images" />
+            <div
+              v-if="post.tags.length"
+              class="detail-tags"
+            >
+              <span
+                v-for="tag in post.tags"
+                :key="tag"
+              >{{ t('detail.tag',{name:tag}) }}</span>
+            </div>
+            <footer class="detail-actions">
+              <span
+                class="view-count"
+                :aria-label="t('home.views')"
+              ><el-icon><ViewIcon /></el-icon>{{ post.viewCount }}</span>
+              <button
+                type="button"
+                :class="{liked:post.liked}"
+                :aria-label="t('home.like')"
+                :aria-pressed="post.liked"
+                :disabled="pending.like"
+                @click="toggle('like')"
+              >
+                <el-icon><IconHeart /></el-icon>{{ post.likeCount }}
+              </button>
+              <button
+                type="button"
+                :aria-label="t('home.comment')"
+                @click="scrollComments"
+              >
+                <el-icon><ChatDotRound /></el-icon>{{ post.commentCount }}
+              </button>
+              <button
+                type="button"
+                :class="{favorited:post.favorited}"
+                :aria-label="t(post.favorited?'home.unfavorite':'home.favorite')"
+                :aria-pressed="post.favorited"
+                :disabled="pending.favorite"
+                @click="toggle('favorite')"
+              >
+                <el-icon><IconStar /></el-icon>{{ t('home.favorite') }}<span>{{ post.favoriteCount }}</span>
+              </button>
+              <div class="detail-moderation">
+                <template v-if="own">
+                  <router-link :to="{name:RouteName.POST_EDIT,params:{id:post.id},query:homeLink.query}">
+                    <el-icon><EditPen /></el-icon>{{ t('detail.edit') }}
+                  </router-link><button
+                    type="button"
+                    class="delete-action"
+                    :disabled="pending.delete"
+                    @click="remove"
+                  >
+                    <el-icon><Delete /></el-icon>{{ t('detail.delete') }}
+                  </button>
+                </template><button
+                  v-else
+                  type="button"
+                  @click="reportTarget={targetType:ReportTarget.POST,targetId:post.id}"
+                >
+                  <el-icon><IconFlag /></el-icon>{{ t('detail.report') }}
+                </button><span :class="['detail-category','category-'+post.category.toLowerCase()]">{{ t('home.categories.'+post.category) }}</span>
+              </div>
+            </footer>
+            <div class="comments-card">
+              <PostComments
+                id="post-comments"
+                :key="post.id"
+                :post-id="post.id"
+                :initial-page="initialComments"
+                :count="post.commentCount"
+                @count="post.commentCount=$event"
+                @report="reportTarget=$event"
+              /><span
+                class="detail-sticker sticker-bottom"
+                aria-hidden="true"
+              >{{ t('detail.sticker.bottom') }}</span>
+            </div>
+          </div>
+        </article>
+      </template>
+      <ReportDialog
+        :target="reportTarget"
+        @close="reportTarget=null"
+      />
+    </main>
   </CommunityLayout>
 </template>
 <script src="./PostDetailView.js"></script>

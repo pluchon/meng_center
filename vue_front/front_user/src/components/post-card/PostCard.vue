@@ -1,5 +1,10 @@
 <template>
-  <article class="post-card">
+  <article
+    class="post-card"
+    @click="openCard"
+    @pointerenter="preloadDetail"
+    @focusin="preloadDetail"
+  >
     <div class="post-author">
       <el-avatar
         :src="post.author.avatar || userAvatar"
@@ -11,7 +16,7 @@
     </div>
     <div class="post-title">
       <router-link
-        :to="{name:RouteName.POST_DETAIL,params:{id:post.id}}"
+        :to="detailLink"
       >
         {{ post.title }}
       </router-link>
@@ -63,7 +68,7 @@
       </button><button
         type="button"
         :aria-label="t('home.comment')"
-        @click="unavailable"
+        @click="openDetail"
       >
         <el-icon><ChatDotRound /></el-icon>{{ post.commentCount }}
       </button><button

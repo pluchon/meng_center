@@ -25,6 +25,7 @@
 | 状态 | Pinia |
 | 请求 | Axios |
 | 组件库 | Element Plus，全量引入 |
+| 图标 | Element Plus Icons；详情页的爱心、星星、举报旗帜和表情使用 Tabler Vue 图标，按需导入 |
 | 文案 | vue-i18n，当前只有简体中文 |
 | 样式 | SCSS |
 | 图片 | vite-imagetools，构建时缩放并转 WebP（目前只有用户端用到） |

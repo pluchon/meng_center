@@ -1,0 +1,21 @@
+.report-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meng-space-3);
+  margin-bottom: var(--meng-space-6);
+}
+
+.report-reasons button {
+  padding: var(--meng-space-2) var(--meng-space-4);
+  border: 0;
+  box-shadow: 0 4px 0 var(--meng-tint);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  color: var(--meng-text);
+}
+
+.report-reasons button.selected {
+  background: var(--meng-danger);
+  color: var(--meng-danger-text);
+  border-color: var(--meng-danger-text);
+}

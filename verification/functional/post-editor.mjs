@@ -522,10 +522,10 @@ try {
       );
       await page.getByRole("button", { name: "移除封面", exact: true }).click();
       assert.equal(await page.locator(".default-cover").count(), 1);
-      const tag = page.getByRole("textbox", { name: "标签", exact: true });
+      const tag = page.getByRole("combobox", { name: "标签", exact: true });
       await tag.fill("editor" + nonce);
       await page
-        .getByRole("button", { name: "editor" + nonce, exact: true })
+        .getByRole("option", { name: "editor" + nonce, exact: true })
         .waitFor();
       await tag.press("Enter");
       assert.equal(await page.locator(".editor-tag").count(), 1);
@@ -575,7 +575,7 @@ try {
       await page.waitForURL(/\/posts\/\d+$/);
       await page.locator(".post-detail article").waitFor();
       ok(await api("GET", "/content/drafts/" + browserDraft), 404);
-      assert.equal(await page.locator(".detail-images button").count(), 6);
+      assert.equal(await page.locator(".post-image-grid:not(.compact) button").count(), 6);
       assert.deepEqual(errors, []);
     },
   );

@@ -1,0 +1,327 @@
+.comment-composer {
+  position: relative;
+  padding: var(--meng-space-4);
+  background: var(--meng-bg);
+  border: 1px solid var(--meng-border);
+  border-radius: var(--meng-radius-note);
+  margin-block: var(--meng-space-6);
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.composer-avatar {
+  position: absolute;
+  top: var(--meng-space-4);
+  left: var(--meng-space-4);
+  width: 44px;
+  height: 44px;
+}
+
+.composer-field,
+.composer-images,
+.emotion-panel,
+.composer-target {
+  margin-left: 58px;
+}
+
+.comment-composer:focus-within {
+  border-color: var(--meng-primary);
+  background: var(--meng-surface);
+  box-shadow: 0 0 0 3px var(--meng-tint);
+}
+
+.composer-field {
+  position: relative;
+}
+
+.composer-field textarea {
+  width: 100%;
+  min-height: 90px;
+  max-height: 240px;
+  border: 0;
+  padding: var(--meng-space-2) var(--meng-space-2) var(--meng-space-6);
+  outline: 0;
+  resize: none;
+  background: transparent;
+  color: var(--meng-text);
+  line-height: 1.8;
+}
+
+.composer-field small {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  color: var(--meng-muted);
+  font-size: 11px;
+}
+
+.comment-composer footer {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+  margin-top: var(--meng-space-3);
+  padding-top: var(--meng-space-3);
+  border-top: 1px dashed var(--meng-border);
+  margin-left: 58px;
+}
+
+.comment-composer footer > button:not(.el-button) {
+  border: 0;
+  height: 40px;
+  padding: 0 var(--meng-space-4);
+  background: var(--meng-surface);
+  color: var(--meng-tool-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meng-space-1);
+  border-radius: var(--meng-radius-pill);
+  font-size: 14px;
+  font-weight: 800;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.comment-composer footer > button:first-child .el-icon {
+  color: var(--meng-nav-gold);
+}
+
+.comment-composer footer > button:nth-child(2) .el-icon {
+  color: var(--meng-danger-text);
+}
+
+.comment-composer footer > button:not(.el-button):hover {
+  transform: translateY(-2px);
+  background: var(--meng-tint);
+}
+
+.comment-composer footer > .el-button {
+  margin-left: auto;
+  height: 44px;
+  padding-inline: var(--meng-space-6);
+  font-size: 15px;
+  font-weight: 800;
+  box-shadow: 0 5px 0 var(--meng-shadow-hard);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.comment-composer footer > .el-button:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--meng-shadow-hard);
+}
+
+.comment-composer footer > .el-button:not(:disabled):active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 var(--meng-shadow-hard);
+}
+
+.comment-composer footer > .el-button:disabled {
+  box-shadow: none;
+}
+
+.comment-composer .selected {
+  background: var(--meng-tint);
+}
+
+.comment-composer footer > button.selected {
+  background: var(--meng-tint);
+}
+
+.composer-images {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding: var(--meng-space-1) 0 var(--meng-space-3);
+}
+
+.composer-image {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  animation: meng-feedback-pop 240ms var(--meng-motion-ease);
+}
+
+.composer-image-count {
+  flex-shrink: 0;
+  color: var(--meng-muted);
+  padding: var(--meng-space-1) var(--meng-space-3);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.composer-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: var(--meng-space-2);
+}
+
+.composer-image > button {
+  position: absolute;
+  right: -4px;
+  top: -4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-danger-text);
+  color: var(--meng-surface);
+}
+
+.composer-image .retry {
+  top: auto;
+  bottom: 0;
+}
+
+.composer-image small {
+  position: absolute;
+  inset: auto 0 0;
+  background: var(--meng-surface);
+  font-size: 10px;
+}
+
+.add-image {
+  width: 56px;
+  height: 56px;
+  border: 1px dashed var(--meng-primary);
+  border-radius: var(--meng-space-2);
+  background: var(--meng-surface);
+  color: var(--meng-primary);
+}
+
+.file-input {
+  display: none;
+}
+
+.composer-target {
+  display: inline-flex;
+  gap: var(--meng-space-2);
+  align-items: center;
+  padding: var(--meng-space-1) var(--meng-space-3);
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+  border-radius: var(--meng-radius-pill);
+  font-size: 12px;
+}
+
+.reply-target-enter-active,
+.reply-target-leave-active {
+  transition:
+    opacity 160ms ease,
+    transform 160ms var(--meng-motion-ease);
+}
+
+.reply-target-enter-from,
+.reply-target-leave-to {
+  opacity: 0;
+  transform: translateY(-4px) scale(0.96);
+}
+
+.composer-target button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  display: flex;
+  padding: 0;
+}
+
+.emotion-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meng-space-2);
+  margin-top: var(--meng-space-3);
+  padding: var(--meng-space-3);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-surface);
+  box-shadow: inset 0 0 0 2px var(--meng-tint);
+}
+
+.emotion-panel button {
+  border: 0;
+  border-radius: var(--meng-space-2);
+  background: var(--meng-surface);
+  padding: var(--meng-space-1);
+  transition: transform 0.2s ease;
+}
+
+.emotion-panel button:hover {
+  transform: translateY(-3px);
+}
+
+.emotion-panel button:nth-child(5n + 1) {
+  background: var(--meng-tint);
+}
+
+.emotion-panel button:nth-child(5n + 2) {
+  background: var(--meng-danger);
+}
+
+.emotion-panel button:nth-child(5n + 3) {
+  background: var(--meng-warning);
+}
+
+.emotion-panel button:nth-child(5n + 4) {
+  background: var(--meng-success);
+}
+
+.emotion-panel button:nth-child(5n) {
+  background: var(--meng-category-game);
+}
+
+.emotion-panel img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.composer-error {
+  color: var(--meng-danger-text);
+  font-size: 12px;
+  margin-top: var(--meng-space-2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emotion-panel button,
+  .comment-composer,
+  .comment-composer footer > button {
+    transition: none;
+  }
+
+  .reply-target-enter-active,
+  .reply-target-leave-active {
+    transition: none;
+  }
+
+  .composer-image {
+    animation: none;
+  }
+}
+
+@include narrow {
+  .composer-field {
+    margin-left: 52px;
+  }
+
+  .composer-images {
+    margin-left: 52px;
+  }
+
+  .comment-composer footer,
+  .emotion-panel {
+    margin-left: 0;
+  }
+
+  .composer-target {
+    margin-left: 52px;
+  }
+}

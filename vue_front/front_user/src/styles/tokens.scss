@@ -1,8 +1,28 @@
 :root {
+  --meng-disclosure-duration: 280ms;
+  --meng-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --meng-like-text: #8e3355;
+  --meng-like-icon: #c4587c;
+  --meng-favorite-text: #6f5310;
+  --meng-favorite-icon: #f0cf7a;
+  --meng-favorite-stroke: #c9a23a;
+  --meng-tool-text: #3d5966;
+  --meng-detail-width: 1350px;
+  --meng-detail-card: rgb(255 255 255 / 92%);
+  --meng-detail-highlight: linear-gradient(
+    transparent 58%,
+    #f8edcf 58%,
+    #f8edcf 93%,
+    transparent 93%
+  );
+  --meng-detail-tape: repeating-linear-gradient(135deg, #f5dde5 0 10px, #f1c3d1 10px 20px);
+  --meng-code-bg: #243f4b;
+  --meng-code-text: #ddf1f7;
   --meng-editor-fluid-blue: #a5d9eb;
   --meng-editor-fluid-opacity: 0.4;
   --meng-editor-card: #f8fcfe;
   --meng-community-width: 1760px;
+  --meng-home-width: 1600px;
   --meng-community-gutter: clamp(16px, 3vw, 56px);
   --meng-hero-veil: rgb(255 255 255 / 14%);
   --meng-nav-glass: rgb(255 255 255 / 72%);

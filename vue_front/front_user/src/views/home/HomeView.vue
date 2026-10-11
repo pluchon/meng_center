@@ -1,5 +1,5 @@
 <template>
-  <CommunityLayout>
+  <CommunityLayout class="home-layout">
     <section class="home-hero">
       <img
         class="hero-art"

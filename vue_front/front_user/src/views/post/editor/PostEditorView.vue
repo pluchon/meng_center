@@ -70,7 +70,7 @@
         <span>{{ t('editor.greeting') }}</span>
       </div>
       <header class="editor-header">
-        <h1>{{ t('editor.titleLead') }} <span>{{ t('editor.titleAccent') }}</span><el-icon><MagicStick /></el-icon></h1><router-link :to="{name:RouteName.HOME}">
+        <h1>{{ t(editing?'editor.editLead':'editor.titleLead') }} <span>{{ t(editing?'editor.editAccent':'editor.titleAccent') }}</span><el-icon><MagicStick /></el-icon></h1><router-link :to="{name:RouteName.HOME}">
           <el-icon><ArrowLeft /></el-icon>{{ t('editor.home') }}
         </router-link>
       </header>
@@ -474,6 +474,7 @@
         </div>
         <footer class="editor-actions">
           <el-button
+            v-if="!editing"
             round
             :loading="busy"
             @click="submit(false)"
@@ -485,7 +486,7 @@
             native-type="submit"
             :loading="busy"
           >
-            <el-icon><Upload /></el-icon>{{ t('editor.publish') }}
+            <el-icon><Upload /></el-icon>{{ t(editing?'editor.update':'editor.publish') }}
           </el-button>
         </footer>
       </fieldset>

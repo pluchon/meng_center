@@ -1,4 +1,6 @@
 export default {
+  CONTENT_COMMENT_DELETED: '评论已被删除',
+  CONTENT_REPORT_DUPLICATE: '已经举报过这条内容',
   generic: '服务暂时不可用，请稍后重试',
   NETWORK: '连接失败，请检查网络',
   USER_INVALID_CREDENTIALS: '用户名或密码错误',

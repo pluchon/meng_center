@@ -1,5 +1,6 @@
 import { defineComponent, computed, ref, reactive, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -64,6 +65,7 @@ export default defineComponent({
       errors = reactive({ title: '', body: '', images: '', tags: '' })
     const form = reactive({ category: PostCategory.DAILY, title: '', content: '', tags: [] }),
       count = (value) => Array.from(value).length
+    const editing = computed(() => route.name === RouteName.POST_EDIT)
     const titleCount = computed(() => count(form.title)),
       bodyCount = computed(() => count(form.content))
     const signature = () =>
@@ -184,7 +186,7 @@ export default defineComponent({
       }, PostEditor.TAG_DEBOUNCE)
     })
     async function loadDraft() {
-      const id = route.query.draft
+      const id = editing.value ? route.params.id : route.query.draft
       if (!id) {
         ++loadGeneration
         draftId.value = null
@@ -198,21 +200,30 @@ export default defineComponent({
         markSaved()
         return
       }
-      if (String(draftId.value) === String(id)) return
+      if (!editing.value && String(draftId.value) === String(id)) return
       loading.value = true
       loadError.value = false
       const generation = ++loadGeneration
       try {
-        const data = await contentApi.draft(id)
+        const data = await (editing.value ? contentApi.detail(id) : contentApi.draft(id))
         if (generation !== loadGeneration) return
-        draftId.value = data.id
+        if (editing.value && String(data.author.id) !== String(useUserStore().current?.id)) {
+          loadError.value = true
+          return
+        }
+        draftId.value = editing.value ? null : data.id
         Object.assign(form, {
           category: data.category || PostCategory.DAILY,
           title: data.title || '',
           content: data.content || '',
           tags: data.tags || [],
         })
-        uploads.hydrate(data.images, data.cover)
+        uploads.hydrate(
+          data.images,
+          data.cover && !data.images.some((image) => image.id === data.cover.id)
+            ? data.cover
+            : null,
+        )
         markSaved()
       } catch (error) {
         if (generation === loadGeneration) {
@@ -243,7 +254,7 @@ export default defineComponent({
         ? true
         : confirmLeave(),
     )
-    watch(() => route.query.draft, loadDraft)
+    watch(() => [route.query.draft, route.params.id, route.name], loadDraft)
     watch(
       () => form.content,
       () => {
@@ -289,11 +300,18 @@ export default defineComponent({
       busy.value = true
       try {
         if (publishing) {
-          const id = await contentApi.publish({ ...payload(), draftId: draftId.value })
+          const id = editing.value
+            ? route.params.id
+            : await contentApi.publish({ ...payload(), draftId: draftId.value })
+          if (editing.value) await contentApi.update(id, payload())
           allowLeave = true
           markSaved()
-          ElMessage.success(t('editor.published'))
-          await router.push({ name: RouteName.POST_DETAIL, params: { id } })
+          ElMessage.success(t(editing.value ? 'editor.updated' : 'editor.published'))
+          await router.push({
+            name: RouteName.POST_DETAIL,
+            params: { id },
+            query: editing.value ? route.query : {},
+          })
         } else {
           draftId.value = await contentApi.saveDraft(draftId.value, payload())
           markSaved()
@@ -338,6 +356,7 @@ export default defineComponent({
     )
     return {
       t,
+      editing,
       articleEditAvatar,
       RouteName,
       PostEditor,

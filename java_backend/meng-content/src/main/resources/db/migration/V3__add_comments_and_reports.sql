@@ -1,0 +1,30 @@
+CREATE TABLE comment (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, post_id BIGINT NOT NULL, author_id BIGINT NOT NULL,
+ root_id BIGINT NOT NULL DEFAULT 0, reply_to_comment_id BIGINT, reply_to_user_id BIGINT,
+ content TEXT NOT NULL, image_count INT NOT NULL DEFAULT 0, like_count BIGINT NOT NULL DEFAULT 0,
+ reply_count BIGINT NOT NULL DEFAULT 0, ip_region VARCHAR(100),
+ create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ delete_state INT NOT NULL DEFAULT 0, INDEX idx_post_root(post_id,root_id,id)
+) CHARACTER SET utf8mb4;
+CREATE TABLE comment_image (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, uploader_id BIGINT NOT NULL, comment_id BIGINT,
+ file_name VARCHAR(80) NOT NULL, thumb_name VARCHAR(80) NOT NULL,
+ width INT NOT NULL, height INT NOT NULL, sort INT NOT NULL DEFAULT 0,
+ create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ delete_state INT NOT NULL DEFAULT 0, UNIQUE KEY uk_file(file_name), INDEX idx_comment(comment_id,sort)
+) CHARACTER SET utf8mb4;
+CREATE TABLE comment_like (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, comment_id BIGINT NOT NULL, user_id BIGINT NOT NULL,
+ create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE KEY uk_comment_user(comment_id,user_id)
+);
+CREATE TABLE report (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, reporter_id BIGINT NOT NULL, target_type VARCHAR(20) NOT NULL,
+ target_id BIGINT NOT NULL, reason VARCHAR(30) NOT NULL, note VARCHAR(200), status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+ handler_id BIGINT, handle_time DATETIME,
+ create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ delete_state INT NOT NULL DEFAULT 0, UNIQUE KEY uk_reporter_target(reporter_id,target_type,target_id),
+ INDEX idx_status(status,id), INDEX idx_target(target_type,target_id)
+) CHARACTER SET utf8mb4;

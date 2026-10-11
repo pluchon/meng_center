@@ -9,9 +9,12 @@ import com.pluchon.meng.content.controller.vo.PostFeedVO;
 import com.pluchon.meng.content.entity.enums.*;
 import com.pluchon.meng.content.service.PostDetailService;
 import com.pluchon.meng.content.service.PostService;
+
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,22 +35,30 @@ public class PostController {
 
     @PostMapping
     public ApiResponse<Long> create(
-        @Valid @RequestBody CreatePostDTO body,
-        @RequestHeader(
-            value = IdentityHeaders.CLIENT_IP,
-            required = false
-        ) String ip
-    ) {
+            @Valid @RequestBody CreatePostDTO body,
+            @RequestHeader(value = IdentityHeaders.CLIENT_IP, required = false) String ip) {
         return ApiResponse.success(service.create(body, ip));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<Void> update(
+            @PathVariable @Positive long id, @Valid @RequestBody CreatePostDTO body) {
+        service.update(id, body);
+        return ApiResponse.success(null);
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable @Positive long id) {
+        service.delete(id);
+        return ApiResponse.success(null);
     }
 
     @GetMapping
     public ApiResponse<PageResult<PostFeedVO>> feed(
-        @RequestParam(required = false) PostCategory category,
-        @RequestParam(defaultValue = "LATEST") PostSort sort,
-        @RequestParam(defaultValue = "1") @Min(1) long page,
-        @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size
-    ) {
+            @RequestParam(required = false) PostCategory category,
+            @RequestParam(defaultValue = "LATEST") PostSort sort,
+            @RequestParam(defaultValue = "1") @Min(1) long page,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size) {
         return ApiResponse.success(service.feed(category, sort, page, size));
     }
 

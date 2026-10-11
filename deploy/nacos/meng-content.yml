@@ -27,6 +27,11 @@ meng.content:
   image-root: ${MENG_CONTENT_IMAGE_ROOT}
   like-weight: 4
   view-weight: 1
+  comment-weight: 3
+  comment-interval: 10s
+  comment-uploads-daily: 100
+  report-interval: 10s
+  reports-daily: 30
   draft-interval: 3s
   post-interval: 60s
   posts-daily: 20

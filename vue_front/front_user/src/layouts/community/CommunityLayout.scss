@@ -6,6 +6,29 @@
   background: var(--meng-bg);
 }
 
+.community-layout.home-layout {
+  --meng-community-width: var(--meng-home-width);
+}
+
+.community-layout.detail-layout {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.detail-layout .community-nav {
+  flex-shrink: 0;
+}
+
+.detail-layout .community-main {
+  display: flex;
+  min-height: 0;
+}
+
+.detail-layout .community-footer {
+  display: none;
+}
+
 .community-nav,
 .community-main,
 .footer-inner {
@@ -14,6 +37,8 @@
 }
 
 .community-nav {
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   gap: var(--meng-space-7);

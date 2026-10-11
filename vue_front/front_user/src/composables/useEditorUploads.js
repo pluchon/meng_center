@@ -20,7 +20,7 @@ async function prepare(file) {
     bitmap.close()
   }
 }
-export function useEditorUploads() {
+export function useEditorUploads(uploadImage = contentApi.upload) {
   const { t } = useI18n(),
     images = ref([]),
     cover = ref(null),
@@ -56,7 +56,7 @@ export function useEditorUploads() {
     try {
       const file = await prepare(item.file)
       if (item.cancelled) return
-      const result = await contentApi.upload(file, {
+      const result = await uploadImage(file, {
         signal: item.controller.signal,
         onUploadProgress: (event) => {
           if (event.total)

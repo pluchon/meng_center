@@ -1,4 +1,10 @@
 export default {
+  uploadProgress: '{progress}%',
+  editPageTitle: '编辑帖子',
+  editLead: '编辑',
+  editAccent: '帖子',
+  update: '保存修改',
+  updated: '修改已保存',
   pageTitle: '发一条新帖',
   greeting: '今天写点啥呀～',
   stickers: { writing: '写呀写呀～', cheer: '好耶！', smile: '(≧▽≦)' },

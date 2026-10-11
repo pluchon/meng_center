@@ -29,6 +29,7 @@ npm --prefix verification ci
 | `./verification/Test-NacosFailure.ps1` | 关掉 Nacos 后两个服务必须启动失败 |
 | `./verification/Test-HomeGrowth.ps1` | 运行中的主页和成长服务联调、事件幂等与浏览器交互，结束后清理随机数据 |
 | `./verification/Test-PostEditor.ps1` | 运行中的发帖服务与浏览器联调：上传、草稿权限与配额、标签、字数、安全预览、保存恢复、发布及成长事件；结束后清理随机数据 |
+| `./verification/Test-PostDetail.ps1` | 运行中的详情服务与浏览器联调：浏览判重、评论与回复分页、配图权限、表情与配图合计上限、已选附件预览、首屏并行请求与评论独立重试、输入区按需挂载、16 并发详情与评论混合读取、点赞、举报去重、删除计数、改帖及成长事件；结束后清理随机账号和数据 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，

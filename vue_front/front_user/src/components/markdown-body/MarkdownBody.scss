@@ -15,6 +15,9 @@
 .markdown-body :deep(h2),
 .markdown-body :deep(h3) {
   margin-block: 20px 12px;
+  padding-left: var(--meng-space-3);
+  border-left: 4px solid var(--meng-category-anime);
+  border-radius: var(--meng-space-1);
 }
 
 .markdown-body :deep(ul),
@@ -23,22 +26,28 @@
 }
 
 .markdown-body :deep(blockquote) {
-  border-left: 4px solid var(--meng-border);
-  padding: 8px 16px;
-  background: var(--meng-tint);
+  margin-inline: 0;
+  border-left: 0;
+  position: relative;
+  padding: var(--meng-space-2) var(--meng-space-4) var(--meng-space-2) var(--meng-space-12);
+  background: var(--meng-bg);
   border-radius: var(--meng-radius-note);
 }
 
 .markdown-body :deep(a) {
   color: var(--meng-primary);
-  text-decoration: underline;
+  text-decoration: underline wavy var(--meng-danger-text);
+  text-underline-offset: 4px;
 }
 
 .markdown-body :deep(pre) {
   max-width: 100%;
+  font-size: 14px;
+  font-weight: 700;
   overflow-x: auto;
   padding: 16px;
-  background: var(--meng-bg);
+  background: var(--meng-code-bg);
+  color: var(--meng-code-text);
   border-radius: var(--meng-radius-note);
 }
 
@@ -71,4 +80,32 @@
 .markdown-body :deep(th) {
   padding: 8px;
   border: 1px solid var(--meng-border);
+}
+
+.markdown-body :deep(:not(pre) > code) {
+  padding: 2px var(--meng-space-1);
+  background: var(--meng-tint);
+  border-radius: var(--meng-space-1);
+}
+
+.markdown-body :deep(pre code) {
+  color: var(--meng-code-text);
+}
+
+.markdown-body :deep(blockquote)::before {
+  content: '“';
+  position: absolute;
+  left: var(--meng-space-4);
+  top: var(--meng-space-1);
+  color: var(--meng-decor-sakura);
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 20px;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 18px;
 }

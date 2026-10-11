@@ -1,4 +1,4 @@
-import { defineComponent, reactive, ref } from 'vue'
+import { computed, defineComponent, reactive, ref } from 'vue'
 import {
   Picture as PictureIcon,
   Location,
@@ -8,6 +8,7 @@ import {
   CollectionTag,
 } from '@element-plus/icons-vue'
 import { contentApi, contentImage } from '@/api/content'
+import { useRoute, useRouter } from 'vue-router'
 import { useCommunity } from '@/composables/useCommunity'
 import { usePostTime } from '@/composables/usePostTime'
 import { notifyFailure } from '@/composables/useFailureNotice'
@@ -19,6 +20,33 @@ export default defineComponent({
   props: { post: { type: Object, required: true } },
   emits: ['change'],
   setup(props, { emit }) {
+    const route = useRoute()
+    const router = useRouter()
+    const homeQuery = computed(() => route.query)
+    const detailLink = computed(() => ({
+      name: RouteName.POST_DETAIL,
+      params: { id: props.post.id },
+      query: homeQuery.value,
+    }))
+    function openDetail() {
+      return router.push(detailLink.value)
+    }
+    function preloadDetail() {
+      if (navigator.connection?.saveData || /2g/.test(navigator.connection?.effectiveType || ''))
+        return
+      void import('@/views/post/detail/PostDetailView.vue').catch(() => undefined)
+    }
+    function openCard(event) {
+      if (
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        !event.currentTarget.contains(event.target) ||
+        event.target.closest('a, button, input, textarea, select, [contenteditable]') ||
+        window.getSelection()?.toString()
+      )
+        return
+      openDetail()
+    }
     const pending = reactive({ like: false, favorite: false }),
       previewIndex = ref(null)
     function preview(index) {
@@ -55,10 +83,13 @@ export default defineComponent({
       previewIndex,
       preview,
       toggle,
+      openCard,
+      preloadDetail,
+      openDetail,
+      detailLink,
       relativeTime: usePostTime(),
       contentImage,
       userAvatar,
-      RouteName,
     }
   },
 })
