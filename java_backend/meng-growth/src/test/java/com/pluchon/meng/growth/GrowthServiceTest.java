@@ -1,26 +1,49 @@
 package com.pluchon.meng.growth;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.anyLong;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import com.pluchon.meng.api.growth.event.LevelChangedEvent;
 import com.pluchon.meng.common.core.error.BusinessException;
-import com.pluchon.meng.common.web.context.*;
+import com.pluchon.meng.common.web.context.RequestIdentity;
+import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.growth.config.GrowthProperties;
 import com.pluchon.meng.growth.entity.GrowthAccountEntity;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
 import com.pluchon.meng.growth.mapper.GrowthMapper;
 import com.pluchon.meng.growth.service.GrowthService;
-import java.time.*;
-import java.util.*;
-import org.junit.jupiter.api.*;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.util.List;
 
 class GrowthServiceTest {
 
     GrowthMapper mapper;
+
     ApplicationEventPublisher events;
+
     GrowthService service;
+
     GrowthAccountEntity a;
 
     @BeforeEach
@@ -32,22 +55,19 @@ class GrowthServiceTest {
         a.setUserId(7L);
         a.setExp(0L);
         a.setLevel(1);
-        when(mapper.lock(7)).thenReturn(a);
-        when(mapper.week(eq(7L), any(), any())).thenReturn(List.of());
-        service = new GrowthService(
-            mapper,
-            new GrowthProperties(
-                "Asia/Taipei",
-                5,
-                10,
-                2,
-                3,
-                10,
-                List.of(0L, 50L, 150L, 300L)
-            ),
-            events,
-            Clock.fixed(Instant.parse("2026-10-11T16:00:00Z"), ZoneOffset.UTC)
-        );
+        when(mapper.selectAccountForUpdate(7)).thenReturn(a);
+        when(mapper.selectCheckInDates(eq(7L), any(), any())).thenReturn(List.of());
+        service = new GrowthService();
+        ReflectionTestUtils.setField(service, "mapper", mapper);
+        ReflectionTestUtils.setField(service, "events", events);
+        ReflectionTestUtils.setField(
+                service,
+                "properties",
+                new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L, 300L)));
+        ReflectionTestUtils.setField(
+                service,
+                "clock",
+                Clock.fixed(Instant.parse("2026-10-11T16:00:00Z"), ZoneOffset.UTC));
         UserContext.bind(new RequestIdentity(7, "USER", "test"));
     }
 
@@ -64,57 +84,39 @@ class GrowthServiceTest {
         assertEquals(LocalDate.parse("2026-10-12"), view.today());
         assertEquals(view.today(), view.week().get(0).date());
         assertEquals(view.today().plusDays(6), view.week().get(6).date());
-        verify(mapper).ensure(7);
+        verify(mapper).insertAccountIfAbsent(7);
     }
 
     @Test
     void signInAndDuplicate() {
-        when(mapper.checkIn(7, LocalDate.parse("2026-10-12"))).thenReturn(1, 0);
+        when(mapper.insertCheckInIfAbsent(7, LocalDate.parse("2026-10-12"))).thenReturn(1, 0);
         assertEquals(5, service.checkIn().exp());
         assertThrows(BusinessException.class, () -> service.checkIn());
-        verify(mapper, times(1)).record(
-            7,
-            "CHECK_IN",
-            "2026-10-12",
-            5,
-            LocalDate.parse("2026-10-12")
-        );
+        verify(mapper, times(1))
+                .insertExperienceRecord(
+                        7, "CHECK_IN", "2026-10-12", 5, LocalDate.parse("2026-10-12"));
     }
 
     @Test
     void duplicateEventDoesNotReward() {
-        when(mapper.exists(7, "POST", "5")).thenReturn(1);
+        when(mapper.countSourceRecords(7, "POST", "5")).thenReturn(1);
         service.earned(7, ExpSource.POST, "5", Instant.now());
-        verify(mapper, never()).record(
-            anyLong(),
-            anyString(),
-            anyString(),
-            anyInt(),
-            any()
-        );
+        verify(mapper, never()).insertExperienceRecord(anyLong(), anyString(), anyString(), anyInt(), any());
     }
 
     @Test
     void dailyLimitUsesEventDate() {
         var instant = Instant.parse("2026-10-11T15:59:59Z");
-        when(mapper.count(7, "POST", LocalDate.parse("2026-10-11"))).thenReturn(
-            3
-        );
+        when(mapper.countDailyRecords(7, "POST", LocalDate.parse("2026-10-11"))).thenReturn(3);
         service.earned(7, ExpSource.POST, "5", instant);
-        verify(mapper, never()).record(
-            anyLong(),
-            anyString(),
-            anyString(),
-            anyInt(),
-            any()
-        );
+        verify(mapper, never()).insertExperienceRecord(anyLong(), anyString(), anyString(), anyInt(), any());
     }
 
     @Test
     void commentLimit() {
-        when(mapper.count(eq(7L), eq("COMMENT"), any())).thenReturn(10);
+        when(mapper.countDailyRecords(eq(7L), eq("COMMENT"), any())).thenReturn(10);
         service.earned(7, ExpSource.COMMENT, "1", Instant.now());
-        verify(mapper, never()).update(anyLong(), anyLong(), anyInt());
+        verify(mapper, never()).updateAccountExperience(anyLong(), anyLong(), anyInt());
     }
 
     @Test
@@ -146,6 +148,6 @@ class GrowthServiceTest {
     void unauthenticatedCannotChooseAnotherAccount() {
         UserContext.clear();
         assertThrows(BusinessException.class, () -> service.me());
-        verify(mapper, never()).ensure(anyLong());
+        verify(mapper, never()).insertAccountIfAbsent(anyLong());
     }
 }
