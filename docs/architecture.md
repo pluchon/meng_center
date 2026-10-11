@@ -197,9 +197,10 @@ java_backend/
 
 第二期（见 [content.md](content.md)、[growth.md](growth.md)）：
 
-- 内容：五个固定分类、发帖、帖子流、喜欢、收藏、浏览量、IP 属地、配图、评论。正文用 Markdown，配图存本机磁盘。
+- 内容：五个固定分类、发帖、帖子流、喜欢、收藏、浏览量、IP 属地、配图、评论、举报、热榜、帖子搜索。正文用 Markdown，配图存本机磁盘。
+  热榜放 Redis，搜索用 Elasticsearch 9.2 系列，两者都是 MySQL 的派生数据，每天重建并用蓝绿切换生效。
 - 成长：签到、经验与等级。成长账户按需创建。
-- 分两步交付，先做主页，再做帖子详情和发帖页。
+- 分三步交付：先做主页，再做帖子详情和发帖页，最后做热榜和搜索。
 
 ### 暂缓
 
@@ -226,4 +227,4 @@ java_backend/
 - 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
 - xxl-job 对 Spring Boot 4 的兼容性。
 - Elasticsearch 的 RRF 融合排序是否需要付费许可；需要的话改用加权合并或在 Python 侧实现。
-- 与 Boot 4 自带客户端匹配的 Elasticsearch 服务端版本。
+- Elasticsearch 9.2 系列有没有对应的 IK 分词插件；没有就用官方的 smartcn（见 [content.md](content.md) 第 17.1 节）。
