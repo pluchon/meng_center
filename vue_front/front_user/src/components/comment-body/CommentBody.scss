@@ -1,0 +1,15 @@
+.comment-body {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+  color: var(--meng-text);
+}
+
+.comment-body img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  vertical-align: middle;
+  margin-inline: var(--meng-space-1);
+}

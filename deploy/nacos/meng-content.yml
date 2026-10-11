@@ -1,0 +1,56 @@
+server:
+  address: 127.0.0.1
+  port: 8102
+spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${MENG_MYSQL_PORT}/meng_content?characterEncoding=utf8&connectionTimeZone=UTC
+    username: meng_content_app
+    password: ${MENG_MYSQL_CONTENT_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+spring.cloud.openfeign.client.config.meng-user:
+  connectTimeout: 2000
+  readTimeout: 3000
+spring.servlet.multipart:
+  max-file-size: 5MB
+  max-request-size: 6MB
+meng.content:
+  image-root: ${MENG_CONTENT_IMAGE_ROOT}
+  like-weight: 4
+  favorite-weight: 5
+  view-weight: 1
+  comment-weight: 3
+  comment-interval: 10s
+  comment-uploads-daily: 100
+  report-interval: 10s
+  reports-daily: 30
+  draft-interval: 3s
+  post-interval: 60s
+  posts-daily: 20
+  uploads-daily: 100
+  timezone: Asia/Taipei
+
+spring.elasticsearch:
+  uris: http://127.0.0.1:${MENG_ES_PORT}
+  username: meng_content_app
+  password: ${MENG_ES_CONTENT_PASSWORD}
+  connection-timeout: 1s
+  socket-timeout: 2s
+management.health.elasticsearch.enabled: false
+meng.content.search:
+  analyzer: ik_max_word
+  search-analyzer: ik_smart
+meng.content.job:
+  admin-address: http://127.0.0.1:${MENG_XXL_JOB_PORT}
+  port: ${MENG_CONTENT_JOB_PORT}
+  address: http://127.0.0.1:${MENG_CONTENT_JOB_PORT}/
+  log-path: ${MENG_CONTENT_IMAGE_ROOT}/../job-logs

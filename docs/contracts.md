@@ -26,7 +26,7 @@
 
 | 事件 | 生产者 | 关键字段 | 消费者及用途 |
 |---|---|---|---|
-| `user.approved` | user | userId | im：欢迎通知；growth：初始化成长账户 |
+| `user.approved` | user | userId | im：欢迎通知 |
 | `post.published` | content | postId、authorId | growth：加经验；ai：建向量索引 |
 | `post.updated` | content | postId | ai：重建该帖索引 |
 | `post.deleted` | content | postId | ai：删索引 |
@@ -40,6 +40,8 @@
 - 没有「用户资料变更」事件。昵称和头像走批量内部接口现查，没有消费者就不留事件。
 - 签到不是事件，它是 growth 自己的写接口。
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
+- growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
+- 事件在它的第一个消费者开始做的时候才发。消费者是 im 或 ai 的那几个，在这两个服务动工之前不发。
 
 ## 2. 内部接口
 
@@ -55,7 +57,7 @@
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `GET /user/internal/users?ids=` | user | content、im | id、昵称、头像、等级 | 降级成占位昵称和默认头像，列表照常返回 |
+| `GET /user/internal/users?ids=` | user | content、im | id、昵称（没填昵称时是用户名）、头像、等级 | 降级成占位昵称和默认头像，列表照常返回 |
 | `GET /content/internal/posts/{id}` | content | ai | 标题、正文、作者、状态 | MQ 重试，超限进死信 |
 | `GET /content/internal/posts?cursor=&size=` | content | ai | 同上，游标分页 | 重建任务中断，可续跑 |
 

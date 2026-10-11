@@ -1,7 +1,7 @@
 # 萌部落社区 · 架构设计
 
 > 2026-10-08 首版，搭骨架前的共识。
-> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
+> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
 
@@ -29,6 +29,8 @@
 | 定时任务 | xxl-job | 执行器嵌在各域服务里 |
 | 短信 | 阿里云短信 | 境外号码走国际/港澳台短信；只在 user 服务里用 |
 | 邮件 | Spring Boot 邮件 starter + SMTP | 只在 user 服务里用 |
+| 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
+| IP 属地 | ip2region 离线库 | 只在 content 服务里用，不调外部接口 |
 | AI 服务 | Python 3.12 + LangChain / LangGraph | 不使用 Spring AI |
 | 模型 | ChatGPT 或 Qwen | 都走 OpenAI 兼容接口，靠配置切换；embedding 也走接口 |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
@@ -101,6 +103,8 @@ java_backend/
 - Controller 只做参数绑定、调用 Service、返回统一响应；入参用 DTO，出参用 VO，不直接返回 Entity。
 - Service 是授权、事务、状态流转的最终裁决者。
 - 对象转换放 `converter` 包；跨服务调用放 `client` 包。
+- content、growth 的 Spring 依赖使用 `@Autowired` 字段注入；事务显式声明 `rollbackFor = Exception.class`。类、字段和 Service 方法用中文单行注释，Controller 接口用一句话 Javadoc；不使用通配符导入，每行只写一条语句或一个依赖。
+- content 的新实体计数在字段处初始化为零。DTO 与实体同名同类型字段由 converter 使用 Hutool 5.8.47 `BeanUtil.copyProperties` 拷贝，record 来源已经实测；归一化、摘要、属地和当前用户仍显式赋值，每个转换方法用单元测试覆盖字段。
 
 ## 5. 服务划分
 
@@ -117,7 +121,16 @@ java_backend/
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
   网关统一校验管理员角色，Service 再校验一次。管理端是单独的 Vue 项目。
-- **定时任务**：xxl-job 执行器嵌在各域服务里，任务写在拥有那份数据的域。不设独立的定时任务服务。
+- **定时任务**：xxl-job。调度中心是一个独立的容器，执行器嵌在有任务的域服务里，任务写在拥有那份数据的域。不设独立的定时任务服务，也不再用 Spring 的 `@Scheduled`。
+  - 调度中心用官方镜像 3.5.0，按摘要固定。低于 3.4.0 的版本有已公开的安全漏洞，不用。
+    它只监听本机；容器内端口是 8080，和网关相同，宿主机端口另取并写在 `deploy/ports.env`。容器时区设为 Asia/Taipei，任务的 cron 按这个时区理解。
+  - 调度中心用同一个 MySQL 里的独立库 `xxl_job` 和独立账号 `meng_xxl_job_app`，密码来自 `MENG_MYSQL_XXLJOB_PASSWORD`。表结构用该版本官方的建表脚本，不走 Flyway。
+  - 调度中心和执行器之间的令牌来自 `MENG_XXL_JOB_ACCESS_TOKEN`。初始化时把控制台默认管理员的口令换成 `MENG_XXL_JOB_ADMIN_PASSWORD`，不留默认口令。
+  - 只有真的有任务的服务才引执行器（`xxl-job-core`，和调度中心同一个版本）。执行器名用服务名，例如 `meng-content`；端口取服务端口加 1000，content 是 9102。官方 3.5.0 执行器绑定所有网卡，`setIp` 只影响注册地址；靠访问令牌和宿主机防火墙保护，禁止向外开放执行器端口。令牌必须直接来自环境变量 `MENG_XXL_JOB_ACCESS_TOKEN`，为空或等于官方默认值 `default_token` 时服务启动失败并明确提示。注册地址保持 `http://127.0.0.1:9102/`，Compose 不映射执行器端口；调度中心通过同网络空间、仅绑定容器回环地址的转发器访问宿主机执行器。
+  - 任务处理器放各服务的 `job` 包，只调对应的 Service 方法，不写业务逻辑。处理器名是「域加动作」，例如 `contentHotRebuild`。
+  - 任务定义（cron、路由、阻塞策略、超时、重试）用初始化脚本写进调度中心的库，脚本进仓库，不靠人在控制台里点出来。
+  - 默认策略：上一次没跑完时丢弃后续调度，错过的不补跑，失败重试 1 次。任务本身仍要幂等并带互斥锁，因为同一个动作还可能被启动流程或管理接口触发。
+  - 调度中心不可用时，服务照常启动、照常对外，只是定时任务不触发。
 - **不再细分**：不单拆评论、搜索、通知、抽奖、认证服务。拆得越细同步调用越多。
 
 ### 边界的理由
@@ -154,7 +167,7 @@ java_backend/
 | user | 无 | 审核通过 | 等级变更 |
 | content | user | 发帖、改帖、删帖、评论、点赞 | 无 |
 | im | user | 无 | 审核通过、评论、点赞、等级变更、中奖 |
-| growth | 无 | 等级变更、中奖 | 审核通过、发帖、评论 |
+| growth | 无 | 等级变更、中奖 | 发帖、评论 |
 | ai | content | 无 | 发帖、改帖、删帖 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
@@ -193,6 +206,13 @@ java_backend/
 
 找回密码已按仓库主人后续要求追加：独立重置验证码、邮箱/手机二选一，重置后撤销全部旧会话；不改变审核状态。
 
+第二期（见 [content.md](content.md)、[growth.md](growth.md)）：
+
+- 内容：五个固定分类、发帖、帖子流、喜欢、收藏、浏览量、IP 属地、配图、评论、举报、热榜、帖子搜索。正文用 Markdown，配图存本机磁盘。
+  热榜放 Redis，搜索用 Elasticsearch 9.2 系列，两者都是 MySQL 的派生数据，每天重建并用蓝绿切换生效。
+- 成长：签到、经验与等级。成长账户按需创建。
+- 分三步交付：先做主页，再做帖子详情和发帖页，最后做热榜和搜索。
+
 ### 暂缓
 
 - 上线服务器。按当前组件量 8G 才宽裕；4G 需要砍 xxl-job 并压缩业务服务数。
@@ -200,6 +220,7 @@ java_backend/
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
+- 发帖审核（以后接大模型）、管理端的帖子管理、资料编辑、收藏夹页面。
 
 ### 待定
 
@@ -215,6 +236,4 @@ java_backend/
 - tianai 的 Redis 存储和浏览器拖动已通过第一阶段验证，保留后续反滥用回归。
 - Flyway 11.14.1 已迁移实际 user 表并完成读写验证；MySQL 8.4 仍有高于已验证版本 8.1 的启动提示。
 - 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
-- xxl-job 对 Spring Boot 4 的兼容性。
 - Elasticsearch 的 RRF 融合排序是否需要付费许可；需要的话改用加权合并或在 Python 侧实现。
-- 与 Boot 4 自带客户端匹配的 Elasticsearch 服务端版本。

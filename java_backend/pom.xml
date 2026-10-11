@@ -1,9 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<project
-  xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd"
->
+<?xml version='1.0' encoding='utf-8'?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>org.springframework.boot</groupId>
@@ -34,21 +30,41 @@
     <module>meng-api</module>
     <module>meng-user</module>
     <module>meng-gateway</module>
+    <module>meng-content</module>
+    <module>meng-growth</module>
   </modules>
   <dependencyManagement>
     <dependencies>
-      <dependency><groupId>com.pluchon.meng</groupId><artifactId
-        >meng-api-user</artifactId><version
-        >${project.version}</version></dependency>
-      <dependency><groupId>com.baomidou</groupId><artifactId
-        >mybatis-plus-jsqlparser</artifactId><version
-        >${mybatis-plus.version}</version></dependency>
-      <dependency><groupId>com.aliyun</groupId><artifactId
-        >dysmsapi20170525</artifactId><version
-        >${aliyun-sms.version}</version></dependency>
-      <dependency><groupId>com.aliyun</groupId><artifactId
-        >dysmsapi20180501</artifactId><version
-        >${aliyun-international-sms.version}</version></dependency>
+      <dependency>
+        <groupId>com.pluchon.meng</groupId>
+        <artifactId>meng-api-content</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pluchon.meng</groupId>
+        <artifactId>meng-api-growth</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.pluchon.meng</groupId>
+        <artifactId>meng-api-user</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.baomidou</groupId>
+        <artifactId>mybatis-plus-jsqlparser</artifactId>
+        <version>${mybatis-plus.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.aliyun</groupId>
+        <artifactId>dysmsapi20170525</artifactId>
+        <version>${aliyun-sms.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.aliyun</groupId>
+        <artifactId>dysmsapi20180501</artifactId>
+        <version>${aliyun-international-sms.version}</version>
+      </dependency>
       <dependency>
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-dependencies</artifactId>

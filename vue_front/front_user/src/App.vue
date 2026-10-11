@@ -1,7 +1,7 @@
 <template>
   <el-config-provider :locale="elementLocale">
     <AuthCardSwap />
-    <GlowCursor />
+    <GlowCursor v-if="showCursor" />
   </el-config-provider>
 </template>
 <script src="./App.js"></script>

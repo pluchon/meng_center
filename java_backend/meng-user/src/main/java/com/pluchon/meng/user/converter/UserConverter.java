@@ -25,6 +25,13 @@ public final class UserConverter {
 
     // 给其他服务展示用的公开资料，契约是不可变记录，只能走构造器
     public PublicUserVO toPublicVO(UserEntity user) {
-        return new PublicUserVO(user.getId(), user.getNickname(), user.getAvatar(), user.getLevel());
+        return new PublicUserVO(
+            user.getId(),
+            user.getNickname() == null || user.getNickname().isBlank()
+                ? user.getUsername()
+                : user.getNickname(),
+            user.getAvatar(),
+            user.getLevel()
+        );
     }
 }

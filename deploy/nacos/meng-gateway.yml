@@ -16,6 +16,14 @@ spring:
               uri: lb://meng-user
               predicates:
                 - Path=/user/**
+            - id: meng-content
+              uri: lb://meng-content
+              predicates:
+                - Path=/content/**
+            - id: meng-growth
+              uri: lb://meng-growth
+              predicates:
+                - Path=/growth/**
           discovery:
             locator:
               enabled: false

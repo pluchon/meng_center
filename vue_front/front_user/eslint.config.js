@@ -3,9 +3,10 @@ import vue from 'eslint-plugin-vue'
 import i18n from '@intlify/eslint-plugin-vue-i18n'
 import globals from 'globals'
 export default [
-  { ignores: ['node_modules/**', 'dist/**'] },
+  { ignores: ['node_modules/**', 'dist/**', 'pages_refer/**'] },
   js.configs.recommended,
   ...vue.configs['flat/recommended'],
+  { files: ['src/components/markdown-body/MarkdownBody.vue'], rules: { 'vue/no-v-html': 'off' } },
   {
     languageOptions: { globals: { ...globals.browser, ...globals.node } },
     plugins: { '@intlify/vue-i18n': i18n },

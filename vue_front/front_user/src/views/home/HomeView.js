@@ -1,0 +1,121 @@
+import {
+  defineComponent,
+  ref,
+  reactive,
+  markRaw,
+  computed,
+  watch,
+  onMounted,
+  onUnmounted,
+} from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { RouteName } from '@/router/names'
+import { EditPen, Calendar, ChatDotRound } from '@element-plus/icons-vue'
+import { useCommunity } from '@/composables/useCommunity'
+import { contentApi } from '@/api/content'
+import { Categories, PostSort, Feed } from '@/constants/content'
+import { homeArtwork, mengAvatar } from '@/assets/images'
+import HeroWaves from '@/components/hero-waves/HeroWaves.vue'
+import CollapsibleCard from '@/components/collapsible-card/CollapsibleCard.vue'
+import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
+import CheckInCard from '@/components/check-in-card/CheckInCard.vue'
+import PostCard from '@/components/post-card/PostCard.vue'
+import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
+import PageState from '@/components/page-state/PageState.vue'
+const homeScrollbarClass = 'home-scrollbar-hidden'
+
+export default defineComponent({
+  name: 'HomeView',
+  components: {
+    CollapsibleCard,
+    HeroWaves,
+    CommunityLayout,
+    CheckInCard,
+    PostCard,
+    FeedPagination,
+    PageState,
+    EditPen,
+  },
+  setup() {
+    const collapsed = reactive({ checkIn: false, ai: false, write: false })
+    const compactSidebar = computed(() => Object.values(collapsed).every(Boolean))
+    onMounted(() => document.documentElement.classList.add(homeScrollbarClass))
+    onUnmounted(() => document.documentElement.classList.remove(homeScrollbarClass))
+    const route = useRoute(),
+      router = useRouter(),
+      records = ref([]),
+      total = ref(0),
+      loading = ref(false),
+      error = ref(null)
+    let requestId = 0
+    const query = computed(() => ({
+      category: Categories.includes(route.query.category) ? route.query.category : undefined,
+      sort: Object.values(PostSort).includes(route.query.sort) ? route.query.sort : PostSort.LATEST,
+      page: Math.max(
+        1,
+        Number.isSafeInteger(Number(route.query.page)) ? Number(route.query.page) : 1,
+      ),
+      size: Feed.SIZE,
+    }))
+    async function load() {
+      const id = ++requestId
+      loading.value = true
+      error.value = null
+      try {
+        const result = await contentApi.feed(query.value)
+        if (id !== requestId) return
+        records.value = result.records
+        total.value = result.total
+        const pages = Math.max(1, Math.ceil(result.total / query.value.size))
+        if (query.value.page > pages) await filter({ page: pages })
+      } catch (e) {
+        if (id === requestId) error.value = e
+      } finally {
+        if (id === requestId) loading.value = false
+      }
+    }
+    function filter(next) {
+      const merged = { ...query.value, page: 1, ...next }
+      return router.push({
+        name: route.name,
+        query: {
+          ...(merged.category ? { category: merged.category } : {}),
+          sort: merged.sort,
+          page: String(merged.page),
+        },
+      })
+    }
+    function change({ id, field, value, delta }) {
+      const post = records.value.find((p) => p.id === id)
+      if (post) {
+        post[field] = value
+        const count = field === 'liked' ? 'likeCount' : 'favoriteCount'
+        post[count] += delta
+      }
+    }
+    watch(query, load, { immediate: true })
+    return {
+      RouteName,
+      collapsed,
+      compactSidebar,
+      sidebarIcons: {
+        checkIn: markRaw(Calendar),
+        ai: markRaw(ChatDotRound),
+        write: markRaw(EditPen),
+      },
+      ...useCommunity(),
+      query,
+      records,
+      total,
+      loading,
+      error,
+      load,
+      filter,
+      change,
+      Categories,
+      PostSort,
+      homeArtwork,
+      mengAvatar,
+    }
+  },
+})

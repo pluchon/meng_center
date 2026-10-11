@@ -3,9 +3,12 @@ import common from './zh-CN/common'
 import auth from './zh-CN/auth'
 import error from './zh-CN/error'
 import user from './zh-CN/user'
+import home from './zh-CN/home'
+import editor from './zh-CN/editor'
+import detail from './zh-CN/detail'
 export const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
   fallbackLocale: 'zh-CN',
-  messages: { 'zh-CN': { common, auth, error, user } },
+  messages: { 'zh-CN': { common, auth, error, user, home, editor, detail } },
 })

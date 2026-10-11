@@ -1,0 +1,241 @@
+.comment-item {
+  display: flex;
+  gap: var(--meng-space-4);
+  padding-block: var(--meng-space-6);
+  border-bottom: 2px dashed var(--meng-tint);
+  animation: comment-arrive 240ms var(--meng-motion-ease);
+}
+
+@keyframes comment-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.comment-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.comment-item header {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--meng-space-2);
+  margin-bottom: var(--meng-space-3);
+  font-size: 14px;
+}
+
+.comment-item header strong {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.comment-item time {
+  margin-left: auto;
+  color: var(--meng-muted);
+  font-size: 12px;
+}
+
+.level,
+.author-badge {
+  padding: 2px var(--meng-space-2);
+  background: var(--meng-warning);
+  border-radius: var(--meng-radius-pill);
+  font-size: 11px;
+  color: var(--meng-favorite-text);
+  font-weight: 800;
+}
+
+.author-badge {
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+}
+
+.region {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meng-space-1);
+  font-size: 12px;
+  color: var(--meng-muted);
+  border-radius: var(--meng-radius-pill);
+  padding: var(--meng-space-1) var(--meng-space-2);
+  background: var(--meng-bg);
+  font-weight: 700;
+}
+
+.region .el-icon {
+  color: var(--meng-primary);
+}
+
+.comment-content {
+  line-height: 1.8;
+}
+
+.reply-target {
+  color: var(--meng-shadow-hard);
+  font-weight: 800;
+  padding: 2px var(--meng-space-2);
+  background: var(--meng-tint);
+  border-radius: var(--meng-space-2);
+  margin-right: var(--meng-space-2);
+}
+
+.comment-item footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--meng-space-2);
+  margin-top: var(--meng-space-3);
+}
+
+.comment-item button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meng-space-1);
+  border: 0;
+  min-height: 36px;
+  padding: 0 var(--meng-space-3);
+  background: transparent;
+  color: var(--meng-muted);
+  border-radius: var(--meng-radius-pill);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.comment-item button:hover {
+  background: var(--meng-bg);
+  transform: translateY(-2px);
+}
+
+.comment-item button.liked {
+  background: var(--meng-danger);
+  color: var(--meng-like-text);
+}
+
+.comment-item button.liked svg {
+  fill: var(--meng-like-icon);
+  stroke: var(--meng-like-icon);
+  animation: meng-feedback-pop 320ms var(--meng-motion-ease);
+}
+
+.comment-item button.reply-action {
+  color: var(--meng-primary);
+}
+
+.comment-item button.reply-action:hover,
+.comment-item button.reply-action[aria-expanded='true'] {
+  background: var(--meng-tint);
+}
+
+.comment-item button.moderate:hover {
+  background: var(--meng-danger);
+}
+
+.comment-item button.moderate.danger {
+  color: var(--meng-danger-text);
+}
+
+.comment-item button:active {
+  transform: translateY(1px) scale(0.96);
+}
+
+.moderate {
+  margin-left: auto;
+}
+
+.comment-item .el-icon {
+  transition: transform 0.2s ease;
+}
+
+.comment-item .expanded {
+  transform: rotate(180deg);
+}
+
+.comment-item.compact {
+  padding-block: var(--meng-space-4);
+  border: 0;
+}
+
+.comment-item.compact .el-avatar {
+  width: 32px;
+  height: 32px;
+}
+
+.comment-item.compact .comment-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--meng-space-2);
+  align-items: start;
+}
+
+.comment-item.compact header {
+  grid-column: 1 / -1;
+}
+
+.comment-item.compact footer {
+  grid-column: 2;
+  grid-row: 2;
+  margin-top: 0;
+}
+
+.comment-item.compact button {
+  min-height: 30px;
+  padding-inline: var(--meng-space-2);
+}
+
+.comment-item.compact .moderate {
+  margin-left: var(--meng-space-1);
+}
+
+.comment-item.compact .moderate::before {
+  content: '';
+  width: 2px;
+  height: 14px;
+  margin-right: var(--meng-space-2);
+  background: var(--meng-border);
+  border-radius: var(--meng-radius-pill);
+}
+
+.comment-item.compact :deep(.post-image-grid) {
+  grid-column: 1 / -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .comment-item button,
+  .comment-item .el-icon {
+    transition: none;
+  }
+
+  .comment-item button.liked svg {
+    animation: none;
+  }
+
+  .comment-item {
+    animation: none;
+  }
+}
+
+@include narrow {
+  .comment-item {
+    gap: var(--meng-space-2);
+  }
+
+  .comment-item time {
+    margin-left: 0;
+  }
+
+  .comment-item.compact .comment-main {
+    display: block;
+  }
+}

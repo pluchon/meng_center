@@ -28,6 +28,8 @@ public final class GlobalExceptionHandler {
     }
 
     @ExceptionHandler({
+        org.springframework.web.multipart.MaxUploadSizeExceededException.class,
+        org.springframework.web.multipart.support.MissingServletRequestPartException.class,
         MethodArgumentNotValidException.class,
         HandlerMethodValidationException.class,
         ConstraintViolationException.class,
@@ -52,7 +54,6 @@ public final class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> unexpected(Exception exception) {
-        // 请求内容和异常信息里可能有联系方式、密码或票据，不回显也不记录
         return ResponseEntity.internalServerError().body(ApiResponse.failure(CommonErrorCode.INTERNAL_ERROR, null));
     }
 }

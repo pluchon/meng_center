@@ -8,7 +8,7 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>meng-user</artifactId>
-  <dependencies>
+  <dependencies><dependency><groupId>com.pluchon.meng</groupId><artifactId>meng-api-growth</artifactId></dependency>
     <dependency>
       <groupId>com.pluchon.meng</groupId>
       <artifactId>meng-common-web</artifactId>

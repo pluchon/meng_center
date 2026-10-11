@@ -1,0 +1,75 @@
+.post-image-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--meng-space-4);
+  padding-block: var(--meng-space-2);
+}
+
+.post-image-grid button {
+  min-width: 0;
+  padding: var(--meng-space-1);
+  border: 0;
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-surface);
+  box-shadow: 0 0 0 2px var(--meng-tint), 0 6px 0 var(--meng-card-base);
+  transform: rotate(-1.5deg);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
+  cursor: pointer;
+}
+
+.post-image-grid button:nth-child(even) {
+  transform: rotate(1.5deg);
+}
+
+.post-image-grid button:hover {
+  transform: translateY(-4px) rotate(0);
+  box-shadow: 0 8px 18px var(--meng-decor-shadow);
+}
+
+.post-image-grid .el-image {
+  width: 100%;
+  height: 180px;
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-tint);
+}
+
+.post-image-grid :deep(.el-image__error) {
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+}
+
+.post-image-grid.compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meng-space-2);
+}
+
+.post-image-grid.compact button {
+  width: 88px;
+  padding: var(--meng-space-1);
+  border-radius: var(--meng-space-3);
+}
+
+.post-image-grid.compact .el-image {
+  height: 80px;
+  border-radius: var(--meng-space-2);
+}
+
+@include narrow {
+  .post-image-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .post-image-grid .el-image {
+    height: 150px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-image-grid button {
+    transition: none;
+    transform: none;
+  }
+}

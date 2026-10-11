@@ -1,0 +1,25 @@
+.collapse-panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    grid-template-rows var(--meng-disclosure-duration) var(--meng-motion-ease),
+    opacity var(--meng-disclosure-duration) ease;
+}
+
+.collapse-panel.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.collapse-panel-content {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collapse-panel {
+    transition: none;
+  }
+}

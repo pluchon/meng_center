@@ -9,6 +9,8 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 ```powershell
 ./deploy/scripts/Initialize-LocalEnvironment.ps1
 ./deploy/scripts/Start-Middleware.ps1
+./deploy/scripts/Initialize-Elasticsearch.ps1
+./deploy/scripts/Initialize-XxlJob.ps1
 ./deploy/scripts/Initialize-Nacos.ps1
 ./verification/Test-Middleware.ps1
 ```
@@ -25,6 +27,8 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 |---|---:|---:|
 | MySQL | 13306 | 3306 |
 | Redis | 16379 | 6379 |
+| Elasticsearch | 9200 | 9200 |
+| xxl-job 调度中心 | 18082 | 8080 |
 | RabbitMQ AMQP | 25672 | 5672 |
 | RabbitMQ 管理界面 | 25673 | 15672 |
 | Nacos 服务 API | 18848 | 8848 |
@@ -76,3 +80,37 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 - [Nacos 鉴权与首次管理员密码初始化](https://nacos.io/en/docs/v3.1/manual/admin/auth/)
 
 应用版本能否一起运行，以 `verification/` 中的实测为准，版本表只提供选型依据。
+
+## 内容与成长服务
+
+已有数据卷新增数据库时执行下面两条命令，不删除或重建卷：
+
+```powershell
+./deploy/scripts/Initialize-LocalEnvironment.ps1
+./deploy/scripts/Initialize-DomainDatabases.ps1
+./deploy/scripts/Publish-NacosConfiguration.ps1
+```
+
+初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD` 与 `MENG_CONTENT_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建三个域库。新生成的密码也应备份到仓库外配置清单。
+
+打包后启动 `Start-Backend.ps1 -Service meng-content` 与 `-Service meng-growth`，分别监听本机 8102、8103；网关继续用 8080，增加 `/content/**`、`/growth/**` 的 Nacos 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
+
+`meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。三个域各自管理 Flyway 迁移。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
+
+## 搜索引擎
+
+Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。
+
+`Initialize-Elasticsearch.ps1` 只生成缺失的两个 ES 密码，启动容器后创建 `meng_content_app` 和角色 `meng_content`。权限限定为 `meng_post_*` 及别名 `meng_post`，不赋予集群管理权限。应用只读取自己的密码，管理员密码不发布到 Nacos。首次配置后执行 `Publish-NacosConfiguration.ps1` 并重启内容服务。
+
+内容服务启动时异步检查索引；缺失时从 MySQL 重建。xxl-job 每天 04:00 调用 `contentHotRebuild` 重算热榜，04:10 调用 `contentSearchRebuild` 重建搜索索引（Asia/Taipei），没有 Spring `@Scheduled`。管理员可调用 `POST /content/admin/hot/rebuild`、`POST /content/admin/search/rebuild` 提前执行，接口返回表示已提交任务。索引别名和 Redis 生效色标用于观察切换结果。
+
+## 定时任务
+
+`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及两项任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content` 自动注册；两项任务使用 FIRST 路由、DISCARD_LATER 阻塞策略、忽略过期触发、失败重试一次，超时分别为 600/1800 秒。手动运行在调度中心任务管理中操作，失败会反馈到任务日志。
+
+内容服务的官方执行器绑定所有网卡，端口 9102；注册地址仍是 `http://127.0.0.1:9102/`。Compose 不映射或开放执行器端口，`xxl-job-bridge` 只在调度中心容器的回环地址转发到宿主机。宿主机防火墙应阻止外部访问 9102，不为它创建对外放行规则；执行器还强制校验环境变量令牌，空值和 `default_token` 会使内容服务启动失败。Nacos 只保存调度地址、执行器端口、注册地址和日志路径，不能覆盖令牌。
+
+调度中心停机不影响内容服务启动和普通请求。执行器日志保留七天，位于 `MENG_CONTENT_IMAGE_ROOT` 相邻的 `job-logs` 目录；调度中心日志在 Docker 卷中。重启调度中心容器后也重启 `xxl-job-bridge`，使其重新共享调度中心网络空间。
+
+ES 故障不阻塞发帖和服务健康检查，搜索降级为标题包含查询。索引同步使用单线程、有界队列和三次重试；失败只记录帖子 ID，下次重建修复。批量重建与实时写入在进程内串行写同一索引，搜索读取不持有写锁。

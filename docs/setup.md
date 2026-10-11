@@ -35,8 +35,15 @@
 | `MENG_PII_ENC_KEY` | 邮箱和手机号加密，AES-256 |
 | `MENG_PII_HASH_KEY` | 邮箱和手机号的检索哈希，与加密密钥分开 |
 | `MENG_MYSQL_USER_PASSWORD` | `meng_user` 库的应用账号密码 |
+| `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD` | 两个新域的独立应用账号密码 |
+| `MENG_CONTENT_IMAGE_ROOT` | 配图存储目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MYSQL_ROOT_PASSWORD` | 本地 MySQL 的 root，只给初始化脚本用，应用不用 root 连库 |
 | `MENG_REDIS_PASSWORD` | Redis |
+| `MENG_ES_ELASTIC_PASSWORD` | Elasticsearch 初始化管理员，仅部署脚本使用 |
+| `MENG_ES_CONTENT_PASSWORD` | Elasticsearch 的 `meng_content_app` 账号，仅授权帖子索引与别名 |
+| `MENG_MYSQL_XXLJOB_PASSWORD` | 调度中心独立库 `xxl_job` 的应用账号密码 |
+| `MENG_XXL_JOB_ACCESS_TOKEN` | 执行器直接读取的环境变量；为空或官方默认值时拒绝启动 |
+| `MENG_XXL_JOB_ADMIN_PASSWORD` | 调度中心首次 `admin` 账号密码，初始化脚本不覆盖已修改密码 |
 | `MENG_RABBITMQ_USERNAME`、`MENG_RABBITMQ_PASSWORD` | RabbitMQ 的应用账号 |
 | `MENG_NACOS_ADDR`、`MENG_NACOS_NAMESPACE`、`MENG_NACOS_USERNAME`、`MENG_NACOS_PASSWORD` | Nacos 地址、环境和凭据 |
 | `MENG_NACOS_AUTH_TOKEN`、`MENG_NACOS_AUTH_IDENTITY_KEY`、`MENG_NACOS_AUTH_IDENTITY_VALUE` | Nacos 服务端自身的鉴权参数，只给容器用 |
@@ -57,12 +64,12 @@ SMTP 主机和端口、短信签名、各短信模板编号、手机号地区名
 |---|---|
 | Maven | groupId `com.pluchon.meng`；artifactId 用模块名；版本 `0.1.0-SNAPSHOT` |
 | 基础包 | `com.pluchon.meng.common.core`、`com.pluchon.meng.common.web`、`com.pluchon.meng.api.user`、`com.pluchon.meng.gateway`、`com.pluchon.meng.user` |
-| 服务名 | `meng-gateway`、`meng-user` |
-| 服务端口 | 网关 8080，user 8101，其余域做的时候顺着往后排 |
+| 服务名 | `meng-gateway`、`meng-user`、`meng-content`、`meng-growth` |
+| 服务端口 | 网关 8080，user 8101，content 8102，growth 8103；均监听本机 |
 | 前端端口 | `front_user` 5173，`front_admin` 5174 |
 | 中间件端口 | 见 `deploy/ports.env`。宿主机端口被占用时只改这里的映射 |
-| Nacos | namespace `meng-dev`；Group `MENG_GROUP`；Data ID `meng-common.yml`、`meng-gateway.yml`、`meng-user.yml` |
-| MySQL | 库 `meng_user`，字符集 `utf8mb4`；应用账号 `meng_user_app`，只有这个库的权限 |
+| Nacos | namespace `meng-dev`；Group `MENG_GROUP`；Data ID `meng-common.yml`、`meng-gateway.yml`、`meng-user.yml`、`meng-content.yml`、`meng-growth.yml` |
+| MySQL | 三个库 `meng_user`、`meng_content`、`meng_growth`；各自 `meng_<域>_app` 独立账号，只授权自己的库，字符集 `utf8mb4` |
 | 数据库迁移 | Flyway，脚本放各服务自己的 `db/migration`，只前进、不改历史文件 |
 | Redis | 键统一加前缀 `meng:` |
 | RabbitMQ | vhost `meng`；交换机按 [contracts.md](contracts.md) 的规则命名，user 域是 `meng.user.topic` |

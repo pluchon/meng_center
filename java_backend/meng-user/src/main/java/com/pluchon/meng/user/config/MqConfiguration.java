@@ -16,8 +16,36 @@ public class MqConfiguration {
     }
 
     @Bean
+    Declarables growthEvents() {
+        var e = new TopicExchange(
+            com.pluchon.meng.api.growth.event.LevelChangedEvent.EXCHANGE,
+            true,
+            false
+        );
+        var q = QueueBuilder.durable(
+            com.pluchon.meng.user.mq.LevelEventListener.QUEUE
+        )
+            .deadLetterExchange(UserMqNames.INTERNAL_EXCHANGE)
+            .deadLetterRoutingKey(UserMqNames.DEAD_ROUTE)
+            .build();
+        return new Declarables(
+            e,
+            q,
+            BindingBuilder.bind(q)
+                .to(e)
+                .with(
+                    com.pluchon.meng.api.growth.event.LevelChangedEvent.EVENT_TYPE
+                )
+        );
+    }
+
+    @Bean
     Declarables queues() {
-        var exchange = new DirectExchange(UserMqNames.INTERNAL_EXCHANGE, true, false);
+        var exchange = new DirectExchange(
+            UserMqNames.INTERNAL_EXCHANGE,
+            true,
+            false
+        );
         var codes = QueueBuilder.durable(UserMqNames.CODE_QUEUE)
             .deadLetterExchange(UserMqNames.INTERNAL_EXCHANGE)
             .deadLetterRoutingKey(UserMqNames.DEAD_ROUTE)
@@ -33,8 +61,12 @@ public class MqConfiguration {
             notifications,
             dead,
             new TopicExchange(UserApprovedEvent.EXCHANGE, true, false),
-            BindingBuilder.bind(codes).to(exchange).with(UserMqNames.CODE_ROUTE),
-            BindingBuilder.bind(notifications).to(exchange).with(UserMqNames.NOTIFICATION_ROUTE),
+            BindingBuilder.bind(codes)
+                .to(exchange)
+                .with(UserMqNames.CODE_ROUTE),
+            BindingBuilder.bind(notifications)
+                .to(exchange)
+                .with(UserMqNames.NOTIFICATION_ROUTE),
             BindingBuilder.bind(dead).to(exchange).with(UserMqNames.DEAD_ROUTE)
         );
     }
