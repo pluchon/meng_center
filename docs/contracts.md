@@ -30,8 +30,11 @@
 | `post.published` | content | postId、authorId | growth：加经验；ai：建向量索引 |
 | `post.updated` | content | postId | ai：重建该帖索引 |
 | `post.deleted` | content | postId | ai：删索引 |
-| `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId | im：通知被回复者；growth：加经验 |
+| `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId、parentCommentId、excerpt | im：通知被评论或被回复的人；growth：加经验 |
 | `post.liked` | content | postId、postTitle、likerId、authorId | im：通知作者 |
+| `post.favorited` | content | postId、postTitle、userId、authorId | im：通知作者 |
+| `comment.liked` | content | commentId、postId、postTitle、excerpt、likerId、authorId | im：通知评论作者 |
+| `report.handled` | content | reportId、reporterId、targetType、targetId、postId、postTitle、excerpt、targetAuthorId、result | im：通知举报人；成立时通知内容作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
 | `lottery.won` | growth | userId、prizeName | im：中奖通知 |
 
@@ -39,6 +42,7 @@
 
 - 没有「用户资料变更」事件。昵称和头像走批量内部接口现查，没有消费者就不留事件。
 - 签到不是事件，它是 growth 自己的写接口。
+- 取消喜欢、取消收藏不发事件，已经发出的通知不撤回。
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
 - growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
 - 事件在它的第一个消费者开始做的时候才发。消费者是 im 或 ai 的那几个，在这两个服务动工之前不发。
