@@ -1,3 +1,4 @@
+import { cleanupImFixtures } from './im-fixture-cleanup.mjs';
 import assert from "node:assert/strict";
 import crypto from "node:crypto";
 import mysql from "mysql2/promise";
@@ -671,6 +672,7 @@ try {
     for (const id of users) await redis.del("meng:user-sessions:" + id);
     await redis.quit();
   }
+  await cleanupImFixtures(users);
   if (userDb && users.length)
     await userDb.query("DELETE FROM user WHERE id IN (?)", [users]);
   await userDb?.end();

@@ -8,7 +8,7 @@ if (-not $container) { throw 'Start the project MySQL container first.' }
 $prior = $env:MYSQL_PWD
 try {
     $env:MYSQL_PWD = $env:MYSQL_ROOT_PASSWORD
-    foreach ($domain in @('content','growth')) {
+    foreach ($domain in @('content','growth','im')) {
         $name = 'MENG_MYSQL_' + $domain.ToUpperInvariant() + '_PASSWORD'
         $value = [Environment]::GetEnvironmentVariable($name, 'Process')
         if (-not $value) { throw "Missing $name" }

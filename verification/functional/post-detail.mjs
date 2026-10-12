@@ -1,3 +1,4 @@
+import { cleanupImFixtures } from './im-fixture-cleanup.mjs';
 import { cleanupPostReadModels } from './read-model-cleanup.mjs';
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -383,6 +384,7 @@ try {
     for (const key of keys) await redis.del(key);
     await redis.quit();
   }
+  await cleanupImFixtures(users);
   if (userDb && users.length)
     await userDb.query("DELETE FROM user WHERE id IN (?)", [users]);
   await userDb?.end();

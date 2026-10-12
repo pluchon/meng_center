@@ -3,12 +3,14 @@ package com.pluchon.meng.content.service;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.pluchon.meng.api.content.event.CommentCreatedEvent;
+import com.pluchon.meng.api.content.event.ContentInteractionEvent;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.controller.dto.CreateCommentDTO;
+import com.pluchon.meng.content.controller.vo.CommentLocationVO;
 import com.pluchon.meng.content.controller.vo.CommentVO;
 import com.pluchon.meng.content.converter.CommentConverter;
 import com.pluchon.meng.content.entity.CommentEntity;
@@ -32,6 +34,24 @@ import org.springframework.transaction.annotation.Transactional;
 // 评论创建、回复、点赞与删除
 @Service
 public class CommentService {
+
+    // 从通知跳转到评论时按当前可见记录计算分页位置
+    public CommentLocationVO location(long id, long size) {
+        if (size < 1 || size > 50) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
+        var comment = require(id);
+        long root =
+            comment.getRootId() == 0 ? comment.getId() : comment.getRootId();
+        return new CommentLocationVO(
+            comment.getPostId(),
+            root,
+            comments.countBeforeRoot(comment.getPostId(), root) / size + 1,
+            comment.getRootId() == 0
+                ? 0
+                : comments.countBeforeReply(root, id) / size + 1
+        );
+    }
 
     // 作者的每日互动统计
     @Autowired
@@ -213,7 +233,10 @@ public class CommentService {
                 post,
                 p.getTitle(),
                 user,
-                target == null ? p.getAuthorId() : target.getAuthorId()
+                target == null ? p.getAuthorId() : target.getAuthorId(),
+                target == null ? null : target.getId(),
+                excerpt(c.getContent()),
+                target == null ? null : excerpt(target.getContent())
             )
         );
         return convert(
@@ -271,6 +294,33 @@ public class CommentService {
         int changed = on
             ? comments.insertLike(id, user)
             : comments.deleteLike(id, user);
-        if (changed == 1) comments.incrementLikeCount(id, on ? 1 : -1);
+        if (changed == 1) {
+            comments.incrementLikeCount(id, on ? 1 : -1);
+            if (on) {
+                var post = posts.selectById(initial.getPostId());
+                events.publishEvent(
+                    new ContentInteractionEvent(
+                        "comment.liked",
+                        post.getId(),
+                        post.getTitle(),
+                        id,
+                        excerpt(initial.getContent()),
+                        user,
+                        initial.getAuthorId()
+                    )
+                );
+            }
+        }
+    }
+
+    // 按 Unicode 字符截取通知摘要
+    private static String excerpt(String content) {
+        return content.substring(
+            0,
+            content.offsetByCodePoints(
+                0,
+                Math.min(60, content.codePointCount(0, content.length()))
+            )
+        );
     }
 }

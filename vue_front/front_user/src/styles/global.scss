@@ -1,5 +1,13 @@
 @use './tokens';
 
+.messages-scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.messages-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 * {
   box-sizing: border-box;
 }

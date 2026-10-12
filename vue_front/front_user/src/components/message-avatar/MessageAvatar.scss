@@ -1,0 +1,41 @@
+.message-avatar {
+  flex: none;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-avatar-bg);
+  color: var(--meng-avatar-text);
+  box-shadow: 0 0 0 2px var(--meng-avatar-edge);
+  font-family: var(--meng-font-display);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.blue {
+  --meng-avatar-bg: var(--meng-tint);
+  --meng-avatar-text: var(--meng-primary);
+  --meng-avatar-edge: var(--meng-category-anime);
+}
+
+.mint {
+  --meng-avatar-bg: var(--meng-success);
+  --meng-avatar-text: var(--meng-success-text);
+  --meng-avatar-edge: var(--meng-creator-green);
+}
+
+.violet {
+  --meng-avatar-bg: var(--meng-category-game);
+  --meng-avatar-text: var(--meng-creator-purple-text);
+  --meng-avatar-edge: var(--meng-category-game-dot);
+}
+
+.gold {
+  --meng-avatar-bg: var(--meng-warning);
+  --meng-avatar-text: var(--meng-favorite-text);
+  --meng-avatar-edge: var(--meng-creator-yellow);
+}
+
+.pink {
+  --meng-avatar-bg: var(--meng-danger);
+  --meng-avatar-text: var(--meng-like-text);
+  --meng-avatar-edge: var(--meng-category-creation);
+}

@@ -20,7 +20,7 @@
 
 - 点击主页帖子卡片的空白区域、标题或评论入口进入详情页，并保留主页筛选与页码。图片预览、喜欢和收藏按钮独立执行各自操作，选中文字时不触发跳转。
 - 第一步就做发帖接口，是因为主页要有真实的帖子才能验收；这时还没有发帖页，验收用接口造数据。
-- 详情读取计浏览；评论和回复提交后发 `comment.created`，由成长域消费。
+- 详情读取计浏览；评论和回复提交后发 `comment.created`，由成长域和消息域消费；帖子喜欢、收藏与评论喜欢在关系真正新增后发布通知事件。
 - 详情页、发帖页和改帖页已经接入接口；管理端举报处理页尚未实现，举报目前只入库。
 
 ## 2. 整体方案
@@ -75,6 +75,7 @@
 | `DELETE /content/posts/{id}/favorite` | 取消收藏 |
 | `POST /content/comment-images` | 上传一张评论配图，返回图片 id 和地址 |
 | `GET /content/posts/{id}/comments` | 一级评论，分页，新的在前；每条带回复总数，不带回复 |
+| `GET /content/comments/{id}/location` | 通知定位：返回所属帖子、一级评论 id、一级评论页和回复页；size 默认 10 |
 | `GET /content/comments/{id}/replies` | 某条一级评论下的回复，分页，旧的在前 |
 | `POST /content/posts/{id}/comments` | 发评论或回复 |
 | `DELETE /content/comments/{id}` | 删评论，仅评论作者 |

@@ -4,14 +4,13 @@ import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.core.response.ApiResponse;
 import com.pluchon.meng.common.core.security.IdentityHeaders;
 import com.pluchon.meng.content.controller.dto.CreateCommentDTO;
+import com.pluchon.meng.content.controller.vo.CommentLocationVO;
 import com.pluchon.meng.content.controller.vo.CommentVO;
 import com.pluchon.meng.content.service.CommentService;
-
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -31,6 +30,15 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class CommentController {
 
+    /** 查询可见评论或回复所在的页码。 */
+    @GetMapping("/comments/{id}/location")
+    public ApiResponse<CommentLocationVO> location(
+        @PathVariable @Positive long id,
+        @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size
+    ) {
+        return ApiResponse.success(service.location(id, size));
+    }
+
     // 对应接口的业务操作
     @Autowired
     private CommentService service;
@@ -38,27 +46,33 @@ public class CommentController {
     /** 分页查询帖子一级评论。 */
     @GetMapping("/posts/{id}/comments")
     public ApiResponse<PageResult<CommentVO>> list(
-            @PathVariable @Positive long id,
-            @RequestParam(defaultValue = "1") @Min(1) long page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size) {
+        @PathVariable @Positive long id,
+        @RequestParam(defaultValue = "1") @Min(1) long page,
+        @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size
+    ) {
         return ApiResponse.success(service.list(id, page, size));
     }
 
     /** 分页查询指定评论的回复。 */
     @GetMapping("/comments/{id}/replies")
     public ApiResponse<PageResult<CommentVO>> replies(
-            @PathVariable @Positive long id,
-            @RequestParam(defaultValue = "1") @Min(1) long page,
-            @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size) {
+        @PathVariable @Positive long id,
+        @RequestParam(defaultValue = "1") @Min(1) long page,
+        @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size
+    ) {
         return ApiResponse.success(service.replies(id, page, size));
     }
 
     /** 提交评论或回复。 */
     @PostMapping("/posts/{id}/comments")
     public ApiResponse<CommentVO> create(
-            @PathVariable @Positive long id,
-            @Valid @RequestBody CreateCommentDTO body,
-            @RequestHeader(value = IdentityHeaders.CLIENT_IP, required = false) String ip) {
+        @PathVariable @Positive long id,
+        @Valid @RequestBody CreateCommentDTO body,
+        @RequestHeader(
+            value = IdentityHeaders.CLIENT_IP,
+            required = false
+        ) String ip
+    ) {
         return ApiResponse.success(service.create(id, body, ip));
     }
 

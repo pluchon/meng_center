@@ -88,20 +88,16 @@
             >
           </form>
         </div>
-        <button
-          type="button"
-          :aria-label="t('home.nav.notifications')"
-          @click="unavailable"
+        <router-link
+          class="nav-messages"
+          :to="{name:RouteName.MESSAGES}"
+          :aria-label="t('im.title')"
         >
-          <el-icon><Bell /></el-icon>
-        </button>
-        <button
-          type="button"
-          :aria-label="t('home.nav.messages')"
-          @click="unavailable"
-        >
-          <el-icon><Message /></el-icon>
-        </button>
+          <el-icon><ChatDotRound /></el-icon><span
+            v-if="im.totalUnread"
+            class="nav-unread"
+          >{{ im.totalUnread>99?t('im.badgeMax'):im.totalUnread }}</span>
+        </router-link>
         <div
           v-if="growth.data"
           class="nav-growth"

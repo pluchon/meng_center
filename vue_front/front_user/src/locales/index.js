@@ -9,9 +9,12 @@ import search from './zh-CN/search'
 import detail from './zh-CN/detail'
 import creator from './zh-CN/creator'
 import growth from './zh-CN/growth'
+import im from './zh-CN/im'
 export const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
   fallbackLocale: 'zh-CN',
-  messages: { 'zh-CN': { common, auth, error, user, home, editor, detail, search, creator, growth } },
+  messages: {
+    'zh-CN': { common, auth, error, user, home, editor, detail, search, creator, growth, im },
+  },
 })

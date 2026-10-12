@@ -1,0 +1,43 @@
+CREATE TABLE conversation (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, user_low_id BIGINT NOT NULL, user_high_id BIGINT NOT NULL,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_pair(user_low_id,user_high_id)
+);
+CREATE TABLE conversation_member (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, conversation_id BIGINT NOT NULL, user_id BIGINT NOT NULL, peer_id BIGINT NOT NULL,
+ unread_count BIGINT NOT NULL DEFAULT 0, sent_count BIGINT NOT NULL DEFAULT 0, last_read_message_id BIGINT NOT NULL DEFAULT 0,
+ cleared_message_id BIGINT NOT NULL DEFAULT 0, last_message_preview VARCHAR(500), last_message_time DATETIME(3), hidden_state TINYINT NOT NULL DEFAULT 0,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_member(conversation_id,user_id), KEY idx_list(user_id,hidden_state,last_message_time,id)
+);
+CREATE TABLE private_message (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, conversation_id BIGINT NOT NULL, sender_id BIGINT NOT NULL,
+ type VARCHAR(16) NOT NULL, content VARCHAR(2000), client_msg_id VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_client(sender_id,client_msg_id), KEY idx_history(conversation_id,id)
+);
+CREATE TABLE message_image (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, uploader_id BIGINT NOT NULL, message_id BIGINT, sort INT NOT NULL DEFAULT 0,
+ file_name VARCHAR(64) NOT NULL, thumb_name VARCHAR(64) NOT NULL, width INT NOT NULL, height INT NOT NULL, bytes BIGINT NOT NULL,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ KEY idx_message(message_id,sort)
+);
+CREATE TABLE user_block (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, blocked_user_id BIGINT NOT NULL,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_block(user_id,blocked_user_id)
+);
+CREATE TABLE im_user_setting (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, user_id BIGINT NOT NULL, hidden TINYINT NOT NULL DEFAULT 0,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_user(user_id)
+);
+CREATE TABLE notification (
+ id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY, receiver_id BIGINT NOT NULL, channel VARCHAR(16) NOT NULL,
+ source VARCHAR(16), category VARCHAR(16), type VARCHAR(32) NOT NULL, actor_id BIGINT, post_id BIGINT, comment_id BIGINT,
+ post_title VARCHAR(200), excerpt VARCHAR(240), original_excerpt VARCHAR(240), level INT, read_state TINYINT NOT NULL DEFAULT 0,
+ dedupe_key VARCHAR(160) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+ create_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3), update_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3), delete_state TINYINT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_dedupe(dedupe_key), KEY idx_list(receiver_id,channel,id), KEY idx_unread(receiver_id,channel,read_state),
+ KEY idx_like(receiver_id,channel,type,post_id,comment_id,id)
+);

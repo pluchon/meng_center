@@ -194,7 +194,8 @@ nav a.selected {
   gap: 8px;
 }
 
-.nav-tools button {
+.nav-tools button,
+.nav-tools .nav-messages {
   display: grid;
   place-items: center;
   width: 44px;
@@ -207,7 +208,8 @@ nav a.selected {
   font-size: 22px;
 }
 
-.nav-tools button:hover {
+.nav-tools button:hover,
+.nav-tools .nav-messages:hover {
   background: var(--meng-tint);
 }
 
@@ -386,7 +388,8 @@ nav a.selected {
     gap: 4px;
   }
 
-  .nav-tools button {
+  .nav-tools button,
+  .nav-tools .nav-messages {
     width: 30px;
     height: 36px;
     font-size: 19px;
@@ -542,4 +545,22 @@ nav a.selected {
 
 .search-layout .community-footer {
   display: none;
+}
+
+.nav-messages {
+  position: relative;
+  flex: none;
+}
+
+.nav-unread {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 12px;
+  background: var(--meng-like-icon);
+  color: var(--meng-surface);
+  font-size: 11px;
+  font-weight: 800;
 }

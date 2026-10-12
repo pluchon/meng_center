@@ -1,4 +1,5 @@
 export const RouteName = Object.freeze({
+  MESSAGES: 'messages',
   HOME: 'home',
   CREATOR: 'creator',
   GROWTH: 'growth',

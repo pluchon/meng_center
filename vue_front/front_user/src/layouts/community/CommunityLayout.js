@@ -1,8 +1,9 @@
 import { defineComponent, onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
-import { House, EditPen, Message, Search as SearchIcon, Bell } from '@element-plus/icons-vue'
+import { House, EditPen, Search as SearchIcon, ChatDotRound } from '@element-plus/icons-vue'
 import { useCommunity } from '@/composables/useCommunity'
 import { useUserStore } from '@/stores/user'
 import { useGrowthStore } from '@/stores/growth'
+import { useImStore } from '@/stores/im'
 import { RouteName } from '@/router/names'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, PostSort } from '@/constants/content'
@@ -18,11 +19,12 @@ import {
 } from '@/assets/images'
 export default defineComponent({
   name: 'CommunityLayout',
-  components: { House, EditPen, Message, SearchIcon, Bell },
+  components: { House, EditPen, ChatDotRound, SearchIcon },
   setup() {
     const { t, unavailable } = useCommunity()
     const user = useUserStore(),
       growth = useGrowthStore()
+    const im = useImStore()
     const route = useRoute(),
       router = useRouter(),
       searchText = ref('')
@@ -108,6 +110,7 @@ export default defineComponent({
       activateSearch,
       user,
       growth,
+      im,
       RouteName,
       LegalDocument,
       userAvatar,

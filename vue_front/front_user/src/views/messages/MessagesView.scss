@@ -1,0 +1,660 @@
+.messages-view {
+  position: relative;
+  min-height: 100dvh;
+  height: 100dvh;
+  padding: 32px 24px 36px;
+  overflow: clip;
+}
+
+.messages-background {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.messages-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(300px, 28%) minmax(0, 1fr);
+  width: 100%;
+  max-width: var(--meng-messages-width);
+  height: min(var(--meng-messages-height), calc(100dvh - 68px));
+  margin: 0 auto;
+  border-radius: 32px;
+  background: var(--meng-surface);
+  box-shadow: var(--meng-creator-shadow);
+  animation: messages-arrive 400ms var(--meng-motion-ease) both;
+}
+
+.messages-sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  padding-top: 20px;
+  border-right: 3px dashed var(--meng-card-base);
+}
+
+.messages-title {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 10px;
+  padding: 0 20px 22px;
+}
+
+.messages-title-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  background: var(--meng-primary);
+  color: var(--meng-surface);
+  box-shadow: 0 4px 0 var(--meng-shadow-hard);
+}
+
+.messages-title h1 {
+  margin: 0;
+  padding: 3px 16px;
+  border-radius: 24px;
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  font: 30px var(--meng-font-display);
+  white-space: nowrap;
+  transform: rotate(-3deg);
+  transition: transform 220ms var(--meng-motion-ease);
+}
+
+.messages-title h1:hover {
+  transform: rotate(0);
+}
+
+.messages-title a {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border-radius: 50%;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-card-base);
+  color: var(--meng-primary);
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.messages-title a:hover {
+  transform: translateX(-3px);
+}
+
+.message-tabs {
+  display: flex;
+  flex: none;
+  gap: 3px;
+  margin: 0 20px 20px;
+  padding: 4px;
+  border-radius: 26px;
+  background: var(--meng-bg);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.message-tabs button {
+  display: flex;
+  flex: 1 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--meng-muted);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 150ms var(--meng-motion-ease),
+    background 150ms ease;
+}
+
+.message-tabs button:hover {
+  transform: translateY(-2px);
+}
+
+.message-tabs .selected {
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-text);
+}
+
+.message-tabs .comment.selected {
+  background: var(--meng-category-game);
+  box-shadow: 0 3px 0 var(--meng-category-game-dot);
+}
+
+.message-tabs .like.selected {
+  background: var(--meng-danger);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+}
+
+.message-tabs .system.selected {
+  background: var(--meng-success);
+  box-shadow: 0 3px 0 var(--meng-creator-green);
+}
+
+.unread-badge {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 12px;
+  background: var(--meng-like-icon);
+  color: var(--meng-surface);
+  font-size: 12px;
+  line-height: 1;
+  font-weight: 800;
+}
+
+.sidebar-list {
+  flex: 1;
+  min-height: 0;
+  padding: 0 20px 20px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.sidebar-list::-webkit-scrollbar {
+  display: none;
+}
+
+.conversation-row {
+  position: relative;
+  margin-bottom: 10px;
+  border-radius: 22px;
+  transition: background 150ms ease;
+}
+
+.conversation-row.selected {
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+}
+
+.conversation-row:hover {
+  background: var(--meng-bg);
+}
+
+.conversation-row.selected:hover {
+  background: var(--meng-tint);
+}
+
+.conversation-select,
+.notification-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 22px;
+  background: transparent;
+  color: var(--meng-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.conversation-select {
+  padding-right: 40px;
+}
+
+.conversation-info,
+.group-info {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.conversation-info strong,
+.group-info strong {
+  font-size: 16px;
+}
+
+.conversation-info small,
+.group-info small {
+  overflow: hidden;
+  color: var(--meng-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.conversation-tail,
+.group-tail {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--meng-muted);
+}
+
+.conversation-row :deep(.el-dropdown) {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.conversation-menu {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  color: var(--meng-primary);
+  cursor: pointer;
+  opacity: 0;
+}
+
+.conversation-row:hover .conversation-menu,
+.conversation-row:focus-within .conversation-menu {
+  opacity: 1;
+}
+
+.notification-group {
+  margin-bottom: 14px;
+  transition:
+    background 180ms ease,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.notification-group:hover {
+  transform: translateY(-1px);
+}
+
+.notification-group.selected {
+  background: var(--meng-category-game);
+  box-shadow: 0 3px 0 var(--meng-category-game-dot);
+}
+
+.notification-group.like.selected {
+  background: var(--meng-danger);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+}
+
+.notification-group.system.selected {
+  background: var(--meng-success);
+  box-shadow: 0 3px 0 var(--meng-creator-green);
+}
+
+.notification-group.report.selected {
+  background: var(--meng-danger);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+}
+
+.notification-group.approval.selected {
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+}
+
+.group-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 24px;
+  background: var(--meng-category-game-dot);
+  color: var(--meng-surface);
+}
+
+.system .group-icon {
+  background: var(--meng-success-text);
+}
+
+.report .group-icon,
+.like .group-icon {
+  background: var(--meng-like-icon);
+}
+
+.approval .group-icon {
+  background: var(--meng-primary);
+}
+
+.summary-name {
+  padding: 0 5px;
+  margin-right: 4px;
+  border-radius: 8px;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+}
+
+.sidebar-state,
+.messages-state {
+  padding: 40px 12px;
+  color: var(--meng-muted);
+  text-align: center;
+}
+
+.messages-state {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  height: 100%;
+}
+
+.sidebar-state button,
+.messages-state button,
+.sidebar-more {
+  padding: 7px 16px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+  cursor: pointer;
+}
+
+.sidebar-more {
+  display: block;
+  margin: 12px auto;
+}
+
+.messages-profile {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  min-height: 98px;
+  padding: 20px;
+  border-top: 3px dashed var(--meng-card-base);
+}
+
+.messages-profile > strong {
+  min-width: 0;
+  overflow: hidden;
+  background: var(--meng-detail-highlight);
+  font: 21px var(--meng-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presence-toggle {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-card-base);
+  color: var(--meng-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.presence-toggle i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--meng-success-text);
+}
+
+.presence-toggle.hidden i {
+  background: var(--meng-border);
+}
+
+.presence-options {
+  display: grid;
+  gap: 6px;
+}
+
+.presence-options button {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--meng-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.presence-options button:hover,
+.presence-options button.selected {
+  background: var(--meng-tint);
+}
+
+.messages-main {
+  min-width: 0;
+  min-height: 0;
+}
+
+.message-panel-content {
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.message-pane-enter-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.message-pane-leave-active {
+  transition:
+    opacity 100ms ease,
+    transform 100ms ease;
+}
+
+.message-pane-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.message-pane-leave-to {
+  opacity: 0;
+  transform: translateY(-3px);
+}
+
+.messages-tape {
+  position: absolute;
+  z-index: 1;
+  top: -10px;
+  left: 13%;
+  width: 100px;
+  height: 24px;
+  border-radius: 3px;
+  background: var(--meng-detail-tape);
+  transform: rotate(-4deg);
+  pointer-events: none;
+}
+
+.messages-card::after {
+  position: absolute;
+  bottom: -10px;
+  right: 19%;
+  width: 100px;
+  height: 24px;
+  border-radius: 3px;
+  background: var(--meng-messages-gold-tape);
+  content: '';
+  transform: rotate(4deg);
+  pointer-events: none;
+}
+
+.messages-sticker {
+  position: absolute;
+  top: -22px;
+  right: 9%;
+  padding: 4px 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-card-base);
+  color: var(--meng-muted);
+  font-size: 13px;
+  font-weight: 800;
+  transform: rotate(7deg);
+  pointer-events: none;
+}
+
+.messages-sparkle {
+  position: absolute;
+  left: -8px;
+  top: 20%;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.connection-state {
+  position: absolute;
+  bottom: 8px;
+  left: 0;
+  right: 0;
+  margin: 0;
+  color: var(--meng-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.connection-state.connected {
+  color: var(--meng-success-text);
+}
+
+@keyframes messages-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (width <= 1100px) {
+  .messages-card {
+    grid-template-columns: 320px minmax(0, 1fr);
+  }
+
+  .messages-title {
+    gap: 8px;
+  }
+
+  .messages-title h1 {
+    font-size: 26px;
+    padding: 3px 12px;
+  }
+
+  .messages-title-icon {
+    width: 40px;
+    height: 40px;
+  }
+}
+
+@media (width <= 760px) {
+  .messages-view {
+    height: auto;
+    padding: 24px 12px 28px;
+  }
+
+  .messages-card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(280px, 34%) minmax(0, 1fr);
+    height: max(650px, calc(100dvh - 52px));
+    border-radius: 26px;
+  }
+
+  .messages-sidebar {
+    border-right: 0;
+    border-bottom: 3px dashed var(--meng-card-base);
+    padding-top: 16px;
+  }
+
+  .messages-title {
+    padding-bottom: 16px;
+  }
+
+  .messages-title h1 {
+    font-size: 26px;
+  }
+
+  .message-tabs {
+    margin-bottom: 10px;
+  }
+
+  .sidebar-list {
+    padding-bottom: 8px;
+  }
+
+  .messages-profile {
+    min-height: 70px;
+    padding: 10px 20px;
+  }
+
+  .messages-profile :deep(.el-avatar) {
+    width: 38px;
+    height: 38px;
+  }
+
+  .messages-profile > strong {
+    font-size: 18px;
+  }
+
+  .conversation-menu {
+    opacity: 1;
+  }
+
+  .messages-tape {
+    left: 25%;
+  }
+
+  .messages-sticker {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messages-card {
+    animation: none;
+  }
+
+  .message-pane-enter-active,
+  .message-pane-leave-active {
+    transition: none;
+  }
+
+  .message-tabs button,
+  .messages-title a,
+  .conversation-row,
+  .messages-title h1,
+  .notification-group {
+    transition: none;
+  }
+}

@@ -12,6 +12,14 @@ spring:
       server:
         webflux:
           routes:
+            - id: meng-im-websocket
+              uri: lb:ws://meng-im
+              predicates:
+                - Path=/im/ws
+            - id: meng-im
+              uri: lb://meng-im
+              predicates:
+                - Path=/im/**
             - id: meng-user
               uri: lb://meng-user
               predicates:

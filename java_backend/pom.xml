@@ -32,6 +32,7 @@
     <module>meng-gateway</module>
     <module>meng-content</module>
     <module>meng-growth</module>
+    <module>meng-im</module>
   </modules>
   <dependencyManagement>
     <dependencies>

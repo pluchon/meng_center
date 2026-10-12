@@ -9,6 +9,7 @@ services:
       MENG_MYSQL_USER_PASSWORD: ${MENG_MYSQL_USER_PASSWORD:?required}
       MENG_MYSQL_CONTENT_PASSWORD: ${MENG_MYSQL_CONTENT_PASSWORD:?required}
       MENG_MYSQL_GROWTH_PASSWORD: ${MENG_MYSQL_GROWTH_PASSWORD:?required}
+      MENG_MYSQL_IM_PASSWORD: ${MENG_MYSQL_IM_PASSWORD:?required}
     command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_0900_ai_ci]
     ports:
       - "127.0.0.1:${MENG_MYSQL_PORT:?required}:3306"

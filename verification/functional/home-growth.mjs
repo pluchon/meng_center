@@ -1,3 +1,4 @@
+import { cleanupImFixtures } from './im-fixture-cleanup.mjs';
 import { cleanupPostReadModels } from './read-model-cleanup.mjs';
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
@@ -619,6 +620,7 @@ try {
     await redis.quit();
   }
   if (userDb) {
+    await cleanupImFixtures(users);
     for (const user of users)
       await userDb.execute("DELETE FROM user WHERE id=?", [user]);
     await userDb.end();

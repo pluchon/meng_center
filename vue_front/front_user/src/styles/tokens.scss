@@ -1,4 +1,10 @@
 :root {
+  --meng-font-display: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+  --meng-messages-width: 1280px;
+  --meng-message-pixel-color: #8b62b0;
+  --meng-message-pixel-opacity: 1;
+  --meng-messages-height: 1040px;
+  --meng-messages-gold-tape: repeating-linear-gradient(135deg, #f8edcf 0 10px, #ead9a7 10px 20px);
   --meng-disclosure-duration: 280ms;
   --meng-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --meng-like-text: #8e3355;
@@ -42,7 +48,11 @@
   --meng-creator-cover-overlay: rgb(41 70 83 / 60%);
   --meng-creator-shadow: 0 6px 0 var(--meng-card-base), 0 16px 40px rgb(54 127 154 / 12%);
   --meng-creator-highlight: linear-gradient(transparent 60%, var(--meng-warning) 60%);
-  --meng-creator-tape: repeating-linear-gradient(135deg, var(--meng-success) 0 10px, var(--meng-creator-green-shadow) 10px 20px);
+  --meng-creator-tape: repeating-linear-gradient(
+    135deg,
+    var(--meng-success) 0 10px,
+    var(--meng-creator-green-shadow) 10px 20px
+  );
   --meng-search-aurora-blue: #72bdd6;
   --meng-search-aurora-mint: #8bd8bf;
   --meng-search-aurora-blue-soft: #a3d6e6;
@@ -84,7 +94,11 @@
   --meng-growth-violet-edge: #a593db;
   --meng-growth-violet-badge: #8973ba;
   --meng-growth-road-muted: #e3eef2;
-  --meng-growth-stripes: repeating-linear-gradient(120deg, transparent 0 12px, rgb(255 255 255 / 20%) 12px 24px);
+  --meng-growth-stripes: repeating-linear-gradient(
+    120deg,
+    transparent 0 12px,
+    rgb(255 255 255 / 20%) 12px 24px
+  );
   --meng-growth-calendar-surface: #fafdfe;
   --meng-check-shadow: #bee3d2;
   --meng-image-overlay: rgb(41 70 83 / 55%);

@@ -1,9 +1,9 @@
 <template>
-  <article :class="['comment-item',{compact}]">
-    <el-avatar
-      :src="comment.author.avatar||userAvatar"
-      :alt="comment.author.nickname||t('home.authorFallback')"
-    />
+  <article
+    :id="'comment-'+comment.id"
+    :class="['comment-item',{compact}]"
+  >
+    <UserContact :author="comment.author" />
     <div class="comment-main">
       <header>
         <strong>{{ comment.author.nickname||t('home.authorFallback') }}</strong><span

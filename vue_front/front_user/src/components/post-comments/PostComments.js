@@ -1,5 +1,6 @@
 import { computed, defineComponent, nextTick, reactive, ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { EditPen } from '@element-plus/icons-vue'
 import { Comment, ReportTarget } from '@/constants/comments'
@@ -20,6 +21,8 @@ export default defineComponent({
   },
   emits: ['count', 'report'],
   setup(props, { emit }) {
+    const route = useRoute()
+    let focusedHash = ''
     const { t } = useI18n(),
       records = ref([]),
       total = ref(0),
@@ -63,7 +66,52 @@ export default defineComponent({
       } finally {
         if (current === generation) loading.value = false
       }
+      if (current === generation && !error.value) void revealNotification()
     }
+    async function revealNotification() {
+      const hash = route.hash,
+        match = /^#comment-(\d+)$/.exec(hash)
+      if (!match || focusedHash === hash || loading.value) return
+      const current = generation
+      try {
+        const location = await contentApi.commentLocation(match[1], Comment.SIZE)
+        if (
+          current !== generation ||
+          route.hash !== hash ||
+          String(location.postId) !== String(props.postId)
+        )
+          return
+        if (location.page !== page.value) {
+          initialPage = null
+          page.value = location.page
+          return
+        }
+        const root = records.value.find((item) => item.id === location.rootId)
+        if (!root) return
+        if (location.replyPage) {
+          const s = state(root.id)
+          s.open = true
+          s.page = location.replyPage - 1
+          await loadReplies(root, true, location.replyPage)
+        }
+        await nextTick()
+        if (current !== generation || route.hash !== hash) return
+        const target = document.getElementById('comment-' + match[1])
+        if (target) {
+          focusedHash = hash
+          target.scrollIntoView({ block: 'center', behavior: 'auto' })
+        }
+      } catch (failure) {
+        if (current === generation) notifyFailure(failure)
+      }
+    }
+    watch(
+      () => route.hash,
+      () => {
+        focusedHash = ''
+        void revealNotification()
+      },
+    )
     watch(
       () => props.postId,
       () => {
@@ -86,7 +134,7 @@ export default defineComponent({
         replies[id] = { open: false, loading: false, error: null, records: [], total: 0, page: 0 }
       return replies[id]
     }
-    async function loadReplies(comment, reset = false) {
+    async function loadReplies(comment, reset = false, firstPage = 1) {
       const s = state(comment.id)
       if (s.loading) return
       s.loading = true
@@ -94,7 +142,7 @@ export default defineComponent({
       const current = generation
       try {
         const result = await contentApi.replies(comment.id, {
-          page: reset ? 1 : s.page + 1,
+          page: reset ? firstPage : s.page + 1,
           size: Comment.SIZE,
         })
         if (current !== generation) return

@@ -23,7 +23,6 @@ import { RouteName } from '@/router/names'
 import { Comment, ReportTarget } from '@/constants/comments'
 import { contentApi } from '@/api/content'
 import {
-  userAvatar,
   communitySparkle,
   detailArtwork,
   detailArtworkSmall,
@@ -42,9 +41,11 @@ import PostImages from '@/components/post-images/PostImages.vue'
 import PostComments from '@/components/post-comments/PostComments.vue'
 import ReportDialog from '@/components/report-dialog/ReportDialog.vue'
 const detailScrollbarClass = 'detail-scrollbar-hidden'
+import UserContact from '@/components/user-contact/UserContact.vue'
 export default defineComponent({
   name: 'PostDetailView',
   components: {
+    UserContact,
     CommunityLayout,
     MarkdownBody,
     PageState,
@@ -79,7 +80,12 @@ export default defineComponent({
       () => post.value && String(post.value.author.id) === String(user.current?.id),
     )
     const homeLink = computed(() => ({
-      name: route.query.from === 'creator' ? RouteName.CREATOR : route.query.from === 'search' ? RouteName.SEARCH : RouteName.HOME,
+      name:
+        route.query.from === 'creator'
+          ? RouteName.CREATOR
+          : route.query.from === 'search'
+            ? RouteName.SEARCH
+            : RouteName.HOME,
       query: Object.fromEntries(
         ['q', 'category', 'sort', 'page', 'tab']
           .filter((key) => route.query[key])
@@ -171,7 +177,6 @@ export default defineComponent({
       homeLink,
       reportTarget,
       scrollComments,
-      userAvatar,
       communitySparkle,
       detailArtwork,
       detailArtworkSmall,

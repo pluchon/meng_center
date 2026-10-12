@@ -14,7 +14,6 @@ export default {
     growth: '成长',
     ai: '萌萌',
     search: '搜索',
-    notifications: '通知',
     account: '我的账号',
   },
   unavailable: '这个功能还没开放，稍后再见～',

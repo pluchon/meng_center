@@ -2,6 +2,7 @@ package com.pluchon.meng.content.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.pluchon.meng.api.content.event.ContentInteractionEvent;
 import com.pluchon.meng.api.content.event.PostPublishedEvent;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
@@ -265,6 +266,17 @@ public class PostService {
             );
             long delta = (enabled ? 1L : -1L) * properties.likeWeight();
             posts.incrementLikeCount(id, enabled ? 1 : -1, delta);
+            if (enabled) events.publishEvent(
+                new ContentInteractionEvent(
+                    "post.liked",
+                    id,
+                    post.getTitle(),
+                    null,
+                    null,
+                    user,
+                    post.getAuthorId()
+                )
+            );
             events.publishEvent(
                 new PostReadModelEvent(
                     id,
@@ -299,6 +311,17 @@ public class PostService {
             );
             long delta = (enabled ? 1L : -1L) * properties.favoriteWeight();
             posts.incrementHotScore(id, delta);
+            if (enabled) events.publishEvent(
+                new ContentInteractionEvent(
+                    "post.favorited",
+                    id,
+                    post.getTitle(),
+                    null,
+                    null,
+                    user,
+                    post.getAuthorId()
+                )
+            );
             events.publishEvent(
                 new PostReadModelEvent(
                     id,
