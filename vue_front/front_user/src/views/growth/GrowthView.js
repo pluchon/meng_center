@@ -9,7 +9,6 @@ import {
   IconReceipt,
   IconChartPie,
   IconSparkles,
-  IconCloud,
   IconPencil,
   IconMessage,
   IconClock,
@@ -22,7 +21,6 @@ import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { RouteName } from '@/router/names'
 import { ExpSource, ExpSources, SourceTones, GrowthCenter } from '@/constants/growth'
-import { communitySparkle, detailBubble, detailFlower } from '@/assets/images'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import PageState from '@/components/page-state/PageState.vue'
 import GrowthPanel from '@/components/growth-panel/GrowthPanel.vue'
@@ -31,6 +29,7 @@ import GrowthCalendar from '@/components/growth-calendar/GrowthCalendar.vue'
 import GrowthTasks from '@/components/growth-tasks/GrowthTasks.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import GrowthVisualization from '@/components/growth-visualization/GrowthVisualization.vue'
+import GradientWaves from '@/components/gradient-waves/GradientWaves.vue'
 
 export default defineComponent({
   name: 'GrowthView',
@@ -43,11 +42,11 @@ export default defineComponent({
     GrowthTasks,
     FeedPagination,
     GrowthVisualization,
+    GradientWaves,
     IconCalendarCheck,
     IconCalendarMonth,
     IconChartPie,
     IconSparkles,
-    IconCloud,
     IconClock,
     IconCheck,
   },
@@ -295,9 +294,6 @@ export default defineComponent({
       retrySeven: seven.load,
       retryStats: () => visibleStats.value.load(),
       unavailable: () => ElMessage.info(t('home.unavailable')),
-      communitySparkle,
-      detailBubble,
-      detailFlower,
     }
   },
 })

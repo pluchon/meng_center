@@ -4,15 +4,7 @@
       class="growth-background"
       aria-hidden="true"
     >
-      <IconCloud class="cloud cloud-left" /><IconCloud class="cloud cloud-right" /><IconCloud class="cloud cloud-bottom" /><img
-        class="sky-bubble"
-        :src="detailBubble"
-        alt=""
-      ><img
-        class="sky-flower"
-        :src="detailFlower"
-        alt=""
-      >
+      <GradientWaves />
     </div>
     <section
       class="growth-view"

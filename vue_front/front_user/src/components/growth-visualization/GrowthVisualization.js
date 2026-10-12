@@ -1,7 +1,7 @@
 import { computed, defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconChartDonut, IconChartLine, IconSparkles, IconX } from '@tabler/icons-vue'
-import { ExpSources, SourceTones, GrowthCenter } from '@/constants/growth'
+import { IconChartDonut, IconChartLine, IconCalendarMonth, IconX } from '@tabler/icons-vue'
+import { GrowthCenter } from '@/constants/growth'
 import { CreatorChartType } from '@/constants/content'
 import { communitySparkle, detailBubble, detailFlower } from '@/assets/images'
 import CreatorChart from '@/components/creator-chart/CreatorChart.vue'
@@ -9,7 +9,7 @@ import PageState from '@/components/page-state/PageState.vue'
 
 export default defineComponent({
   name: 'GrowthVisualization',
-  components: { CreatorChart, PageState, IconChartDonut, IconChartLine, IconSparkles, IconX },
+  components: { CreatorChart, PageState, IconChartDonut, IconChartLine, IconCalendarMonth, IconX },
   props: {
     open: Boolean,
     days: { type: Number, required: true },
@@ -22,8 +22,6 @@ export default defineComponent({
     )
     return {
       ...useI18n(),
-      ExpSources,
-      SourceTones,
       GrowthCenter,
       CreatorChartType,
       communitySparkle,

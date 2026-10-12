@@ -40,7 +40,6 @@ export default {
   ai: 'AI 总结',
   visualize: '可视化',
   visualTitle: '经验可视化',
-  visualSubtitle: '把每天的小小积累，连成一条成长线',
   closeVisualization: '关闭经验可视化',
   shareSticker: '从哪里来',
   trendSticker: '一点点长大',

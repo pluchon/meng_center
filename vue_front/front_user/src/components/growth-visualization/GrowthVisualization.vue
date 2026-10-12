@@ -13,7 +13,24 @@
     <template #header>
       <div class="visual-heading">
         <span class="visual-emblem"><IconChartDonut :size="25" /></span>
-        <div><h2>{{ t('growth.visualTitle') }}</h2><p>{{ t('growth.visualSubtitle') }}</p></div>
+        <h2>{{ t('growth.visualTitle') }}</h2>
+        <div
+          class="visual-range"
+          :style="{'--range-index':GrowthCenter.DAYS.indexOf(days)}"
+          role="group"
+          :aria-label="t('growth.chartDescription',{days})"
+        >
+          <button
+            v-for="value in GrowthCenter.DAYS"
+            :key="value"
+            type="button"
+            :class="{selected:days===value}"
+            :aria-pressed="days===value"
+            @click="$emit('update:days',value)"
+          >
+            {{ t('growth.recent',{days:value}) }}
+          </button>
+        </div>
         <button
           class="visual-close"
           type="button"
@@ -40,41 +57,12 @@
         class="visual-star"
         aria-hidden="true"
       />
-      <div class="visual-toolbar">
-        <div class="visual-total">
-          <IconSparkles :size="18" /><span>{{ t('growth.recent',{days}) }}</span><strong>{{ '+'+total }}</strong>
-        </div>
-        <div
-          class="visual-range"
-          :style="{'--range-index':GrowthCenter.DAYS.indexOf(days)}"
-          role="group"
-          :aria-label="t('growth.chartDescription',{days})"
-        >
-          <button
-            v-for="value in GrowthCenter.DAYS"
-            :key="value"
-            type="button"
-            :class="{selected:days===value}"
-            :aria-pressed="days===value"
-            @click="$emit('update:days',value)"
-          >
-            {{ t('growth.recent',{days:value}) }}
-          </button>
-        </div>
-      </div>
       <PageState
         v-if="stats.error||!stats.data"
         :state="stats.error?'error':'loading'"
         @retry="$emit('retry')"
       />
       <template v-else>
-        <div class="source-totals">
-          <span
-            v-for="kind in ExpSources"
-            :key="kind"
-            :class="'source-'+SourceTones[kind]"
-          ><i aria-hidden="true" />{{ t('growth.source.'+kind) }}<b>{{ '+'+(stats.data.sources.find(row=>row.source===kind)?.amount??0) }}</b></span>
-        </div>
         <div
           v-if="total>0"
           class="experience-charts"
@@ -108,7 +96,10 @@
           state="empty"
         />
         <footer class="visual-footer">
-          <span>{{ period }}</span><span class="visual-face">{{ t('growth.visualFace') }}</span>
+          <span class="visual-period"><IconCalendarMonth
+            :size="18"
+            aria-hidden="true"
+          />{{ period }}</span><span class="visual-face">{{ t('growth.visualFace') }}</span>
         </footer>
       </template>
     </div>

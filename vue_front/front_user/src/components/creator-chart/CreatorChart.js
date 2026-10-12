@@ -52,6 +52,7 @@ export default defineComponent({
         textStyle: { fontFamily: 'Nunito, Noto Sans SC, sans-serif' },
       }
       if (props.type === CreatorChartType.EXP_SOURCES) {
+        const compact = host.value.clientWidth < 340
         chart.setOption(
           {
             ...common,
@@ -66,13 +67,26 @@ export default defineComponent({
             series: [
               {
                 type: 'pie',
-                radius: ['38%', '66%'],
+                radius: compact ? ['26%', '48%'] : ['30%', '54%'],
                 center: ['50%', '44%'],
-                label: { show: false },
+                avoidLabelOverlap: true,
+                label: {
+                  show: true,
+                  position: 'outside',
+                  alignTo: 'edge',
+                  edgeDistance: 10,
+                  bleedMargin: 4,
+                  distanceToLabelLine: 4,
+                  color: palette.text,
+                  fontSize: 11,
+                  lineHeight: 17,
+                  formatter: '{b} +{c}\n{d}%',
+                },
+                labelLine: { show: true, length: 10, length2: 8 },
                 data: ExpSources.map((source) => ({
                   name: t('growth.source.' + source),
                   value: props.data.find((row) => row.source === source)?.amount ?? 0,
-                })),
+                })).filter((row) => row.value > 0),
               },
             ],
           },
@@ -237,7 +251,10 @@ export default defineComponent({
         chart = init(host.value, null, { renderer: 'svg' })
         motion = matchMedia('(prefers-reduced-motion: reduce)')
         motion.addEventListener('change', motionChanged)
-        observer = new ResizeObserver(() => chart?.resize())
+        observer = new ResizeObserver(() => {
+          chart?.resize()
+          if (props.type === CreatorChartType.EXP_SOURCES) update()
+        })
         observer.observe(host.value)
         update(true)
       } catch {
