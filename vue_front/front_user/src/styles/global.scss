@@ -62,6 +62,8 @@ button {
 }
 
 html.search-scrollbar-hidden,
+html.growth-scrollbar-hidden,
+html.growth-scrollbar-hidden body,
 html.search-scrollbar-hidden body,
 html.creator-scrollbar-hidden,
 html.creator-scrollbar-hidden body,
@@ -73,6 +75,8 @@ html.detail-scrollbar-hidden body {
 }
 
 html.search-scrollbar-hidden::-webkit-scrollbar,
+html.growth-scrollbar-hidden::-webkit-scrollbar,
+html.growth-scrollbar-hidden body::-webkit-scrollbar,
 html.search-scrollbar-hidden body::-webkit-scrollbar,
 html.creator-scrollbar-hidden::-webkit-scrollbar,
 html.creator-scrollbar-hidden body::-webkit-scrollbar,

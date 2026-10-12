@@ -1,0 +1,292 @@
+.level-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.level-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  padding: 4px;
+  border: 3px solid var(--meng-category-anime);
+  object-fit: cover;
+}
+
+.level-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.level-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  background: var(--meng-creator-highlight);
+}
+
+.level-star {
+  display: block;
+  flex: none;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+  mask: var(--growth-sparkle) center / contain no-repeat;
+}
+
+.level-name {
+  padding: 3px 14px;
+  background: var(--meng-tint);
+  border-radius: 16px;
+  color: var(--meng-primary);
+  font-weight: 800;
+}
+
+.experience-total {
+  margin-left: auto;
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.experience-total small {
+  font-size: 15px;
+  color: var(--meng-muted);
+}
+
+.experience-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.level-badge,
+.next-level {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 15px;
+  background: var(--meng-warning);
+  color: var(--meng-nav-gold);
+  font-weight: 800;
+}
+
+.next-level {
+  border: 2px dashed var(--meng-border);
+  background: var(--meng-surface);
+  color: var(--meng-muted);
+}
+
+.experience-track {
+  flex: 1;
+  height: 18px;
+  background: var(--meng-success);
+  border-radius: 12px;
+  box-shadow: inset 0 2px 0 var(--meng-check-shadow);
+}
+
+.experience-track > span {
+  position: relative;
+  display: block;
+  height: 100%;
+  border: 3px solid var(--meng-success);
+  border-radius: inherit;
+  background: var(--meng-growth-stripes), var(--meng-growth-green);
+  transition: width 500ms var(--meng-motion-ease);
+}
+
+.progress-star {
+  position: absolute;
+  width: 26px;
+  height: 26px;
+  right: -16px;
+  top: -6px;
+  border-radius: 50%;
+  padding: 6px;
+  background: var(--meng-warning);
+  border: 3px solid var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  display: grid;
+  place-items: center;
+}
+
+.progress-star .level-star {
+  width: 14px;
+  height: 14px;
+}
+
+.road-scroll {
+  margin-top: 4px;
+  padding-top: 34px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.road-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.road {
+  position: relative;
+  min-width: 760px;
+  padding: 0 0 8px;
+}
+
+.road-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 54px;
+  overflow: visible;
+}
+
+.road-line stop {
+  stop-color: var(--growth-fill);
+}
+
+.road-line path {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 6px;
+}
+
+.road-unreached {
+  stroke: var(--meng-growth-road-muted);
+  stroke-dasharray: 3 12;
+}
+
+.road-reached {
+  stroke: url('#growth-road-gradient');
+}
+
+ol {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--level-count), minmax(0, 1fr));
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+
+li:nth-child(even) {
+  padding-top: 18px;
+}
+
+.road-number {
+  position: relative;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--growth-bg);
+  color: var(--growth-ink);
+  border: 2px dashed var(--growth-fill);
+  font-size: 16px;
+  font-weight: 800;
+  transition: transform 220ms var(--meng-motion-ease);
+}
+
+li:hover .road-number {
+  transform: translateY(-3px);
+}
+
+.passed .road-number {
+  background: var(--growth-fill);
+  border: 3px solid var(--meng-surface);
+  box-shadow: 0 3px 0 var(--growth-edge);
+}
+
+.current .road-number {
+  scale: 1.2;
+  outline: 3px solid var(--growth-bg);
+}
+
+.current-label {
+  position: absolute;
+  left: 55%;
+  bottom: calc(100% + 8px);
+  padding: 4px 10px;
+  border: 2px solid var(--growth-fill);
+  border-radius: 18px;
+  background: var(--meng-surface);
+  white-space: nowrap;
+  font-size: 10px;
+}
+
+li small {
+  background: var(--meng-bg);
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.passed small {
+  background: var(--growth-bg);
+  color: var(--growth-ink);
+}
+
+@media (width <= 720px) {
+  .level-summary {
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .level-avatar {
+    width: 60px;
+    height: 60px;
+  }
+
+  h1 {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+
+  .level-name-row {
+    gap: 6px;
+  }
+
+  .level-name-row > img {
+    display: none;
+  }
+
+  .experience-total {
+    flex-basis: 100%;
+    margin-left: 0;
+    font-size: 20px;
+  }
+
+  .experience-row {
+    gap: 6px;
+  }
+
+  .level-badge,
+  .next-level {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .experience-track > span,
+  .road-number {
+    transition: none;
+  }
+}

@@ -1,6 +1,7 @@
 export const RouteName = Object.freeze({
   HOME: 'home',
   CREATOR: 'creator',
+  GROWTH: 'growth',
   SEARCH: 'search',
   POST_EDIT: 'post-edit',
   POST_NEW: 'post-new',

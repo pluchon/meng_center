@@ -480,7 +480,7 @@ try {
         .elementHandle();
       assert.equal(
         Math.round((await page.locator(".creator-page").boundingBox()).width),
-        1080,
+        1320,
       );
       assert.equal(
         await page
@@ -511,11 +511,43 @@ try {
         );
       });
       await legend.click();
+      await page.locator(".feed-pagination").scrollIntoViewIfNeeded();
+      const paginationScroll = await page.evaluate(() => window.scrollY);
+      const paginationY = (await page.locator(".feed-pagination").boundingBox()).y;
+      assert.ok(paginationScroll > 0);
+      const delayPublishedPage = async (route) => {
+        await wait(500);
+        await route.continue();
+      };
+      await page.route("**/api/content/posts/mine?**", delayPublishedPage);
       await page
         .locator(".feed-pagination button")
         .filter({ hasText: /^2$/ })
         .click();
+      await page.locator('.creator-list[aria-busy="true"]').waitFor();
+      assert.equal(await page.locator(".creator-entry").count(), 10);
+      assert.ok(
+        Math.abs((await page.evaluate(() => window.scrollY)) - paginationScroll) < 2,
+      );
       await publishedRows(2);
+      await page.unroute("**/api/content/posts/mine?**", delayPublishedPage);
+      await wait(250);
+      assert.ok(
+        Math.abs((await page.locator(".feed-pagination").boundingBox()).y - paginationY) < 2,
+      );
+      await page.getByRole("button", { name: "第 1 页", exact: true }).click();
+      await publishedRows(10);
+      await wait(250);
+      assert.ok(
+        Math.abs((await page.locator(".feed-pagination").boundingBox()).y - paginationY) < 2,
+      );
+      await page.route("**/api/content/posts/mine?**", delayPublishedPage);
+      await page.getByRole("button", { name: "第 2 页", exact: true }).click();
+      await page.locator('.creator-list[aria-busy="true"]').waitFor();
+      await page.getByRole("button", { name: "飞回顶部", exact: true }).click();
+      await publishedRows(2);
+      await page.waitForFunction(() => window.scrollY < 2);
+      await page.unroute("**/api/content/posts/mine?**", delayPublishedPage);
       await page
         .locator(".creator-entry")
         .last()

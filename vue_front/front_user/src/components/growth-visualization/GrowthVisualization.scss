@@ -1,0 +1,322 @@
+// 弹窗传送到 body，所有样式限定在成长可视化命名空间内。
+.el-dialog.growth-visual-dialog {
+  border: 1px solid var(--meng-tint);
+  border-radius: 32px;
+  padding: 26px;
+  background: var(--meng-surface);
+  box-shadow: var(--meng-creator-shadow);
+}
+
+.growth-visual-dialog .el-dialog__body {
+  color: var(--meng-text);
+}
+
+.growth-visual-dialog .visual-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.growth-visual-dialog .visual-emblem {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: var(--meng-growth-violet-text);
+  background: var(--meng-growth-violet-bg);
+  box-shadow: 0 4px 0 var(--meng-growth-violet);
+}
+
+.growth-visual-dialog h2 {
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.growth-visual-dialog .visual-heading p {
+  margin-top: 5px;
+  color: var(--meng-muted);
+  font-size: 13px;
+}
+
+.growth-visual-dialog .visual-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  background: var(--meng-bg);
+  color: var(--meng-muted);
+  transition:
+    rotate 180ms var(--meng-motion-ease),
+    background 180ms ease;
+}
+
+.growth-visual-dialog .visual-close:hover {
+  rotate: 90deg;
+  background: var(--meng-growth-violet-bg);
+}
+
+.growth-visual-dialog .growth-visualization {
+  position: relative;
+  margin-top: 14px;
+}
+
+.growth-visual-dialog .visual-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.growth-visual-dialog .visual-total {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--meng-growth-gold-text);
+  padding: 8px 14px;
+  background: var(--meng-warning);
+  border-radius: 20px;
+  box-shadow: 0 3px 0 var(--meng-growth-gold);
+}
+
+.growth-visual-dialog .visual-total strong {
+  font-size: 20px;
+}
+
+.growth-visual-dialog .visual-range {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 196px;
+  padding: 4px;
+  border-radius: 22px;
+  background: var(--meng-bg);
+}
+
+.growth-visual-dialog .visual-range::before {
+  content: '';
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: calc((100% - 8px) / 2);
+  border-radius: 20px;
+  background: var(--meng-growth-violet-bg);
+  transform: translateX(calc(var(--range-index) * 100%));
+  transition: transform 260ms var(--meng-motion-ease);
+}
+
+.growth-visual-dialog .visual-range button {
+  position: relative;
+  z-index: 1;
+  border: 0;
+  border-radius: 20px;
+  padding: 7px 10px;
+  font-weight: 800;
+  color: var(--meng-muted);
+  background: transparent;
+}
+
+.growth-visual-dialog .visual-range button.selected {
+  color: var(--meng-growth-violet-text);
+}
+
+.growth-visual-dialog .source-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.growth-visual-dialog .source-totals > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 18px;
+  border: 1px solid var(--source-fill);
+  color: var(--source-ink);
+  background: var(--source-bg);
+  font-size: 13px;
+}
+
+.growth-visual-dialog .source-totals i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--source-fill);
+}
+
+@each $tone in 'blue', 'gold', 'violet' {
+  .growth-visual-dialog .source-#{$tone} {
+    --source-fill: var(--meng-growth-#{$tone});
+    --source-bg: var(--meng-growth-#{$tone}-bg);
+    --source-ink: var(--meng-growth-#{$tone}-text);
+  }
+}
+
+.growth-visual-dialog .experience-charts {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 20px;
+}
+
+.growth-visual-dialog .experience-charts > section {
+  position: relative;
+  min-width: 0;
+  padding: 16px;
+  border-radius: 24px;
+}
+
+.growth-visual-dialog .source-chart {
+  background: var(--meng-growth-violet-bg);
+  box-shadow: 0 4px 0 var(--meng-growth-violet);
+}
+
+.growth-visual-dialog .trend-chart {
+  background: var(--meng-growth-mint-bg);
+  box-shadow: 0 4px 0 var(--meng-growth-mint);
+}
+
+.growth-visual-dialog h3 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 18px;
+  font-size: 15px;
+}
+
+.growth-visual-dialog h3 > span {
+  margin-left: auto;
+  font-size: 12px;
+  border-radius: 18px;
+  background: var(--meng-surface);
+  padding: 4px 9px;
+  rotate: -4deg;
+}
+
+.growth-visual-dialog .visual-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding-top: 20px;
+  font-size: 12px;
+  color: var(--meng-muted);
+}
+
+.growth-visual-dialog .visual-face {
+  padding: 5px 12px;
+  border-radius: 18px;
+  color: var(--meng-growth-gold-text);
+  background: var(--meng-warning);
+  rotate: 3deg;
+}
+
+.growth-visual-dialog .visual-tape,
+.growth-visual-dialog .visual-bubble,
+.growth-visual-dialog .visual-flower,
+.growth-visual-dialog .visual-star {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.growth-visual-dialog .visual-tape {
+  width: 72px;
+  height: 17px;
+  top: -8px;
+  border-radius: 3px;
+}
+
+.growth-visual-dialog .tape-left {
+  left: 8%;
+  rotate: -7deg;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-growth-violet) 0 9px,
+    var(--meng-growth-violet-bg) 9px 18px
+  );
+}
+
+.growth-visual-dialog .tape-right {
+  right: 9%;
+  rotate: 5deg;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-growth-mint) 0 9px,
+    var(--meng-growth-mint-bg) 9px 18px
+  );
+}
+
+.growth-visual-dialog .visual-bubble {
+  width: 28px;
+  left: -34px;
+  top: 44%;
+}
+
+.growth-visual-dialog .visual-flower {
+  width: 26px;
+  right: -36px;
+  bottom: 28%;
+}
+
+.growth-visual-dialog .visual-star {
+  width: 20px;
+  height: 20px;
+  right: 28%;
+  bottom: -16px;
+  background: var(--meng-decor-sparkle);
+  mask: var(--visual-sparkle) center / contain no-repeat;
+}
+
+@media (width <= 720px) {
+  .el-dialog.growth-visual-dialog {
+    padding: 20px 16px;
+  }
+
+  .growth-visual-dialog .experience-charts {
+    grid-template-columns: 1fr;
+  }
+
+  .growth-visual-dialog .visual-range {
+    width: 100%;
+  }
+
+  .growth-visual-dialog .visual-bubble,
+  .growth-visual-dialog .visual-flower,
+  .growth-visual-dialog .visual-star,
+  .growth-visual-dialog .visual-tape {
+    display: none;
+  }
+
+  .growth-visual-dialog h2 {
+    font-size: 23px;
+  }
+}
+
+@media (width <= 720px), (height <= 760px) {
+  .growth-visual-dialog .el-dialog__body {
+    max-height: calc(100dvh - 190px);
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .growth-visual-dialog .el-dialog__body::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .growth-visual-dialog .visual-range::before,
+  .growth-visual-dialog .visual-close {
+    transition: none;
+  }
+}

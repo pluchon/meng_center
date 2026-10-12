@@ -35,16 +35,17 @@
         >
           <span class="nav-icon creator-icon"><el-icon><EditPen /></el-icon></span>{{ t('home.nav.creator') }}
         </router-link>
-        <button
-          type="button"
-          @click="unavailable"
+        <router-link
+          class="nav-growth-page"
+          :class="{selected:route.name===RouteName.GROWTH}"
+          :to="{name:RouteName.GROWTH}"
         >
           <span class="nav-icon growth-icon"><span
             class="nav-mask"
             aria-hidden="true"
             :style="{maskImage:'url('+JSON.stringify(communitySprout)+')'}"
           /></span>{{ t('home.nav.growth') }}
-        </button>
+        </router-link>
         <button
           type="button"
           @click="unavailable"
@@ -130,7 +131,7 @@
       <slot />
     </main>
     <footer
-      v-if="route.name!==RouteName.CREATOR"
+      v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH"
       class="community-footer"
     >
       <div class="footer-inner">

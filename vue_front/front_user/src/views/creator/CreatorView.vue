@@ -172,11 +172,11 @@
           :aria-busy="published.loading"
         >
           <PageState
-            v-if="published.loading||published.error"
+            v-if="published.error||(published.loading&&!published.data.records.length)"
             :state="published.error?'error':'loading'"
             @retry="loadPublished"
           />
-          <template v-else>
+          <template v-if="published.data.records.length||(!published.loading&&!published.error)">
             <CreatorEntry
               v-for="entry in published.data.records"
               :key="entry.id"
@@ -193,10 +193,11 @@
             </p>
             <FeedPagination
               v-if="totalPages>1"
+              ref="pagination"
               :page="page"
               :total-pages="totalPages"
               @page="change({page:String($event)})"
-              @top="scrollToTop"
+              @top="backToTop"
             />
           </template>
         </div>

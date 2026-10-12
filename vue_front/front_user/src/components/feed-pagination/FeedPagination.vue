@@ -23,7 +23,7 @@
         >{{ t('home.ellipsis') }}</span>
       </template>
     </nav><button
-      v-if="!compact"
+      v-if="!compact&&showTop"
       type="button"
       class="back-top"
       @click="$emit('top')"

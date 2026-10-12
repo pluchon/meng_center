@@ -1,4 +1,4 @@
-import { computed, defineComponent, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -13,7 +13,7 @@ import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import CreatorEntry from '@/components/creator-entry/CreatorEntry.vue'
 import CreatorChart from '@/components/creator-chart/CreatorChart.vue'
 import ShapeWaves from '@/components/shape-waves/ShapeWaves.vue'
-import { useCreatorResource } from './useCreatorResource'
+import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { scrollToTop } from '@/composables/scrollToTop'
 export default defineComponent({
@@ -40,17 +40,37 @@ export default defineComponent({
         ? Number(route.query.page)
         : 1,
     )
-    const overview = useCreatorResource((signal) => contentApi.creatorOverview({ signal }), null)
-    const trend = useCreatorResource(
+    const overview = useRequestResource((signal) => contentApi.creatorOverview({ signal }), null)
+    const trend = useRequestResource(
       (signal) => contentApi.creatorTrend(days.value, { signal }),
       [],
     )
-    const top = useCreatorResource((signal) => contentApi.creatorTopPosts({ signal }), [])
-    const published = useCreatorResource(
+    const top = useRequestResource((signal) => contentApi.creatorTopPosts({ signal }), [])
+    const published = useRequestResource(
       (signal) => contentApi.mine({ page: page.value, size: Creator.SIZE }, { signal }),
       { records: [], total: 0 },
     )
-    const drafts = useCreatorResource((signal) => contentApi.drafts({ signal }), [])
+    const drafts = useRequestResource((signal) => contentApi.drafts({ signal }), [])
+    const pagination = ref(null)
+    let restoreScroll = true
+    // 以翻页器在视口中的位置为锚点，长短页切换后仍能继续点击页码。
+    watch(
+      () => published.state.data,
+      async (_, previous) => {
+        if (!restoreScroll || !previous.records.length || tab.value !== CreatorTab.PUBLISHED) return
+        const position = window.scrollY
+        const anchor = pagination.value?.$el.getBoundingClientRect().top
+        await nextTick()
+        if (restoreScroll && route.name === RouteName.CREATOR && tab.value === CreatorTab.PUBLISHED) {
+          const nextAnchor = pagination.value?.$el.getBoundingClientRect().top
+          if (anchor !== undefined && nextAnchor !== undefined) {
+            window.scrollBy({ top: nextAnchor - anchor, behavior: 'instant' })
+          } else {
+            window.scrollTo({ top: position, behavior: 'instant' })
+          }
+        }
+      },
+    )
     const deleting = reactive(new Set())
     const panels = { overview, trend, top, published, drafts }
     const metrics = [
@@ -74,10 +94,15 @@ export default defineComponent({
       })
     }
     async function loadPublished() {
+      restoreScroll = true
       if (await published.load()) {
         const last = Math.max(1, Math.ceil(published.state.data.total / Creator.SIZE))
         if (page.value > last) await change({ page: String(last) })
       }
+    }
+    function backToTop() {
+      restoreScroll = false
+      scrollToTop()
     }
     async function remove(id, isDraft) {
       const key = (isDraft ? CreatorTab.DRAFTS : CreatorTab.PUBLISHED) + id
@@ -142,7 +167,8 @@ export default defineComponent({
       remove,
       openPost,
       loadPublished,
-      scrollToTop,
+      pagination,
+      backToTop,
       overview: overview.state,
       trend: trend.state,
       top: top.state,

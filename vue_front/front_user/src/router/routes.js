@@ -1,6 +1,12 @@
 import { RouteName } from './names'
 export const routes = [
   {
+    path: '/growth',
+    name: RouteName.GROWTH,
+    component: () => import('@/views/growth/GrowthView.vue'),
+    meta: { titleKey: 'growth.title', requiresAuth: true },
+  },
+  {
     path: '/creator',
     name: RouteName.CREATOR,
     component: () => import('@/views/creator/CreatorView.vue'),

@@ -2,6 +2,7 @@ import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'v
 import { useI18n } from 'vue-i18n'
 import { Creator, CreatorChartType } from '@/constants/content'
 import PageState from '@/components/page-state/PageState.vue'
+import { ExpSources } from '@/constants/growth'
 export default defineComponent({
   name: 'CreatorChart',
   components: { PageState },
@@ -38,6 +39,7 @@ export default defineComponent({
         primary: token('primary'),
         lines: ['creator-green', 'creator-pink', 'creator-purple', 'creator-yellow'].map(token),
         bars: ['creator-yellow', 'creator-pink', 'category-anime', 'border', 'border'].map(token),
+        sources: ['category-anime', 'category-daily', 'category-game-dot'].map(token),
       }
     }
     function update(reveal = false) {
@@ -48,6 +50,75 @@ export default defineComponent({
         animationDuration: 350,
         animationDurationUpdate: 250,
         textStyle: { fontFamily: 'Nunito, Noto Sans SC, sans-serif' },
+      }
+      if (props.type === CreatorChartType.EXP_SOURCES) {
+        chart.setOption(
+          {
+            ...common,
+            color: palette.sources,
+            tooltip: {
+              trigger: 'item',
+              renderMode: 'richText',
+              confine: true,
+              formatter: '{b}: {c} ({d}%)',
+            },
+            legend: { bottom: 0, textStyle: { color: palette.text } },
+            series: [
+              {
+                type: 'pie',
+                radius: ['38%', '66%'],
+                center: ['50%', '44%'],
+                label: { show: false },
+                data: ExpSources.map((source) => ({
+                  name: t('growth.source.' + source),
+                  value: props.data.find((row) => row.source === source)?.amount ?? 0,
+                })),
+              },
+            ],
+          },
+          { notMerge: true },
+        )
+        return
+      }
+      if (props.type === CreatorChartType.EXP_TREND) {
+        if (reveal) chart.clear()
+        chart.setOption(
+          {
+            ...common,
+            animationDuration: 1000,
+            animationEasing: 'cubicInOut',
+            grid: { left: 38, right: 14, top: 22, bottom: 34 },
+            tooltip: { trigger: 'axis', renderMode: 'richText', confine: true },
+            xAxis: {
+              type: 'category',
+              boundaryGap: false,
+              data: props.data.map((row) => row.date.slice(5).replace('-', '/')),
+              axisTick: { show: false },
+              axisLine: { show: false },
+              axisLabel: { color: palette.text, hideOverlap: true },
+            },
+            yAxis: {
+              type: 'value',
+              min: 0,
+              minInterval: 1,
+              axisLabel: { color: palette.text },
+              splitLine: { lineStyle: { color: palette.grid, type: 'dashed' } },
+            },
+            series: [
+              {
+                name: t('growth.chartTrend'),
+                type: 'line',
+                clip: true,
+                showSymbol: false,
+                data: props.data.map((row) => row.amount),
+                lineStyle: { width: 3, color: palette.lines[0] },
+                itemStyle: { color: palette.lines[0] },
+              },
+            ],
+          },
+          { notMerge: true },
+        )
+        return
       }
       if (props.type === CreatorChartType.TREND) {
         // 重新进入折线系列时让 ECharts 的裁剪矩形从左向右展开，坐标轴保持静止。
@@ -195,6 +266,13 @@ export default defineComponent({
       failed,
       mount,
       CreatorChartType,
+      chartDescription: computed(() =>
+        props.type === CreatorChartType.TREND
+          ? t('creator.chartDescription', { days: props.days })
+          : props.type === CreatorChartType.TOP
+            ? t('creator.performance')
+            : t('growth.chartDescription', { days: props.days }),
+      ),
       formatNumber: (value) => Number(value).toLocaleString('zh-CN'),
     }
   },

@@ -24,7 +24,7 @@
       ref="host"
       class="chart-host"
       role="img"
-      :aria-label="type===CreatorChartType.TREND?t('creator.chartDescription',{days}):t('creator.performance')"
+      :aria-label="chartDescription"
     />
     <div
       v-if="type===CreatorChartType.TOP"

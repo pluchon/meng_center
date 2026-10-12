@@ -535,14 +535,7 @@ try {
         .getByRole("button", { name: "取消喜欢", exact: true })
         .first()
         .waitFor();
-      assert.equal(await page.locator(".home-sidebar .collapsible-card").count(), 2);
-      const toggles = page.locator(".home-sidebar .collapse-toggle");
-      await toggles.nth(0).click();
-      await toggles.nth(1).click();
-      await page.locator(".home-columns.sidebar-compact").waitFor();
-      await toggles.nth(0).click();
-      await page.locator(".home-columns.sidebar-compact").waitFor({state: "hidden"});
-      await toggles.nth(1).click();
+      assert.equal(await page.locator(".home-sidebar").count(), 0);
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.mouse.move(1439, 1079);
       await page.waitForTimeout(1200);

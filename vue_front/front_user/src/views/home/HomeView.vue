@@ -14,8 +14,7 @@
       <HeroWaves />
     </section>
     <div
-      class="home-columns"
-      :class="{'sidebar-compact':compactSidebar}"
+      class="home-content"
     >
       <section
         class="home-feed"
@@ -60,32 +59,7 @@
           @top="scrollToTop"
           @page="page=>filter({page})"
         />
-      </section><aside class="home-sidebar">
-        <CollapsibleCard
-          v-model:collapsed="collapsed.checkIn"
-          class="check-in-panel"
-          :label="t('home.checkIn')"
-          :icon="sidebarIcons.checkIn"
-        >
-          <CheckInCard />
-        </CollapsibleCard><CollapsibleCard
-          v-model:collapsed="collapsed.ai"
-          class="ai-panel"
-          :label="t('home.aiTitle')"
-          :icon="sidebarIcons.ai"
-        >
-          <section class="side-card ai-card">
-            <h2>{{ t('home.aiTitle') }}</h2><div class="ai-message">
-              <el-avatar :src="mengAvatar" /><p>{{ t('home.aiDescription') }}</p>
-            </div><el-button
-              round
-              @click="unavailable"
-            >
-              {{ t('home.aiButton') }}
-            </el-button>
-          </section>
-        </CollapsibleCard>
-      </aside>
+      </section>
     </div>
   </CommunityLayout>
 </template>

@@ -37,4 +37,4 @@ export const Creator = Object.freeze({
   SIZE: 10, DRAFT_MAX: 20, DAYS: [7, 30],
   METRICS: ['viewCount', 'likeCount', 'commentCount', 'favoriteCount'],
 })
-export const CreatorChartType = Object.freeze({ TREND: 'trend', TOP: 'top' })
+export const CreatorChartType = Object.freeze({ TREND: 'trend', TOP: 'top', EXP_TREND: 'experience', EXP_SOURCES: 'sources' })

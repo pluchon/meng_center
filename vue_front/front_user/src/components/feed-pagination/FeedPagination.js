@@ -7,6 +7,7 @@ export default defineComponent({
     page: { type: Number, required: true },
     totalPages: { type: Number, required: true },
     compact: { type: Boolean, default: false },
+    showTop: { type: Boolean, default: true },
   },
   emits: ['page', 'top'],
   setup(props) {

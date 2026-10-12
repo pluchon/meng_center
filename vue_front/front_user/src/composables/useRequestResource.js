@@ -1,11 +1,18 @@
 import { onUnmounted, reactive } from 'vue'
 
-// 每块数据独立请求、取消和重试，切换时丢弃过期响应。
-export function useCreatorResource(fetch, initial) {
+// 独立加载与重试，切换参数或离页时取消旧请求并丢弃过期响应。
+export function useRequestResource(fetch, initial) {
   const state = reactive({ data: initial, loading: false, error: null })
   let controller,
-    generation = 0
+    generation = 0,
+    disposed = false
+  function clear() {
+    generation++
+    controller?.abort()
+    Object.assign(state, { data: initial, loading: false, error: null })
+  }
   async function load() {
+    if (disposed) return false
     controller?.abort()
     controller = new AbortController()
     const current = ++generation
@@ -25,8 +32,9 @@ export function useCreatorResource(fetch, initial) {
     return false
   }
   onUnmounted(() => {
+    disposed = true
     generation++
     controller?.abort()
   })
-  return { state, load }
+  return { state, load, clear }
 }
