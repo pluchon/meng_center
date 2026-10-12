@@ -18,11 +18,17 @@
       <router-link
         :to="detailLink"
       >
-        {{ post.title }}
+        <HighlightText
+          :text="post.title"
+          :segments="post.titleSegments"
+        />
       </router-link>
     </div>
     <p class="post-summary">
-      {{ post.summary }}
+      <HighlightText
+        :text="post.summary"
+        :segments="post.summarySegments"
+      />
     </p>
     <div
       v-if="post.images.length"

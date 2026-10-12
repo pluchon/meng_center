@@ -5,14 +5,14 @@ import { EditPen } from '@element-plus/icons-vue'
 import { Comment, ReportTarget } from '@/constants/comments'
 import { contentApi } from '@/api/content'
 import { notifyFailure } from '@/composables/useFailureNotice'
-import { feedPages } from '@/composables/feedPages'
+import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import PageState from '@/components/page-state/PageState.vue'
 import CommentItem from '@/components/comment-item/CommentItem.vue'
 import CommentComposer from '@/components/comment-composer/CommentComposer.vue'
 import CollapsePanel from '@/components/collapse-panel/CollapsePanel.vue'
 export default defineComponent({
   name: 'PostComments',
-  components: { CommentItem, CommentComposer, CollapsePanel, PageState, EditPen },
+  components: { CommentItem, CommentComposer, CollapsePanel, PageState, EditPen, FeedPagination },
   props: {
     postId: { type: [String, Number], required: true },
     count: { type: Number, default: 0 },
@@ -35,7 +35,7 @@ export default defineComponent({
       pending = reactive({})
     let generation = 0
     let initialPage = props.initialPage
-    const pages = computed(() => feedPages(page.value, Math.ceil(total.value / Comment.SIZE)))
+    const totalPages = computed(() => Math.ceil(total.value / Comment.SIZE))
     async function load() {
       const current = ++generation
       loading.value = true
@@ -232,7 +232,7 @@ export default defineComponent({
       records,
       total,
       page,
-      pages,
+      totalPages,
       loading,
       error,
       open,

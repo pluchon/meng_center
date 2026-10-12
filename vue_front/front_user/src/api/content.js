@@ -1,6 +1,7 @@
 import request from './request'
 const Root = '/content'
 export const contentApi = {
+  search: (params, config = {}) => request.get(Root + '/search/posts', { ...config, params }),
   update: (id, body) => request.put(Root + '/posts/' + id, body),
   delete: (id) => request.delete(Root + '/posts/' + id),
   comments: (id, params) => request.get(Root + '/posts/' + id + '/comments', { params }),

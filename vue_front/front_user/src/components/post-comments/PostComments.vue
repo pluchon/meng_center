@@ -91,27 +91,13 @@
         </CollapsePanel>
       </div>
     </div>
-    <nav
-      v-if="pages.length>1"
-      class="comments-pagination"
-      :aria-label="t('detail.comments')"
-    >
-      <template
-        v-for="(value,index) in pages"
-        :key="index"
-      >
-        <button
-          v-if="value"
-          type="button"
-          :class="{selected:value===page}"
-          :aria-current="value===page?'page':undefined"
-          :aria-label="t('home.page',{page:value})"
-          @click="page=value"
-        >
-          {{ value }}
-        </button><span v-else>{{ t('home.ellipsis') }}</span>
-      </template>
-    </nav>
+    <FeedPagination
+      v-if="totalPages>1"
+      compact
+      :page="page"
+      :total-pages="totalPages"
+      @page="value=>page=value"
+    />
   </section>
 </template>
 <script src="./PostComments.js"></script>

@@ -1,5 +1,8 @@
 <template>
-  <div class="feed-pagination">
+  <div
+    class="feed-pagination"
+    :class="{compact}"
+  >
     <nav :aria-label="t('home.page',{page})">
       <template
         v-for="(value,index) in pages"
@@ -20,9 +23,10 @@
         >{{ t('home.ellipsis') }}</span>
       </template>
     </nav><button
+      v-if="!compact"
       type="button"
       class="back-top"
-      @click="top"
+      @click="$emit('top')"
     >
       {{ t('home.top') }}
     </button>

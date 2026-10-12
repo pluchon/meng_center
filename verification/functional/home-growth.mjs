@@ -1,3 +1,4 @@
+import { cleanupPostReadModels } from './read-model-cleanup.mjs';
 import fs from "node:fs/promises";
 import crypto from "node:crypto";
 import assert from "node:assert/strict";
@@ -358,8 +359,9 @@ try {
           (p) => p.id === posts[3],
         ),
       );
+      await redis.del("meng:content:hot:active");
       const [[hottest]] = await contentDb.execute(
-        "SELECT id FROM post WHERE delete_state=0 AND create_time>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 7 DAY) ORDER BY hot_score DESC,create_time DESC,id DESC LIMIT 1",
+        "SELECT id FROM post WHERE delete_state=0 AND create_time>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 7 DAY) ORDER BY hot_score DESC,id DESC LIMIT 1",
       );
       assert.equal(
         ok(await api("GET", "/content/posts?sort=HOT")).records[0].id,
@@ -533,13 +535,14 @@ try {
         .getByRole("button", { name: "取消喜欢", exact: true })
         .first()
         .waitFor();
-      await page
-        .getByRole("button", { name: "发一条新帖", exact: true })
-        .click();
-      await page.waitForURL("**/posts/new");
-      await page.locator(".cm-content").waitFor();
-      await page.getByRole("link", { name: "回到主页", exact: true }).click();
-      await page.locator(".post-card").first().waitFor();
+      assert.equal(await page.locator(".home-sidebar .collapsible-card").count(), 2);
+      const toggles = page.locator(".home-sidebar .collapse-toggle");
+      await toggles.nth(0).click();
+      await toggles.nth(1).click();
+      await page.locator(".home-columns.sidebar-compact").waitFor();
+      await toggles.nth(0).click();
+      await page.locator(".home-columns.sidebar-compact").waitFor({state: "hidden"});
+      await toggles.nth(1).click();
       await page.evaluate(() => window.scrollTo(0, 0));
       await page.mouse.move(1439, 1079);
       await page.waitForTimeout(1200);
@@ -589,7 +592,10 @@ try {
       await contentDb.execute("DELETE FROM post_image WHERE uploader_id=?", [
         user,
       ]);
+      const [fixtures] = await contentDb.execute("SELECT id FROM post WHERE author_id=?", [user]);
       await contentDb.execute("DELETE FROM post WHERE author_id=?", [user]);
+      await contentDb.execute("DELETE FROM author_daily_stat WHERE author_id=?", [user]);
+      await cleanupPostReadModels(redis, fixtures.map(post => post.id));
     }
     await contentDb.end();
   }

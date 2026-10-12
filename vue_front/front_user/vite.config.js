@@ -8,10 +8,23 @@ export default defineConfig(({ mode }) => {
     // imagetools 按引用地址里的参数在构建时缩放、转码图片
     plugins: [vue(), imagetools()],
     build: {
+      // Element Plus 全局注册；保留同一包内的初始化顺序，避免拆成互相依赖的小块。
+      chunkSizeWarningLimit: 1200,
       rolldownOptions: {
         output: {
+          strictExecutionOrder: true,
           codeSplitting: {
             groups: [
+              {
+                name: 'element-plus',
+                test: /node_modules[\\/](?:element-plus|@element-plus)[\\/]/,
+                priority: 50,
+              },
+              {
+                name: 'aurora-ogl',
+                test: /node_modules[\\/]ogl[\\/]/,
+                priority: 40,
+              },
               {
                 name: 'liquid-three',
                 test: /node_modules[\\/]three[\\/]/,

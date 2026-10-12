@@ -99,10 +99,6 @@ h1 span {
   --card-tint: var(--meng-danger);
 }
 
-.write-panel {
-  --card-tint: var(--meng-warning);
-}
-
 .post-list {
   display: grid;
   gap: var(--meng-space-6);
@@ -110,118 +106,6 @@ h1 span {
 
 .home-feed {
   min-width: 0;
-}
-
-.feed-filters {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--meng-space-2);
-  padding: var(--meng-space-3);
-  margin-bottom: var(--meng-space-6);
-  background: var(--meng-surface);
-  border-radius: var(--meng-radius-pill);
-  box-shadow: 0 6px 0 var(--meng-tint);
-}
-
-.category-filters,
-.sort-filters {
-  position: relative;
-  isolation: isolate;
-  grid-template-columns: repeat(2, 1fr);
-  display: flex;
-  gap: var(--meng-space-1);
-}
-
-.sort-filters {
-  background: var(--meng-bg);
-  border-radius: var(--meng-radius-pill);
-  padding: var(--meng-space-1);
-}
-
-.sort-filters::before {
-  content: '';
-  position: absolute;
-  inset: var(--meng-space-1) auto var(--meng-space-1) var(--meng-space-1);
-  width: calc(50% - var(--meng-space-1));
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-primary);
-  box-shadow: 0 3px 0 var(--meng-shadow-hard);
-  transition: transform 340ms cubic-bezier(0.22, 1, 0.36, 1);
-  z-index: -1;
-}
-
-.sort-filters.hot::before {
-  transform: translateX(100%);
-}
-
-.feed-filters button {
-  display: flex;
-  align-items: center;
-  gap: var(--meng-space-2);
-  padding: var(--meng-space-3);
-  border: 0;
-  border-radius: var(--meng-radius-pill);
-  background: transparent;
-  color: var(--meng-text);
-  font-size: 14px;
-  font-weight: 700;
-  white-space: nowrap;
-  transition:
-    color 240ms ease,
-    background 240ms ease,
-    transform 180ms ease;
-}
-
-.feed-filters button:hover {
-  background: var(--meng-tint);
-}
-
-.feed-filters .selected {
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 3px 0 var(--meng-shadow-hard);
-}
-
-.sort-filters button {
-  justify-content: center;
-}
-
-.sort-filters button:hover,
-.sort-filters button.selected {
-  background: transparent;
-  box-shadow: none;
-}
-
-.category-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-muted);
-}
-
-.filter-anime .category-dot {
-  background: var(--meng-category-anime);
-}
-
-.filter-creation .category-dot {
-  background: var(--meng-category-creation);
-}
-
-.filter-game .category-dot {
-  background: var(--meng-category-game-dot);
-}
-
-.filter-tech .category-dot {
-  background: var(--meng-growth-green);
-}
-
-.filter-daily .category-dot {
-  background: var(--meng-category-daily);
-}
-
-.selected .category-dot {
-  background: var(--meng-surface);
 }
 
 .side-card {
@@ -237,21 +121,6 @@ h1 span {
 
 .ai-card {
   background: var(--meng-danger);
-}
-
-.write-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--meng-space-3);
-  padding: var(--meng-space-6);
-  padding-top: 44px;
-  background: var(--meng-warning);
-}
-
-.write-card h2 {
-  margin: 0;
-  flex: none;
 }
 
 .ai-message {
@@ -286,15 +155,6 @@ h1 span {
   transform: translateY(1px);
 }
 
-.write-card .el-button {
-  width: auto;
-  padding-inline: var(--meng-space-4);
-  color: var(--meng-text);
-  background: var(--meng-surface);
-  border: 0;
-  box-shadow: 0 4px 0 var(--meng-category-daily);
-}
-
 .feed-empty {
   padding: var(--meng-space-8);
   border-radius: var(--meng-radius-card);
@@ -304,27 +164,9 @@ h1 span {
 }
 
 @media (width <= 1100px) {
-  .write-card {
-    padding: var(--meng-space-5);
-    padding-top: 44px;
-    gap: var(--meng-space-2);
-  }
-
-  .write-card .el-button {
-    padding-inline: var(--meng-space-3);
-  }
-
   .home-columns {
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: var(--meng-space-6);
-  }
-
-  .feed-filters {
-    flex-wrap: wrap;
-  }
-
-  .category-filters {
-    flex-wrap: wrap;
   }
 
   .hero-welcome {
@@ -349,8 +191,7 @@ h1 span {
     grid-template-columns: 1fr;
   }
 
-  .ai-panel,
-  .write-panel {
+  .ai-panel {
     display: none;
   }
 
@@ -402,8 +243,6 @@ h1 span {
     transition: none;
   }
 
-  .sort-filters::before,
-  .feed-filters button,
   .side-card .el-button {
     transition: none;
   }

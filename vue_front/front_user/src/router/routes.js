@@ -1,6 +1,12 @@
 import { RouteName } from './names'
 export const routes = [
   {
+    path: '/search',
+    name: RouteName.SEARCH,
+    component: () => import('@/views/search/SearchView.vue'),
+    meta: { titleKey: 'search.title', requiresAuth: true },
+  },
+  {
     path: '/posts/:id(\\d+)/edit',
     name: RouteName.POST_EDIT,
     component: () => import('@/views/post/editor/PostEditorView.vue'),

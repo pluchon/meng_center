@@ -15,6 +15,7 @@ const request = axios.create({
 request.interceptors.response.use(
   (response) => response.data.data,
   async (error) => {
+    if (error.code === 'ERR_CANCELED') return Promise.reject({ cancelled: true })
     const status = error.response?.status ?? 0
     const body = error.response?.data ?? {}
     const code = body.code ?? 'NETWORK'

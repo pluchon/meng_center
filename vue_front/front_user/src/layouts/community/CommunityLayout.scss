@@ -37,6 +37,7 @@
 }
 
 .community-nav {
+  width: min(var(--meng-community-nav-width), calc(100% - var(--meng-community-gutter) * 2));
   position: relative;
   z-index: 1;
   display: flex;
@@ -142,7 +143,7 @@ nav button:hover {
   transform: translateY(-2px);
 }
 
-.nav-home {
+nav a.selected {
   background: var(--meng-tint);
   box-shadow: 0 3px 0 var(--meng-border);
 }
@@ -537,4 +538,8 @@ nav button:hover {
   .nav-search input {
     transition: none;
   }
+}
+
+.search-layout .community-footer {
+  display: none;
 }

@@ -79,9 +79,9 @@ export default defineComponent({
       () => post.value && String(post.value.author.id) === String(user.current?.id),
     )
     const homeLink = computed(() => ({
-      name: RouteName.HOME,
+      name: route.query.from === 'search' ? RouteName.SEARCH : RouteName.HOME,
       query: Object.fromEntries(
-        ['category', 'sort', 'page']
+        ['q', 'category', 'sort', 'page', 'tab']
           .filter((key) => route.query[key])
           .map((key) => [key, route.query[key]]),
       ),

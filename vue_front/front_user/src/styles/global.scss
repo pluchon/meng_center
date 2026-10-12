@@ -61,6 +61,8 @@ button {
   }
 }
 
+html.search-scrollbar-hidden,
+html.search-scrollbar-hidden body,
 html.home-scrollbar-hidden,
 html.home-scrollbar-hidden body,
 html.detail-scrollbar-hidden,
@@ -68,6 +70,8 @@ html.detail-scrollbar-hidden body {
   scrollbar-width: none;
 }
 
+html.search-scrollbar-hidden::-webkit-scrollbar,
+html.search-scrollbar-hidden body::-webkit-scrollbar,
 html.home-scrollbar-hidden::-webkit-scrollbar,
 html.home-scrollbar-hidden body::-webkit-scrollbar,
 html.detail-scrollbar-hidden::-webkit-scrollbar,

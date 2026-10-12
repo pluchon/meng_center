@@ -48,8 +48,6 @@ export default {
   aiTitle: '和萌萌聊聊',
   aiDescription: '今天想聊点什么呀～',
   aiButton: '去找萌萌',
-  writeTitle: '写点什么',
-  writeButton: '发一条新帖',
   collapseCard: '收起{name}',
   expandCard: '展开{name}',
   footer: '到底啦 (=^･ω･^=)',

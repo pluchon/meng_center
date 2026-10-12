@@ -13,16 +13,19 @@ import { useCommunity } from '@/composables/useCommunity'
 import { usePostTime } from '@/composables/usePostTime'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { userAvatar } from '@/assets/images'
+import HighlightText from '@/components/highlight-text/HighlightText.vue'
 import { RouteName } from '@/router/names'
 export default defineComponent({
   name: 'PostCard',
-  components: { PictureIcon, Location, ViewIcon, Star, ChatDotRound, CollectionTag },
+  components: { HighlightText, PictureIcon, Location, ViewIcon, Star, ChatDotRound, CollectionTag },
   props: { post: { type: Object, required: true } },
   emits: ['change'],
   setup(props, { emit }) {
     const route = useRoute()
     const router = useRouter()
-    const homeQuery = computed(() => route.query)
+    const homeQuery = computed(() =>
+      route.name === RouteName.SEARCH ? { ...route.query, from: 'search' } : route.query,
+    )
     const detailLink = computed(() => ({
       name: RouteName.POST_DETAIL,
       params: { id: props.post.id },

@@ -19,6 +19,7 @@
       <nav :aria-label="t('home.title')">
         <router-link
           class="nav-home"
+          :class="{selected:route.name===RouteName.HOME}"
           :to="{name:RouteName.HOME}"
         >
           <span class="nav-icon home-icon"><el-icon><House /></el-icon></span>{{ t('home.nav.home') }}<span
@@ -60,10 +61,11 @@
             class="nav-search"
             :class="{expanded:searchOpen}"
             role="search"
-            @mouseenter="searchOpen=true"
-            @mouseleave="closeSearch"
+            @mouseenter="searchHovered=true;searchOpen=true"
+            @mouseleave="leaveSearch"
             @focusin="searchOpen=true"
-            @submit.prevent="unavailable"
+            @focusout="blurSearch"
+            @submit.prevent="submitSearch"
           >
             <button
               type="button"
@@ -75,6 +77,7 @@
             </button>
             <input
               ref="searchInput"
+              v-model="searchText"
               type="search"
               :aria-label="t('home.nav.search')"
               :placeholder="t('home.searchPlaceholder')"

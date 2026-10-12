@@ -5,10 +5,11 @@ import error from './zh-CN/error'
 import user from './zh-CN/user'
 import home from './zh-CN/home'
 import editor from './zh-CN/editor'
+import search from './zh-CN/search'
 import detail from './zh-CN/detail'
 export const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
   fallbackLocale: 'zh-CN',
-  messages: { 'zh-CN': { common, auth, error, user, home, editor, detail } },
+  messages: { 'zh-CN': { common, auth, error, user, home, editor, detail, search } },
 })
