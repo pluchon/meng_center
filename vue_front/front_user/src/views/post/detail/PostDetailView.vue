@@ -32,7 +32,7 @@
         /><p v-if="error.status===404">
           {{ t('detail.missing') }}
         </p><router-link :to="homeLink">
-          {{ t(homeLink.name===RouteName.SEARCH?'search.back':'detail.back') }}
+          {{ t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back') }}
         </router-link>
       </div>
       <template v-else-if="post">
@@ -63,7 +63,7 @@
               <router-link
                 class="detail-back"
                 :to="homeLink"
-                :aria-label="t(homeLink.name===RouteName.SEARCH?'search.back':'detail.back')"
+                :aria-label="t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back')"
               >
                 <el-icon><ArrowLeft /></el-icon>
               </router-link>

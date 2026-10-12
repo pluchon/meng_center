@@ -28,12 +28,13 @@
             :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
           />
         </router-link>
-        <button
-          type="button"
-          @click="unavailable"
+        <router-link
+          class="nav-creator"
+          :class="{selected:route.name===RouteName.CREATOR}"
+          :to="{name:RouteName.CREATOR}"
         >
-          <span class="nav-icon message-icon"><el-icon><Message /></el-icon></span>{{ t('home.nav.messages') }}
-        </button>
+          <span class="nav-icon creator-icon"><el-icon><EditPen /></el-icon></span>{{ t('home.nav.creator') }}
+        </router-link>
         <button
           type="button"
           @click="unavailable"
@@ -93,6 +94,13 @@
         >
           <el-icon><Bell /></el-icon>
         </button>
+        <button
+          type="button"
+          :aria-label="t('home.nav.messages')"
+          @click="unavailable"
+        >
+          <el-icon><Message /></el-icon>
+        </button>
         <div
           v-if="growth.data"
           class="nav-growth"
@@ -121,7 +129,10 @@
     <main class="community-main">
       <slot />
     </main>
-    <footer class="community-footer">
+    <footer
+      v-if="route.name!==RouteName.CREATOR"
+      class="community-footer"
+    >
       <div class="footer-inner">
         <div class="footer-brand">
           <span

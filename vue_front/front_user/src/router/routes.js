@@ -1,6 +1,12 @@
 import { RouteName } from './names'
 export const routes = [
   {
+    path: '/creator',
+    name: RouteName.CREATOR,
+    component: () => import('@/views/creator/CreatorView.vue'),
+    meta: { titleKey: 'creator.title', requiresAuth: true },
+  },
+  {
     path: '/search',
     name: RouteName.SEARCH,
     component: () => import('@/views/search/SearchView.vue'),

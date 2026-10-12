@@ -9,6 +9,7 @@ export default {
   meow: '喵～',
   nav: {
     home: '首页',
+    creator: '创作',
     messages: '私信',
     growth: '成长',
     ai: '萌萌',

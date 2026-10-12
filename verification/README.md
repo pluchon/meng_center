@@ -2,6 +2,8 @@
 
 隔离联调、压测和浏览器脚本集中在这里。`test-output/` 放报告、日志和截图，由 Git 忽略。
 各模块里的 ArchUnit、加密和安全不变量测试长期保留，随 Maven 一起跑。
+创作中心脚本加 `-Production` 时验证 front_user 的现有构建产物，临时预览监听 5187；先运行用户端 `npm run build`。脚本结束后停止预览并删除它的日志，开发服务继续运行。
+content 的字段转换测试覆盖 record 入参、全部映射字段和计数初值；重建批次测试验证 500 条分页不计总数且不受接口 50 条上限影响。
 
 ## 什么时候跑什么
 
@@ -22,7 +24,7 @@ npm --prefix verification ci
 
 | 命令 | 内容 |
 |---|---|
-| `./verification/Test-Middleware.ps1` | 四个中间件容器健康，用应用账号做真实读写 |
+| `./verification/Test-Middleware.ps1` | 六个中间件容器健康与内部转发器运行，用应用账号做真实请求及权限隔离验证 |
 | `./verification/Test-Backend.ps1` | 全部模块的单元测试和架构测试 |
 | `./verification/Test-Functional.ps1` | 隔离联调：注册、审核、登录、重新申请、改密、重置密码的完整流程 |
 | `./verification/Test-Functional.ps1 -Check load` | 压测，见下文 |
@@ -30,6 +32,9 @@ npm --prefix verification ci
 | `./verification/Test-HomeGrowth.ps1` | 运行中的主页和成长服务联调、事件幂等与浏览器交互，结束后清理随机数据 |
 | `./verification/Test-PostEditor.ps1` | 运行中的发帖服务与浏览器联调：上传、草稿权限与配额、标签、字数、安全预览、保存恢复、发布及成长事件；结束后清理随机数据 |
 | `./verification/Test-PostDetail.ps1` | 运行中的详情服务与浏览器联调：浏览判重、评论与回复分页、配图权限、表情与配图合计上限、已选附件预览、首屏并行请求与评论独立重试、输入区按需挂载、16 并发详情与评论混合读取、点赞、举报去重、删除计数、改帖及成长事件；结束后清理随机账号和数据 |
+| `./verification/Test-Creator.ps1` | 创作中心鉴权与账号隔离、累计数据、7/30 天补零、台北业务日期、浏览和互动幂等、历史互动取消、评论删除保留日统计、封面与草稿配图、全时期排行、独立重试、翻页删除回退、草稿恢复、图表按需加载、首页与创作中心导航宽度一致、时间切换保留图表、WebGPU 背景实际呈现与像素比、离页清理、桌面手机与减少动态效果、24 并发读取；结束后清理随机账号、内容与日统计 |
+| `./verification/Test-SearchHot.ps1` | 搜索鉴权、参数边界、标题正文标签命中、安全高亮、分类翻页、编辑删除同步、收藏热度幂等、过期帖子排除、蓝绿重建、ES 权限隔离、限流、并发延迟、共享翻页条、导航搜索悬浮与聚焦保留、隐藏滚动条、极光渲染帧率与资源释放及桌面手机交互；仅清理随机测试数据 |
+| `./verification/Test-ContentJobs.ps1` | 两项任务配置、执行器鉴权、注册及手动触发回调、非法令牌启动失败；可加 `-CheckSchedulerFailure` 验证调度中心停机不阻塞服务启动 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，
@@ -113,3 +118,13 @@ node ./verification/browser/comet.mjs
 覆盖：未登录拒绝、老用户按需账户、并发签到、伪图片及超大图片拒绝、四种图片格式与缩略图、发帖参数及配图归属、真实分页分类、热门时间窗口、重复喜欢收藏与账号隔离、发帖和评论经验上限、重复事件、等级同步、桌面手机布局、筛选刷新和后退。固定时钟的零点、周一及跨多级奖励由 `GrowthServiceTest` 验证；不验收第二步的详情、浏览、评论接口与编辑页面。
 
 脚本只建立随机前缀测试账号，使用现有管理员密码哈希作为测试登录凭据，登录消耗仅供验证的 Redis 票据；不发送邮件或短信。结束清理这些账号的帖子、配图、经验、签到、会话与限流键。报告和截图放 `test-output/home-growth/`，不作为仓库文档保留。
+
+## 热榜与搜索
+
+先按部署文档初始化 Elasticsearch，再启动四个业务服务和用户前端。运行 `./verification/Test-SearchHot.ps1`；使用随机管理员和普通账号，结束时清理自己创建的 MySQL 数据、搜索文档和 Redis 成员。测试会触发两项蓝绿重建。加 `-CheckElasticsearchFailure` 时会短暂停止项目自己的 ES 容器，验证健康检查、发帖与标题搜索降级，再恢复容器并重建索引；不停止业务服务。结果、接口 p50/p95 和浏览器滚动帧记录写在 `test-output/search/`，只作本机基线。
+
+`Test-Middleware.ps1` 验证 ES 应用账号可以读帖子别名，访问其他索引得到 403。`SearchHighlightTest` 覆盖 Unicode、HTML 原文、不完整高亮标记、同分 ID 排序与分页边界。故障降级由停用 ES 的实测或模拟客户端异常的服务测试验证。
+
+## 内容定时任务
+
+运行 `./verification/Test-ContentJobs.ps1`，检查两项任务的配置、执行器注册地址、匿名调用拒绝、调度中心管理员登录、手动触发及成功回调。另启动隔离内容实例，分别确认空令牌和官方默认令牌导致启动失败；校验环境变量不会出现在报告中。添加 `-CheckSchedulerFailure` 会短暂停止调度中心，验证隔离内容服务仍能启动、现有内容服务保持健康，随后恢复调度中心及内部转发器。隔离端口为 18102/19102，用后停止，日志和结果仅保存在 `test-output/content-jobs/`。`ContentJobConfigurationTest` 同时覆盖令牌校验边界。

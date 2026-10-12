@@ -1,5 +1,5 @@
 import { defineComponent, onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
-import { House, Message, Search as SearchIcon, Bell } from '@element-plus/icons-vue'
+import { House, EditPen, Message, Search as SearchIcon, Bell } from '@element-plus/icons-vue'
 import { useCommunity } from '@/composables/useCommunity'
 import { useUserStore } from '@/stores/user'
 import { useGrowthStore } from '@/stores/growth'
@@ -18,7 +18,7 @@ import {
 } from '@/assets/images'
 export default defineComponent({
   name: 'CommunityLayout',
-  components: { House, Message, SearchIcon, Bell },
+  components: { House, EditPen, Message, SearchIcon, Bell },
   setup() {
     const { t, unavailable } = useCommunity()
     const user = useUserStore(),

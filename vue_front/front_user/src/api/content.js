@@ -1,6 +1,12 @@
 import request from './request'
 const Root = '/content'
 export const contentApi = {
+  mine: (params, config = {}) => request.get(Root + '/posts/mine', { ...config, params }),
+  creatorOverview: (config = {}) => request.get(Root + '/creator/overview', config),
+  creatorTrend: (days, config = {}) => request.get(Root + '/creator/trend', { ...config, params: { days } }),
+  creatorTopPosts: (config = {}) => request.get(Root + '/creator/top-posts', config),
+  drafts: (config = {}) => request.get(Root + '/drafts', config),
+  deleteDraft: (id) => request.delete(Root + '/drafts/' + id),
   search: (params, config = {}) => request.get(Root + '/search/posts', { ...config, params }),
   update: (id, body) => request.put(Root + '/posts/' + id, body),
   delete: (id) => request.delete(Root + '/posts/' + id),

@@ -21,6 +21,11 @@ export default defineConfig(({ mode }) => {
                 priority: 50,
               },
               {
+                name: 'creator-charts',
+                test: /node_modules[\\/](?:echarts|zrender)[\\/]/,
+                priority: 40,
+              },
+              {
                 name: 'aurora-ogl',
                 test: /node_modules[\\/]ogl[\\/]/,
                 priority: 40,
