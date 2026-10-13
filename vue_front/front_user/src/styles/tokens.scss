@@ -1,6 +1,23 @@
 :root {
+  --meng-account-width: 1480px;
+  --meng-account-dialog-shadow: 0 6px 0 var(--meng-card-base), 0 24px 60px rgb(41 70 83 / 28%);
+  --meng-account-apricot: #fdebdd;
+  --meng-account-apricot-edge: #f2be94;
+  --meng-account-apricot-ink: #8a4b1f;
+  --meng-account-apricot-shadow: rgb(138 75 31 / 33%);
+  --meng-account-violet-shadow: rgb(75 58 134 / 33%);
+  --meng-account-pink-shadow: rgb(142 51 85 / 33%);
+  --meng-account-mint-shadow: rgb(44 106 78 / 33%);
+  --meng-account-gray-icon: #9db4be;
+  --meng-account-gray-shadow: rgb(61 89 102 / 33%);
+  --meng-account-gray: #edf2f4;
+  --meng-account-folder: #fcf7e8;
+  --meng-like-surface: #fbeff3;
   --meng-font-display: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
   --meng-messages-width: 1280px;
+  --meng-account-veil-violet: #8f76bc;
+  --meng-account-veil-blue: #72a5c8;
+  --meng-account-veil-strength: 0.74;
   --meng-message-pixel-color: #8b62b0;
   --meng-message-pixel-opacity: 1;
   --meng-messages-height: 1040px;

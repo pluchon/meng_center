@@ -1,0 +1,711 @@
+.account-posts {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.account-folder-tools {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.account-folder-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+
+.account-folder-total {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  border: 3px solid var(--meng-surface);
+  background: var(--meng-warning);
+  border-radius: 22px;
+  padding: 6px 14px;
+  color: var(--meng-favorite-text);
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  transform: rotate(3deg);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.account-folder-total b {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.account-folder-total:hover {
+  transform: rotate(0deg);
+}
+
+.account-folder-tools h2 {
+  margin: 0;
+  font-family: var(--meng-font-display);
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.account-folder-name {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: calc(100% - 58px);
+}
+
+.account-folder-tools h2 > span {
+  display: inline-block;
+  padding: 2px 16px;
+  border-radius: 20px;
+  background: var(--meng-warning);
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  transform: rotate(-3deg);
+  transition: transform 180ms var(--meng-motion-ease);
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-folder-tools h2 > span.is-editing {
+  transform: none;
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 2px;
+}
+
+.account-inline-name {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+}
+
+.account-folder-tools h2 > span:hover {
+  transform: rotate(0deg);
+}
+
+.account-folder-back,
+.account-folder-edit {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-category-daily);
+  color: var(--meng-surface);
+  box-shadow: 0 4px 0 var(--meng-growth-gold-edge);
+  font-size: 24px;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    box-shadow 180ms;
+}
+
+.account-folder-back {
+  margin-bottom: 4px;
+}
+
+.account-folder-edit {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  background: transparent;
+  color: var(--meng-nav-gold);
+  box-shadow: none;
+  font-size: 19px;
+}
+
+.account-folder-sparkle {
+  color: var(--meng-category-daily);
+  font-size: 24px;
+}
+
+.account-folder-sparkle::before {
+  content: '✦';
+}
+
+.account-folder-back:hover,
+.account-folder-edit:hover {
+  transform: translateY(-2px);
+}
+
+.account-folder-edit:hover {
+  background: var(--meng-tint);
+}
+
+.account-folder-back:active,
+.account-folder-edit:active {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: none;
+}
+
+.account-folder-back:focus-visible,
+.account-folder-edit:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.account-folder-summary > .account-delete {
+  height: 38px;
+  padding: 0 16px 0 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
+  background: var(--meng-danger);
+  color: var(--meng-like-text);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+  font-size: 13px;
+  font-weight: 800;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    box-shadow 180ms;
+}
+
+.account-delete .el-icon {
+  margin-right: 6px;
+  font-size: 16px;
+}
+
+.account-folder-summary > .account-delete:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.account-folder-summary > .account-delete:active:not(:disabled) {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: none;
+}
+
+.account-post-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 18px;
+}
+
+.account-post {
+  --account-tag-fill: var(--meng-tint);
+  --account-tag-edge: var(--meng-category-anime);
+  --account-tag-ink: var(--meng-shadow-hard);
+
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 10px;
+  background: var(--meng-account-folder);
+  border-radius: 22px;
+  min-width: 0;
+  transition:
+    opacity 180ms,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.account-post:hover {
+  transform: translateY(-3px);
+}
+
+.account-post.inactive {
+  opacity: 0.6;
+}
+
+.is-likes .account-post {
+  background: var(--meng-like-surface);
+}
+
+.category-game {
+  --account-tag-fill: var(--meng-category-game);
+  --account-tag-edge: var(--meng-creator-purple);
+  --account-tag-ink: var(--meng-creator-purple-text);
+}
+
+.category-creation {
+  --account-tag-fill: var(--meng-danger);
+  --account-tag-edge: var(--meng-category-creation);
+  --account-tag-ink: var(--meng-like-text);
+}
+
+.category-tech {
+  --account-tag-fill: var(--meng-success);
+  --account-tag-edge: var(--meng-creator-green);
+  --account-tag-ink: var(--meng-success-shadow);
+}
+
+.category-daily {
+  --account-tag-fill: var(--meng-warning);
+  --account-tag-edge: var(--meng-creator-yellow);
+  --account-tag-ink: var(--meng-favorite-text);
+}
+
+.account-post-link {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  color: var(--meng-text);
+  text-decoration: none;
+}
+
+.account-post-cover {
+  width: 96px;
+  height: 72px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 18px;
+  background: var(--account-tag-fill);
+  flex-shrink: 0;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.account-post-cover img,
+.account-post-cover svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-post-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.account-post-info h3 {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.6;
+  margin: 0 0 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-post-link:hover h3 {
+  color: var(--meng-primary);
+}
+
+.account-post-info > div {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: var(--meng-muted);
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.account-post-info time {
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.account-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 10px 0 7px;
+  flex-shrink: 0;
+  border-radius: 11px;
+  background: var(--account-tag-fill);
+  color: var(--account-tag-ink);
+  box-shadow: 0 2px 0 var(--account-tag-edge);
+  font-size: 12px;
+  font-weight: 800;
+  transform: rotate(-4deg);
+}
+
+.account-category::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--account-tag-edge);
+}
+
+.account-post-author {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 135px;
+  height: 24px;
+  padding: 0 10px 0 3px;
+  border-radius: 12px;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.account-post-author i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--account-tag-fill);
+  color: var(--account-tag-ink);
+  font-family: var(--meng-font-display);
+  font-size: 11px;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.account-post-author > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-post-action {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  color: var(--meng-muted);
+  border: 0;
+  box-shadow: 0 3px 0 var(--meng-creator-yellow);
+  font-size: 20px;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    color 180ms,
+    box-shadow 180ms;
+}
+
+.account-post-action.selected {
+  color: var(--meng-favorite-stroke);
+}
+
+.account-post-action.pink {
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+}
+
+.account-post-action.pink.selected {
+  color: var(--meng-like-icon);
+}
+
+.account-post-action:hover {
+  transform: scale(1.12);
+}
+
+.account-post-action:active {
+  transform: translateY(3px) scale(0.92);
+  box-shadow: none;
+}
+
+.account-post-action:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.account-post-action:disabled {
+  cursor: wait;
+}
+
+.account-post-action.selected svg {
+  animation: account-mark 260ms var(--meng-motion-ease);
+}
+
+.account-post-footer {
+  border-top: 2px dashed var(--meng-tint);
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.account-folder-description {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.account-folder-description p {
+  margin: 0;
+  min-width: 0;
+  color: var(--meng-tool-text);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+  padding: 4px 12px;
+  background: var(--meng-account-folder);
+  border-left: 4px solid var(--meng-creator-yellow);
+  border-radius: 4px 12px 12px 4px;
+}
+
+.account-inline-description {
+  flex: 1;
+  width: 0;
+  min-width: 0;
+  padding: 4px 12px;
+  border: 0;
+  border-left: 4px solid var(--meng-creator-yellow);
+  border-radius: 4px 12px 12px 4px;
+  background: var(--meng-account-folder);
+  color: var(--meng-tool-text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.account-folder-description button {
+  background: none;
+  border: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  font-size: 17px;
+  color: var(--meng-nav-gold);
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    background-color 180ms;
+}
+
+.account-folder-description button:hover {
+  background: var(--meng-tint);
+}
+
+.account-inline-confirm,
+.account-folder-description .account-inline-confirm {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  box-shadow: 0 2px 0 var(--meng-creator-green);
+  font-size: 19px;
+  cursor: pointer;
+  animation: account-mark 260ms var(--meng-motion-ease);
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    box-shadow 180ms;
+}
+
+.account-inline-confirm:hover:not(:disabled),
+.account-folder-description button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.account-inline-confirm:active:not(:disabled),
+.account-folder-description button:active:not(:disabled) {
+  transform: translateY(2px) scale(0.94);
+  box-shadow: none;
+}
+
+.account-inline-confirm:disabled,
+.account-folder-edit:disabled,
+.account-folder-description button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.account-post-footer :deep(.el-pagination) {
+  --account-page-bg: var(--meng-warning);
+  --account-page-edge: var(--meng-creator-yellow);
+  --account-page-ink: var(--meng-favorite-text);
+
+  margin-left: auto;
+  padding: 4px;
+  background: transparent;
+  gap: 6px;
+}
+
+.is-likes .account-post-footer :deep(.el-pagination) {
+  --account-page-bg: var(--meng-danger);
+  --account-page-edge: var(--meng-category-creation);
+  --account-page-ink: var(--meng-like-text);
+}
+
+.account-post-footer :deep(.el-pager) {
+  gap: 6px;
+}
+
+.account-post-footer :deep(.el-pager li),
+.account-post-footer :deep(.btn-prev),
+.account-post-footer :deep(.btn-next) {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border: 3px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--account-page-ink);
+  font-size: 15px;
+  font-weight: 800;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    background-color 180ms;
+}
+
+.account-post-footer :deep(.el-pager li.is-active) {
+  border-color: var(--meng-surface);
+  background: var(--account-page-bg);
+  color: var(--account-page-ink);
+  box-shadow: 0 4px 0 var(--account-page-edge);
+  transform: rotate(-5deg);
+}
+
+.account-post-footer :deep(.el-pager li:hover),
+.account-post-footer :deep(.btn-prev:hover),
+.account-post-footer :deep(.btn-next:hover) {
+  background: var(--account-page-bg);
+  transform: translateY(-2px);
+}
+
+.account-post-footer :deep(.el-pager li:active),
+.account-post-footer :deep(.btn-prev:active),
+.account-post-footer :deep(.btn-next:active) {
+  transform: scale(0.94);
+}
+
+@keyframes account-mark {
+  0% {
+    transform: scale(0.8);
+  }
+
+  60% {
+    transform: scale(1.12);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@media (width <= 760px) {
+  .account-post-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (width >= 900px) and (height <= 960px) {
+  .account-posts {
+    gap: 14px;
+    min-height: 0;
+  }
+
+  .account-post-grid {
+    gap: 12px 16px;
+  }
+
+  .account-post {
+    padding: 8px 12px 8px 8px;
+    gap: 10px;
+  }
+
+  .account-post-link {
+    gap: 10px;
+  }
+
+  .account-post-cover {
+    width: 80px;
+    height: 60px;
+  }
+
+  .account-post-info h3 {
+    font-size: 15px;
+    margin-bottom: 6px;
+  }
+
+  .account-post-info > div {
+    gap: 6px;
+  }
+
+  .account-post-footer {
+    padding-top: 12px;
+  }
+}
+
+@media (width <= 480px) {
+  .account-post-cover {
+    width: 66px;
+    height: 60px;
+  }
+
+  .account-post-info h3 {
+    font-size: 14px;
+  }
+
+  .account-post,
+  .account-post-link {
+    gap: 10px;
+  }
+
+  .account-post-info > div {
+    gap: 5px;
+  }
+
+  .account-post-author {
+    max-width: 92px;
+  }
+
+  .account-folder-description {
+    flex-basis: 100%;
+  }
+
+  .account-folder-tools h2 {
+    font-size: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-post,
+  .account-post-action,
+  .account-folder-back,
+  .account-folder-edit,
+  .account-inline-confirm,
+  .account-folder-description button,
+  .account-folder-tools h2 > span,
+  .account-folder-summary > .account-delete {
+    transition: none;
+  }
+
+  .account-post-action.selected svg {
+    animation: none;
+  }
+
+  .account-inline-confirm {
+    animation: none;
+  }
+
+  .account-post-footer :deep(.el-pager li),
+  .account-post-footer :deep(.btn-prev),
+  .account-post-footer :deep(.btn-next) {
+    transition: none;
+  }
+}

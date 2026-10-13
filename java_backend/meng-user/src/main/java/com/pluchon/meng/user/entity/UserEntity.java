@@ -30,6 +30,8 @@ public class UserEntity {
     private String passwordHash;
     private String nickname;
     private String avatar;
+    private String bio;
+    private LocalDateTime usernameUpdateTime;
     private UserRole role;
     private UserStatus status;
     private String applyReason;
@@ -41,10 +43,16 @@ public class UserEntity {
     private Integer level;
 
     // 创建和更新时间由数据库维护，写入时不带这两列，否则会把更新时间钉在旧值上
-    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
+    @TableField(
+        insertStrategy = FieldStrategy.NEVER,
+        updateStrategy = FieldStrategy.NEVER
+    )
     private LocalDateTime createTime;
 
-    @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
+    @TableField(
+        insertStrategy = FieldStrategy.NEVER,
+        updateStrategy = FieldStrategy.NEVER
+    )
     private LocalDateTime updateTime;
 
     @TableLogic

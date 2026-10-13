@@ -39,9 +39,13 @@ public final class SessionController {
     @PostMapping(UserRoutes.SESSIONS)
     public ResponseEntity<ApiResponse<Void>> login(
         @Valid @RequestBody LoginDTO request,
-        @RequestHeader(IdentityHeaders.CLIENT_IP) String ip
+        @RequestHeader(IdentityHeaders.CLIENT_IP) String ip,
+        @RequestHeader(
+            value = HttpHeaders.USER_AGENT,
+            defaultValue = ""
+        ) String agent
     ) {
-        return withCookie(cookies.issue(sessions.login(request, ip)));
+        return withCookie(cookies.issue(sessions.login(request, ip, agent)));
     }
 
     /** 退出当前设备 */
@@ -59,12 +63,16 @@ public final class SessionController {
 
     /** 修改密码并让所有设备下线 */
     @PutMapping(UserRoutes.PASSWORD)
-    public ResponseEntity<ApiResponse<Void>> password(@Valid @RequestBody PasswordChangeDTO request) {
+    public ResponseEntity<ApiResponse<Void>> password(
+        @Valid @RequestBody PasswordChangeDTO request
+    ) {
         sessions.changePassword(request);
         return withCookie(cookies.clear());
     }
 
     private ResponseEntity<ApiResponse<Void>> withCookie(String cookie) {
-        return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie).body(ApiResponse.success(null));
+        return ResponseEntity.ok()
+            .header(HttpHeaders.SET_COOKIE, cookie)
+            .body(ApiResponse.success(null));
     }
 }

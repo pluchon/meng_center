@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { RouteName } from '@/router/names'
 import { userAvatar } from '@/assets/images'
+import { avatarUrl } from '@/api/user'
 export default defineComponent({
   name: 'UserContact',
   props: { author: { type: Object, required: true }, size: { type: Number, default: 40 } },
@@ -19,6 +20,6 @@ export default defineComponent({
           : { name: RouteName.LOGIN, query: { redirect: router.resolve(target).fullPath } },
       )
     }
-    return { t, user, message, userAvatar }
+    return { t, user, message, userAvatar, avatarUrl }
   },
 })

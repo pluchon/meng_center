@@ -1,0 +1,381 @@
+.account-settings {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.account-settings-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 14px 18px;
+  min-height: 0;
+  padding-bottom: 4px;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.account-settings-columns::-webkit-scrollbar {
+  display: none;
+}
+
+.account-settings-column {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.account-setting {
+  --setting-bg: var(--meng-tint);
+  --setting-edge: var(--meng-category-anime);
+  --setting-ink: var(--meng-shadow-hard);
+  --setting-rotation: -5deg;
+
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px 10px 16px;
+  min-height: 60px;
+  border-radius: 20px;
+  background: var(--setting-bg);
+  box-shadow: 0 4px 0 var(--setting-edge);
+}
+
+.account-setting > span,
+.account-setting h3 {
+  font-size: 14px;
+  font-weight: 800;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  color: var(--setting-ink);
+  margin: 0;
+  white-space: nowrap;
+}
+
+.account-setting > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.account-setting > div > span {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--meng-text);
+  line-height: 1.6;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.account-setting :deep(.el-input__wrapper) {
+  box-shadow: inset 0 3px 0 var(--setting-bg);
+  background: var(--meng-surface);
+  border-radius: 14px;
+  min-height: 40px;
+  padding-inline: 14px;
+}
+
+.account-setting :deep(.el-input__inner),
+.account-setting :deep(.el-textarea__inner) {
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--meng-text);
+}
+
+.account-setting :deep(.el-textarea__inner) {
+  box-shadow: inset 0 3px 0 var(--meng-tint);
+  background: var(--meng-surface);
+  border-radius: 14px;
+  resize: none;
+  padding: 9px 14px 26px;
+  min-height: 80px;
+  line-height: 1.6;
+}
+
+.account-setting :deep(.el-input__wrapper.is-focus),
+.account-setting :deep(.el-textarea__inner:focus) {
+  box-shadow:
+    inset 0 3px 0 var(--setting-bg),
+    0 0 0 3px var(--meng-category-anime);
+}
+
+.account-setting :deep(.el-input__count),
+.account-setting :deep(.el-input__count-inner) {
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  background: transparent;
+}
+
+.account-setting :deep(.el-textarea .el-input__count) {
+  right: 14px;
+  bottom: 8px;
+}
+
+.account-setting :deep(.el-button) {
+  height: 36px;
+  margin-bottom: 3px;
+  padding: 0 16px;
+  border: 0;
+  background: var(--meng-surface);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--meng-success-shadow);
+  flex-shrink: 0;
+  border-radius: 18px;
+  box-shadow: 0 3px 0 var(--meng-creator-green);
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.account-setting small {
+  grid-column: 2;
+  display: block;
+  font-size: 11px;
+  margin: 0;
+  color: var(--meng-muted);
+}
+
+.gold {
+  --setting-bg: var(--meng-warning);
+  --setting-edge: var(--meng-creator-yellow);
+  --setting-ink: var(--meng-favorite-text);
+  --setting-rotation: 4deg;
+
+  align-items: start;
+}
+
+.violet {
+  --setting-bg: var(--meng-category-game);
+  --setting-edge: var(--meng-creator-purple);
+  --setting-ink: var(--meng-creator-purple-text);
+  --setting-rotation: -4deg;
+}
+
+.mint,
+.device {
+  --setting-bg: var(--meng-success);
+  --setting-edge: var(--meng-creator-green);
+  --setting-ink: var(--meng-success-shadow);
+  --setting-rotation: 5deg;
+}
+
+.pink {
+  --setting-bg: var(--meng-danger);
+  --setting-edge: var(--meng-category-creation);
+  --setting-ink: var(--meng-like-text);
+  --setting-rotation: -4deg;
+}
+
+.apricot {
+  --setting-bg: var(--meng-account-apricot);
+  --setting-edge: var(--meng-account-apricot-edge);
+  --setting-ink: var(--meng-account-apricot-ink);
+  --setting-rotation: 5deg;
+}
+
+.gray {
+  --setting-bg: var(--meng-account-gray);
+  --setting-edge: var(--meng-border);
+  --setting-ink: var(--meng-tool-text);
+  --setting-rotation: 4deg;
+}
+
+.account-setting > span > .el-icon,
+.account-setting h3 > .el-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 18px;
+  background: var(--setting-edge);
+  border: 3px solid var(--meng-surface);
+  border-radius: 12px;
+  color: var(--meng-surface);
+  flex-shrink: 0;
+  transform: rotate(var(--setting-rotation));
+}
+
+.account-setting.apricot :deep(.el-button),
+.account-setting.gray :deep(.el-button) {
+  color: var(--setting-ink);
+  box-shadow: 0 3px 0 var(--setting-edge);
+}
+
+.account-setting.violet :deep(.el-button) {
+  color: var(--meng-shadow-hard);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+}
+
+.account-password-mask {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.account-password-mask::before {
+  content: '••••••••';
+  letter-spacing: 3px;
+  font-size: 15px;
+  color: var(--meng-muted);
+}
+
+.account-settings-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  border-top: 2px dashed var(--meng-tint);
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.account-settings-footer :deep(.el-button) {
+  height: 44px;
+  margin-bottom: 4px;
+  border: 0;
+  padding: 0 22px 0 16px;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 800;
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.account-settings-footer :deep(.account-logout) {
+  background: var(--meng-danger);
+  color: var(--meng-like-text);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+}
+
+.account-logout .el-icon {
+  margin-right: 8px;
+  font-size: 18px;
+}
+
+.account-settings-footer :deep(.account-save) {
+  position: relative;
+  height: 46px;
+  padding: 0 22px 0 9px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  box-shadow: 0 4px 0 var(--meng-creator-green);
+}
+
+.account-save-symbol {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  color: var(--meng-success-text);
+  margin-right: 9px;
+  font-size: 16px;
+}
+
+.account-save-sparkle {
+  position: absolute;
+  right: -8px;
+  top: -14px;
+  font-size: 18px;
+  color: var(--meng-category-daily);
+  pointer-events: none;
+}
+
+.account-save-sparkle::before {
+  content: '✦';
+}
+
+.account-setting :deep(.el-button:hover:not(:disabled)),
+.account-settings-footer :deep(.el-button:hover:not(:disabled)) {
+  transform: translateY(-2px);
+}
+
+.account-setting :deep(.el-button:active:not(:disabled)),
+.account-settings-footer :deep(.el-button:active:not(:disabled)) {
+  transform: translateY(3px);
+}
+
+.account-settings-error {
+  flex-shrink: 0;
+  color: var(--meng-danger-text);
+  font-size: 13px;
+}
+
+@media (width <= 1050px) {
+  .account-setting {
+    grid-template-columns: 100px minmax(0, 1fr);
+    gap: 10px;
+    padding: 10px 12px;
+  }
+}
+
+@media (width <= 700px) {
+  .account-settings-columns {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .account-settings-footer {
+    margin-top: 12px;
+  }
+
+  .account-setting {
+    grid-template-columns: 88px minmax(0, 1fr);
+  }
+
+  .account-setting > span,
+  .account-setting h3 {
+    font-size: 12px;
+    gap: 6px;
+  }
+}
+
+@media (width >= 900px) and (height <= 700px) {
+  .account-settings {
+    gap: 12px;
+  }
+
+  .account-settings-column {
+    gap: 8px;
+  }
+
+  .account-setting {
+    padding-block: 6px;
+    min-height: 48px;
+  }
+
+  .account-setting :deep(.el-input__wrapper) {
+    min-height: 34px;
+  }
+
+  .account-setting :deep(.el-textarea__inner) {
+    height: 58px;
+    min-height: 58px;
+    padding: 6px 14px 22px;
+    line-height: 1.3;
+  }
+
+  .account-settings-footer {
+    padding-top: 12px;
+  }
+
+  .account-setting :deep(.el-button) {
+    height: 32px;
+    margin-bottom: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-setting :deep(.el-button),
+  .account-settings-footer :deep(.el-button) {
+    transition: none;
+  }
+}

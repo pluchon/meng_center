@@ -1,6 +1,14 @@
 import request from './request'
 const Root = '/content'
 export const contentApi = {
+  folders: (params, config = {}) => request.get(Root + '/favorite-folders', { ...config, params }),
+  createFolder: (data) => request.post(Root + '/favorite-folders', data),
+  updateFolder: (id, data) => request.put(Root + '/favorite-folders/' + id, data),
+  deleteFolder: (id) => request.delete(Root + '/favorite-folders/' + id),
+  folderPosts: (id, params, config = {}) =>
+    request.get(Root + '/favorite-folders/' + id + '/posts', { ...config, params }),
+  likedPosts: (params, config = {}) => request.get(Root + '/posts/liked', { ...config, params }),
+  myCounts: (config = {}) => request.get(Root + '/me/counts', config),
   commentLocation: (id, size) =>
     request.get(Root + '/comments/' + id + '/location', { params: { size } }),
   mine: (params, config = {}) => request.get(Root + '/posts/mine', { ...config, params }),
@@ -43,9 +51,9 @@ export const contentApi = {
     on
       ? request.put(Root + '/posts/' + id + '/like')
       : request.delete(Root + '/posts/' + id + '/like'),
-  favorite: (id, on) =>
+  favorite: (id, on, folderId) =>
     on
-      ? request.put(Root + '/posts/' + id + '/favorite')
+      ? request.put(Root + '/posts/' + id + '/favorite', folderId ? { folderId } : undefined)
       : request.delete(Root + '/posts/' + id + '/favorite'),
 }
 export function contentImage(path) {

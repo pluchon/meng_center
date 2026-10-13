@@ -97,6 +97,18 @@ public class ImController {
         return ApiResponse.success(null);
     }
 
+    @GetMapping("/blocks")
+    public ApiResponse<PageResult<ImService.BlockedPeer>> blocks(
+        @RequestParam(defaultValue = "1") @jakarta.validation.constraints.Min(
+            1
+        ) long page,
+        @RequestParam(defaultValue = "20") @jakarta.validation.constraints.Min(
+            1
+        ) @jakarta.validation.constraints.Max(50) long size
+    ) {
+        return ApiResponse.success(im.blocks(page, size));
+    }
+
     /** 取消屏蔽。 */
     @DeleteMapping("/blocks/{userId}")
     public ApiResponse<Void> unblock(@PathVariable long userId) {

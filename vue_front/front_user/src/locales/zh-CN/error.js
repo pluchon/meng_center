@@ -1,4 +1,8 @@
 export default {
+  USER_USERNAME_COOLDOWN: '用户名每 30 天只能修改一次',
+  USER_PASSWORD_WRONG: '当前密码不正确',
+  CONTENT_FOLDER_LIMIT: '最多只能创建 20 个收藏夹',
+  CONTENT_FOLDER_NAME_TAKEN: '已有同名收藏夹',
   CONTENT_COMMENT_DELETED: '评论已被删除',
   CONTENT_REPORT_DUPLICATE: '已经举报过这条内容',
   generic: '服务暂时不可用，请稍后重试',

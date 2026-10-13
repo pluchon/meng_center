@@ -115,6 +115,7 @@
           class="nav-avatar"
           :to="{name:RouteName.ACCOUNT}"
           :aria-label="t('home.nav.account')"
+          :aria-current="route.name===RouteName.ACCOUNT?'page':undefined"
         >
           <el-avatar
             :src="user.current?.avatar || userAvatar"
@@ -127,7 +128,7 @@
       <slot />
     </main>
     <footer
-      v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH"
+      v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH&&route.name!==RouteName.ACCOUNT"
       class="community-footer"
     >
       <div class="footer-inner">

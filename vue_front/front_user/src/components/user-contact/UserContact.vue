@@ -11,7 +11,7 @@
         :aria-label="t('im.profile',{name:author.nickname||t('home.authorFallback')})"
       >
         <el-avatar
-          :src="author.avatar||userAvatar"
+          :src="avatarUrl(author.avatar)||userAvatar"
           :size="size"
         />
       </button>

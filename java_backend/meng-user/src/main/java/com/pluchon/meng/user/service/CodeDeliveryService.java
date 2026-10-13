@@ -49,21 +49,67 @@ public final class CodeDeliveryService {
 
     // 注册用的邮箱验证码
     public void email(String email, String ticket, String ip) {
-        send(contacts.normalize(email, null, null), ticket, ip, VerificationPurpose.REGISTRATION);
+        send(
+            contacts.normalize(email, null, null),
+            ticket,
+            ip,
+            VerificationPurpose.REGISTRATION
+        );
     }
 
     // 注册用的短信验证码
-    public void sms(String countryCode, String phone, String ticket, String ip) {
-        send(contacts.normalize(null, countryCode, phone), ticket, ip, VerificationPurpose.REGISTRATION);
+    public void sms(
+        String countryCode,
+        String phone,
+        String ticket,
+        String ip
+    ) {
+        send(
+            contacts.normalize(null, countryCode, phone),
+            ticket,
+            ip,
+            VerificationPurpose.REGISTRATION
+        );
     }
 
     // 重置密码用的验证码，邮箱和手机号二选一
-    public void resetCode(String email, String countryCode, String phone, String ticket, String ip) {
-        send(contacts.normalize(email, countryCode, phone), ticket, ip, VerificationPurpose.PASSWORD_RESET);
+    public void resetCode(
+        String email,
+        String countryCode,
+        String phone,
+        String ticket,
+        String ip
+    ) {
+        send(
+            contacts.normalize(email, countryCode, phone),
+            ticket,
+            ip,
+            VerificationPurpose.PASSWORD_RESET
+        );
+    }
+
+    public void contactCode(
+        String email,
+        String countryCode,
+        String phone,
+        String ticket,
+        String ip
+    ) {
+        send(
+            contacts.normalize(email, countryCode, phone),
+            ticket,
+            ip,
+            VerificationPurpose.CONTACT_CHANGE
+        );
     }
 
     // 票据和限流通过后才发送；收到成功回执才保存验证码，用户不会拿到一个用不了的码
-    private void send(ContactService.Contact contact, String ticket, String ip, VerificationPurpose purpose) {
+    private void send(
+        ContactService.Contact contact,
+        String ticket,
+        String ip,
+        VerificationPurpose purpose
+    ) {
         captcha.consume(ticket, ip);
         limits.send(contact, ip);
         if (contact.channel() == ContactChannel.SMS) {
@@ -81,7 +127,11 @@ public final class CodeDeliveryService {
         );
         Object reply;
         try {
-            reply = rabbit.convertSendAndReceive(UserMqNames.INTERNAL_EXCHANGE, UserMqNames.CODE_ROUTE, command);
+            reply = rabbit.convertSendAndReceive(
+                UserMqNames.INTERNAL_EXCHANGE,
+                UserMqNames.CODE_ROUTE,
+                command
+            );
         } catch (RuntimeException exception) {
             throw new BusinessException(UserErrorCode.DELIVERY_FAILED);
         }

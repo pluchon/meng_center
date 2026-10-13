@@ -27,15 +27,21 @@ public final class DomesticSmsClient {
     private UserProperties properties;
 
     // 通道没开通时明确失败；审核通知另有开关，关着就静默跳过
-    public void send(String recipient, NotificationKind kind, String content) throws Exception {
+    public void send(String recipient, NotificationKind kind, String content)
+        throws Exception {
         var sms = properties.sms();
         if (!sms.enabled()) {
             throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
         }
-        if (kind != NotificationKind.CODE && !sms.approvalNotificationEnabled()) {
+        if (
+            kind != NotificationKind.CODE && !sms.approvalNotificationEnabled()
+        ) {
             return;
         }
         String template = switch (kind) {
+            case CONTACT_CHANGED -> throw new IllegalArgumentException(
+                "Contact notification is email-only"
+            );
             case CODE -> sms.domesticCodeTemplate();
             case APPROVED -> sms.approvedTemplate();
             case REJECTED -> sms.rejectedTemplate();
@@ -45,12 +51,19 @@ public final class DomesticSmsClient {
             .setSignName(sms.signName())
             .setTemplateCode(template);
         if (kind == NotificationKind.CODE) {
-            request.setTemplateParam(AliyunSmsSupport.GSON.toJson(Map.of(CODE_PARAMETER, content)));
+            request.setTemplateParam(
+                AliyunSmsSupport.GSON.toJson(Map.of(CODE_PARAMETER, content))
+            );
         }
         if (kind == NotificationKind.REJECTED) {
-            request.setTemplateParam(AliyunSmsSupport.GSON.toJson(Map.of(REASON_PARAMETER, content)));
+            request.setTemplateParam(
+                AliyunSmsSupport.GSON.toJson(Map.of(REASON_PARAMETER, content))
+            );
         }
-        String result = client(sms.endpoint()).sendSms(request).getBody().getCode();
+        String result = client(sms.endpoint())
+            .sendSms(request)
+            .getBody()
+            .getCode();
         if (!UserMqNames.PROVIDER_OK.equals(result)) {
             throw new BusinessException(UserErrorCode.DELIVERY_FAILED);
         }

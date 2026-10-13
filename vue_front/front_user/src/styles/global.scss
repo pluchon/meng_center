@@ -69,6 +69,8 @@ button {
   }
 }
 
+html.account-scrollbar-hidden,
+html.account-scrollbar-hidden body,
 html.search-scrollbar-hidden,
 html.growth-scrollbar-hidden,
 html.growth-scrollbar-hidden body,
@@ -82,6 +84,8 @@ html.detail-scrollbar-hidden body {
   scrollbar-width: none;
 }
 
+html.account-scrollbar-hidden::-webkit-scrollbar,
+html.account-scrollbar-hidden body::-webkit-scrollbar,
 html.search-scrollbar-hidden::-webkit-scrollbar,
 html.growth-scrollbar-hidden::-webkit-scrollbar,
 html.growth-scrollbar-hidden body::-webkit-scrollbar,

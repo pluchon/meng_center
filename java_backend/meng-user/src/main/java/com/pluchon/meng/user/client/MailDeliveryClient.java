@@ -29,13 +29,21 @@ public final class MailDeliveryClient {
                 case CODE -> configured.codeSubject();
                 case APPROVED -> configured.approvedSubject();
                 case REJECTED -> configured.rejectedSubject();
+                case CONTACT_CHANGED -> "账号邮箱变更提醒";
             }
         );
         message.setText(
             switch (kind) {
-                case CODE -> MessageFormat.format(configured.codeText(), content);
+                case CODE -> MessageFormat.format(
+                    configured.codeText(),
+                    content
+                );
                 case APPROVED -> configured.approvedText();
-                case REJECTED -> MessageFormat.format(configured.rejectedText(), content);
+                case REJECTED -> MessageFormat.format(
+                    configured.rejectedText(),
+                    content
+                );
+                case CONTACT_CHANGED -> content;
             }
         );
         sender.send(message);

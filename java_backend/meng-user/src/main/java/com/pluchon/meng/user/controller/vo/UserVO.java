@@ -13,6 +13,8 @@ public class UserVO {
     private String username;
     private String nickname;
     private String avatar;
+    private String bio;
+    private LocalDateTime usernameAvailableAt;
     private UserRole role;
     private UserStatus status;
     // 脱敏邮箱，只露首字符和域名

@@ -36,17 +36,33 @@ public class SessionAuthService {
     @Autowired
     private AuthorizationService authorization;
 
+    @Autowired
+    private ProfileService profiles;
+
     // 密码正确之后才透露审核状态，否则一律是账号或密码错误
     @Transactional(rollbackFor = Exception.class)
     public String login(LoginDTO request, String ip) {
-        UserEntity user = credentials.authenticate(request.username(), request.password(), request.ticket(), ip);
+        return login(request, ip, "");
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public String login(LoginDTO request, String ip, String agent) {
+        UserEntity user = credentials.authenticate(
+            request.username(),
+            request.password(),
+            request.ticket(),
+            ip
+        );
         if (user.getStatus() == UserStatus.PENDING) {
             throw new BusinessException(UserErrorCode.PENDING);
         }
         if (user.getStatus() == UserStatus.REJECTED) {
-            throw new BusinessException(UserErrorCode.REJECTED, new RejectionVO(user.getRejectReason()));
+            throw new BusinessException(
+                UserErrorCode.REJECTED,
+                new RejectionVO(user.getRejectReason())
+            );
         }
-        return sessions.create(user);
+        return sessions.create(user, ip, agent);
     }
 
     // 只退出当前设备
@@ -58,11 +74,13 @@ public class SessionAuthService {
     // 改密成功后所有设备下线，包括当前这台
     @Transactional(rollbackFor = Exception.class)
     public void changePassword(PasswordChangeDTO request) {
-        UserEntity user = authorization.requireActive(mapper.lockById(UserContext.require().userId()));
-        if (!passwords.matches(request.oldPassword(), user.getPasswordHash())) {
-            throw new BusinessException(UserErrorCode.INVALID_CREDENTIALS);
-        }
-        user.setPasswordHash(passwords.hash(request.password(), request.confirmPassword()));
+        UserEntity user = authorization.requireActive(
+            mapper.lockById(UserContext.require().userId())
+        );
+        profiles.requirePassword(user, request.oldPassword());
+        user.setPasswordHash(
+            passwords.hash(request.password(), request.confirmPassword())
+        );
         mapper.updateById(user);
         sessions.revokeAll(user.getId());
     }

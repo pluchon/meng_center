@@ -15,6 +15,8 @@ import { notifyFailure } from '@/composables/useFailureNotice'
 import { userAvatar } from '@/assets/images'
 import HighlightText from '@/components/highlight-text/HighlightText.vue'
 import { RouteName } from '@/router/names'
+import { useFavoriteStore } from '@/stores/favorites'
+import { avatarUrl } from '@/api/user'
 export default defineComponent({
   name: 'PostCard',
   components: { HighlightText, PictureIcon, Location, ViewIcon, Star, ChatDotRound, CollectionTag },
@@ -60,6 +62,18 @@ export default defineComponent({
       const field = kind === 'like' ? 'liked' : 'favorited',
         on = !props.post[field]
       pending[kind] = true
+      let folderId
+      if (kind === 'favorite' && on) {
+        try {
+          folderId = await useFavoriteStore().choose()
+        } catch (error) {
+          notifyFailure(error)
+        }
+        if (!folderId) {
+          pending[kind] = false
+          return
+        }
+      }
       emit('change', {
         id: props.post.id,
         field,
@@ -67,7 +81,7 @@ export default defineComponent({
         delta: on ? 1 : -1,
       })
       try {
-        await contentApi[kind](props.post.id, on)
+        await contentApi[kind](props.post.id, on, folderId)
       } catch (e) {
         emit('change', {
           id: props.post.id,
@@ -93,6 +107,7 @@ export default defineComponent({
       relativeTime: usePostTime(),
       contentImage,
       userAvatar,
+      avatarUrl,
     }
   },
 })

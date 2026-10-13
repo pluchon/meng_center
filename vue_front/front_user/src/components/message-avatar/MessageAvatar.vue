@@ -3,7 +3,7 @@
     class="message-avatar"
     :class="tone"
     :size="size"
-    :src="user.avatar||undefined"
+    :src="avatarUrl(user.avatar)||undefined"
     :alt="name"
   >
     {{ name.slice(0,1) }}

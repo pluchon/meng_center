@@ -4,6 +4,8 @@ import com.pluchon.meng.common.core.error.ErrorCode;
 
 // 内容域业务错误码
 public enum ContentErrorCode implements ErrorCode {
+    FOLDER_LIMIT("CONTENT_FOLDER_LIMIT", "收藏夹最多 20 个", 409),
+    FOLDER_NAME_TAKEN("CONTENT_FOLDER_NAME_TAKEN", "收藏夹名字已使用", 409),
     COMMENT_DELETED("CONTENT_COMMENT_DELETED", "评论已被删除", 404),
     REPORT_DUPLICATE("CONTENT_REPORT_DUPLICATE", "已经举报过", 409);
 

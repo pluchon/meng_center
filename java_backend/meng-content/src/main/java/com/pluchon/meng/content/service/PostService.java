@@ -8,6 +8,7 @@ import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.web.context.UserContext;
+import com.pluchon.meng.common.web.region.IpRegionService;
 import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.controller.dto.CreatePostDTO;
 import com.pluchon.meng.content.controller.vo.PostFeedVO;
@@ -40,6 +41,9 @@ import org.springframework.transaction.annotation.Transactional;
 // 帖子发布、展示、编辑与互动
 @Service
 public class PostService {
+
+    @Autowired
+    private FavoriteFolderService folders;
 
     // 作者的每日互动统计
     @Autowired
@@ -291,13 +295,19 @@ public class PostService {
     // 幂等更新收藏关系和帖子热度
     @Transactional(rollbackFor = Exception.class)
     public void favorite(long id, boolean enabled) {
+        favorite(id, enabled, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void favorite(long id, boolean enabled, Long folderId) {
         long user = UserContext.require().userId();
+        var folder = folders.lockSelection(enabled ? folderId : null);
         var post = requirePost(id);
         var created = enabled
             ? null
             : relations.selectFavoriteCreateTime(id, user);
         int changed = enabled
-            ? relations.insertFavorite(id, user)
+            ? relations.insertFavorite(id, user, folder.getId())
             : relations.deleteFavorite(id, user);
         if (changed == 1) {
             if (enabled) statistics.record(

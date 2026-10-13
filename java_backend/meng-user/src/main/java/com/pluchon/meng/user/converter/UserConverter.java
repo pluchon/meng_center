@@ -20,6 +20,12 @@ public final class UserConverter {
         UserVO view = BeanUtil.copyProperties(user, UserVO.class);
         view.setEmail(contacts.maskEmail(user.getEmailCipher()));
         view.setPhone(contacts.maskPhone(user.getPhoneCipher()));
+        view.setAvatar(avatarUrl(user.getAvatar()));
+        view.setUsernameAvailableAt(
+            user.getUsernameUpdateTime() == null
+                ? null
+                : user.getUsernameUpdateTime().plusDays(30)
+        );
         return view;
     }
 
@@ -30,8 +36,14 @@ public final class UserConverter {
             user.getNickname() == null || user.getNickname().isBlank()
                 ? user.getUsername()
                 : user.getNickname(),
-            user.getAvatar(),
+            avatarUrl(user.getAvatar()),
             user.getLevel()
         );
+    }
+
+    private String avatarUrl(String value) {
+        return value == null || !value.matches("[a-f0-9-]{36}\\.webp")
+            ? value
+            : "/user/avatars/" + value;
     }
 }

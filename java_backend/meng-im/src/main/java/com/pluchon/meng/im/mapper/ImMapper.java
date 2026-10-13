@@ -13,6 +13,27 @@ import org.apache.ibatis.annotations.Update;
 // 消息域独占库内的查询和原子写入
 @Mapper
 public interface ImMapper {
+    @lombok.Data
+    class BlockRow {
+
+        private Long userId;
+        private java.time.LocalDateTime createTime;
+    }
+
+    @Select(
+        "SELECT blocked_user_id user_id,create_time FROM user_block WHERE user_id=#{user} AND delete_state=0 ORDER BY id DESC LIMIT #{offset},#{size}"
+    )
+    List<BlockRow> blocks(
+        @Param("user") long user,
+        @Param("offset") long offset,
+        @Param("size") long size
+    );
+
+    @Select(
+        "SELECT COUNT(*) FROM user_block WHERE user_id=#{user} AND delete_state=0"
+    )
+    long blockCount(long user);
+
     // 会话展示的共同投影，一次取得双方游标和屏蔽状态
     String MEMBERS =
         "SELECT m.*,p.sent_count peer_sent_count,p.last_read_message_id peer_read_message_id," +

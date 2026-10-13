@@ -34,6 +34,33 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class ImService {
 
+    public record BlockedPeer(
+        com.pluchon.meng.api.user.vo.PublicUserVO user,
+        LocalDateTime blockedAt
+    ) {}
+
+    public PageResult<BlockedPeer> blocks(long page, long size) {
+        long user = UserContext.require().userId();
+        var rows = mapper.blocks(user, (page - 1) * size, size);
+        var profiles = peers.batch(
+            rows.stream().map(ImMapper.BlockRow::getUserId).toList()
+        );
+        return new PageResult<>(
+            rows
+                .stream()
+                .map(row ->
+                    new BlockedPeer(
+                        peers.placeholder(row.getUserId(), profiles),
+                        row.getCreateTime()
+                    )
+                )
+                .toList(),
+            mapper.blockCount(user),
+            page,
+            size
+        );
+    }
+
     // 已提交的数据不因实时发送失败而返回失败
     private static final Logger LOG = LoggerFactory.getLogger(ImService.class);
 

@@ -37,9 +37,11 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 
 Nacos 宿主机 gRPC 端口必须是服务端口加 1000。改映射后也需要更新用户环境变量 `MENG_NACOS_ADDR`，初始化脚本不会覆盖已有地址。
 
+头像写入 `MENG_USER_AVATAR_ROOT` 指定的仓库外目录。新增环境变量后先重新执行初始化脚本，再发布 Nacos 配置；已存在的变量保持不变。
+
 ## 业务服务与前端
 
-先执行 `./deploy/scripts/Publish-NacosConfiguration.ps1` 发布三个配置，再用 IDEA 自带 Maven 对 `java_backend/pom.xml` 执行 `package`。启动脚本默认使用打包后的可执行 JAR。
+先执行 `./deploy/scripts/Publish-NacosConfiguration.ps1` 发布各服务配置，再用 IDEA 自带 Maven 对 `java_backend/pom.xml` 执行 `package`。启动脚本默认使用打包后的可执行 JAR。
 
 ```powershell
 ./deploy/scripts/Initialize-Administrator.ps1

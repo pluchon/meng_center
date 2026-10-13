@@ -76,7 +76,7 @@ export const routes = [
     path: '/account',
     name: RouteName.ACCOUNT,
     component: () => import('@/views/account/AccountView.vue'),
-    meta: { titleKey: 'user.account.title', requiresAuth: true },
+    meta: { titleKey: 'account.title', requiresAuth: true },
   },
   { path: '/:pathMatch(.*)*', redirect: { name: RouteName.LOGIN } },
 ]

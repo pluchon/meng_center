@@ -33,3 +33,4 @@ Set-MengVariableIfMissing 'MENG_NACOS_ADDR' { "127.0.0.1:$($ports.MENG_NACOS_POR
 Set-MengVariableIfMissing 'MENG_CONTENT_IMAGE_ROOT' { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'meng_center/content-images' }
 
 Set-MengVariableIfMissing 'MENG_IM_IMAGE_ROOT' { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'meng_center/im-images' }
+Set-MengVariableIfMissing 'MENG_USER_AVATAR_ROOT' { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'meng_center/user-avatars' }

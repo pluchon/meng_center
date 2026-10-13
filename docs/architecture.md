@@ -30,7 +30,7 @@
 | 短信 | 阿里云短信 | 境外号码走国际/港澳台短信；只在 user 服务里用 |
 | 邮件 | Spring Boot 邮件 starter + SMTP | 只在 user 服务里用 |
 | 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
-| IP 属地 | ip2region 离线库 | 只在 content 服务里用，不调外部接口 |
+| IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + LangChain / LangGraph | 不使用 Spring AI |
 | 模型 | ChatGPT 或 Qwen | 都走 OpenAI 兼容接口，靠配置切换；embedding 也走接口 |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
@@ -212,6 +212,7 @@ java_backend/
   热榜放 Redis，搜索用 Elasticsearch 9.2 系列，两者都是 MySQL 的派生数据，每天重建并用蓝绿切换生效。
 - 成长：签到、经验与等级。成长账户按需创建。
 - 消息：私信和通知合在一个消息中心。实时推送只用一条 WebSocket，发消息仍走 HTTP；im 单实例运行，多实例时推送经 RabbitMQ 广播。
+- 个人中心：资料、换绑和设备管理归 user，收藏夹和我喜欢的归 content，屏蔽名单归 im；页面分别调三个服务，服务之间不为它新增调用（见 [auth.md](auth.md) 第 13 节）。
 - 分三步交付：先做主页，再做帖子详情和发帖页，最后做热榜和搜索。
 
 ### 暂缓
@@ -221,7 +222,7 @@ java_backend/
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
-- 发帖审核（以后接大模型）、管理端的帖子管理、资料编辑、收藏夹页面。
+- 发帖审核（以后接大模型）、管理端的帖子管理。
 
 ### 待定
 

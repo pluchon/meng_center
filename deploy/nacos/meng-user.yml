@@ -2,6 +2,10 @@ server:
   address: 127.0.0.1
   port: 8101
 spring:
+  servlet:
+    multipart:
+      max-file-size: 2MB
+      max-request-size: 3MB
   cloud:
     nacos:
       discovery:
@@ -55,6 +59,7 @@ captcha:
   local-cache-enabled: false
 meng:
   user:
+    avatar-root: ${MENG_USER_AVATAR_ROOT}
     legal:
       terms-version: '2026-10-09'
       privacy-version: '2026-10-09'

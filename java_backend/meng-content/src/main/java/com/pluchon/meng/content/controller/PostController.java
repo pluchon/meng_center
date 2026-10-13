@@ -117,9 +117,14 @@ public class PostController {
     }
 
     /** 收藏帖子。 */
+    public record FavoriteRequest(@Positive Long folderId) {}
+
     @PutMapping("/{id}/favorite")
-    public ApiResponse<Void> favorite(@PathVariable @Positive long id) {
-        service.favorite(id, true);
+    public ApiResponse<Void> favorite(
+        @PathVariable @Positive long id,
+        @Valid @RequestBody(required = false) FavoriteRequest body
+    ) {
+        service.favorite(id, true, body == null ? null : body.folderId());
         return ApiResponse.success(null);
     }
 

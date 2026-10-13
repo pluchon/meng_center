@@ -36,6 +36,7 @@
 | `MENG_PII_HASH_KEY` | 邮箱和手机号的检索哈希，与加密密钥分开 |
 | `MENG_MYSQL_USER_PASSWORD` | `meng_user` 库的应用账号密码 |
 | `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD` | 内容、成长、消息域的独立应用账号密码 |
+| `MENG_USER_AVATAR_ROOT` | 用户头像目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MENG_IM_IMAGE_ROOT` | 私信配图存储目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MENG_CONTENT_IMAGE_ROOT` | 配图存储目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MYSQL_ROOT_PASSWORD` | 本地 MySQL 的 root，只给初始化脚本用，应用不用 root 连库 |

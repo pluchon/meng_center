@@ -1,6 +1,7 @@
 import request from './request'
 const Root = '/im'
 export const imApi = {
+  blocks: (params, config = {}) => request.get(Root + '/blocks', { ...config, params }),
   unread: () => request.get(Root + '/unread', { silent: true }),
   conversations: (params, config = {}) =>
     request.get(Root + '/conversations', { ...config, params }),

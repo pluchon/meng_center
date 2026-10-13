@@ -5,7 +5,7 @@ export { default as registerPoster } from './register-poster.png?format=webp&qua
 export { default as legalArtwork } from './legal-cirno-garden.png?format=webp&quality=80'
 export { default as resetAvatar } from './forget_password_avatar.png?w=324&format=webp&quality=85'
 export { default as brandIcon } from './meng_center_ico.png?w=84&format=webp&quality=90'
-export { default as userAvatar } from './user_avatar.png?w=144&format=webp&quality=85'
+export { default as userAvatar } from './user_avatar.png?w=256&format=webp&quality=85'
 export { default as articleEditAvatar } from './article_edit.png?w=176&format=webp&quality=85'
 export { default as mengAvatar } from './meng_avatar.png?w=144&format=webp&quality=85'
 // 标签页图标要 PNG，由入口脚本写进页面
@@ -23,3 +23,5 @@ export { default as detailArtworkSmall } from './article_detail_background.png?w
 export { default as detailMobileArtwork } from './article_detail_background_mobile.png?w=1280&format=webp&quality=82'
 export { default as detailBubble } from './detail_bubble.svg'
 export { default as detailFlower } from './detail_flower.svg'
+export { default as accountScenes } from './account-scenes.svg?no-inline'
+export { default as accountFolderCover } from './profile_favourite_background .png?w=720&format=webp&quality=82'
