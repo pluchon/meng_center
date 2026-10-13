@@ -1,3 +1,5 @@
+import { cleanupImFixtures } from './im-fixture-cleanup.mjs';
+import { cleanupPostReadModels } from './read-model-cleanup.mjs';
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -365,10 +367,7 @@ try {
       const page = await context.newPage(),
         errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
-      await page.goto(origin);
-      await page
-        .getByRole("button", { name: "发一条新帖", exact: true })
-        .click();
+      await page.goto(origin + "/posts/new");
       await page
         .waitForURL("**/posts/new", { timeout: 8000 })
         .catch((error) => {
@@ -597,6 +596,15 @@ try {
     assert.equal(row.total, 5);
   });
   console.log(JSON.stringify({ passed: true, checks: checks.length }));
+} catch (failure) {
+  const page = browser?.contexts()[0]?.pages().at(-1);
+  if (page) {
+    await fs.mkdir(new URL('../test-output/editor/', import.meta.url), {recursive:true});
+    await page.screenshot({path:new URL('../test-output/editor/failure.png', import.meta.url).pathname.replace(/^\/(\w:)/,'$1'),fullPage:true});
+    console.error('Editor failure at ' + page.url());
+    console.error((await page.locator('body').innerText()).slice(-1200));
+  }
+  throw failure;
 } finally {
   await browser?.close();
   if (contentDb && users.length) {
@@ -622,6 +630,7 @@ try {
       users,
     ]);
     await contentDb.query("DELETE FROM post WHERE author_id IN (?)", [users]);
+    await cleanupPostReadModels(redis, ids);
     await contentDb.query("DELETE FROM post_draft WHERE author_id IN (?)", [
       users,
     ]);
@@ -641,6 +650,7 @@ try {
           .unlink(path.join(process.env.MENG_CONTENT_IMAGE_ROOT, file))
           .catch(() => {});
   }
+  if (contentDb && users.length) await contentDb.query("DELETE FROM author_daily_stat WHERE author_id IN (?)", [users]);
   await contentDb?.end();
   if (growthDb && users.length) {
     for (const table of ["exp_record", "check_in", "growth_account"])
@@ -668,6 +678,7 @@ try {
     for (const key of keys) await redis.del(key);
     await redis.quit();
   }
+  await cleanupImFixtures(users);
   if (userDb && users.length)
     await userDb.query("DELETE FROM user WHERE id IN (?)", [users]);
   await userDb?.end();

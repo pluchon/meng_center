@@ -8,6 +8,7 @@
   </parent>
   <artifactId>meng-common-web</artifactId>
   <dependencies>
+    <dependency><groupId>org.lionsoul</groupId><artifactId>ip2region</artifactId><version>3.3.7</version></dependency>
     <dependency>
       <groupId>com.pluchon.meng</groupId>
       <artifactId>meng-common-core</artifactId>

@@ -2,7 +2,7 @@
   <div
     ref="stage"
     class="card-swap-stage"
-    :class="{ swapping }"
+    :class="{ swapping, 'auth-stage': sharedBackground }"
     :aria-busy="swapping"
   >
     <ParticleBackground v-if="sharedBackground" />

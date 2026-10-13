@@ -1,0 +1,300 @@
+.creator-entry {
+  min-width: 0;
+  padding: 26px 30px 14px;
+  border: 2px solid var(--meng-tint);
+  border-radius: var(--meng-creator-row-radius);
+  background: var(--meng-creator-plot);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 180ms ease;
+}
+
+.published {
+  cursor: pointer;
+}
+
+.published:hover {
+  border-color: var(--meng-border);
+}
+
+.entry-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+}
+
+.entry-cover {
+  flex: none;
+  width: 136px;
+  height: 90px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+}
+
+.entry-cover .el-image {
+  width: 100%;
+  height: 100%;
+}
+
+.entry-copy {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.entry-heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.entry-heading::before {
+  content: '';
+  width: 8px;
+  height: 24px;
+  flex: none;
+  margin-right: -4px;
+  border-radius: 4px;
+  background: var(--meng-category-anime);
+}
+
+h3 {
+  margin: 0;
+  padding: 0 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-radius: 8px;
+  background: var(--meng-creator-highlight);
+  font-size: 20px;
+  line-height: 1.4;
+  font-weight: 800;
+}
+
+.entry-sparkle {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  margin-left: -6px;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+}
+
+time {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: none;
+  min-height: 28px;
+  padding: 0 12px 0 9px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  color: var(--meng-muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+time svg {
+  color: var(--meng-primary);
+}
+
+p {
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.7;
+}
+
+.placeholder {
+  color: var(--meng-muted);
+}
+
+.entry-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  border-top: 2px dashed var(--meng-tint);
+  padding-top: 6px;
+  gap: 4px;
+}
+
+.entry-counts {
+  display: flex;
+  flex-wrap: wrap;
+  color: var(--meng-muted);
+}
+
+.entry-counts span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.entry-tools {
+  display: flex;
+  gap: 6px;
+}
+
+.published .entry-tools {
+  margin-left: auto;
+}
+
+.entry-tools a,
+.entry-tools button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--meng-radius-pill);
+  background: transparent;
+  color: var(--meng-primary);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.entry-tools a:hover,
+.entry-tools button:hover {
+  background: var(--meng-bg);
+}
+
+.entry-tools .delete-entry {
+  color: var(--meng-danger-text);
+}
+
+.entry-tools button:disabled {
+  cursor: progress;
+  opacity: 0.5;
+}
+
+.entry-category {
+  margin-left: auto;
+  flex: none;
+  padding: 5px 14px;
+  border-radius: var(--meng-radius-pill);
+  font-size: 14px;
+  font-weight: 800;
+  background: var(--meng-warning);
+  color: var(--meng-nav-gold);
+}
+
+.published .entry-category {
+  margin-left: 6px;
+}
+
+.category-anime {
+  background: var(--meng-tint);
+  color: var(--meng-shadow-hard);
+}
+
+.category-creation {
+  background: var(--meng-danger);
+  color: var(--meng-like-text);
+}
+
+.category-game {
+  background: var(--meng-category-game);
+  color: var(--meng-creator-purple-text);
+}
+
+.category-tech {
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+}
+
+.draft-images {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.draft-images > div {
+  position: relative;
+  width: 112px;
+  height: 84px;
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--meng-tint);
+}
+
+.draft-images .el-image {
+  width: 100%;
+  height: 100%;
+}
+
+.draft-images span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--meng-creator-cover-overlay);
+  color: var(--meng-surface);
+  font-weight: 800;
+}
+
+@include narrow {
+  .creator-entry {
+    padding: 18px 16px 10px;
+  }
+
+  .entry-cover {
+    width: 76px;
+    height: 64px;
+  }
+
+  .entry-main {
+    gap: 10px;
+  }
+
+  .entry-heading {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  h3 {
+    flex: 1;
+    font-size: 16px;
+  }
+
+  time {
+    margin-left: 0;
+  }
+
+  .entry-counts span {
+    padding: 0 6px;
+    gap: 4px;
+  }
+
+  .entry-counts {
+    width: 100%;
+  }
+
+  .published .entry-tools {
+    margin-left: 0;
+  }
+
+  .published .entry-category {
+    margin-left: auto;
+  }
+
+  .draft-images > div {
+    width: 72px;
+    height: 56px;
+  }
+}

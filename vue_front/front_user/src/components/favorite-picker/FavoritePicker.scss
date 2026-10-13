@@ -1,0 +1,40 @@
+.favorite-picker {
+  max-width: calc(100vw - 28px);
+  border-radius: 24px;
+  padding: 22px;
+  box-shadow: var(--meng-shadow-card);
+}
+
+.favorite-picker-list {
+  display: grid;
+  gap: 10px;
+  max-height: 50vh;
+  overflow: auto;
+  scrollbar-width: none;
+}
+
+.favorite-picker-list button {
+  border: 0;
+  background: var(--meng-warning);
+  border-radius: 15px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--meng-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.favorite-picker-list button:hover {
+  background: var(--meng-tint);
+}
+
+.favorite-picker-list span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.favorite-picker-list small {
+  color: var(--meng-muted);
+}

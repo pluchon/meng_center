@@ -1,0 +1,25 @@
+.pixel-blast {
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: var(--meng-message-pixel-opacity);
+  background-image: radial-gradient(var(--meng-message-pixel-color) 1.5px, transparent 1.5px);
+  background-size: 12px 12px;
+  mask-image: radial-gradient(ellipse at center, var(--meng-edge-mask) 30%, transparent 78%);
+}
+
+.pixel-blast.ready {
+  background: none;
+  mask-image: none;
+}
+
+.pixel-blast :deep(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.pixel-blast:not(.ready) :deep(canvas) {
+  visibility: hidden;
+}

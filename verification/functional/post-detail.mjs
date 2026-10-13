@@ -1,3 +1,5 @@
+import { cleanupImFixtures } from './im-fixture-cleanup.mjs';
+import { cleanupPostReadModels } from './read-model-cleanup.mjs';
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -218,6 +220,8 @@ try {
     await page.goto(origin+'/posts/'+post+'?category=DAILY&sort=LATEST&page=2');await page.locator('.comments-heading').waitFor();
     await page.evaluate(()=>document.fonts.ready);await page.screenshot({path:path.join(out.pathname.replace(/^\/(\w:)/,'$1'),'desktop.png'),fullPage:true});
     await page.screenshot({path:path.join(out.pathname.replace(/^\/(\w:)/,'$1'),'desktop-top.png')});assert.equal(await page.locator('.detail-card').count(),1);
+    assert.equal(await page.locator('.post-comments .feed-pagination.compact').count(),1);
+    assert.equal(await page.locator('.post-comments .back-top').count(),0);
     await page.getByRole('button',{name:'第 2 页',exact:true}).click();await page.getByText('今天也是好天气',{exact:false}).waitFor();
     assert.equal(await page.locator('.comment-body img').count(),1);assert.equal(await page.locator('.comment-body script').count(),0);
     await page.getByRole('button',{name:'13 条回复',exact:true}).click();await page.locator('.replies .comment-item').first().waitFor();
@@ -337,6 +341,7 @@ try {
       users,
     ]);
     await contentDb.query("DELETE FROM post WHERE author_id IN (?)", [users]);
+    await cleanupPostReadModels(redis, ids);
     await contentDb.query("DELETE FROM post_draft WHERE author_id IN (?)", [
       users,
     ]);
@@ -351,6 +356,7 @@ try {
           .unlink(path.join(process.env.MENG_CONTENT_IMAGE_ROOT, file))
           .catch(() => {});
   }
+  if (contentDb && users.length) await contentDb.query("DELETE FROM author_daily_stat WHERE author_id IN (?)", [users]);
   await contentDb?.end();
   if (growthDb && users.length) {
     for (const table of ["exp_record", "check_in", "growth_account"])
@@ -378,6 +384,7 @@ try {
     for (const key of keys) await redis.del(key);
     await redis.quit();
   }
+  await cleanupImFixtures(users);
   if (userDb && users.length)
     await userDb.query("DELETE FROM user WHERE id IN (?)", [users]);
   await userDb?.end();

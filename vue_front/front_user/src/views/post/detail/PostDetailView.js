@@ -23,7 +23,6 @@ import { RouteName } from '@/router/names'
 import { Comment, ReportTarget } from '@/constants/comments'
 import { contentApi } from '@/api/content'
 import {
-  userAvatar,
   communitySparkle,
   detailArtwork,
   detailArtworkSmall,
@@ -32,6 +31,7 @@ import {
   detailFlower,
 } from '@/assets/images'
 import { useUserStore } from '@/stores/user'
+import { useFavoriteStore } from '@/stores/favorites'
 import { useCommunity } from '@/composables/useCommunity'
 import { usePostTime } from '@/composables/usePostTime'
 import { notifyFailure } from '@/composables/useFailureNotice'
@@ -42,9 +42,11 @@ import PostImages from '@/components/post-images/PostImages.vue'
 import PostComments from '@/components/post-comments/PostComments.vue'
 import ReportDialog from '@/components/report-dialog/ReportDialog.vue'
 const detailScrollbarClass = 'detail-scrollbar-hidden'
+import UserContact from '@/components/user-contact/UserContact.vue'
 export default defineComponent({
   name: 'PostDetailView',
   components: {
+    UserContact,
     CommunityLayout,
     MarkdownBody,
     PageState,
@@ -79,9 +81,16 @@ export default defineComponent({
       () => post.value && String(post.value.author.id) === String(user.current?.id),
     )
     const homeLink = computed(() => ({
-      name: RouteName.HOME,
+      name:
+        route.query.from === 'account'
+          ? RouteName.ACCOUNT
+          : route.query.from === 'creator'
+            ? RouteName.CREATOR
+            : route.query.from === 'search'
+              ? RouteName.SEARCH
+              : RouteName.HOME,
       query: Object.fromEntries(
-        ['category', 'sort', 'page']
+        ['q', 'category', 'sort', 'page', 'tab', 'pane', 'folder']
           .filter((key) => route.query[key])
           .map((key) => [key, route.query[key]]),
       ),
@@ -116,10 +125,22 @@ export default defineComponent({
         count = kind === 'like' ? 'likeCount' : 'favoriteCount',
         old = item[field]
       pending[kind] = true
+      let folderId
+      if (kind === 'favorite' && !old) {
+        try {
+          folderId = await useFavoriteStore().choose()
+        } catch (error) {
+          notifyFailure(error)
+        }
+        if (!folderId) {
+          pending[kind] = false
+          return
+        }
+      }
       item[field] = !old
       item[count] += old ? -1 : 1
       try {
-        await contentApi[kind](item.id, !old)
+        await contentApi[kind](item.id, !old, folderId)
       } catch (e) {
         item[field] = old
         item[count] += old ? 1 : -1
@@ -171,7 +192,6 @@ export default defineComponent({
       homeLink,
       reportTarget,
       scrollComments,
-      userAvatar,
       communitySparkle,
       detailArtwork,
       detailArtworkSmall,

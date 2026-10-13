@@ -1,0 +1,703 @@
+.account-dialog {
+  --dialog-tint: var(--meng-warning);
+  --dialog-edge: var(--meng-creator-yellow);
+  --dialog-icon: var(--meng-category-daily);
+  --dialog-icon-edge: var(--meng-growth-gold-edge);
+
+  max-width: calc(100vw - 28px);
+  border-radius: 32px;
+  padding: 26px 28px 24px;
+  font-size: 15px;
+  line-height: 1.6;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+  box-shadow: var(--meng-account-dialog-shadow);
+}
+
+.account-dialog-password {
+  --dialog-tint: var(--meng-category-game);
+  --dialog-edge: var(--meng-creator-purple);
+  --dialog-icon: var(--meng-creator-purple);
+  --dialog-icon-edge: var(--meng-account-violet-shadow);
+}
+
+.account-dialog-email {
+  --dialog-tint: var(--meng-danger);
+  --dialog-edge: var(--meng-category-creation);
+  --dialog-icon: var(--meng-category-creation);
+  --dialog-icon-edge: var(--meng-account-pink-shadow);
+}
+
+.account-dialog-phone {
+  --dialog-tint: var(--meng-account-apricot);
+  --dialog-edge: var(--meng-account-apricot-edge);
+  --dialog-icon: var(--meng-account-apricot-edge);
+  --dialog-icon-edge: var(--meng-account-apricot-shadow);
+}
+
+.account-dialog-phone .account-dialog-face {
+  background: var(--meng-warning);
+}
+
+.account-dialog-phone .account-dialog-sparkle {
+  color: var(--meng-category-daily);
+}
+
+.account-phone-field {
+  display: grid;
+  gap: 6px;
+}
+
+.account-phone-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.account-dialog-form .account-phone-row .el-select {
+  width: 140px;
+  flex: 0 0 140px;
+}
+
+.account-phone-row .el-select__selected-item {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--meng-tool-text);
+}
+
+.account-phone-row .el-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-dialog-phone .account-code-row .el-button {
+  height: 40px;
+  margin-bottom: 3px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: var(--meng-surface);
+  color: var(--meng-account-apricot-ink);
+  box-shadow: 0 3px 0 var(--meng-account-apricot-edge);
+  font-size: 13px;
+}
+
+.account-dialog-phone .account-dialog-actions .el-button--primary {
+  background: var(--meng-account-apricot);
+  color: var(--meng-account-apricot-ink);
+  box-shadow: 0 4px 0 var(--meng-account-apricot-edge);
+}
+
+.account-dialog-phone .account-confirm-symbol {
+  color: var(--meng-account-apricot-ink);
+}
+
+.account-dialog-devices {
+  --dialog-tint: var(--meng-success);
+  --dialog-edge: var(--meng-creator-green);
+  --dialog-icon: var(--meng-creator-green);
+  --dialog-icon-edge: var(--meng-account-mint-shadow);
+}
+
+.account-dialog-blocks {
+  --dialog-tint: var(--meng-account-gray);
+  --dialog-edge: var(--meng-border);
+  --dialog-icon: var(--meng-account-gray-icon);
+  --dialog-icon-edge: var(--meng-account-gray-shadow);
+}
+
+.account-dialog:not(.account-dialog-folder) .account-dialog-face {
+  background: var(--meng-warning);
+}
+
+.account-dialog:not(.account-dialog-folder) .account-dialog-sparkle {
+  color: var(--meng-category-daily);
+}
+
+.account-dialog-password .account-dialog-actions .el-button--primary {
+  background: var(--meng-category-game);
+  color: var(--meng-creator-purple-text);
+  box-shadow: 0 4px 0 var(--meng-creator-purple);
+}
+
+.account-dialog-password .account-confirm-symbol {
+  color: var(--meng-creator-purple-text);
+}
+
+.account-dialog-email .account-dialog-actions .el-button--primary {
+  background: var(--meng-danger);
+  color: var(--meng-like-text);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+}
+
+.account-dialog-email .account-confirm-symbol {
+  color: var(--meng-like-text);
+}
+
+.account-dialog-email .account-code-row .el-button {
+  height: 40px;
+  margin-bottom: 3px;
+  padding: 0 16px;
+  border-radius: 20px;
+  background: var(--meng-surface);
+  color: var(--meng-like-text);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+  font-size: 13px;
+}
+
+.account-current-email {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border-radius: 16px;
+  background: var(--meng-bg);
+}
+
+.account-current-email > span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--meng-muted);
+}
+
+.account-current-email b {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--meng-text);
+  overflow-wrap: anywhere;
+}
+
+.account-password-rule,
+.account-block-hint {
+  padding: 6px 12px;
+  border-left: 4px solid var(--dialog-edge);
+  border-radius: 4px 12px 12px 4px;
+  background: var(--dialog-tint);
+  color: var(--meng-tool-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.account-block-hint {
+  margin: 0;
+}
+
+.account-dialog .el-dialog__header {
+  padding: 0 0 16px;
+  margin-bottom: 14px;
+  border-bottom: 2px dashed var(--meng-tint);
+}
+
+.account-dialog-folder .el-dialog__header {
+  margin-bottom: 16px;
+}
+
+.account-dialog .el-dialog__headerbtn {
+  top: 32px;
+  right: 28px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.account-dialog .el-dialog__headerbtn:hover {
+  background: var(--meng-tint);
+}
+
+.account-dialog .el-dialog__close {
+  color: var(--meng-muted);
+  font-size: 20px;
+}
+
+.account-dialog-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 40px 0 0;
+  font-family: var(--meng-font-display);
+  font-size: 28px;
+  line-height: 1.3;
+  font-weight: 400;
+}
+
+.account-dialog-title > .el-icon {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  font-size: 24px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--dialog-icon);
+  color: var(--meng-surface);
+  box-shadow: 0 4px 0 var(--dialog-icon-edge);
+}
+
+.account-dialog-title > span {
+  padding: 2px 16px;
+  border-radius: 20px;
+  background: var(--dialog-tint);
+  box-shadow: 0 4px 0 var(--dialog-edge);
+  transform: rotate(-3deg);
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.account-dialog-title > span:hover {
+  transform: rotate(0deg);
+}
+
+.account-dialog-tape {
+  position: absolute;
+  left: 150px;
+  top: -11px;
+  width: 100px;
+  height: 24px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--dialog-tint) 0 10px,
+    var(--dialog-edge) 10px 20px
+  );
+  transform: rotate(-4deg);
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.account-dialog-face {
+  position: absolute;
+  right: 70px;
+  top: -20px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 21px;
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-decor-shadow);
+  transform: rotate(4deg);
+  font-size: 14px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.account-dialog-sparkle {
+  position: absolute;
+  left: -11px;
+  bottom: 90px;
+  color: var(--meng-creator-purple);
+  font-size: 24px;
+  pointer-events: none;
+}
+
+.account-dialog-sparkle::before {
+  content: '✦';
+}
+
+.account-dialog-form {
+  display: grid;
+  gap: 14px;
+}
+
+.account-dialog-form label {
+  min-width: 0;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--meng-text);
+}
+
+.account-dialog-form .el-input__wrapper,
+.account-dialog-form .el-textarea__inner,
+.account-dialog-form .el-select__wrapper {
+  border-radius: 16px;
+  background: var(--meng-bg);
+  box-shadow: inset 0 3px 0 var(--meng-tint);
+  padding: 0 16px;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--meng-text);
+}
+
+.account-dialog-form .el-input__wrapper,
+.account-dialog-form .el-select__wrapper {
+  height: 44px;
+}
+
+.account-dialog-form .el-input__inner {
+  font-weight: 400;
+  color: var(--meng-text);
+}
+
+.account-dialog-form .el-input__wrapper.is-focus,
+.account-dialog-form .el-textarea__inner:focus {
+  box-shadow:
+    inset 0 3px 0 var(--meng-tint),
+    0 0 0 3px var(--meng-category-anime);
+}
+
+.account-dialog-form .el-textarea__inner {
+  resize: none;
+  padding: 10px 16px 26px;
+  line-height: 1.6;
+}
+
+.account-dialog-form .el-select {
+  width: 100%;
+}
+
+.account-dialog-form .el-input__count,
+.account-dialog-form .el-input__count-inner,
+.account-dialog-form .el-input__count .el-input__count-inner {
+  background: transparent;
+  color: var(--meng-muted);
+  font-weight: 700;
+}
+
+.account-confirm-symbol .tabler-icon {
+  stroke-width: 3;
+}
+
+.account-dialog-form .el-textarea .el-input__count {
+  right: 14px;
+  bottom: 8px;
+}
+
+.account-dialog-hint {
+  font-size: 13px;
+  color: var(--meng-muted);
+  line-height: 1.8;
+  margin: 0;
+}
+
+.account-dialog-error {
+  font-size: 13px;
+  color: var(--meng-danger-text);
+  margin: 0;
+}
+
+.account-code-row {
+  display: flex;
+  gap: 10px;
+}
+
+.account-code-row .el-input {
+  min-width: 0;
+  flex: 1;
+}
+
+.account-code-row .el-button {
+  height: 44px;
+  margin: 0;
+  border: 0;
+  border-radius: 22px;
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  box-shadow: 0 3px 0 var(--meng-creator-green);
+  font-weight: 800;
+}
+
+.account-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 2px dashed var(--meng-tint);
+  padding-top: 16px;
+  margin: 2px 0 4px;
+}
+
+.account-dialog-actions .el-button {
+  height: 44px;
+  margin: 0;
+  padding-inline: 22px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--meng-bg);
+  color: var(--meng-tool-text);
+  box-shadow: 0 4px 0 var(--meng-border);
+  font-size: 15px;
+  font-weight: 800;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    box-shadow 180ms var(--meng-motion-ease);
+}
+
+.account-dialog-actions .el-button--primary {
+  height: 46px;
+  padding: 0 22px 0 9px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  box-shadow: 0 4px 0 var(--meng-creator-green);
+}
+
+.account-dialog-folder .account-dialog-actions .el-button--primary {
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+}
+
+.account-cover-choice {
+  position: relative;
+}
+
+.account-cover-picker {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 240 / 112;
+  max-height: max(80px, calc(100dvh - 500px));
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  overflow: hidden;
+  border: 2px dashed var(--meng-border);
+  border-radius: 18px;
+  background: var(--meng-account-folder);
+  color: var(--meng-favorite-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    border-color 180ms;
+}
+
+.account-cover-picker img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account-cover-symbol,
+.account-confirm-symbol {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  background: var(--meng-surface);
+  border-radius: 50%;
+  color: var(--meng-favorite-stroke);
+  font-size: 22px;
+}
+
+.account-confirm-symbol {
+  width: 28px;
+  height: 28px;
+  margin-right: 9px;
+  font-size: 16px;
+  color: var(--meng-success-text);
+}
+
+.account-dialog-folder .account-confirm-symbol {
+  color: var(--meng-favorite-stroke);
+}
+
+.account-cover-picker:has(img) .account-cover-caption {
+  position: absolute;
+  bottom: 12px;
+  padding: 6px 12px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+}
+
+.account-cover-remove {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  color: var(--meng-muted);
+  cursor: pointer;
+}
+
+.account-cover-picker:hover:not(:disabled) {
+  border-color: var(--meng-category-daily);
+  transform: translateY(-2px);
+}
+
+.account-cover-picker:focus-visible,
+.account-cover-remove:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.account-dialog-list {
+  display: grid;
+  gap: 10px;
+  max-height: min(460px, calc(100dvh - 320px));
+  overflow: auto;
+  scrollbar-width: none;
+  margin: 0 0 14px;
+}
+
+.account-dialog-list::-webkit-scrollbar {
+  display: none;
+}
+
+.account-dialog-list-row {
+  padding: 10px 12px;
+  background: var(--meng-bg);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.account-device-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 14px;
+  background: var(--meng-surface);
+  font-size: 22px;
+  color: var(--meng-success-text);
+}
+
+.account-device-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.account-device-info h3 {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--meng-text);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-current-device {
+  color: var(--meng-success-shadow);
+  padding: 0 12px;
+  border-radius: 13px;
+  display: inline-block;
+  flex-shrink: 0;
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-creator-green);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 26px;
+}
+
+.account-device-info p {
+  font-size: 12px;
+  margin: 0;
+  color: var(--meng-muted);
+  font-weight: 700;
+}
+
+.account-dialog-list-row .el-button {
+  flex-shrink: 0;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--meng-surface);
+  color: var(--meng-like-text);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+  font-weight: 800;
+  margin-bottom: 3px;
+  font-size: 13px;
+}
+
+.account-dialog-blocks .account-dialog-list-row .el-button {
+  color: var(--meng-shadow-hard);
+  box-shadow: 0 3px 0 var(--meng-border);
+}
+
+.account-dialog-blocks .message-avatar {
+  font-size: 18px;
+}
+
+.account-device-actions {
+  justify-content: space-between;
+}
+
+.account-device-actions .account-offline-others {
+  background: var(--meng-danger);
+  color: var(--meng-like-text);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+  padding-inline: 20px;
+}
+
+.account-device-actions .el-button--primary {
+  margin-left: auto;
+}
+
+.account-dialog > .el-dialog__body > .el-pagination {
+  justify-content: center;
+  margin-top: 16px;
+}
+
+.account-dialog .tabler-icon {
+  stroke-width: 2.3;
+}
+
+.account-dialog-actions .el-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.account-dialog-actions .el-button:active:not(:disabled),
+.account-cover-picker:active:not(:disabled) {
+  transform: translateY(3px) scale(0.98);
+  box-shadow: none;
+}
+
+@media (width <= 480px) {
+  .account-dialog {
+    padding: 26px 20px 24px;
+  }
+
+  .account-dialog .el-dialog__headerbtn {
+    right: 16px;
+  }
+
+  .account-dialog-title {
+    font-size: 24px;
+  }
+
+  .account-dialog-tape {
+    left: 34%;
+  }
+
+  .account-dialog-face {
+    right: 16%;
+  }
+
+  .account-dialog-list-row {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .account-dialog-devices .account-dialog-actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-dialog-actions .el-button,
+  .account-dialog-title > span,
+  .account-cover-picker {
+    transition: none;
+  }
+}

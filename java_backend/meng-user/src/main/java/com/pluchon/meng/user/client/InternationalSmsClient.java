@@ -27,15 +27,21 @@ public final class InternationalSmsClient {
     private UserProperties properties;
 
     // 通道没开通时明确失败；审核通知另有开关，关着就静默跳过
-    public void send(String recipient, NotificationKind kind, String content) throws Exception {
+    public void send(String recipient, NotificationKind kind, String content)
+        throws Exception {
         var sms = properties.internationalSms();
         if (!sms.enabled()) {
             throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
         }
-        if (kind != NotificationKind.CODE && !sms.approvalNotificationEnabled()) {
+        if (
+            kind != NotificationKind.CODE && !sms.approvalNotificationEnabled()
+        ) {
             return;
         }
         String text = switch (kind) {
+            case CONTACT_CHANGED -> throw new IllegalArgumentException(
+                "Contact notification is email-only"
+            );
             case CODE -> MessageFormat.format(sms.codeText(), content);
             case APPROVED -> sms.approvedText();
             case REJECTED -> MessageFormat.format(sms.rejectedText(), content);
@@ -45,7 +51,10 @@ public final class InternationalSmsClient {
             .setFrom(sms.senderId())
             .setMessage(text)
             .setType(kind == NotificationKind.CODE ? OTP_TYPE : NOTIFY_TYPE);
-        String result = client(sms.endpoint()).sendMessageToGlobe(request).getBody().getResponseCode();
+        String result = client(sms.endpoint())
+            .sendMessageToGlobe(request)
+            .getBody()
+            .getResponseCode();
         if (!UserMqNames.PROVIDER_OK.equals(result)) {
             throw new BusinessException(UserErrorCode.DELIVERY_FAILED);
         }

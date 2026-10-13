@@ -1,0 +1,143 @@
+.search-page {
+  position: relative;
+  z-index: 1;
+  width: min(100%, var(--meng-search-width));
+  margin: var(--meng-space-1) auto var(--meng-space-10);
+}
+
+.search-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-3);
+  margin-bottom: var(--meng-space-7);
+}
+
+.search-summary h1 {
+  margin: 0;
+  font:
+    28px 'ZCOOL KuaiLe',
+    sans-serif;
+  background: var(--meng-warning);
+  border-radius: var(--meng-radius-pill);
+  padding: var(--meng-space-1) var(--meng-space-4);
+  transform: rotate(-3deg);
+  overflow-wrap: anywhere;
+}
+
+.search-sparkle {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  background: var(--meng-decor-sparkle);
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+}
+
+.search-total {
+  margin-left: auto;
+  flex: none;
+  padding: var(--meng-space-1) var(--meng-space-4);
+  background: var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  box-shadow: 0 3px 0 var(--meng-card-base);
+  font-weight: 800;
+}
+
+.post-list {
+  display: grid;
+  gap: var(--meng-space-7);
+}
+
+.search-results {
+  min-height: 180px;
+  transition: opacity 180ms ease;
+}
+
+.search-results.refreshing {
+  opacity: 0.65;
+}
+
+.search-empty {
+  padding: var(--meng-space-9);
+  background: var(--meng-surface);
+  border-radius: var(--meng-radius-card);
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-results {
+    transition: none;
+  }
+}
+
+@include narrow {
+  .search-summary h1 {
+    font-size: 24px;
+  }
+}
+
+.search-decor {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.search-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+.search-bubble {
+  position: absolute;
+  width: 23px;
+  opacity: 0.7;
+}
+
+.bubble-left {
+  top: 72%;
+  left: 4%;
+}
+
+.bubble-right {
+  top: 46%;
+  right: 5%;
+}
+
+.search-summary {
+  animation: search-arrive 360ms var(--meng-motion-ease) both;
+}
+
+@keyframes search-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@for $index from 1 through 5 {
+  .post-list :deep(.post-card:nth-child(#{$index})) {
+    animation-delay: ($index - 1) * 35ms;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-summary {
+    animation: none;
+  }
+
+  .post-list :deep(.post-card) {
+    animation: none;
+  }
+}
+
+.post-list :deep(.post-card) {
+  box-shadow: 0 6px 0 var(--meng-tint);
+}

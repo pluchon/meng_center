@@ -37,6 +37,7 @@
 }
 
 .community-nav {
+  width: min(var(--meng-community-nav-width), calc(100% - var(--meng-community-gutter) * 2));
   position: relative;
   z-index: 1;
   display: flex;
@@ -142,7 +143,7 @@ nav button:hover {
   transform: translateY(-2px);
 }
 
-.nav-home {
+nav a.selected {
   background: var(--meng-tint);
   box-shadow: 0 3px 0 var(--meng-border);
 }
@@ -165,9 +166,9 @@ nav button:hover {
   color: var(--meng-primary);
 }
 
-.message-icon {
-  background: var(--meng-danger);
-  color: var(--meng-danger-text);
+.creator-icon {
+  background: var(--meng-category-game);
+  color: var(--meng-creator-purple-text);
 }
 
 .growth-icon {
@@ -193,7 +194,8 @@ nav button:hover {
   gap: 8px;
 }
 
-.nav-tools button {
+.nav-tools button,
+.nav-tools .nav-messages {
   display: grid;
   place-items: center;
   width: 44px;
@@ -206,7 +208,8 @@ nav button:hover {
   font-size: 22px;
 }
 
-.nav-tools button:hover {
+.nav-tools button:hover,
+.nav-tools .nav-messages:hover {
   background: var(--meng-tint);
 }
 
@@ -385,7 +388,8 @@ nav button:hover {
     gap: 4px;
   }
 
-  .nav-tools button {
+  .nav-tools button,
+  .nav-tools .nav-messages {
     width: 30px;
     height: 36px;
     font-size: 19px;
@@ -537,4 +541,26 @@ nav button:hover {
   .nav-search input {
     transition: none;
   }
+}
+
+.search-layout .community-footer {
+  display: none;
+}
+
+.nav-messages {
+  position: relative;
+  flex: none;
+}
+
+.nav-unread {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 12px;
+  background: var(--meng-like-icon);
+  color: var(--meng-surface);
+  font-size: 11px;
+  font-weight: 800;
 }

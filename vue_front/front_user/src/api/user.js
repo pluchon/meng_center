@@ -1,7 +1,7 @@
 import request from './request'
 const Root = '/user'
 export const userApi = Object.freeze({
-  me: (silent = false) => request.get(Root + '/me', { silent }),
+  me: (silent = false, config = {}) => request.get(Root + '/me', { ...config, silent }),
   login: (data) => request.post(Root + '/sessions', data, { loginRequest: true }),
   logout: () => request.delete(Root + '/sessions/current'),
   captcha: () => request.post(Root + '/captcha'),
@@ -13,4 +13,19 @@ export const userApi = Object.freeze({
   register: (data) => request.post(Root + '/registrations', data),
   reapply: (data) => request.post(Root + '/registrations/reapplication', data),
   password: (data) => request.put(Root + '/me/password', data),
+  profile: (data) => request.put(Root + '/me/profile', data),
+  avatar: (file) => {
+    const body = new FormData()
+    body.append('file', file)
+    return request.post(Root + '/me/avatar', body)
+  },
+  contactCode: (data) => request.post(Root + '/me/contact-codes', data),
+  email: (data) => request.put(Root + '/me/email', data),
+  phone: (data) => request.put(Root + '/me/phone', data),
+  devices: (config = {}) => request.get(Root + '/me/sessions', config),
+  revokeDevice: (id) => request.delete(Root + '/me/sessions/' + id),
+  revokeOthers: () => request.delete(Root + '/me/sessions/others'),
 })
+export function avatarUrl(value) {
+  return value?.startsWith('/user/avatars/') ? (import.meta.env.VITE_API_BASE || '') + value : value
+}

@@ -30,8 +30,11 @@
 | `post.published` | content | postId、authorId | growth：加经验；ai：建向量索引 |
 | `post.updated` | content | postId | ai：重建该帖索引 |
 | `post.deleted` | content | postId | ai：删索引 |
-| `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId | im：通知被回复者；growth：加经验 |
-| `post.liked` | content | postId、postTitle、likerId、authorId | im：通知作者 |
+| `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId、parentCommentId、excerpt、originalExcerpt | im：通知被评论或被回复的人；growth：加经验 |
+| `post.liked` | content | postId、postTitle、actorId、authorId | im：通知作者 |
+| `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者 |
+| `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
+| `report.handled` | content | reportId、reporterId、targetType、targetId、postId、postTitle、excerpt、targetAuthorId、result | im：通知举报人；成立时通知内容作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
 | `lottery.won` | growth | userId、prizeName | im：中奖通知 |
 
@@ -39,9 +42,10 @@
 
 - 没有「用户资料变更」事件。昵称和头像走批量内部接口现查，没有消费者就不留事件。
 - 签到不是事件，它是 growth 自己的写接口。
+- 取消喜欢、取消收藏不发事件，已经发出的通知不撤回。
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
 - growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
-- 事件在它的第一个消费者开始做的时候才发。消费者是 im 或 ai 的那几个，在这两个服务动工之前不发。
+- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。举报处理和中奖事件仍等待对应业务落地。
 
 ## 2. 内部接口
 
@@ -57,7 +61,7 @@
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `GET /user/internal/users?ids=` | user | content、im | id、昵称（没填昵称时是用户名）、头像、等级 | 降级成占位昵称和默认头像，列表照常返回 |
+| `GET /user/internal/users?ids=` | user | content、im | 正常账号的 id、昵称（没填昵称时是用户名）、头像、等级 | 降级成占位昵称和默认头像，列表照常返回；im 发送前需确认对方存在且正常，查询失败时拒绝发送，不伪装成不存在 |
 | `GET /content/internal/posts/{id}` | content | ai | 标题、正文、作者、状态 | MQ 重试，超限进死信 |
 | `GET /content/internal/posts?cursor=&size=` | content | ai | 同上，游标分页 | 重建任务中断，可续跑 |
 

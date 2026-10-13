@@ -1,0 +1,26 @@
+.aurora {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: var(--meng-search-aurora-opacity);
+  background:
+    radial-gradient(ellipse at 20% 0%, var(--meng-search-aurora-blue), transparent 65%),
+    radial-gradient(ellipse at 85% 15%, var(--meng-search-aurora-mint), transparent 65%);
+  mask-image: linear-gradient(to bottom, var(--meng-edge-mask) 0%, transparent 92%);
+}
+
+.aurora.ready {
+  background: none;
+  mask-image: none;
+}
+
+.aurora :deep(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.aurora:not(.ready) :deep(canvas) {
+  visibility: hidden;
+}

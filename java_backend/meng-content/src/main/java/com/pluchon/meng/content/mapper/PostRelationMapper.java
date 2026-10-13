@@ -59,9 +59,13 @@ public interface PostRelationMapper {
     int deleteLike(@Param("post") long post, @Param("user") long user);
 
     @Insert(
-        "INSERT IGNORE INTO post_favorite(post_id,user_id) VALUES(#{post},#{user})"
+        "INSERT IGNORE INTO post_favorite(post_id,user_id,folder_id) VALUES(#{post},#{user},#{folder})"
     )
-    int insertFavorite(@Param("post") long post, @Param("user") long user);
+    int insertFavorite(
+        @Param("post") long post,
+        @Param("user") long user,
+        @Param("folder") long folder
+    );
 
     @Delete(
         "DELETE FROM post_favorite WHERE post_id=#{post} AND user_id=#{user}"

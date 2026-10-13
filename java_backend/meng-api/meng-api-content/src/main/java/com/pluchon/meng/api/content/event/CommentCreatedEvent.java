@@ -5,7 +5,10 @@ public record CommentCreatedEvent(
     long postId,
     String postTitle,
     long authorId,
-    Long targetUserId
+    Long targetUserId,
+    Long parentCommentId,
+    String excerpt,
+    String originalExcerpt
 ) {
     public static final String EXCHANGE = "meng.content.topic";
     public static final String EVENT_TYPE = "comment.created";

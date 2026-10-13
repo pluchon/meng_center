@@ -30,3 +30,11 @@ export const MarkdownFormats = Object.freeze([
 ])
 export const Growth = Object.freeze({ REFRESH_MS: 60000 })
 export const RelativeTime = Object.freeze({ MINUTE_MS: 60000, HOUR_MINUTES: 60, DAY_HOURS: 24 })
+
+export const Search = Object.freeze({ SIZE: 5, QUERY_MAX: 50, WINDOW: 10000 })
+export const CreatorTab = Object.freeze({ PUBLISHED: 'published', DRAFTS: 'drafts' })
+export const Creator = Object.freeze({
+  SIZE: 10, DRAFT_MAX: 20, DAYS: [7, 30],
+  METRICS: ['viewCount', 'likeCount', 'commentCount', 'favoriteCount'],
+})
+export const CreatorChartType = Object.freeze({ TREND: 'trend', TOP: 'top', EXP_TREND: 'experience', EXP_SOURCES: 'sources' })

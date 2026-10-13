@@ -1,7 +1,7 @@
 # 萌部落社区 · 架构设计
 
 > 2026-10-08 首版，搭骨架前的共识。
-> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
+> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[消息域](im.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
 
@@ -30,7 +30,7 @@
 | 短信 | 阿里云短信 | 境外号码走国际/港澳台短信；只在 user 服务里用 |
 | 邮件 | Spring Boot 邮件 starter + SMTP | 只在 user 服务里用 |
 | 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
-| IP 属地 | ip2region 离线库 | 只在 content 服务里用，不调外部接口 |
+| IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + LangChain / LangGraph | 不使用 Spring AI |
 | 模型 | ChatGPT 或 Qwen | 都走 OpenAI 兼容接口，靠配置切换；embedding 也走接口 |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
@@ -74,7 +74,7 @@ java_backend/
 └── meng-growth/             成长域
 ```
 
-`meng-im` 目前不对外提供接口也不发事件，所以没有 `meng-api-im`，等有真实调用方再建。
+`meng-im` 通过网关向前端提供消息接口，没有被其他服务调用的内部接口，也不生产跨服务事件，因此没有 `meng-api-im`。
 
 ### 4.1 api 模块放什么
 
@@ -165,8 +165,8 @@ java_backend/
 | 服务 | 可同步调 | 发出的事件 | 消费的事件 |
 |---|---|---|---|
 | user | 无 | 审核通过 | 等级变更 |
-| content | user | 发帖、改帖、删帖、评论、点赞 | 无 |
-| im | user | 无 | 审核通过、评论、点赞、等级变更、中奖 |
+| content | user | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理 | 无 |
+| im | user | 无 | 审核通过、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖 |
 | growth | 无 | 等级变更、中奖 | 发帖、评论 |
 | ai | content | 无 | 发帖、改帖、删帖 |
 
@@ -206,11 +206,13 @@ java_backend/
 
 找回密码已按仓库主人后续要求追加：独立重置验证码、邮箱/手机二选一，重置后撤销全部旧会话；不改变审核状态。
 
-第二期（见 [content.md](content.md)、[growth.md](growth.md)）：
+第二期（见 [content.md](content.md)、[growth.md](growth.md)、[im.md](im.md)）：
 
 - 内容：五个固定分类、发帖、帖子流、喜欢、收藏、浏览量、IP 属地、配图、评论、举报、热榜、帖子搜索。正文用 Markdown，配图存本机磁盘。
   热榜放 Redis，搜索用 Elasticsearch 9.2 系列，两者都是 MySQL 的派生数据，每天重建并用蓝绿切换生效。
 - 成长：签到、经验与等级。成长账户按需创建。
+- 消息：私信和通知合在一个消息中心。实时推送只用一条 WebSocket，发消息仍走 HTTP；im 单实例运行，多实例时推送经 RabbitMQ 广播。
+- 个人中心：资料、换绑和设备管理归 user，收藏夹和我喜欢的归 content，屏蔽名单归 im；页面分别调三个服务，服务之间不为它新增调用（见 [auth.md](auth.md) 第 13 节）。
 - 分三步交付：先做主页，再做帖子详情和发帖页，最后做热榜和搜索。
 
 ### 暂缓
@@ -220,7 +222,7 @@ java_backend/
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
-- 发帖审核（以后接大模型）、管理端的帖子管理、资料编辑、收藏夹页面。
+- 发帖审核（以后接大模型）、管理端的帖子管理。
 
 ### 待定
 

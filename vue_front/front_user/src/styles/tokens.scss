@@ -1,4 +1,27 @@
 :root {
+  --meng-account-width: 1480px;
+  --meng-account-dialog-shadow: 0 6px 0 var(--meng-card-base), 0 24px 60px rgb(41 70 83 / 28%);
+  --meng-account-apricot: #fdebdd;
+  --meng-account-apricot-edge: #f2be94;
+  --meng-account-apricot-ink: #8a4b1f;
+  --meng-account-apricot-shadow: rgb(138 75 31 / 33%);
+  --meng-account-violet-shadow: rgb(75 58 134 / 33%);
+  --meng-account-pink-shadow: rgb(142 51 85 / 33%);
+  --meng-account-mint-shadow: rgb(44 106 78 / 33%);
+  --meng-account-gray-icon: #9db4be;
+  --meng-account-gray-shadow: rgb(61 89 102 / 33%);
+  --meng-account-gray: #edf2f4;
+  --meng-account-folder: #fcf7e8;
+  --meng-like-surface: #fbeff3;
+  --meng-font-display: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+  --meng-messages-width: 1280px;
+  --meng-account-veil-violet: #8f76bc;
+  --meng-account-veil-blue: #72a5c8;
+  --meng-account-veil-strength: 0.74;
+  --meng-message-pixel-color: #8b62b0;
+  --meng-message-pixel-opacity: 1;
+  --meng-messages-height: 1040px;
+  --meng-messages-gold-tape: repeating-linear-gradient(135deg, #f8edcf 0 10px, #ead9a7 10px 20px);
   --meng-disclosure-duration: 280ms;
   --meng-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --meng-like-text: #8e3355;
@@ -22,7 +45,35 @@
   --meng-editor-fluid-opacity: 0.4;
   --meng-editor-card: #f8fcfe;
   --meng-community-width: 1760px;
+  --meng-community-nav-width: 1600px;
   --meng-home-width: 1600px;
+  --meng-search-width: 1080px;
+  --meng-creator-width: var(--meng-growth-width);
+  --meng-creator-radius: 32px;
+  --meng-creator-row-radius: 26px;
+  --meng-creator-plot: #fbfdfe;
+  --meng-shape-color: #a6d4e1;
+  --meng-shape-hover: #226479;
+  --meng-shape-background: #fff;
+  --meng-shape-opacity: 0.4;
+  --meng-creator-green: #8fcfae;
+  --meng-creator-green-shadow: #b7ddc8;
+  --meng-creator-pink: #e9a9be;
+  --meng-creator-purple: #c3b4ec;
+  --meng-creator-purple-text: #4b3a86;
+  --meng-creator-yellow: #e3c56b;
+  --meng-creator-cover-overlay: rgb(41 70 83 / 60%);
+  --meng-creator-shadow: 0 6px 0 var(--meng-card-base), 0 16px 40px rgb(54 127 154 / 12%);
+  --meng-creator-highlight: linear-gradient(transparent 60%, var(--meng-warning) 60%);
+  --meng-creator-tape: repeating-linear-gradient(
+    135deg,
+    var(--meng-success) 0 10px,
+    var(--meng-creator-green-shadow) 10px 20px
+  );
+  --meng-search-aurora-blue: #72bdd6;
+  --meng-search-aurora-mint: #8bd8bf;
+  --meng-search-aurora-blue-soft: #a3d6e6;
+  --meng-search-aurora-opacity: 0.36;
   --meng-community-gutter: clamp(16px, 3vw, 56px);
   --meng-hero-veil: rgb(255 255 255 / 14%);
   --meng-nav-glass: rgb(255 255 255 / 72%);
@@ -33,6 +84,44 @@
   --meng-category-creation: #e9a9be;
   --meng-category-daily: #f0cf7a;
   --meng-growth-green: #3e8e6a;
+  --meng-growth-width: 1320px;
+  --meng-growth-wave-backdrop: var(--meng-bg);
+  --meng-growth-wave-horizon: #cfe8f0;
+  --meng-growth-wave-body: #74b4a0;
+  --meng-growth-wave-mist: #f1faf6;
+  --meng-growth-wave-opacity: 1;
+  --meng-growth-blue: var(--meng-category-anime);
+  --meng-growth-blue-bg: var(--meng-tint);
+  --meng-growth-blue-text: var(--meng-shadow-hard);
+  --meng-growth-blue-edge: #6fb7cf;
+  --meng-growth-blue-badge: var(--meng-primary);
+  --meng-growth-mint: var(--meng-creator-green);
+  --meng-growth-mint-bg: var(--meng-success);
+  --meng-growth-mint-text: var(--meng-success-shadow);
+  --meng-growth-mint-edge: #6bb590;
+  --meng-growth-mint-badge: #67a98f;
+  --meng-growth-gold: var(--meng-category-daily);
+  --meng-growth-gold-bg: var(--meng-warning);
+  --meng-growth-gold-text: var(--meng-favorite-text);
+  --meng-growth-gold-edge: #d9b24f;
+  --meng-growth-gold-badge: #e4b44a;
+  --meng-growth-pink: var(--meng-category-creation);
+  --meng-growth-pink-bg: var(--meng-danger);
+  --meng-growth-pink-text: var(--meng-like-text);
+  --meng-growth-pink-edge: #d588a2;
+  --meng-growth-pink-badge: var(--meng-like-icon);
+  --meng-growth-violet: var(--meng-category-game-dot);
+  --meng-growth-violet-bg: var(--meng-category-game);
+  --meng-growth-violet-text: var(--meng-creator-purple-text);
+  --meng-growth-violet-edge: #a593db;
+  --meng-growth-violet-badge: #8973ba;
+  --meng-growth-road-muted: #e3eef2;
+  --meng-growth-stripes: repeating-linear-gradient(
+    120deg,
+    transparent 0 12px,
+    rgb(255 255 255 / 20%) 12px 24px
+  );
+  --meng-growth-calendar-surface: #fafdfe;
   --meng-check-shadow: #bee3d2;
   --meng-image-overlay: rgb(41 70 83 / 55%);
   --meng-hero-glass: rgb(255 255 255 / 72%);

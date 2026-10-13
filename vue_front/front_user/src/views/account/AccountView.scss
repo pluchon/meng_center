@@ -1,15 +1,724 @@
-@use '@/styles/auth';
+.account-community {
+  overflow: clip;
+  isolation: isolate;
+}
 
 .account-layout {
-  padding: var(--meng-space-8);
+  padding: 24px var(--meng-community-gutter) 30px;
+  position: relative;
 }
 
 .account-card {
-  max-width: 640px;
+  max-width: var(--meng-account-width);
+  width: min(100%, 77.778vw);
+  height: min(850px, calc(100dvh - 148px));
+  min-height: 0;
   margin: auto;
-  padding: var(--meng-space-8);
+  padding: 30px 34px 26px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-size: 15px;
+  line-height: 1.6;
   background: var(--meng-surface);
-  border-radius: var(--meng-radius-card);
+  border-radius: 32px;
+  box-shadow: var(--meng-creator-shadow);
+  position: relative;
+  z-index: 1;
+  animation: account-appear 360ms var(--meng-motion-ease) backwards;
+}
+
+.account-card::before,
+.account-card::after {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 24px;
+  border-radius: 4px;
+  transform: rotate(-4deg);
+  background: var(--meng-detail-tape);
+  top: -11px;
+  left: 190px;
+  pointer-events: none;
+}
+
+.account-card::after {
+  inset: auto 300px -11px auto;
+  background: var(--meng-creator-tape);
+  transform: rotate(3deg);
+}
+
+.account-face,
+.account-bottom-face {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  height: 42px;
+  background: var(--meng-warning);
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  box-shadow: 0 4px 0 var(--meng-decor-shadow);
+  padding: 0 14px;
+  top: -20px;
+  right: 96px;
+  transform: rotate(4deg);
+  font-size: 14px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+.account-bottom-face {
+  inset: auto auto -15px 212px;
+  background: var(--meng-tint);
+  transform: rotate(-4deg);
+}
+
+.account-header {
+  display: flex;
+  align-items: center;
+  gap: 18px 26px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  border-bottom: 2px dashed var(--meng-tint);
+}
+
+.account-portrait {
+  position: relative;
+  flex: 0 0 112px;
+}
+
+.account-portrait img {
+  border: 4px solid var(--meng-surface);
+  box-shadow: 0 0 0 3px var(--meng-category-anime);
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.account-camera {
+  position: absolute;
+  bottom: -2px;
+  right: -6px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--meng-surface);
+  background: var(--meng-primary);
+  color: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-shadow-hard);
   display: grid;
-  gap: var(--meng-space-5);
+  place-items: center;
+  cursor: pointer;
+  font-size: 20px;
+}
+
+.account-identity {
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.account-name {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.account-name h1 {
+  font-family: var(--meng-font-display);
+  font-size: 32px;
+  font-weight: 400;
+  line-height: 1.3;
+  margin: 0;
+  padding: 0 6px;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+  background: var(--meng-creator-highlight);
+}
+
+.account-sparkle {
+  width: 24px;
+  height: 24px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--meng-category-daily);
+  font-size: 24px;
+  font-style: normal;
+}
+
+.account-sparkle::before {
+  content: '✦';
+}
+
+.account-level {
+  color: var(--meng-success-shadow);
+  background: var(--meng-success);
+  border-radius: 15px;
+  padding: 0 12px;
+  font-family: var(--meng-font-display);
+  font-weight: 400;
+  transform: rotate(-3deg);
+  font-size: 19px;
+  white-space: nowrap;
+  text-decoration: none;
+  box-shadow: 0 3px 0 var(--meng-creator-green);
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.account-identity p {
+  color: var(--meng-tool-text);
+  font-size: 15px;
+  margin: 8px 0 0;
+  max-width: 520px;
+  overflow-wrap: anywhere;
+}
+
+.account-stats {
+  display: flex;
+  align-items: center;
+  gap: 12px 14px;
+  flex-wrap: wrap;
+  padding: 0 6px 4px 0;
+}
+
+.account-sticker {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  border: 3px solid var(--meng-surface);
+  padding: 6px 14px;
+  border-radius: 22px;
+  background: var(--meng-tint);
+  color: var(--meng-shadow-hard);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  transform: rotate(-4deg);
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.account-sticker b {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.account-sticker.gold {
+  background: var(--meng-warning);
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  color: var(--meng-favorite-text);
+  transform: rotate(3deg);
+}
+
+.account-sticker.pink {
+  background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+  color: var(--meng-like-text);
+  transform: rotate(-2deg);
+}
+
+.account-sticker.violet {
+  background: var(--meng-category-game);
+  box-shadow: 0 4px 0 var(--meng-creator-purple);
+  color: var(--meng-creator-purple-text);
+}
+
+.account-sticker.mint {
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-creator-green);
+  color: var(--meng-success-shadow);
+}
+
+.account-sticker:hover,
+.account-level:hover {
+  transform: rotate(0deg) translateY(-2px);
+}
+
+.account-settings-button {
+  cursor: pointer;
+  position: relative;
+  align-items: center;
+  gap: 7px;
+  margin: 0 0 4px 22px;
+  height: 42px;
+  padding: 0 18px 0 12px;
+  font-size: 14px;
+  border-radius: 24px;
+  transform: none;
+}
+
+.account-settings-button .el-icon {
+  font-size: 18px;
+}
+
+.account-settings-button::before {
+  content: '';
+  position: absolute;
+  border-left: 2px dashed var(--meng-border);
+  height: 40px;
+  left: -24px;
+  top: -2px;
+}
+
+.account-settings-button:active,
+.account-camera:active {
+  transform: translateY(3px) scale(0.97);
+}
+
+.account-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.account-section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+  font-family: var(--meng-font-display);
+}
+
+.account-section-title > .el-icon {
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--meng-surface);
+  font-size: 24px;
+  flex-shrink: 0;
+  background: var(--meng-category-daily);
+  color: var(--meng-surface);
+  border-radius: 50%;
+  box-shadow: 0 4px 0 var(--meng-growth-gold-edge);
+}
+
+.account-section-title > span {
+  padding: 2px 16px;
+  font-size: 30px;
+  line-height: 1.3;
+  background: var(--meng-warning);
+  border-radius: 20px;
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  transform: rotate(-3deg);
+  overflow-wrap: anywhere;
+  transition: transform 180ms var(--meng-motion-ease);
+}
+
+.account-section-title > span:hover {
+  transform: rotate(0deg);
+}
+
+.account-folder-count {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--meng-muted);
+}
+
+.account-folder-count b {
+  font-size: 20px;
+  color: var(--meng-text);
+}
+
+.account-tabs {
+  background: var(--meng-bg);
+  border-radius: 26px;
+  padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.account-tab-indicator {
+  position: absolute;
+  inset: 4px auto 4px 4px;
+  width: calc((100% - 8px) / 2);
+  border-radius: 20px;
+  background: var(--meng-warning);
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  pointer-events: none;
+  transition:
+    transform 280ms var(--meng-motion-ease),
+    background-color 220ms,
+    box-shadow 220ms;
+}
+
+.account-tabs.is-likes .account-tab-indicator {
+  transform: translateX(100%);
+  background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+}
+
+.account-tabs button {
+  position: relative;
+  border: 0;
+  background: transparent;
+  color: var(--meng-muted);
+  font-weight: 800;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 40px;
+  padding: 0 18px 0 14px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition:
+    color 180ms,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.account-tabs button::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--meng-creator-yellow);
+}
+
+.account-tabs button + button::before {
+  background: var(--meng-category-creation);
+}
+
+.account-tabs button[aria-pressed='true'] {
+  color: var(--meng-text);
+}
+
+.account-tabs button:active {
+  transform: scale(0.95);
+}
+
+.account-tabs button:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.account-section-heading.is-likes .account-section-title > .el-icon {
+  background: var(--meng-category-creation);
+  box-shadow: 0 4px 0 var(--meng-like-icon);
+}
+
+.account-section-heading.is-likes .account-section-title > span {
+  background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+}
+
+.account-panel-enter-active,
+.account-panel-leave-active {
+  transition:
+    opacity 180ms,
+    transform 220ms var(--meng-motion-ease);
+}
+
+.account-panel-leave-active {
+  transition-duration: 120ms;
+}
+
+.account-panel-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.account-panel-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.account-community :deep(.community-main) {
+  padding-block: 0;
+}
+
+.account-community :deep(.community-nav) {
+  width: min(1680px, 88.889vw, calc(100% - clamp(16px, 3vw, 40px) * 2));
+  min-height: 70px;
+}
+
+.account-card :deep(.tabler-icon) {
+  stroke-width: 2.3;
+}
+
+.account-decoration {
+  position: absolute;
+  pointer-events: none;
+}
+
+.account-flower.left {
+  width: 22px;
+  height: 22px;
+  left: -11px;
+  bottom: 300px;
+}
+
+.account-flower.right {
+  width: 32px;
+  height: 32px;
+  right: -15px;
+  top: 190px;
+}
+
+.account-bubble.left {
+  width: 34px;
+  height: 34px;
+  left: -16px;
+  bottom: 130px;
+}
+
+.account-bubble.right {
+  width: 30px;
+  height: 30px;
+  right: -15px;
+  top: 470px;
+}
+
+.account-edge-sparkle::before {
+  content: '✦';
+}
+
+.account-edge-sparkle.left {
+  color: var(--meng-category-daily);
+  font-size: 26px;
+  left: -12px;
+  top: 150px;
+}
+
+.account-edge-sparkle.right {
+  color: var(--meng-category-anime);
+  font-size: 24px;
+  right: -11px;
+  bottom: 210px;
+}
+
+.account-edge-sparkle.bottom {
+  color: var(--meng-creator-purple);
+  font-size: 22px;
+  left: 520px;
+  bottom: -17px;
+}
+
+@keyframes account-appear {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (width < 900px) {
+  .account-card {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+  }
+
+  .account-stats {
+    width: 100%;
+    padding-left: 138px;
+  }
+}
+
+@media (width <= 640px) {
+  .account-layout {
+    padding-top: 24px;
+  }
+
+  .account-card {
+    padding: 24px 18px;
+  }
+
+  .account-header {
+    gap: 14px;
+  }
+
+  .account-name h1 {
+    font-size: 25px;
+  }
+
+  .account-portrait {
+    flex-basis: 82px;
+  }
+
+  .account-portrait img {
+    width: 82px;
+    height: 82px;
+  }
+
+  .account-identity {
+    flex: 1 1 160px;
+  }
+
+  .account-stats {
+    padding-left: 0;
+    gap: 9px;
+  }
+
+  .account-settings-button {
+    margin-left: 0;
+  }
+
+  .account-settings-button::before {
+    display: none;
+  }
+
+  .account-section-heading {
+    flex-wrap: wrap;
+  }
+
+  .account-section-title > span {
+    font-size: 25px;
+  }
+
+  .account-folder-count {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .account-level {
+    font-size: 15px;
+  }
+
+  .account-face {
+    right: 24px;
+  }
+
+  .account-bottom-face {
+    left: 36px;
+  }
+
+  .account-card::before {
+    left: 30%;
+  }
+
+  .account-card::after {
+    right: 20%;
+  }
+
+  .account-edge-sparkle.bottom {
+    left: 65%;
+  }
+}
+
+@media (width >= 900px) and (height <= 960px) {
+  .account-card {
+    padding: 22px 28px;
+    gap: 14px;
+  }
+
+  .account-header {
+    padding-bottom: 14px;
+    gap: 16px 20px;
+  }
+
+  .account-portrait {
+    flex-basis: 90px;
+  }
+
+  .account-portrait img {
+    width: 90px;
+    height: 90px;
+  }
+
+  .account-name h1 {
+    font-size: 28px;
+  }
+
+  .account-identity p {
+    font-size: 14px;
+  }
+
+  .account-section-title > .el-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+  }
+
+  .account-section-title > span {
+    font-size: 28px;
+  }
+
+  .account-stats {
+    gap: 10px;
+  }
+
+  .account-sticker {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .account-settings-button {
+    padding: 0 14px 0 10px;
+    font-size: 13px;
+  }
+}
+
+@media (width >= 900px) and (height < 600px) {
+  .account-card {
+    height: auto;
+    min-height: 460px;
+  }
+}
+
+@media (width >= 900px) and (height <= 700px) {
+  .account-card {
+    padding-block: 18px;
+    gap: 12px;
+  }
+
+  .account-header {
+    padding-bottom: 12px;
+  }
+
+  .account-portrait {
+    flex-basis: 72px;
+  }
+
+  .account-portrait img {
+    width: 72px;
+    height: 72px;
+  }
+
+  .account-name h1 {
+    font-size: 26px;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .account-name {
+    flex-wrap: nowrap;
+  }
+
+  .account-level {
+    flex-shrink: 0;
+  }
+
+  .account-identity p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .account-card {
+    animation: none;
+  }
+
+  .account-sticker,
+  .account-level,
+  .account-section-title > span,
+  .account-tab-indicator,
+  .account-tabs button,
+  .account-panel-enter-active,
+  .account-panel-leave-active {
+    transition: none;
+  }
 }

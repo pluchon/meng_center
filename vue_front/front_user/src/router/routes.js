@@ -1,6 +1,30 @@
 import { RouteName } from './names'
 export const routes = [
   {
+    path: '/messages',
+    name: RouteName.MESSAGES,
+    component: () => import('@/views/messages/MessagesView.vue'),
+    meta: { titleKey: 'im.title', requiresAuth: true },
+  },
+  {
+    path: '/growth',
+    name: RouteName.GROWTH,
+    component: () => import('@/views/growth/GrowthView.vue'),
+    meta: { titleKey: 'growth.title', requiresAuth: true },
+  },
+  {
+    path: '/creator',
+    name: RouteName.CREATOR,
+    component: () => import('@/views/creator/CreatorView.vue'),
+    meta: { titleKey: 'creator.title', requiresAuth: true },
+  },
+  {
+    path: '/search',
+    name: RouteName.SEARCH,
+    component: () => import('@/views/search/SearchView.vue'),
+    meta: { titleKey: 'search.title', requiresAuth: true },
+  },
+  {
     path: '/posts/:id(\\d+)/edit',
     name: RouteName.POST_EDIT,
     component: () => import('@/views/post/editor/PostEditorView.vue'),
@@ -52,7 +76,7 @@ export const routes = [
     path: '/account',
     name: RouteName.ACCOUNT,
     component: () => import('@/views/account/AccountView.vue'),
-    meta: { titleKey: 'user.account.title', requiresAuth: true },
+    meta: { titleKey: 'account.title', requiresAuth: true },
   },
   { path: '/:pathMatch(.*)*', redirect: { name: RouteName.LOGIN } },
 ]

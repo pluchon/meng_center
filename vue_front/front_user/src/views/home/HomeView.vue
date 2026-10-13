@@ -14,46 +14,17 @@
       <HeroWaves />
     </section>
     <div
-      class="home-columns"
-      :class="{'sidebar-compact':compactSidebar}"
+      class="home-content"
     >
       <section
         class="home-feed"
         :aria-label="t('home.title')"
       >
-        <div class="feed-filters">
-          <div class="category-filters">
-            <button
-              type="button"
-              :class="{selected:!query.category}"
-              @click="filter({category:undefined})"
-            >
-              {{ t('home.all') }}
-            </button><button
-              v-for="category in Categories"
-              :key="category"
-              type="button"
-              :class="['filter-'+category.toLowerCase(),{selected:query.category===category}]"
-              @click="filter({category})"
-            >
-              <span class="category-dot" />{{ t('home.categories.'+category) }}
-            </button>
-          </div><div
-            class="sort-filters"
-            :class="{hot:query.sort===PostSort.HOT}"
-          >
-            <button
-              v-for="sort in PostSort"
-              :key="sort"
-              type="button"
-              :class="{selected:query.sort===sort}"
-              :aria-pressed="query.sort===sort"
-              @click="filter({sort})"
-            >
-              {{ t('home.sort.'+sort) }}
-            </button>
-          </div>
-        </div>
+        <FeedFilters
+          :category="query.category"
+          :sort="query.sort"
+          @change="filter"
+        />
         <PageState
           v-if="loading"
           state="loading"
@@ -85,48 +56,10 @@
           v-if="!loading&&!error&&total>0"
           :page="query.page"
           :total-pages="Math.ceil(total/query.size)"
+          @top="scrollToTop"
           @page="page=>filter({page})"
         />
-      </section><aside class="home-sidebar">
-        <CollapsibleCard
-          v-model:collapsed="collapsed.checkIn"
-          class="check-in-panel"
-          :label="t('home.checkIn')"
-          :icon="sidebarIcons.checkIn"
-        >
-          <CheckInCard />
-        </CollapsibleCard><CollapsibleCard
-          v-model:collapsed="collapsed.ai"
-          class="ai-panel"
-          :label="t('home.aiTitle')"
-          :icon="sidebarIcons.ai"
-        >
-          <section class="side-card ai-card">
-            <h2>{{ t('home.aiTitle') }}</h2><div class="ai-message">
-              <el-avatar :src="mengAvatar" /><p>{{ t('home.aiDescription') }}</p>
-            </div><el-button
-              round
-              @click="unavailable"
-            >
-              {{ t('home.aiButton') }}
-            </el-button>
-          </section>
-        </CollapsibleCard><CollapsibleCard
-          v-model:collapsed="collapsed.write"
-          class="write-panel"
-          :label="t('home.writeTitle')"
-          :icon="sidebarIcons.write"
-        >
-          <section class="side-card write-card">
-            <h2>{{ t('home.writeTitle') }}</h2><el-button
-              round
-              @click="$router.push({name:RouteName.POST_NEW})"
-            >
-              <el-icon><EditPen /></el-icon>{{ t('home.writeButton') }}
-            </el-button>
-          </section>
-        </CollapsibleCard>
-      </aside>
+      </section>
     </div>
   </CommunityLayout>
 </template>

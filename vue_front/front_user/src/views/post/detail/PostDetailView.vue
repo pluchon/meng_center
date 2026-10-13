@@ -32,7 +32,7 @@
         /><p v-if="error.status===404">
           {{ t('detail.missing') }}
         </p><router-link :to="homeLink">
-          {{ t('detail.back') }}
+          {{ t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back') }}
         </router-link>
       </div>
       <template v-else-if="post">
@@ -63,14 +63,13 @@
               <router-link
                 class="detail-back"
                 :to="homeLink"
-                :aria-label="t('detail.back')"
+                :aria-label="t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back')"
               >
                 <el-icon><ArrowLeft /></el-icon>
               </router-link>
-              <el-avatar
+              <UserContact
+                :author="post.author"
                 :size="56"
-                :src="post.author.avatar||userAvatar"
-                :alt="post.author.nickname||t('home.authorFallback')"
               />
               <strong>{{ post.author.nickname||t('home.authorFallback') }}</strong><span class="author-level">{{ t('home.level',{level:post.author.level}) }}</span><time :datetime="post.createTime">{{ relativeTime(post.createTime) }}</time><span
                 v-if="post.ipRegion"

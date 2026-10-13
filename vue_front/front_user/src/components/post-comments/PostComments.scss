@@ -60,8 +60,7 @@
   transform: translateY(-2px);
 }
 
-.comments-heading button:active,
-.comments-pagination button:active {
+.comments-heading button:active {
   transform: translateY(2px);
 }
 
@@ -104,39 +103,6 @@
   background: var(--meng-tint);
 }
 
-.comments-pagination {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: var(--meng-space-2);
-  margin-top: var(--meng-space-6);
-}
-
-.comments-pagination::before,
-.comments-pagination::after {
-  content: '';
-  flex: 1;
-  border-top: 2px dashed var(--meng-tint);
-  margin-inline: var(--meng-space-3);
-}
-
-.comments-pagination button {
-  width: 36px;
-  height: 36px;
-  border: 0;
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
-  color: var(--meng-text);
-  transition: transform 0.2s ease;
-}
-
-.comments-pagination .selected {
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 3px 0 var(--meng-shadow-hard);
-  animation: meng-feedback-pop 320ms var(--meng-motion-ease);
-}
-
 @include narrow {
   .comments-cheer { display: none; }
 
@@ -148,13 +114,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .comments-heading button,
-  .comments-pagination button,
   .comments-heading button .el-icon,
   .more-replies {
     transition: none;
   }
 
-  .comments-pagination .selected {
-    animation: none;
-  }
 }

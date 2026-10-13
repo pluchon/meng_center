@@ -1,0 +1,25 @@
+.dark-veil {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 10% 30%, var(--meng-account-veil-violet), transparent 68%),
+    radial-gradient(ellipse at 95% 75%, var(--meng-account-veil-blue), transparent 65%),
+    var(--meng-bg);
+}
+
+.dark-veil.ready {
+  background: none;
+}
+
+.dark-veil :deep(canvas) {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.dark-veil:not(.ready) :deep(canvas) {
+  visibility: hidden;
+}

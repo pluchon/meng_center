@@ -19,6 +19,7 @@
       <nav :aria-label="t('home.title')">
         <router-link
           class="nav-home"
+          :class="{selected:route.name===RouteName.HOME}"
           :to="{name:RouteName.HOME}"
         >
           <span class="nav-icon home-icon"><el-icon><House /></el-icon></span>{{ t('home.nav.home') }}<span
@@ -27,22 +28,24 @@
             :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
           />
         </router-link>
-        <button
-          type="button"
-          @click="unavailable"
+        <router-link
+          class="nav-creator"
+          :class="{selected:route.name===RouteName.CREATOR}"
+          :to="{name:RouteName.CREATOR}"
         >
-          <span class="nav-icon message-icon"><el-icon><Message /></el-icon></span>{{ t('home.nav.messages') }}
-        </button>
-        <button
-          type="button"
-          @click="unavailable"
+          <span class="nav-icon creator-icon"><el-icon><EditPen /></el-icon></span>{{ t('home.nav.creator') }}
+        </router-link>
+        <router-link
+          class="nav-growth-page"
+          :class="{selected:route.name===RouteName.GROWTH}"
+          :to="{name:RouteName.GROWTH}"
         >
           <span class="nav-icon growth-icon"><span
             class="nav-mask"
             aria-hidden="true"
             :style="{maskImage:'url('+JSON.stringify(communitySprout)+')'}"
           /></span>{{ t('home.nav.growth') }}
-        </button>
+        </router-link>
         <button
           type="button"
           @click="unavailable"
@@ -60,10 +63,11 @@
             class="nav-search"
             :class="{expanded:searchOpen}"
             role="search"
-            @mouseenter="searchOpen=true"
-            @mouseleave="closeSearch"
+            @mouseenter="searchHovered=true;searchOpen=true"
+            @mouseleave="leaveSearch"
             @focusin="searchOpen=true"
-            @submit.prevent="unavailable"
+            @focusout="blurSearch"
+            @submit.prevent="submitSearch"
           >
             <button
               type="button"
@@ -75,6 +79,7 @@
             </button>
             <input
               ref="searchInput"
+              v-model="searchText"
               type="search"
               :aria-label="t('home.nav.search')"
               :placeholder="t('home.searchPlaceholder')"
@@ -83,13 +88,16 @@
             >
           </form>
         </div>
-        <button
-          type="button"
-          :aria-label="t('home.nav.notifications')"
-          @click="unavailable"
+        <router-link
+          class="nav-messages"
+          :to="{name:RouteName.MESSAGES}"
+          :aria-label="t('im.title')"
         >
-          <el-icon><Bell /></el-icon>
-        </button>
+          <el-icon><ChatDotRound /></el-icon><span
+            v-if="im.totalUnread"
+            class="nav-unread"
+          >{{ im.totalUnread>99?t('im.badgeMax'):im.totalUnread }}</span>
+        </router-link>
         <div
           v-if="growth.data"
           class="nav-growth"
@@ -107,6 +115,7 @@
           class="nav-avatar"
           :to="{name:RouteName.ACCOUNT}"
           :aria-label="t('home.nav.account')"
+          :aria-current="route.name===RouteName.ACCOUNT?'page':undefined"
         >
           <el-avatar
             :src="user.current?.avatar || userAvatar"
@@ -118,7 +127,10 @@
     <main class="community-main">
       <slot />
     </main>
-    <footer class="community-footer">
+    <footer
+      v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH&&route.name!==RouteName.ACCOUNT"
+      class="community-footer"
+    >
       <div class="footer-inner">
         <div class="footer-brand">
           <span

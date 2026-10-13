@@ -1,0 +1,6 @@
+export const ExpSource = Object.freeze({ CHECK_IN: 'CHECK_IN', POST: 'POST', COMMENT: 'COMMENT' })
+export const ExpSources = Object.freeze(Object.values(ExpSource))
+export const GrowthCenter = Object.freeze({ SIZE: 12, DAYS: [7, 30] })
+export const GrowthTones = Object.freeze(['blue', 'mint', 'gold', 'pink', 'violet'])
+export const WeekTones = Object.freeze(['blue', 'mint', 'gold', 'pink', 'violet', 'mint', 'pink'])
+export const SourceTones = Object.freeze({ CHECK_IN: 'blue', POST: 'gold', COMMENT: 'violet' })

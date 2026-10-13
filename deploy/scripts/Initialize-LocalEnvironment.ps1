@@ -19,7 +19,7 @@ function Set-MengVariableIfMissing([string] $Name, [scriptblock] $Factory) {
     Write-Output "$Name initialized."
 }
 
-foreach ($name in @('MENG_JWT_SECRET', 'MENG_PII_ENC_KEY', 'MENG_PII_HASH_KEY', 'MENG_MYSQL_USER_PASSWORD', 'MENG_MYSQL_CONTENT_PASSWORD', 'MENG_MYSQL_GROWTH_PASSWORD', 'MENG_REDIS_PASSWORD', 'MENG_ES_ELASTIC_PASSWORD', 'MENG_ES_CONTENT_PASSWORD', 'MENG_MYSQL_XXLJOB_PASSWORD', 'MENG_XXL_JOB_ACCESS_TOKEN', 'MENG_XXL_JOB_ADMIN_PASSWORD', 'MENG_RABBITMQ_PASSWORD', 'MENG_NACOS_PASSWORD', 'MENG_NACOS_AUTH_TOKEN', 'MENG_NACOS_AUTH_IDENTITY_VALUE', 'MENG_ADMIN_PASSWORD')) {
+foreach ($name in @('MENG_JWT_SECRET', 'MENG_PII_ENC_KEY', 'MENG_PII_HASH_KEY', 'MENG_MYSQL_USER_PASSWORD', 'MENG_MYSQL_CONTENT_PASSWORD', 'MENG_MYSQL_GROWTH_PASSWORD', 'MENG_MYSQL_IM_PASSWORD', 'MENG_REDIS_PASSWORD', 'MENG_ES_ELASTIC_PASSWORD', 'MENG_ES_CONTENT_PASSWORD', 'MENG_MYSQL_XXLJOB_PASSWORD', 'MENG_XXL_JOB_ACCESS_TOKEN', 'MENG_XXL_JOB_ADMIN_PASSWORD', 'MENG_RABBITMQ_PASSWORD', 'MENG_NACOS_PASSWORD', 'MENG_NACOS_AUTH_TOKEN', 'MENG_NACOS_AUTH_IDENTITY_VALUE', 'MENG_ADMIN_PASSWORD')) {
     Set-MengVariableIfMissing $name { New-MengSecret }
 }
 Set-MengVariableIfMissing 'MENG_RABBITMQ_USERNAME' { 'meng_user_app' }
@@ -31,3 +31,6 @@ $ports = Get-MengPorts
 Set-MengVariableIfMissing 'MENG_NACOS_ADDR' { "127.0.0.1:$($ports.MENG_NACOS_PORT)" }
 
 Set-MengVariableIfMissing 'MENG_CONTENT_IMAGE_ROOT' { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'meng_center/content-images' }
+
+Set-MengVariableIfMissing 'MENG_IM_IMAGE_ROOT' { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'meng_center/im-images' }
+Set-MengVariableIfMissing 'MENG_USER_AVATAR_ROOT' { Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'meng_center/user-avatars' }

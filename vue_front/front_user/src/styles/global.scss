@@ -1,5 +1,13 @@
 @use './tokens';
 
+.messages-scrollbar-hidden {
+  scrollbar-width: none;
+}
+
+.messages-scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -61,6 +69,14 @@ button {
   }
 }
 
+html.account-scrollbar-hidden,
+html.account-scrollbar-hidden body,
+html.search-scrollbar-hidden,
+html.growth-scrollbar-hidden,
+html.growth-scrollbar-hidden body,
+html.search-scrollbar-hidden body,
+html.creator-scrollbar-hidden,
+html.creator-scrollbar-hidden body,
 html.home-scrollbar-hidden,
 html.home-scrollbar-hidden body,
 html.detail-scrollbar-hidden,
@@ -68,6 +84,14 @@ html.detail-scrollbar-hidden body {
   scrollbar-width: none;
 }
 
+html.account-scrollbar-hidden::-webkit-scrollbar,
+html.account-scrollbar-hidden body::-webkit-scrollbar,
+html.search-scrollbar-hidden::-webkit-scrollbar,
+html.growth-scrollbar-hidden::-webkit-scrollbar,
+html.growth-scrollbar-hidden body::-webkit-scrollbar,
+html.search-scrollbar-hidden body::-webkit-scrollbar,
+html.creator-scrollbar-hidden::-webkit-scrollbar,
+html.creator-scrollbar-hidden body::-webkit-scrollbar,
 html.home-scrollbar-hidden::-webkit-scrollbar,
 html.home-scrollbar-hidden body::-webkit-scrollbar,
 html.detail-scrollbar-hidden::-webkit-scrollbar,

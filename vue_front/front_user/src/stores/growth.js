@@ -44,7 +44,9 @@ export const useGrowthStore = defineStore('growth', {
         if (token !== this.generation) return null
         this.data = data
         this.error = null
+        return data
       } catch (e) {
+        if (token !== this.generation) return null
         if (e.status === 409) {
           this.sending = false
           await this.load()

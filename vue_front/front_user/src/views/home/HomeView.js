@@ -1,25 +1,14 @@
-import {
-  defineComponent,
-  ref,
-  reactive,
-  markRaw,
-  computed,
-  watch,
-  onMounted,
-  onUnmounted,
-} from 'vue'
+import { scrollToTop } from '@/composables/scrollToTop'
+import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { RouteName } from '@/router/names'
-import { EditPen, Calendar, ChatDotRound } from '@element-plus/icons-vue'
-import { useCommunity } from '@/composables/useCommunity'
+import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
 import { Categories, PostSort, Feed } from '@/constants/content'
-import { homeArtwork, mengAvatar } from '@/assets/images'
+import { homeArtwork } from '@/assets/images'
 import HeroWaves from '@/components/hero-waves/HeroWaves.vue'
-import CollapsibleCard from '@/components/collapsible-card/CollapsibleCard.vue'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
-import CheckInCard from '@/components/check-in-card/CheckInCard.vue'
 import PostCard from '@/components/post-card/PostCard.vue'
+import FeedFilters from '@/components/feed-filters/FeedFilters.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import PageState from '@/components/page-state/PageState.vue'
 const homeScrollbarClass = 'home-scrollbar-hidden'
@@ -27,18 +16,14 @@ const homeScrollbarClass = 'home-scrollbar-hidden'
 export default defineComponent({
   name: 'HomeView',
   components: {
-    CollapsibleCard,
     HeroWaves,
     CommunityLayout,
-    CheckInCard,
     PostCard,
     FeedPagination,
+    FeedFilters,
     PageState,
-    EditPen,
   },
   setup() {
-    const collapsed = reactive({ checkIn: false, ai: false, write: false })
-    const compactSidebar = computed(() => Object.values(collapsed).every(Boolean))
     onMounted(() => document.documentElement.classList.add(homeScrollbarClass))
     onUnmounted(() => document.documentElement.classList.remove(homeScrollbarClass))
     const route = useRoute(),
@@ -95,15 +80,8 @@ export default defineComponent({
     }
     watch(query, load, { immediate: true })
     return {
-      RouteName,
-      collapsed,
-      compactSidebar,
-      sidebarIcons: {
-        checkIn: markRaw(Calendar),
-        ai: markRaw(ChatDotRound),
-        write: markRaw(EditPen),
-      },
-      ...useCommunity(),
+      scrollToTop,
+      ...useI18n(),
       query,
       records,
       total,
@@ -115,7 +93,6 @@ export default defineComponent({
       Categories,
       PostSort,
       homeArtwork,
-      mengAvatar,
     }
   },
 })

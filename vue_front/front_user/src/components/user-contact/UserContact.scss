@@ -1,0 +1,32 @@
+.user-contact-avatar {
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+}
+
+.user-contact-card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--meng-text);
+}
+
+.user-contact-card small {
+  color: var(--meng-muted);
+}
+
+.user-contact-card button {
+  flex-basis: 100%;
+  padding: 8px 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}

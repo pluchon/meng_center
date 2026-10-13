@@ -34,7 +34,11 @@ public final class UserQueryService {
     }
 
     // 审核列表，只列普通用户，新申请在前；分页和排序都由数据库完成
-    public PageResult<UserVO> registrations(long page, long size, UserStatus status) {
+    public PageResult<UserVO> registrations(
+        long page,
+        long size,
+        UserStatus status
+    ) {
         authorization.requireAdmin();
         Page<UserEntity> result = mapper.selectPage(
             new Page<>(page, size),
@@ -54,6 +58,11 @@ public final class UserQueryService {
 
     // 内部接口：按编号批量取公开资料
     public List<PublicUserVO> users(List<Long> ids) {
-        return mapper.selectByIds(ids).stream().map(converter::toPublicVO).toList();
+        return mapper
+            .selectByIds(ids)
+            .stream()
+            .filter(user -> user.getStatus() == UserStatus.NORMAL)
+            .map(converter::toPublicVO)
+            .toList();
     }
 }

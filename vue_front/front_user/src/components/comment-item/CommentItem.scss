@@ -1,4 +1,5 @@
 .comment-item {
+  scroll-margin-block: 100px;
   display: flex;
   gap: var(--meng-space-4);
   padding-block: var(--meng-space-6);
@@ -238,4 +239,10 @@
   .comment-item.compact .comment-main {
     display: block;
   }
+}
+
+.comment-item:target {
+  border-radius: var(--meng-radius-card);
+  outline: 2px solid var(--meng-category-game-dot);
+  outline-offset: 8px;
 }

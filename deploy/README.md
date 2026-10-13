@@ -37,9 +37,11 @@ Docker Compose 项目名固定为 `meng_center`。本地开发每种中间件各
 
 Nacos 宿主机 gRPC 端口必须是服务端口加 1000。改映射后也需要更新用户环境变量 `MENG_NACOS_ADDR`，初始化脚本不会覆盖已有地址。
 
+头像写入 `MENG_USER_AVATAR_ROOT` 指定的仓库外目录。新增环境变量后先重新执行初始化脚本，再发布 Nacos 配置；已存在的变量保持不变。
+
 ## 业务服务与前端
 
-先执行 `./deploy/scripts/Publish-NacosConfiguration.ps1` 发布三个配置，再用 IDEA 自带 Maven 对 `java_backend/pom.xml` 执行 `package`。启动脚本默认使用打包后的可执行 JAR。
+先执行 `./deploy/scripts/Publish-NacosConfiguration.ps1` 发布各服务配置，再用 IDEA 自带 Maven 对 `java_backend/pom.xml` 执行 `package`。启动脚本默认使用打包后的可执行 JAR。
 
 ```powershell
 ./deploy/scripts/Initialize-Administrator.ps1
@@ -81,7 +83,7 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 应用版本能否一起运行，以 `verification/` 中的实测为准，版本表只提供选型依据。
 
-## 内容与成长服务
+## 内容、成长与消息服务
 
 已有数据卷新增数据库时执行下面两条命令，不删除或重建卷：
 
@@ -91,11 +93,11 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 ./deploy/scripts/Publish-NacosConfiguration.ps1
 ```
 
-初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD` 与 `MENG_CONTENT_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建三个域库。新生成的密码也应备份到仓库外配置清单。
+初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD`、`MENG_CONTENT_IMAGE_ROOT` 与 `MENG_IM_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` / `meng_im` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建四个域库。新生成的密码也应备份到仓库外配置清单。
 
-打包后启动 `Start-Backend.ps1 -Service meng-content` 与 `-Service meng-growth`，分别监听本机 8102、8103；网关继续用 8080，增加 `/content/**`、`/growth/**` 的 Nacos 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
+打包后启动 `Start-Backend.ps1 -Service meng-content` 、`-Service meng-growth` 及 `-Service meng-im`，分别监听本机 8102、8103、8104；网关继续用 8080，增加 `/content/**`、`/growth/**`、`/im/**` 的 Nacos 路由及单独的 `/im/ws` WebSocket 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
 
-`meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。三个域各自管理 Flyway 迁移。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
+`meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。四个域各自管理 Flyway 迁移。消息服务使用 `V20261012001__create_im_tables` 建表，`meng-im.yml` 配置连接 Origin 和用户查询超时；私信存储目录只从 `MENG_IM_IMAGE_ROOT` 读取。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
 
 ## 搜索引擎
 

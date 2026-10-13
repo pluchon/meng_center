@@ -5,4 +5,5 @@ public enum NotificationKind {
     CODE,
     APPROVED,
     REJECTED,
+    CONTACT_CHANGED,
 }
