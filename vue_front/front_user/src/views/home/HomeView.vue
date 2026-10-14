@@ -1,5 +1,6 @@
 <template>
   <CommunityLayout class="home-layout">
+    <GeometryLines />
     <section class="home-hero">
       <img
         class="hero-art"

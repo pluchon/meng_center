@@ -6,6 +6,7 @@ import { contentApi } from '@/api/content'
 import { Categories, PostSort, Feed } from '@/constants/content'
 import { homeArtwork, communitySparkle } from '@/assets/images'
 import HeroWaves from '@/components/hero-waves/HeroWaves.vue'
+import GeometryLines from '@/components/geometry-lines/GeometryLines.vue'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import PostCard from '@/components/post-card/PostCard.vue'
 import FeedFilters from '@/components/feed-filters/FeedFilters.vue'
@@ -17,6 +18,7 @@ export default defineComponent({
   name: 'HomeView',
   components: {
     HeroWaves,
+    GeometryLines,
     CommunityLayout,
     PostCard,
     FeedPagination,

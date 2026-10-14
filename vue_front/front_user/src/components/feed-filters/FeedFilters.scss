@@ -5,9 +5,40 @@
   gap: var(--meng-space-2);
   padding: var(--meng-space-3);
   margin-bottom: var(--meng-space-6);
+  position: relative;
   background: var(--meng-surface);
+  border: 2px solid var(--meng-tint);
   border-radius: var(--meng-radius-pill);
-  box-shadow: 0 6px 0 var(--meng-tint);
+  box-shadow: 0 6px 0 var(--meng-card-base);
+}
+
+// 内侧一圈虚线，像缝边
+.feed-filters::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 2px dashed var(--meng-tint);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+// 左上角斜贴一条纸胶带
+.feed-filters::after {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 56px;
+  width: 72px;
+  height: 20px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-warning) 0 10px,
+    var(--meng-category-daily) 10px 20px
+  );
+  opacity: 0.85;
+  rotate: -4deg;
+  pointer-events: none;
 }
 
 .category-filters,

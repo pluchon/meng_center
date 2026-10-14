@@ -10,6 +10,13 @@
   overflow-anchor: none;
 }
 
+// 首页背景是固定的几何线条层，正文和页脚要盖在它上面
+.home-layout .community-main,
+.home-layout .community-footer {
+  position: relative;
+  z-index: 1;
+}
+
 .community-layout.detail-layout {
   height: 100dvh;
   min-height: 0;
@@ -45,18 +52,55 @@
   gap: var(--meng-space-7);
   min-height: 68px;
   padding: 10px 12px;
-  border: 1.5px solid var(--meng-glass-border);
   border-radius: 34px;
   background: var(--meng-nav-glass);
   backdrop-filter: blur(12px);
-  box-shadow: var(--meng-shadow);
+  box-shadow: var(--meng-shadow-card);
+}
+
+// 一圈静态的粉彩渐变描边，只描边不遮内容
+.community-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: linear-gradient(100deg, var(--meng-card-ring));
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+// 右上角一颗闪烁的小星星
+.community-nav::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  right: 34px;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  pointer-events: none;
+  animation: nav-twinkle 3s ease-in-out infinite;
+}
+
+@keyframes nav-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.65;
+    rotate: 20deg;
+  }
 }
 
 .community-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-right: 6px;
+  padding-right: 22px;
+  border-right: 2px dashed var(--meng-border);
   white-space: nowrap;
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 25px;
@@ -262,8 +306,41 @@ nav [data-nav]:hover .nav-icon {
 }
 
 .community-footer {
-  margin-top: 44px;
-  background: var(--meng-tint);
+  position: relative;
+  margin-top: 72px;
+  padding-bottom: 8px;
+  background: linear-gradient(180deg, var(--meng-tint), var(--meng-success) 160%);
+}
+
+// 顶边是一排云朵似的圆弧
+.community-footer::before {
+  content: '';
+  position: absolute;
+  top: -22px;
+  right: 0;
+  left: 0;
+  height: 24px;
+  background: radial-gradient(circle at 24px 24px, var(--meng-tint) 22px, transparent 23px) 0 0 /
+    48px 24px repeat-x;
+  pointer-events: none;
+}
+
+// 最底下一条糖果色斜纹
+.community-footer::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-warning) 0 14px,
+    var(--meng-danger) 14px 28px,
+    var(--meng-success) 28px 42px,
+    var(--meng-category-game) 42px 56px
+  );
+  pointer-events: none;
 }
 
 .footer-inner {
@@ -288,24 +365,95 @@ nav [data-nav]:hover .nav-icon {
 }
 
 .footer-brand strong {
+  padding: 2px 12px;
+  border-radius: 16px;
+  background: var(--meng-warning);
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 24px;
   font-weight: 400;
+  rotate: -3deg;
 }
 
+// 对话气泡：小尾巴指向左边的品牌
 .footer-note {
-  margin: 0;
+  position: relative;
+  margin: 0 0 0 10px;
+  padding: 8px 18px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-border);
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 17px;
   color: var(--meng-muted);
+  rotate: 1.5deg;
+  transition: rotate 360ms var(--meng-slide-ease);
+}
+
+.footer-note::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 12px;
+  height: 12px;
+  border-radius: 0 0 0 4px;
+  background: var(--meng-surface);
+  translate: 0 -50%;
+  rotate: 45deg;
+}
+
+.footer-note:hover {
+  rotate: 0deg;
+}
+
+// 两颗会闪的小星星，和中间的云朵插画呼应
+.footer-inner::before,
+.footer-inner::after {
+  content: '';
+  position: absolute;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  pointer-events: none;
+  animation: footer-twinkle 3.2s ease-in-out infinite;
+}
+
+.footer-inner::before {
+  top: 24px;
+  left: 30%;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+}
+
+.footer-inner::after {
+  right: 34%;
+  bottom: 30px;
+  width: 14px;
+  height: 14px;
+  background: var(--meng-decor-sakura);
+  animation-delay: -1.6s;
+}
+
+@keyframes footer-twinkle {
+  50% {
+    opacity: 0.35;
+    scale: 0.6;
+    rotate: 20deg;
+  }
 }
 
 .footer-links {
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 64px;
+  gap: 40px;
   margin-left: auto;
+}
+
+// 两栏之间一条竖虚线
+.footer-links > div + div {
+  padding-left: 40px;
+  border-left: 2px dashed var(--meng-border);
 }
 
 .footer-links > div {
@@ -314,16 +462,34 @@ nav [data-nav]:hover .nav-icon {
   gap: 4px;
 }
 
+// 栏目标题做成斜贴的小标签，两栏各一种颜色
 .footer-links h2 {
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 2px 12px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.1em;
   color: var(--meng-shadow-hard);
+  rotate: -3deg;
+}
+
+.footer-links > div + div h2 {
+  background: var(--meng-danger);
+  box-shadow: 0 2px 0 var(--meng-category-creation);
+  color: var(--meng-like-text);
+  rotate: 2deg;
 }
 
 .footer-links a,
 .footer-links button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-align: left;
   padding: 6px 0;
   border: 0;
@@ -331,11 +497,33 @@ nav [data-nav]:hover .nav-icon {
   color: var(--meng-text);
   font-size: 15px;
   font-weight: 700;
+  transition:
+    color 200ms ease,
+    translate 260ms var(--meng-slide-ease);
+}
+
+// 链接前的小菱形，悬停时变成金色并带着文字右移
+.footer-links a::before,
+.footer-links button::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--meng-border);
+  rotate: 45deg;
+  transition: background 200ms ease;
 }
 
 .footer-links a:hover,
 .footer-links button:hover {
   color: var(--meng-primary);
+  translate: 4px 0;
+}
+
+.footer-links a:hover::before,
+.footer-links button:hover::before {
+  background: var(--meng-decor-sparkle);
 }
 
 .footer-art {
@@ -344,11 +532,19 @@ nav [data-nav]:hover .nav-icon {
   left: 34%;
   width: min(520px, 40%);
   height: 150px;
-  background: var(--meng-border);
+  background: var(--meng-primary-light-5);
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
+  opacity: 0.7;
   pointer-events: none;
+  animation: footer-float 7s ease-in-out infinite;
+}
+
+@keyframes footer-float {
+  50% {
+    translate: 0 -6px;
+  }
 }
 
 @media (width <= 1150px) {
@@ -448,6 +644,13 @@ nav [data-nav]:hover .nav-icon {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .footer-inner::before,
+  .footer-inner::after,
+  .footer-art,
+  .community-nav::after {
+    animation: none;
+  }
+
   .nav-slider,
   .nav-icon {
     transition: none;
