@@ -12,7 +12,11 @@
   >
     <template #header>
       <div class="visual-heading">
-        <span class="visual-emblem"><IconChartDonut :size="25" /></span>
+        <span class="visual-emblem"><img
+          :src="icons.chart"
+          alt=""
+          aria-hidden="true"
+        ></span>
         <h2>{{ t('growth.visualTitle') }}</h2>
         <div
           class="visual-range"
@@ -37,7 +41,11 @@
           :aria-label="t('growth.closeVisualization')"
           @click="$emit('update:open',false)"
         >
-          <IconX :size="20" />
+          <img
+            :src="icons.close"
+            alt=""
+            aria-hidden="true"
+          >
         </button>
       </div>
     </template>
@@ -58,7 +66,7 @@
         aria-hidden="true"
       />
       <PageState
-        v-if="stats.error||!stats.data"
+        v-if="stats.error||!shown"
         :state="stats.error?'error':'loading'"
         @retry="$emit('retry')"
       />
@@ -66,16 +74,29 @@
         <div
           v-if="total>0"
           class="experience-charts"
-          :aria-busy="stats.loading"
+          :class="{switching}"
+          :aria-busy="switching"
         >
+          <span
+            v-if="switching"
+            class="visual-spinner"
+            aria-hidden="true"
+          ><i /><i /><i /></span>
           <section class="source-chart">
             <span
               class="visual-tape tape-left"
               aria-hidden="true"
             />
-            <h3><IconChartDonut :size="19" />{{ t('growth.chartSources') }}<span>{{ t('growth.shareSticker') }}</span></h3><CreatorChart
+            <h3>
+              <img
+                :src="icons.chart"
+                class="chart-icon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('growth.chartSources') }}<span>{{ t('growth.shareSticker') }}</span>
+            </h3><CreatorChart
               :type="CreatorChartType.EXP_SOURCES"
-              :data="stats.data.sources"
+              :data="shown.sources"
               :days="days"
             />
           </section>
@@ -84,9 +105,16 @@
               class="visual-tape tape-right"
               aria-hidden="true"
             />
-            <h3><IconChartLine :size="19" />{{ t('growth.chartTrend') }}<span>{{ t('growth.trendSticker') }}</span></h3><CreatorChart
+            <h3>
+              <img
+                :src="icons.trend"
+                class="chart-icon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('growth.chartTrend') }}<span>{{ t('growth.trendSticker') }}</span>
+            </h3><CreatorChart
               :type="CreatorChartType.EXP_TREND"
-              :data="stats.data.days"
+              :data="shown.days"
               :days="days"
             />
           </section>
@@ -96,10 +124,12 @@
           state="empty"
         />
         <footer class="visual-footer">
-          <span class="visual-period"><IconCalendarMonth
-            :size="18"
+          <span class="visual-period"><img
+            :src="icons.calendar"
+            class="chart-icon"
+            alt=""
             aria-hidden="true"
-          />{{ period }}</span><span class="visual-face">{{ t('growth.visualFace') }}</span>
+          >{{ period }}</span><span class="visual-face">{{ t('growth.visualFace') }}</span>
         </footer>
       </template>
     </div>

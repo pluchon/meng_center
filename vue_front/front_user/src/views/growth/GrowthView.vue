@@ -36,12 +36,22 @@
         <GrowthPanel
           class="calendar-panel"
           :title="t('growth.calendar')"
-          :icon="IconCalendarCheck"
+          :icon="icons.calendar"
           :sticker="t('growth.calendarFace')"
         >
           <template #actions>
             <div class="calendar-stickers">
-              <span class="tone-gold"><IconSparkles :size="18" />{{ t('growth.streak') }} <b>{{ calendar.data?.streak??0 }}</b> {{ t('growth.daysUnit') }}</span><span class="tone-pink"><IconCalendarMonth :size="18" />{{ t('growth.monthCount') }} <b>{{ calendar.data?.count??0 }}</b> {{ t('growth.daysUnit') }}</span>
+              <span class="tone-gold"><img
+                :src="icons.flame"
+                class="sticker-icon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('growth.streak') }} <b>{{ calendarCounts.streak??0 }}</b> {{ t('growth.daysUnit') }}</span><span class="tone-pink"><img
+                :src="icons.calendar"
+                class="sticker-icon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('growth.monthCount') }} <b>{{ calendarCounts.count??0 }}</b> {{ t('growth.daysUnit') }}</span>
             </div>
           </template>
           <PageState
@@ -63,10 +73,15 @@
           class="tasks-panel"
           tone="gold"
           :title="t('growth.tasks')"
-          :icon="IconFlag"
+          :icon="icons.flag"
         >
           <template #actions>
-            <span class="task-completed"><IconCheck :size="16" />{{ t('growth.completed',{count:completed,total:ExpSources.length}) }}</span>
+            <span class="task-completed"><img
+              :src="icons.check"
+              class="sticker-icon"
+              alt=""
+              aria-hidden="true"
+            >{{ t('growth.completed',{count:completed,total:ExpSources.length}) }}</span>
           </template>
           <PageState
             v-if="overview.error||!overview.data"
@@ -88,7 +103,7 @@
         sticker-tone="gold"
         inline-sticker
         :title="t('growth.records')"
-        :icon="IconReceipt"
+        :icon="icons.receipt"
         :sticker="t('growth.recordsFace')"
       >
         <template #actions>
@@ -136,13 +151,18 @@
               <span
                 class="record-icon"
                 aria-hidden="true"
-              ><component
-                :is="sourceIcons[record.source]"
-                :size="20"
-              /></span><span><strong>{{ t('growth.source.'+record.source) }}</strong><time
+              ><img
+                :src="sourceIcons[record.source]"
+                alt=""
+              ></span><span><strong>{{ t('growth.source.'+record.source) }}</strong><time
                 :datetime="record.time"
                 :title="recordTime(record.time)"
-              ><IconClock :size="12" /><span>{{ recordTime(record.time) }}</span></time></span><b>{{ '+'+record.amount }}</b>
+              ><img
+                :src="icons.clock"
+                class="time-icon"
+                alt=""
+                aria-hidden="true"
+              ><span>{{ recordTime(record.time) }}</span></time></span><b>{{ '+'+record.amount }}</b>
             </li>
           </ul>
           <PageState
@@ -167,7 +187,12 @@
               class="tone-gold"
               @click="unavailable"
             >
-              <IconSparkles :size="18" />{{ t('growth.ai') }}
+              <img
+                :src="icons.magic"
+                class="action-icon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('growth.ai') }}
             </button><button
               type="button"
               class="tone-violet"
@@ -175,7 +200,12 @@
               :aria-expanded="visualOpen"
               @click="toggleVisual"
             >
-              <IconChartPie :size="18" />{{ t('growth.visualize') }}
+              <img
+                :src="icons.chart"
+                class="action-icon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('growth.visualize') }}
             </button>
           </div>
         </footer>

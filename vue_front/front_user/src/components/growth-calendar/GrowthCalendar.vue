@@ -36,6 +36,7 @@
                 :class="['calendar-day','tone-'+cell.tone,{signed:cell.checked,now:cell.today&&!cell.checked,future:cell.future}]"
                 :aria-label="cell.checked?t('growth.checkedDay',{date:cell.key}):cell.today?t('growth.todayDay',{date:cell.key}):cell.key"
                 :aria-current="cell.today?'date':undefined"
+                :style="{'--d':cell.day}"
               >{{ cell.day }}</span>
             </template>
           </div>
@@ -49,14 +50,24 @@
           :aria-label="t('growth.previousMonth')"
           @click="move(-1)"
         >
-          <IconChevronLeft :size="19" />
+          <img
+            :src="icons.chevron"
+            class="chevron chevron-left"
+            alt=""
+            aria-hidden="true"
+          >
         </button><strong>{{ monthLabel }}</strong><button
           type="button"
           :disabled="data.month>=data.today.slice(0,7)"
           :aria-label="t('growth.nextMonth')"
           @click="move(1)"
         >
-          <IconChevronRight :size="19" />
+          <img
+            :src="icons.chevron"
+            class="chevron chevron-right"
+            alt=""
+            aria-hidden="true"
+          >
         </button>
       </div>
       <button
@@ -66,13 +77,12 @@
         :aria-busy="sending"
         @click="$emit('check')"
       >
-        <IconCheck
-          v-if="checked"
-          :size="22"
-        /><IconCalendarCheck
-          v-else
-          :size="22"
-        />{{ checked?t('growth.checkedIn'):t('growth.checkIn',{reward:reward??0}) }}
+        <img
+          :src="checked?icons.check:icons.calendar"
+          class="check-icon"
+          alt=""
+          aria-hidden="true"
+        >{{ checked?t('growth.checkedIn'):t('growth.checkIn',{reward:reward??0}) }}
       </button>
     </footer>
   </div>

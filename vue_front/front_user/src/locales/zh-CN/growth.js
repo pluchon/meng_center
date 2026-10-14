@@ -45,6 +45,7 @@ export default {
   trendSticker: '一点点长大',
   visualFace: '(๑•̀ㅂ•́)و✧',
   chartSources: '经验来源占比',
+  totalExp: '总经验',
   chartTrend: '每日经验',
   chartDescription: '近 {days} 天的经验统计',
   sourceFilter: '按经验来源筛选',

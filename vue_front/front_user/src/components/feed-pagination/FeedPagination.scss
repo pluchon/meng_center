@@ -45,19 +45,25 @@
   top: 0;
   left: 0;
   z-index: -1;
-  box-sizing: border-box;
-  border: 2px solid var(--meng-surface);
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-warning);
-  box-shadow: 0 2px 0 var(--meng-category-daily);
   opacity: 0;
-  rotate: 4deg;
   pointer-events: none;
   transition:
     transform 420ms var(--meng-slide-ease),
     width 420ms var(--meng-slide-ease),
     height 420ms var(--meng-slide-ease),
     opacity 200ms ease;
+}
+
+.page-slider::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  rotate: 4deg;
 }
 
 .page-slider.visible {

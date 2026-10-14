@@ -829,6 +829,7 @@ small {
 .editor-modes::before {
   content: '';
   position: absolute;
+  box-sizing: border-box;
   inset: 3px auto 3px 3px;
   width: calc(50% - 3px);
   border: 2px solid var(--meng-surface);
@@ -980,6 +981,7 @@ small {
   content: '';
   position: absolute;
   z-index: -1;
+  box-sizing: border-box;
   inset: 3px auto 3px 3px;
   width: calc(50% - 5px);
   border: 2px solid var(--meng-surface);

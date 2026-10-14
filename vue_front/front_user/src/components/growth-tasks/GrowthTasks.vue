@@ -6,20 +6,23 @@
       :class="['task','tone-'+SourceTones[task.source]]"
     >
       <div class="task-title">
-        <component
-          :is="icons[task.source]"
-          :size="20"
+        <span class="task-icon"><img
+          :src="icons[task.source]"
+          alt=""
           aria-hidden="true"
-        /><strong>{{ t('growth.source.'+task.source) }}</strong><span>{{ t('growth.today') }} <b>{{ '+'+task.earned }}</b></span>
+        ></span><strong>{{ t('growth.source.'+task.source) }}</strong><span>{{ t('growth.today') }} <b>{{ '+'+task.earned }}</b></span>
       </div>
       <div class="task-status">
         <span
           :class="{done:task.count>0}"
           :title="t('growth.rewardProgress',{count:task.count,max:task.dailyMax})"
-        ><IconCheck
+        ><img
           v-if="task.count>0"
-          :size="13"
-        />{{ task.count>0?t('growth.done'):task.source===ExpSource.CHECK_IN?t('growth.notSigned'):t('growth.notDone') }}</span><span>{{ t('growth.cumulative') }} <b>{{ task.activeDays }}</b> {{ t('growth.daysUnit') }}</span><router-link
+          :src="checkIcon"
+          class="done-icon"
+          alt=""
+          aria-hidden="true"
+        >{{ task.count>0?t('growth.done'):task.source===ExpSource.CHECK_IN?t('growth.notSigned'):t('growth.notDone') }}</span><span>{{ t('growth.cumulative') }} <b>{{ task.activeDays }}</b> {{ t('growth.daysUnit') }}</span><router-link
           v-if="task.source!==ExpSource.CHECK_IN"
           :to="{name:task.source===ExpSource.POST?RouteName.POST_NEW:RouteName.HOME}"
         >
@@ -45,6 +48,7 @@
         v-for="row in weekly"
         :key="row.date"
         :class="['weekly-day','tone-'+weekdayTone(row.date)]"
+        :style="{'--i':weekly.indexOf(row)}"
       >
         <strong>{{ row.amount }}</strong><span :style="{height:(row.amount?Math.max(8,row.amount/maximum*76):3)+'px'}" /><small>{{ weekday(row.date) }}</small>
       </div>

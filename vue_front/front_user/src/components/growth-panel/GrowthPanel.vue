@@ -36,11 +36,11 @@
         <span
           class="heading-icon"
           aria-hidden="true"
-        ><component
-          :is="icon"
+        ><img
           v-if="icon"
-          :size="21"
-        /></span><span class="heading-title">{{ title }}</span><span
+          :src="icon"
+          alt=""
+        ></span><span class="heading-title">{{ title }}</span><span
           class="heading-star"
           aria-hidden="true"
         /><span
