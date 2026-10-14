@@ -75,7 +75,14 @@
               :title="item.error"
               @click="im.send('',[],item)"
             >
-              <IconRefresh :size="14" />{{ t('im.failed') }}
+              <img
+                class="message-art-icon"
+                :src="messageRefreshIcon"
+                width="14"
+                height="14"
+                alt=""
+                aria-hidden="true"
+              >{{ t('im.failed') }}
             </button>
             <small
               v-else
@@ -114,7 +121,14 @@
               :disabled="disabled||busy"
               :aria-expanded="emotions"
             >
-              <IconMoodSmile :size="18" />{{ t('im.emotion') }}
+              <img
+                class="message-art-icon"
+                :src="navMengIcon"
+                width="18"
+                height="18"
+                alt=""
+                aria-hidden="true"
+              >{{ t('im.emotion') }}
             </button>
           </template>
           <div class="message-emotions">
@@ -138,7 +152,14 @@
           :disabled="disabled||busy"
           @click="input.click()"
         >
-          <IconPhoto :size="18" />{{ t('im.image') }}
+          <img
+            class="message-art-icon"
+            :src="messagePhotoIcon"
+            width="18"
+            height="18"
+            alt=""
+            aria-hidden="true"
+          >{{ t('im.image') }}
         </button>
         <small :class="{over:count>Im.TEXT_MAX}">{{ t('im.count',{count,max:Im.TEXT_MAX}) }}</small>
       </div>
@@ -160,7 +181,14 @@
             :aria-label="t('im.removeImage')"
             @click="uploads.remove(item)"
           >
-            <IconX :size="14" />
+            <img
+              class="message-art-icon"
+              :src="messageCloseIcon"
+              width="14"
+              height="14"
+              alt=""
+              aria-hidden="true"
+            >
           </button>
           <button
             v-if="item.status==='failed'"
@@ -198,7 +226,14 @@
           :aria-label="t('im.send')"
           @click="send"
         >
-          <IconSend :size="24" />
+          <img
+            class="message-art-icon"
+            :src="messageSendIcon"
+            width="24"
+            height="24"
+            alt=""
+            aria-hidden="true"
+          >
         </button>
       </div>
       <input

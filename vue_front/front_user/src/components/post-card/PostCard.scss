@@ -1,10 +1,60 @@
 .post-card {
+  --card-fill: var(--meng-tint);
+  --card-edge: var(--meng-category-anime);
+
+  position: relative;
   cursor: pointer;
-  padding: var(--meng-space-7);
+  padding: 26px 28px 22px;
+  border: 2px solid var(--meng-tint);
   border-radius: var(--meng-radius-card);
   background: var(--meng-surface);
-  box-shadow: var(--meng-shadow);
+  box-shadow: var(--meng-shadow-card);
   animation: post-arrive 320ms ease both;
+  transition:
+    translate 260ms var(--meng-slide-ease),
+    border-color 240ms ease,
+    box-shadow 240ms ease;
+}
+
+.post-card:hover {
+  translate: 0 -3px;
+  border-color: var(--card-edge);
+  box-shadow: 0 9px 0 var(--card-edge), 0 20px 48px var(--meng-decor-shadow);
+}
+
+// 卡片左上角贴一条和分类同色的纸胶带
+.post-card::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: 40px;
+  width: 72px;
+  height: 20px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(135deg, var(--card-fill) 0 10px, var(--card-edge) 10px 20px);
+  opacity: 0.85;
+  rotate: -4deg;
+  pointer-events: none;
+}
+
+.card-creation {
+  --card-fill: var(--meng-danger);
+  --card-edge: var(--meng-category-creation);
+}
+
+.card-game {
+  --card-fill: var(--meng-category-game);
+  --card-edge: var(--meng-category-game-dot);
+}
+
+.card-tech {
+  --card-fill: var(--meng-success);
+  --card-edge: var(--meng-growth-mint-edge);
+}
+
+.card-daily {
+  --card-fill: var(--meng-warning);
+  --card-edge: var(--meng-category-daily);
 }
 
 @keyframes post-arrive {
@@ -23,29 +73,69 @@
   display: flex;
   align-items: center;
   gap: var(--meng-space-2);
-  font-size: 14px;
+  font-size: 16px;
   flex-wrap: wrap;
 }
 
+.post-author .el-avatar {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 2px solid var(--meng-surface);
+  box-shadow: 0 0 0 2px var(--card-edge);
+}
+
 .author-level {
-  padding: var(--meng-space-1) var(--meng-space-2);
+  padding: var(--meng-space-1) var(--meng-space-3);
+  border: 2px solid var(--meng-surface);
   background: var(--meng-warning);
   border-radius: var(--meng-radius-pill);
-  font-size: 11px;
-}
-
-time {
-  margin-left: auto;
-  color: var(--meng-muted);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
   font-size: 12px;
+  font-weight: 700;
+  rotate: -3deg;
 }
 
+.post-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-left: auto;
+  max-width: 100%;
+}
+
+time,
 .post-region {
   display: inline-flex;
   align-items: center;
-  gap: var(--meng-space-1);
-  font-size: 12px;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 1px solid var(--meng-tint);
+  border-radius: var(--meng-radius-pill);
   color: var(--meng-muted);
+  font-size: 14px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+time {
+  background: var(--meng-bg);
+}
+
+.post-region {
+  background: var(--meng-success);
+  border-color: var(--meng-success);
+  color: var(--meng-success-text);
+}
+
+.region-silhouette {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  fill: currentcolor;
 }
 
 .post-title {
@@ -53,6 +143,16 @@ time {
   align-items: center;
   gap: var(--meng-space-3);
   margin-block: var(--meng-space-4) var(--meng-space-2);
+}
+
+.post-title::before {
+  content: '';
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  background: var(--card-edge);
+  rotate: 45deg;
 }
 
 .post-title a {
@@ -102,19 +202,29 @@ time {
 
 .post-images {
   display: grid;
+  width: min(100%, 960px);
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--meng-space-3);
-  margin-top: var(--meng-space-4);
+  margin-top: var(--meng-space-3);
 }
 
 .post-images button {
   position: relative;
   padding: 0;
-  border: 0;
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-note);
   overflow: hidden;
   background: var(--meng-tint);
+  box-shadow: 0 0 0 2px var(--card-fill), 0 4px 0 2px var(--card-edge);
   aspect-ratio: 1;
+  transition:
+    rotate 260ms var(--meng-slide-ease),
+    translate 260ms var(--meng-slide-ease);
+}
+
+.post-images button:hover {
+  rotate: -2deg;
+  translate: 0 -3px;
 }
 
 .post-images .el-image {
@@ -145,8 +255,11 @@ time {
 .post-actions {
   display: flex;
   align-items: center;
-  gap: var(--meng-space-4);
-  margin-top: var(--meng-space-6);
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 2px dashed var(--meng-tint);
   color: var(--meng-muted);
 }
 
@@ -158,30 +271,113 @@ time {
   font-size: 13px;
 }
 
-.post-actions button {
-  padding: var(--meng-space-2);
-  border: 0;
+.post-actions button,
+.post-actions .views-action {
+  --action-fill: var(--meng-tint);
+  --action-edge: var(--meng-category-anime);
+
+  justify-content: center;
+  box-sizing: border-box;
+  min-width: 62px;
+  min-height: 38px;
+  padding: 4px 14px 4px 8px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   color: inherit;
-  background: transparent;
+  background: var(--action-fill);
+  box-shadow: 0 3px 0 var(--action-edge);
+  font-weight: 700;
   transition:
+    rotate 260ms var(--meng-slide-ease),
+    translate 260ms var(--meng-slide-ease),
     transform 180ms ease,
     color 180ms ease,
-    background 180ms ease;
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.post-actions button .el-icon,
+.post-actions .views-action .el-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  font-size: 14px;
+}
+
+.post-actions .views-action {
+  rotate: -2deg;
+}
+
+.post-actions .like-action {
+  rotate: 1.5deg;
+}
+
+.post-actions .comment-action {
+  rotate: -1deg;
+}
+
+.post-actions .favorite-action {
+  rotate: 2deg;
+}
+
+.post-actions .views-action {
+  --action-fill: var(--meng-category-game);
+  --action-edge: var(--meng-category-game-dot);
+
+}
+
+.post-actions .like-action {
+  --action-fill: var(--meng-danger);
+  --action-edge: var(--meng-category-creation);
+
+}
+
+.post-actions .favorite-action {
+  --action-fill: var(--meng-warning);
+  --action-edge: var(--meng-category-daily);
+
 }
 
 .post-actions button:hover {
-  background: var(--meng-tint);
-  transform: translateY(-2px);
+  rotate: 0deg;
+  translate: 0 -2px;
+  box-shadow: 0 5px 0 var(--action-edge);
+}
+
+.post-actions .like-action.active .el-icon {
+  color: var(--meng-like-icon);
+}
+
+.post-actions .favorite-action.active .el-icon {
+  color: var(--meng-favorite-stroke);
+}
+
+.post-actions button:focus-visible {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.post-actions button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
 }
 
 .post-actions button:active {
-  transform: scale(0.94);
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--action-edge);
 }
 
 .post-actions .active {
-  background: var(--meng-danger);
   color: var(--meng-danger-text);
+  outline: 1px solid var(--action-edge);
+  font-weight: 800;
+}
+
+.post-actions .favorite-action.active {
+  color: var(--meng-favorite-text);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -194,13 +390,20 @@ time {
   }
 
   .post-actions button:hover,
-  .post-actions button:active {
+  .post-actions button:active,
+  .post-card:hover,
+  .post-actions .like-action,
+  .post-actions .favorite-action,
+  .post-actions .views-action {
     transform: none;
   }
 }
 
 .post-type {
   margin-left: auto;
+  border: 2px solid var(--meng-surface);
+  box-shadow: 0 3px 0 var(--card-edge);
+  rotate: 3deg;
 }
 
 @media (width <= 600px) {
@@ -212,11 +415,13 @@ time {
     gap: var(--meng-space-2);
   }
 
+  .post-actions button,
+  .post-actions .views-action {
+    min-height: 40px;
+  }
+
   .post-images {
     gap: var(--meng-space-1);
   }
 
-  .post-author time {
-    margin-left: 0;
-  }
 }

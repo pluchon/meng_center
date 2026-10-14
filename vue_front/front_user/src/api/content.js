@@ -46,7 +46,7 @@ export const contentApi = {
     body.append('file', file)
     return request.post(Root + '/images', body, config)
   },
-  feed: (params) => request.get(Root + '/posts', { params }),
+  feed: (params, config = {}) => request.get(Root + '/posts', { ...config, params }),
   like: (id, on) =>
     on
       ? request.put(Root + '/posts/' + id + '/like')

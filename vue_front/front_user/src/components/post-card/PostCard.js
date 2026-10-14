@@ -1,7 +1,7 @@
 import { computed, defineComponent, reactive, ref } from 'vue'
 import {
   Picture as PictureIcon,
-  Location,
+  Clock,
   View as ViewIcon,
   Star,
   ChatDotRound,
@@ -12,17 +12,27 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCommunity } from '@/composables/useCommunity'
 import { usePostTime } from '@/composables/usePostTime'
 import { notifyFailure } from '@/composables/useFailureNotice'
-import { userAvatar } from '@/assets/images'
+import { userAvatar, regionSilhouettes } from '@/assets/images'
+import { postRegion } from '@/utils/postRegion'
 import HighlightText from '@/components/highlight-text/HighlightText.vue'
 import { RouteName } from '@/router/names'
 import { useFavoriteStore } from '@/stores/favorites'
 import { avatarUrl } from '@/api/user'
 export default defineComponent({
   name: 'PostCard',
-  components: { HighlightText, PictureIcon, Location, ViewIcon, Star, ChatDotRound, CollectionTag },
+  components: {
+    HighlightText,
+    PictureIcon,
+    Clock,
+    ViewIcon,
+    Star,
+    ChatDotRound,
+    CollectionTag,
+  },
   props: { post: { type: Object, required: true } },
   emits: ['change'],
   setup(props, { emit }) {
+    const region = computed(() => postRegion(props.post.ipRegion))
     const route = useRoute()
     const router = useRouter()
     const homeQuery = computed(() =>
@@ -107,6 +117,8 @@ export default defineComponent({
       relativeTime: usePostTime(),
       contentImage,
       userAvatar,
+      region,
+      regionSilhouettes,
       avatarUrl,
     }
   },

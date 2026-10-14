@@ -17,7 +17,7 @@ export default {
     account: '我的账号',
   },
   unavailable: '这个功能还没开放，稍后再见～',
-  searchPlaceholder: '搜索帖子（暂未开放）',
+  searchPlaceholder: '搜你想搜',
   all: '综合',
   categories: { ANIME: '追番', CREATION: '创作', GAME: '游戏', TECH: '技术', DAILY: '日常' },
   sort: { LATEST: '最新', HOT: '热门' },

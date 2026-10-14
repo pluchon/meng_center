@@ -22,11 +22,29 @@
   z-index: 1;
   margin-left: var(--meng-space-8);
   padding: var(--meng-space-8);
-  border: 1px solid var(--meng-surface);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-card);
   background: var(--meng-hero-glass);
   backdrop-filter: blur(16px);
   box-shadow: 0 6px 0 var(--meng-border);
+  rotate: -1.5deg;
+  transition: rotate 360ms var(--meng-slide-ease);
+  animation: hero-float 6s ease-in-out infinite;
+}
+
+// 卡片内侧一圈虚线，像贴纸的缝边
+.hero-welcome::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed var(--meng-border);
+  border-radius: calc(var(--meng-radius-card) - 8px);
+  opacity: 0.7;
+  pointer-events: none;
+}
+
+.hero-welcome:hover {
+  rotate: 0deg;
 }
 
 h1 {
@@ -49,33 +67,144 @@ h1 span {
   position: absolute;
   z-index: 1;
   padding: var(--meng-space-3) var(--meng-space-5);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-surface);
+  box-shadow: 0 4px 0 var(--meng-border);
   font-weight: 700;
+  transition: rotate 360ms var(--meng-slide-ease);
+  animation: hero-float 5s ease-in-out infinite;
+}
+
+// 对话气泡的小尾巴，指向右下角的角色
+.hero-bubble::after,
+.hero-face::after,
+.hero-meow::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 22px;
+  width: 12px;
+  height: 12px;
+  border-radius: 0 0 4px;
+  background: inherit;
+  rotate: 45deg;
 }
 
 .hero-cheer {
   top: -26px;
   left: var(--meng-space-7);
   background: var(--meng-warning);
-  transform: rotate(-7deg);
+  box-shadow: 0 4px 0 var(--meng-category-daily);
+  rotate: -7deg;
+  animation-duration: 4.2s;
 }
 
 .hero-bubble {
   top: 32px;
   left: 47%;
+  rotate: 3deg;
+  animation-delay: -1.2s;
 }
 
 .hero-face {
   bottom: 100px;
   left: 50%;
   background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: -4deg;
+  animation-duration: 4.6s;
+  animation-delay: -2.4s;
 }
 
 .hero-meow {
   bottom: 110px;
   right: var(--meng-space-7);
   background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+  rotate: 5deg;
+  animation-duration: 5.4s;
+  animation-delay: -0.6s;
+}
+
+.hero-meow::after {
+  left: auto;
+  right: 20px;
+}
+
+.hero-cheer:hover,
+.hero-bubble:hover,
+.hero-face:hover,
+.hero-meow:hover {
+  rotate: 0deg;
+}
+
+.hero-sparkle {
+  position: absolute;
+  z-index: 1;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+  animation: hero-twinkle 2.8s ease-in-out infinite;
+}
+
+.sparkle-a {
+  top: 70px;
+  left: 38%;
+  width: 22px;
+  height: 22px;
+}
+
+.sparkle-b {
+  top: 150px;
+  right: 36%;
+  width: 16px;
+  height: 16px;
+  background: var(--meng-surface);
+  animation-delay: -0.9s;
+}
+
+.sparkle-c {
+  bottom: 150px;
+  left: 40%;
+  width: 14px;
+  height: 14px;
+  background: var(--meng-decor-sakura);
+  animation-delay: -1.7s;
+}
+
+.sparkle-d {
+  top: 90px;
+  right: 9%;
+  width: 20px;
+  height: 20px;
+  background: var(--meng-surface);
+  animation-delay: -2.2s;
+}
+
+@keyframes hero-float {
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@keyframes hero-twinkle {
+  50% {
+    opacity: 0.35;
+    scale: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-welcome,
+  .hero-cheer,
+  .hero-bubble,
+  .hero-face,
+  .hero-meow,
+  .hero-sparkle {
+    animation: none;
+  }
 }
 
 .home-content {
@@ -84,11 +213,58 @@ h1 span {
 
 .post-list {
   display: grid;
-  gap: var(--meng-space-6);
+  gap: 20px;
 }
 
 .home-feed {
+  scroll-margin-top: var(--meng-space-4);
   min-width: 0;
+  overflow-anchor: none;
+}
+
+// 分页器吸附在视口底部，列表高矮都能直接翻下一页
+.feed-results-shell :deep(.feed-pagination) {
+  position: sticky;
+  bottom: var(--meng-space-4);
+  z-index: 2;
+  margin-top: var(--meng-space-5);
+  padding: var(--meng-space-2) var(--meng-space-3);
+  border: 2px solid var(--meng-glass-border);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-glass-surface);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--meng-shadow-card);
+}
+
+.feed-swap-enter-active {
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+.feed-swap-leave-active {
+  transition: opacity 140ms ease, transform 140ms ease;
+  pointer-events: none;
+}
+
+.feed-swap-enter-from {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.feed-swap-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-swap-enter-active,
+  .feed-swap-leave-active {
+    transition: none;
+  }
+
+  .feed-swap-enter-from,
+  .feed-swap-leave-to {
+    transform: none;
+  }
 }
 
 .feed-empty {
@@ -130,7 +306,9 @@ h1 span {
   }
 
   .hero-face,
-  .hero-meow {
+  .hero-meow,
+  .sparkle-c,
+  .sparkle-d {
     display: none;
   }
 

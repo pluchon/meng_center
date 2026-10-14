@@ -4,13 +4,13 @@
 }
 
 .account-layout {
-  padding: 24px var(--meng-community-gutter) 30px;
+  padding: 24px 0 30px;
   position: relative;
 }
 
 .account-card {
   max-width: var(--meng-account-width);
-  width: min(100%, 77.778vw);
+  width: 100%;
   height: min(850px, calc(100dvh - 148px));
   min-height: 0;
   margin: auto;
@@ -433,7 +433,6 @@
 }
 
 .account-community :deep(.community-nav) {
-  width: min(1680px, 88.889vw, calc(100% - clamp(16px, 3vw, 40px) * 2));
   min-height: 70px;
 }
 

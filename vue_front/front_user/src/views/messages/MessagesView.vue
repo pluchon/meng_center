@@ -27,11 +27,25 @@
       />
       <aside class="messages-sidebar">
         <header class="messages-title">
-          <span class="messages-title-icon"><IconMessageCircle :size="26" /></span><h1>{{ t('im.title') }}</h1><router-link
+          <span class="messages-title-icon"><img
+            class="message-art-icon"
+            :src="navMessageIcon"
+            width="26"
+            height="26"
+            alt=""
+            aria-hidden="true"
+          ></span><h1>{{ t('im.title') }}</h1><router-link
             :to="{name:RouteName.HOME}"
             :aria-label="t('im.back')"
           >
-            <IconArrowBackUp :size="24" />
+            <img
+              class="message-art-icon"
+              :src="messageBackIcon"
+              width="24"
+              height="24"
+              alt=""
+              aria-hidden="true"
+            >
           </router-link>
         </header>
         <nav
@@ -112,7 +126,14 @@
                   type="button"
                   :aria-label="t('im.menu')"
                 >
-                  <IconDots :size="18" />
+                  <img
+                    class="message-art-icon"
+                    :src="messageMoreIcon"
+                    width="18"
+                    height="18"
+                    alt=""
+                    aria-hidden="true"
+                  >
                 </button><template #dropdown>
                   <el-dropdown-menu>
                     <el-dropdown-item command="block">
@@ -163,19 +184,39 @@
               :aria-pressed="group===key"
               @click="selectGroup(key)"
             >
-              <span class="group-icon"><IconPlant2
+              <span class="group-icon"><img
                 v-if="key==='GROWTH'"
-                :size="24"
-              /><IconShieldCheck
+                class="message-art-icon"
+                :src="navGrowthIcon"
+                width="24"
+                height="24"
+                alt=""
+                aria-hidden="true"
+              ><img
                 v-else-if="key==='REPORT'||key==='APPROVAL'"
-                :size="24"
-              /><IconHeart
+                class="message-art-icon"
+                :src="messageShieldIcon"
+                width="24"
+                height="24"
+                alt=""
+                aria-hidden="true"
+              ><img
                 v-else-if="tab===MessageTab.LIKE"
-                :size="24"
-              /><IconMessages
+                class="message-art-icon"
+                :src="messageHeartIcon"
+                width="24"
+                height="24"
+                alt=""
+                aria-hidden="true"
+              ><img
                 v-else
-                :size="24"
-              /></span><span class="group-info"><strong>{{ t('im.'+key) }}</strong><small><span
+                class="message-art-icon"
+                :src="navMessageIcon"
+                width="24"
+                height="24"
+                alt=""
+                aria-hidden="true"
+              ></span><span class="group-info"><strong>{{ t('im.'+key) }}</strong><small><span
                 v-if="nickname(groupRow(key))"
                 class="summary-name"
               >{{ nickname(groupRow(key)) }}</span>{{ summary(groupRow(key)) }}</small></span><span class="group-tail"><time v-if="groupRow(key)?.latest">{{ relativeTime(groupRow(key).latest.notice.createTime) }}</time><span
@@ -204,7 +245,14 @@
                 :aria-expanded="presenceOpen"
                 :aria-label="t('im.presence')"
               >
-                <i />{{ t(im.hidden?'im.hidden':'im.online') }}<IconChevronUp :size="14" />
+                <i />{{ t(im.hidden?'im.hidden':'im.online') }}<img
+                  class="message-art-icon"
+                  :src="messageChevronIcon"
+                  width="14"
+                  height="14"
+                  alt=""
+                  aria-hidden="true"
+                >
               </button>
             </template><div class="presence-options">
               <button
@@ -268,7 +316,14 @@
                 v-else
                 class="messages-state"
               >
-                <IconMessageCircle :size="60" /><p>{{ t('im.choose') }}</p>
+                <img
+                  class="message-art-icon"
+                  :src="navMessageIcon"
+                  width="60"
+                  height="60"
+                  alt=""
+                  aria-hidden="true"
+                ><p>{{ t('im.choose') }}</p>
               </div>
             </template>
             <MessageNotices

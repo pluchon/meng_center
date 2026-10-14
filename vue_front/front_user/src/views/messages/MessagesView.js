@@ -1,16 +1,15 @@
+import {
+  messageBackIcon,
+  navMessageIcon,
+  messageMoreIcon,
+  messageChevronIcon,
+  navGrowthIcon,
+  messageHeartIcon,
+  messageShieldIcon,
+} from '@/assets/images'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  IconArrowBackUp,
-  IconMessageCircle,
-  IconDots,
-  IconChevronUp,
-  IconPlant2,
-  IconHeart,
-  IconMessages,
-  IconShieldCheck,
-} from '@tabler/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import { RouteName } from '@/router/names'
 import { useUserStore } from '@/stores/user'
@@ -29,14 +28,7 @@ export default defineComponent({
   components: {
     PixelBlast,
     MessageAvatar,
-    IconArrowBackUp,
-    IconMessageCircle,
-    IconDots,
-    IconChevronUp,
-    IconPlant2,
-    IconHeart,
-    IconMessages,
-    IconShieldCheck,
+
     MessageChat,
     MessageNotices,
   },
@@ -289,6 +281,13 @@ export default defineComponent({
       document.documentElement.classList.remove('messages-scrollbar-hidden')
     })
     return {
+      messageBackIcon,
+      navMessageIcon,
+      messageMoreIcon,
+      messageChevronIcon,
+      navGrowthIcon,
+      messageHeartIcon,
+      messageShieldIcon,
       t,
       route,
       user,

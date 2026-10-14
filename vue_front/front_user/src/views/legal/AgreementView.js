@@ -13,6 +13,7 @@ export default defineComponent({
   name: 'AgreementView',
   components: { BorderGlow, CardEdge, ParticleBackground },
   setup() {
+    const { t } = useI18n()
     const route = useRoute(),
       selected = ref(
         route.query.document === LegalDocument.PRIVACY
@@ -42,13 +43,14 @@ export default defineComponent({
         if (section.getBoundingClientRect().top <= top + 60) active.value = section.id
     }
     watch(selected, async () => {
+      window.document.title = t('common.pageTitle', { page: t(document.value.titleKey) })
       await nextTick()
       jump(document.value.sections[0].id)
       updateActive()
     })
     onMounted(updateActive)
     return {
-      t: useI18n().t,
+      t,
       document,
       returnRoute,
       progress,

@@ -1,4 +1,4 @@
-import { userAvatar, mengAvatar, articleEditAvatar, resetAvatar, brandIcon } from '@/assets/images'
+import { userAvatar, mengAvatar, articleEditAvatar, resetAvatar, waterDropIcon } from '@/assets/images'
 export const Comment = Object.freeze({ SIZE: 10, LENGTH: 500, ATTACHMENTS: 10 })
 export const ReportTarget = Object.freeze({ POST: 'POST', COMMENT: 'COMMENT' })
 export const ReportReasons = Object.freeze([
@@ -13,7 +13,7 @@ export const Emotions = Object.freeze([
   { name: '萌萌', image: mengAvatar },
   { name: '写帖', image: articleEditAvatar },
   { name: '找回', image: resetAvatar },
-  { name: '水滴', image: brandIcon },
+  { name: '水滴', image: waterDropIcon },
 ])
 export function emotionToken(name) {
   return `[表情:${name}]`

@@ -10,7 +10,7 @@ export const routes = [
     path: '/growth',
     name: RouteName.GROWTH,
     component: () => import('@/views/growth/GrowthView.vue'),
-    meta: { titleKey: 'growth.title', requiresAuth: true },
+    meta: { titleKey: 'common.growthPageTitle', requiresAuth: true },
   },
   {
     path: '/creator',
@@ -58,7 +58,7 @@ export const routes = [
     path: '/register',
     name: RouteName.REGISTER,
     component: () => import('@/views/auth/register/RegisterView.vue'),
-    meta: { titleKey: 'auth.register.title' },
+    meta: { titleKey: 'common.registerPageTitle' },
   },
   {
     path: '/reset-password',

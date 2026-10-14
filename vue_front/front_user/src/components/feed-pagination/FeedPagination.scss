@@ -8,11 +8,32 @@
 }
 
 .feed-pagination:not(.compact) nav {
+  position: relative;
   padding: var(--meng-space-1);
-  border: 1px solid var(--meng-tint);
+  border: 2px solid var(--meng-tint);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
+  background: var(--meng-surface);
   box-shadow: 0 2px 0 var(--meng-tint);
+}
+
+.pagination-sparkle {
+  position: absolute;
+  left: -7px;
+  top: -8px;
+  width: 14px;
+  height: 14px;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+
+.feed-pagination:not(.compact) button.selected,
+.feed-pagination:not(.compact) button.selected:hover {
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
 }
 
 nav {
@@ -22,6 +43,7 @@ nav {
 }
 
 button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -54,8 +76,43 @@ button:hover {
 }
 
 .feed-pagination:not(.compact) nav button:not(.selected):hover {
-  background: var(--meng-tint);
+  background: transparent;
   color: var(--meng-primary);
+}
+
+// 悬停时不填色，只在页码外转出一圈虚线
+.feed-pagination:not(.compact) nav button:not(.selected)::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px dashed var(--meng-primary-light-5);
+  border-radius: var(--meng-radius-pill);
+  opacity: 0;
+  scale: 0.7;
+  transition:
+    opacity 200ms ease,
+    scale 320ms var(--meng-slide-ease);
+  pointer-events: none;
+}
+
+.feed-pagination:not(.compact) nav button:not(.selected):hover::after {
+  opacity: 1;
+  scale: 1;
+  animation: pager-ring 6s linear infinite;
+}
+
+.feed-pagination:not(.compact) nav button:not(.selected):hover {
+  rotate: -6deg;
+}
+
+.feed-pagination:not(.compact) nav button.selected {
+  rotate: 4deg;
+}
+
+@keyframes pager-ring {
+  to {
+    rotate: 360deg;
+  }
 }
 
 button:active {
@@ -78,22 +135,36 @@ button:disabled {
 }
 
 .back-top {
-  height: 48px;
-  padding-inline: var(--meng-space-5);
+  height: 42px;
+  padding-inline: 10px 16px;
   margin-left: auto;
-  border: 1px solid var(--meng-tint);
-  background: var(--meng-bg);
-  color: var(--meng-primary);
-  box-shadow: 0 2px 0 var(--meng-tint);
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-success);
+  color: var(--meng-success-text);
+  box-shadow: 0 3px 0 var(--meng-growth-mint-edge);
   font-weight: 700;
 }
 
+.back-top .el-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+}
+
 .back-top:hover {
-  box-shadow: 0 4px 0 var(--meng-border);
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-growth-mint-edge);
 }
 
 .back-top:active {
-  box-shadow: 0 1px 0 var(--meng-border);
+  box-shadow: 0 1px 0 var(--meng-growth-mint-edge);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-pagination:not(.compact) nav button:not(.selected):hover::after {
+    animation: none;
+  }
 }
 
 nav > span {

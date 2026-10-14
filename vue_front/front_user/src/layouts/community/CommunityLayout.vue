@@ -8,21 +8,42 @@
         <span
           class="brand-bubble"
           aria-hidden="true"
+        ><img
+          class="brand-logo"
+          :src="brandIcon"
+          alt=""
+          width="44"
+          height="44"
         ><span
-          class="brand-drop"
-          :style="{maskImage:'url('+JSON.stringify(communityDrop)+')'}"
-        /><span
           class="brand-sparkle"
           :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
         /></span><strong>{{ t('home.brand') }}</strong>
       </router-link>
-      <nav :aria-label="t('home.title')">
+      <nav
+        ref="navRoot"
+        :aria-label="t('home.title')"
+        @pointerover="navSlider.onHover"
+        @pointerleave="navSlider.onLeave"
+        @focusin="navSlider.onHover"
+        @focusout="navSlider.onLeave"
+      >
+        <span
+          class="nav-slider"
+          :class="navSlider.sliderClass.value"
+          :style="navSlider.sliderStyle.value"
+          aria-hidden="true"
+        />
         <router-link
           class="nav-home"
+          data-slide
           :class="{selected:route.name===RouteName.HOME}"
           :to="{name:RouteName.HOME}"
         >
-          <span class="nav-icon home-icon"><el-icon><House /></el-icon></span>{{ t('home.nav.home') }}<span
+          <span class="nav-icon"><img
+            :src="navHomeIcon"
+            alt=""
+            aria-hidden="true"
+          ></span>{{ t('home.nav.home') }}<span
             class="nav-sparkle"
             aria-hidden="true"
             :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
@@ -30,31 +51,38 @@
         </router-link>
         <router-link
           class="nav-creator"
+          data-slide
           :class="{selected:route.name===RouteName.CREATOR}"
           :to="{name:RouteName.CREATOR}"
         >
-          <span class="nav-icon creator-icon"><el-icon><EditPen /></el-icon></span>{{ t('home.nav.creator') }}
+          <span class="nav-icon"><img
+            :src="navCreateIcon"
+            alt=""
+            aria-hidden="true"
+          ></span>{{ t('home.nav.creator') }}
         </router-link>
         <router-link
           class="nav-growth-page"
+          data-slide
           :class="{selected:route.name===RouteName.GROWTH}"
           :to="{name:RouteName.GROWTH}"
         >
-          <span class="nav-icon growth-icon"><span
-            class="nav-mask"
+          <span class="nav-icon"><img
+            :src="navGrowthIcon"
+            alt=""
             aria-hidden="true"
-            :style="{maskImage:'url('+JSON.stringify(communitySprout)+')'}"
-          /></span>{{ t('home.nav.growth') }}
+          ></span>{{ t('home.nav.growth') }}
         </router-link>
         <button
           type="button"
+          data-slide
           @click="unavailable"
         >
-          <span class="nav-icon ai-icon"><span
-            class="nav-mask"
+          <span class="nav-icon"><img
+            :src="navMengIcon"
+            alt=""
             aria-hidden="true"
-            :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
-          /></span>{{ t('home.nav.ai') }}
+          ></span>{{ t('home.nav.ai') }}
         </button>
       </nav>
       <div class="nav-tools">
@@ -75,7 +103,12 @@
               :aria-expanded="searchOpen"
               @click="activateSearch"
             >
-              <el-icon><SearchIcon /></el-icon>
+              <img
+                class="nav-tool-icon"
+                :src="navSearchIcon"
+                alt=""
+                aria-hidden="true"
+              >
             </button>
             <input
               ref="searchInput"
@@ -93,7 +126,12 @@
           :to="{name:RouteName.MESSAGES}"
           :aria-label="t('im.title')"
         >
-          <el-icon><ChatDotRound /></el-icon><span
+          <img
+            class="nav-tool-icon"
+            :src="navMessageIcon"
+            alt=""
+            aria-hidden="true"
+          ><span
             v-if="im.totalUnread"
             class="nav-unread"
           >{{ im.totalUnread>99?t('im.badgeMax'):im.totalUnread }}</span>
@@ -136,7 +174,12 @@
           <span
             class="footer-brand-icon"
             aria-hidden="true"
-          ><span :style="{maskImage:'url('+JSON.stringify(communityDrop)+')'}" /></span><strong>{{ t('home.brand') }}</strong>
+          ><img
+            :src="brandIcon"
+            alt=""
+            width="36"
+            height="36"
+          ></span><strong>{{ t('home.brand') }}</strong>
         </div>
         <p class="footer-note">
           {{ t('home.footer') }}

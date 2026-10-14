@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
 import { Categories, PostSort, Feed } from '@/constants/content'
-import { homeArtwork } from '@/assets/images'
+import { homeArtwork, communitySparkle } from '@/assets/images'
 import HeroWaves from '@/components/hero-waves/HeroWaves.vue'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import PostCard from '@/components/post-card/PostCard.vue'
@@ -25,14 +25,23 @@ export default defineComponent({
   },
   setup() {
     onMounted(() => document.documentElement.classList.add(homeScrollbarClass))
-    onUnmounted(() => document.documentElement.classList.remove(homeScrollbarClass))
+    onUnmounted(() => {
+      document.documentElement.classList.remove(homeScrollbarClass)
+      requestId++
+      controller?.abort()
+    })
     const route = useRoute(),
       router = useRouter(),
       records = ref([]),
       total = ref(0),
       loading = ref(false),
-      error = ref(null)
+      error = ref(null),
+      hasLoaded = ref(false),
+      revision = ref(0),
+      renderedPage = ref(1),
+      feedRoot = ref(null)
     let requestId = 0
+    let controller
     const query = computed(() => ({
       category: Categories.includes(route.query.category) ? route.query.category : undefined,
       sort: Object.values(PostSort).includes(route.query.sort) ? route.query.sort : PostSort.LATEST,
@@ -44,23 +53,42 @@ export default defineComponent({
     }))
     async function load() {
       const id = ++requestId
+      controller?.abort()
+      controller = new AbortController()
+      const requestedQuery = { ...query.value }
       loading.value = true
-      error.value = null
       try {
-        const result = await contentApi.feed(query.value)
+        const result = await contentApi.feed(requestedQuery, { signal: controller.signal })
         if (id !== requestId) return
+        const pages = Math.max(1, Math.ceil(result.total / requestedQuery.size))
+        if (requestedQuery.page > pages) {
+          await filter({ page: pages })
+          return
+        }
         records.value = result.records
         total.value = result.total
-        const pages = Math.max(1, Math.ceil(result.total / query.value.size))
-        if (query.value.page > pages) await filter({ page: pages })
+        renderedPage.value = requestedQuery.page
+        error.value = null
+        hasLoaded.value = true
+        revision.value++
       } catch (e) {
-        if (id === requestId) error.value = e
+        if (id === requestId && !e.cancelled) {
+          error.value = e
+          hasLoaded.value = true
+          revision.value++
+        }
       } finally {
         if (id === requestId) loading.value = false
       }
     }
     function filter(next) {
       const merged = { ...query.value, page: 1, ...next }
+      // 翻页后回到列表开头；切换筛选时筛选栏就在眼前，不滚动
+      if (next?.page) {
+        feedRoot.value?.scrollIntoView({
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        })
+      }
       return router.push({
         name: route.name,
         query: {
@@ -86,6 +114,10 @@ export default defineComponent({
       records,
       total,
       loading,
+      hasLoaded,
+      revision,
+      renderedPage,
+      feedRoot,
       error,
       load,
       filter,
@@ -93,6 +125,7 @@ export default defineComponent({
       Categories,
       PostSort,
       homeArtwork,
+      communitySparkle,
     }
   },
 })

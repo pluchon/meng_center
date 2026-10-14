@@ -61,6 +61,16 @@ public class IpRegionService {
             if (iso.equals("TW")) return "台湾";
             if (iso.equals("HK")) return "香港";
             if (iso.equals("MO")) return "澳门";
+            if (iso.equals("CN") || country.equals("中国")) {
+                String province = fields.length > 1 ? fields[1].trim() : "";
+                if (!province.isBlank() && !province.equals("0")) {
+                    return province.replaceFirst(
+                        "(壮族自治区|回族自治区|维吾尔自治区|自治区|省|市)$",
+                        ""
+                    );
+                }
+                return "中国";
+            }
             return iso.matches("[A-Z]{2}")
                 ? new java.util.Locale("", iso).getDisplayCountry(
                       java.util.Locale.SIMPLIFIED_CHINESE

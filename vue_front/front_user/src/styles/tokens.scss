@@ -1,5 +1,5 @@
 :root {
-  --meng-account-width: 1480px;
+  --meng-account-width: var(--meng-home-width);
   --meng-account-dialog-shadow: 0 6px 0 var(--meng-card-base), 0 24px 60px rgb(41 70 83 / 28%);
   --meng-account-apricot: #fdebdd;
   --meng-account-apricot-edge: #f2be94;
@@ -14,7 +14,7 @@
   --meng-account-folder: #fcf7e8;
   --meng-like-surface: #fbeff3;
   --meng-font-display: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
-  --meng-messages-width: 1280px;
+  --meng-messages-width: var(--meng-home-width);
   --meng-account-veil-violet: #8f76bc;
   --meng-account-veil-blue: #72a5c8;
   --meng-account-veil-strength: 0.74;
@@ -24,13 +24,15 @@
   --meng-messages-gold-tape: repeating-linear-gradient(135deg, #f8edcf 0 10px, #ead9a7 10px 20px);
   --meng-disclosure-duration: 280ms;
   --meng-motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --meng-slide-duration: 620ms;
+  --meng-slide-ease: cubic-bezier(0.3, 1.14, 0.5, 1);
   --meng-like-text: #8e3355;
   --meng-like-icon: #c4587c;
   --meng-favorite-text: #6f5310;
   --meng-favorite-icon: #f0cf7a;
   --meng-favorite-stroke: #c9a23a;
   --meng-tool-text: #3d5966;
-  --meng-detail-width: 1350px;
+  --meng-detail-width: var(--meng-home-width);
   --meng-detail-card: rgb(255 255 255 / 92%);
   --meng-detail-highlight: linear-gradient(
     transparent 58%,
@@ -44,10 +46,10 @@
   --meng-editor-fluid-blue: #a5d9eb;
   --meng-editor-fluid-opacity: 0.4;
   --meng-editor-card: #f8fcfe;
-  --meng-community-width: 1760px;
-  --meng-community-nav-width: 1600px;
-  --meng-home-width: 1600px;
-  --meng-search-width: 1080px;
+  --meng-community-width: var(--meng-home-width);
+  --meng-community-nav-width: var(--meng-home-width);
+  --meng-home-width: 1480px;
+  --meng-search-width: var(--meng-home-width);
   --meng-creator-width: var(--meng-growth-width);
   --meng-creator-radius: 32px;
   --meng-creator-row-radius: 26px;
@@ -84,7 +86,7 @@
   --meng-category-creation: #e9a9be;
   --meng-category-daily: #f0cf7a;
   --meng-growth-green: #3e8e6a;
-  --meng-growth-width: 1320px;
+  --meng-growth-width: var(--meng-home-width);
   --meng-growth-wave-backdrop: var(--meng-bg);
   --meng-growth-wave-horizon: #cfe8f0;
   --meng-growth-wave-body: #74b4a0;

@@ -1,5 +1,9 @@
 export default {
   brand: '萌部落',
+  pageTitle: '{page} · 萌部落',
+  homePageTitle: '萌部落 · 分享热爱，收集日常',
+  registerPageTitle: '加入社区',
+  growthPageTitle: '成长中心',
   loading: '正在加载',
   empty: '暂无内容',
   retry: '重试',

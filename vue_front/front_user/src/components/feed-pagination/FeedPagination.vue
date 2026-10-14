@@ -4,6 +4,12 @@
     :class="{compact}"
   >
     <nav :aria-label="t('home.page',{page})">
+      <span
+        v-if="!compact"
+        class="pagination-sparkle"
+        aria-hidden="true"
+        :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
+      />
       <template
         v-for="(value,index) in pages"
         :key="index"
@@ -28,6 +34,9 @@
       class="back-top"
       @click="$emit('top')"
     >
+      <el-icon aria-hidden="true">
+        <Top />
+      </el-icon>
       {{ t('home.top') }}
     </button>
   </div>

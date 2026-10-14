@@ -9,7 +9,7 @@
 .post-editor-card {
   position: relative;
   z-index: 1;
-  max-width: 1280px;
+  max-width: var(--meng-home-width);
   margin: auto;
   padding: 32px;
   border: 1px solid var(--meng-border);
@@ -1254,7 +1254,7 @@ small {
   }
 
   .post-editor-page {
-    padding: 52px 16px 16px;
+    padding: 52px var(--meng-community-gutter) 16px;
   }
 
   .post-editor-card {

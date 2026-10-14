@@ -2,7 +2,7 @@
   position: relative;
   min-height: 100dvh;
   height: 100dvh;
-  padding: 32px 24px 36px;
+  padding: 32px var(--meng-community-gutter) 36px;
   overflow: clip;
 }
 
@@ -51,9 +51,8 @@
   height: 48px;
   border: 3px solid var(--meng-surface);
   border-radius: 26px;
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 4px 0 var(--meng-shadow-hard);
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-border);
 }
 
 .messages-title h1 {
@@ -320,21 +319,7 @@
   height: 48px;
   border: 3px solid var(--meng-surface);
   border-radius: 24px;
-  background: var(--meng-category-game-dot);
-  color: var(--meng-surface);
-}
-
-.system .group-icon {
-  background: var(--meng-success-text);
-}
-
-.report .group-icon,
-.like .group-icon {
-  background: var(--meng-like-icon);
-}
-
-.approval .group-icon {
-  background: var(--meng-primary);
+  background: var(--meng-tint);
 }
 
 .summary-name {
@@ -581,7 +566,7 @@
 @media (width <= 760px) {
   .messages-view {
     height: auto;
-    padding: 24px 12px 28px;
+    padding: 24px var(--meng-community-gutter) 28px;
   }
 
   .messages-card {
@@ -657,4 +642,10 @@
   .notification-group {
     transition: none;
   }
+}
+
+.message-art-icon {
+  display: block;
+  flex: none;
+  object-fit: contain;
 }

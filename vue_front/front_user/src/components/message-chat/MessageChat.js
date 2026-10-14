@@ -1,6 +1,12 @@
+import {
+  navMengIcon,
+  messagePhotoIcon,
+  messageSendIcon,
+  messageRefreshIcon,
+  messageCloseIcon,
+} from '@/assets/images'
 import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconMoodSmile, IconPhoto, IconSend, IconRefresh, IconX } from '@tabler/icons-vue'
 import { useImStore } from '@/stores/im'
 import { useEditorUploads } from '@/composables/useEditorUploads'
 import { imApi } from '@/api/im'
@@ -13,11 +19,7 @@ export default defineComponent({
   name: 'MessageChat',
   components: {
     MessageAvatar,
-    IconMoodSmile,
-    IconPhoto,
-    IconSend,
-    IconRefresh,
-    IconX,
+
     CommentBody,
     MessageImages,
   },
@@ -193,6 +195,11 @@ export default defineComponent({
       document.removeEventListener('visibilitychange', focus)
     })
     return {
+      navMengIcon,
+      messagePhotoIcon,
+      messageSendIcon,
+      messageRefreshIcon,
+      messageCloseIcon,
       t,
       im,
       Im,
