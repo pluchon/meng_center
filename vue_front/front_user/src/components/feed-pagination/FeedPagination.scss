@@ -28,12 +28,44 @@
   pointer-events: none;
 }
 
+// 选中页的金色贴纸由 .page-slider 画，会滑到新页码上；按钮本身只负责文字
 .feed-pagination:not(.compact) button.selected,
 .feed-pagination:not(.compact) button.selected:hover {
-  border: 2px solid var(--meng-surface);
-  background: var(--meng-warning);
+  background: transparent;
   color: var(--meng-favorite-text);
+  box-shadow: none;
+}
+
+.feed-pagination:not(.compact) nav {
+  isolation: isolate;
+}
+
+.page-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  box-sizing: border-box;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-warning);
   box-shadow: 0 2px 0 var(--meng-category-daily);
+  opacity: 0;
+  rotate: 4deg;
+  pointer-events: none;
+  transition:
+    transform 420ms var(--meng-slide-ease),
+    width 420ms var(--meng-slide-ease),
+    height 420ms var(--meng-slide-ease),
+    opacity 200ms ease;
+}
+
+.page-slider.visible {
+  opacity: 1;
+}
+
+.page-slider.instant {
+  transition: opacity 200ms ease;
 }
 
 nav {
@@ -103,10 +135,6 @@ button:hover {
 
 .feed-pagination:not(.compact) nav button:not(.selected):hover {
   rotate: -6deg;
-}
-
-.feed-pagination:not(.compact) nav button.selected {
-  rotate: 4deg;
 }
 
 // 两端的前后翻页按钮：圆形贴纸，悬停时箭头朝各自方向挪一点，不带虚线圈
@@ -254,6 +282,10 @@ nav > span {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-slider {
+    transition: none;
+  }
+
   .compact button.selected {
     animation: none;
   }

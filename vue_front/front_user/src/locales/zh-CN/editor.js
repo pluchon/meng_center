@@ -40,7 +40,6 @@ export default {
   cover: '封面',
   generateCover: 'AI 生成封面图',
   coverPlaceholder: '上传封面',
-  defaultCover: '默认使用第一张配图',
   removeCover: '移除封面',
   tags: '标签',
   pickTags: 'AI 挑选标签',
@@ -57,6 +56,7 @@ export default {
   stay: '继续编辑',
   loading: '正在载入草稿',
   counters: '{count} / {max}',
+  counterMax: ' / {max}',
   error: {
     title: '请填写 1～{max} 字的标题',
     body: '请填写 1～{max} 字的正文',

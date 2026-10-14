@@ -16,7 +16,12 @@
   gap: 16px;
 }
 
+// 五张统计卡是五张贴纸：白边、各自微微歪着，卡里一个半透明的大圆泡和一颗闪烁的小星，
+// 进场时依次弹出，悬停摆正并上浮
 .metric {
+  --metric-edge: var(--meng-border);
+
+  position: relative;
   flex: 1 1 150px;
   min-width: 0;
   padding: 14px 22px;
@@ -24,14 +29,106 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  overflow: hidden;
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-creator-row-radius);
   background: var(--meng-tint);
-  box-shadow: 0 5px 0 var(--meng-border);
-  transition: transform 180ms ease;
+  box-shadow: 0 5px 0 var(--metric-edge);
+  rotate: -1.5deg;
+  animation: metric-pop 520ms var(--meng-slide-ease) backwards;
+  transition:
+    translate 220ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 220ms ease;
+}
+
+.metric:nth-child(even) {
+  rotate: 1.2deg;
+}
+
+.metric:nth-child(3) {
+  rotate: -0.8deg;
+}
+
+@for $i from 1 through 5 {
+  .metric:nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 80}ms;
+  }
+}
+
+@keyframes metric-pop {
+  0% {
+    opacity: 0;
+    scale: 0.8;
+    translate: 0 16px;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+}
+
+.metric::before {
+  content: '';
+  position: absolute;
+  right: -18px;
+  bottom: -34px;
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  opacity: 0.38;
+  pointer-events: none;
+}
+
+.metric > * {
+  position: relative;
+}
+
+.metric-sparkle {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  width: 12px;
+  height: 12px;
+  background: var(--meng-surface);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: metric-twinkle 2.8s ease-in-out infinite;
+}
+
+.metric:nth-child(even) .metric-sparkle {
+  animation-delay: 1.2s;
+}
+
+@keyframes metric-twinkle {
+  50% {
+    opacity: 0.35;
+    scale: 0.6;
+  }
 }
 
 .metric:hover {
-  transform: translateY(-4px);
+  box-shadow: 0 8px 0 var(--metric-edge);
+  rotate: 0deg;
+  translate: 0 -4px;
+}
+
+.metric:hover .metric-icon {
+  animation: metric-icon-hop 520ms ease-in-out;
+}
+
+@keyframes metric-icon-hop {
+  40% {
+    translate: 0 -5px;
+    rotate: -8deg;
+  }
+
+  70% {
+    translate: 0 0;
+    rotate: 6deg;
+  }
 }
 
 .metric span {
@@ -51,9 +148,18 @@
     sans-serif;
 }
 
+.metric-icon {
+  display: block;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  object-fit: contain;
+}
+
 .metric.views {
+  --metric-edge: var(--meng-creator-green-shadow);
+
   background: var(--meng-success);
-  box-shadow: 0 5px 0 var(--meng-creator-green-shadow);
 }
 
 .views span {
@@ -61,8 +167,9 @@
 }
 
 .metric.likes {
+  --metric-edge: var(--meng-creator-pink);
+
   background: var(--meng-danger);
-  box-shadow: 0 5px 0 var(--meng-creator-pink);
 }
 
 .likes span {
@@ -70,8 +177,9 @@
 }
 
 .metric.comments {
+  --metric-edge: var(--meng-creator-purple);
+
   background: var(--meng-category-game);
-  box-shadow: 0 5px 0 var(--meng-creator-purple);
 }
 
 .comments span {
@@ -79,8 +187,9 @@
 }
 
 .metric.favorites {
+  --metric-edge: var(--meng-creator-yellow);
+
   background: var(--meng-warning);
-  box-shadow: 0 5px 0 var(--meng-creator-yellow);
 }
 
 .favorites span {
@@ -190,6 +299,8 @@ h2 span:first-child {
   position: relative;
   isolation: isolate;
   gap: 0;
+  border: 2px solid var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-tint);
 }
 
 .trend-range::before {
@@ -295,50 +406,162 @@ h2 span:first-child {
   font-size: 15px;
 }
 
-.content-tabs .selected {
-  background: var(--meng-tint);
-  color: var(--meng-shadow-hard);
-  box-shadow: 0 3px 0 var(--meng-border);
-}
-
-.content-tabs span {
-  display: inline-flex;
-  align-items: center;
-  height: 22px;
-  padding: 0 9px;
-  border-radius: var(--meng-radius-pill);
+// 两个标签是两张贴纸：已发布薄荷绿、草稿箱粉色，选中时歪着，悬停上浮不铺底色
+.content-tabs {
+  border: 2px dashed var(--meng-tint);
   background: var(--meng-surface);
-  color: var(--meng-primary);
-  font-size: 12px;
 }
 
+.content-tabs button {
+  --tab-fill: var(--meng-success);
+  --tab-edge: var(--meng-creator-green-shadow);
+  --tab-ink: var(--meng-success-shadow);
+
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    box-shadow 200ms ease,
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease);
+}
+
+.content-tabs button:nth-child(2) {
+  --tab-fill: var(--meng-danger);
+  --tab-edge: var(--meng-creator-pink);
+  --tab-ink: var(--meng-like-text);
+}
+
+.content-tabs button:hover {
+  color: var(--tab-ink);
+  translate: 0 -2px;
+}
+
+.content-tabs .selected {
+  border-color: var(--meng-surface);
+  background: var(--tab-fill);
+  color: var(--tab-ink);
+  box-shadow: 0 3px 0 var(--tab-edge);
+  rotate: -2deg;
+}
+
+.content-tabs .selected:hover {
+  rotate: 0deg;
+  box-shadow: 0 5px 0 var(--tab-edge);
+}
+
+// 数量是一颗小胶囊：没选中时用标签自己的颜色，选中时变白；草稿箱的胶囊底下还有一条容量进度
+.content-tabs .tab-count {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  height: 24px;
+  padding: 3px 10px 0;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--tab-fill);
+  box-shadow: 0 2px 0 var(--tab-edge);
+  color: var(--tab-ink);
+  transition: background 200ms ease;
+}
+
+.content-tabs .selected .tab-count {
+  background: var(--meng-surface);
+}
+
+.tab-count b {
+  font:
+    15px/1 'ZCOOL KuaiLe',
+    'Noto Sans SC',
+    sans-serif;
+}
+
+.tab-count i {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+.tab-count[style*='--ratio']::after {
+  content: '';
+  position: absolute;
+  left: 9px;
+  bottom: 2px;
+  width: calc((100% - 18px) * var(--ratio));
+  height: 3px;
+  border-radius: 2px;
+  background: var(--tab-edge);
+  transition: width 420ms var(--meng-slide-ease);
+}
+
+// 写新帖是页面里最显眼的贴纸：金黄色，铅笔悬停时晃一下，角上一颗闪烁的星
 .creator-new {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
   height: 46px;
   margin: 0 2px 5px 0;
   padding: 0 24px 0 18px;
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-primary);
-  box-shadow: 0 5px 0 var(--meng-shadow-hard);
-  color: var(--meng-surface);
+  background: var(--meng-warning);
+  box-shadow: 0 5px 0 var(--meng-creator-yellow);
+  color: var(--meng-favorite-text);
   font-size: 15px;
   font-weight: 800;
+  rotate: 2deg;
   transition:
-    transform 180ms ease,
-    box-shadow 180ms ease;
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+}
+
+.creator-new::after {
+  content: '';
+  position: absolute;
+  top: -12px;
+  right: 6px;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: new-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes new-twinkle {
+  50% {
+    opacity: 0.45;
+    scale: 0.6;
+  }
 }
 
 .creator-new:hover {
-  transform: translateY(-2px);
-  color: var(--meng-surface);
-  box-shadow: 0 7px 0 var(--meng-shadow-hard);
+  color: var(--meng-favorite-text);
+  box-shadow: 0 7px 0 var(--meng-creator-yellow);
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.creator-new:hover svg {
+  animation: new-wiggle 480ms ease-in-out;
+}
+
+@keyframes new-wiggle {
+  25% {
+    rotate: -16deg;
+  }
+
+  75% {
+    rotate: 16deg;
+  }
 }
 
 .creator-new:active {
-  transform: translateY(3px);
-  box-shadow: 0 2px 0 var(--meng-shadow-hard);
+  box-shadow: 0 2px 0 var(--meng-creator-yellow);
+  translate: 0 3px;
 }
 
 .creator-list {
@@ -378,6 +601,60 @@ h2 span:first-child {
 .creator-end .creator-star {
   width: 20px;
   height: 20px;
+}
+
+// 趋势卡的颜文字贴在下边框上，右上角再飘一颗小星星
+.trend-face {
+  position: absolute;
+  z-index: 2;
+  right: 28px;
+  bottom: -14px;
+  padding: 5px 14px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-creator-pink);
+  color: var(--meng-like-text);
+  font-size: 14px;
+  font-weight: 800;
+  rotate: -4deg;
+  animation: creator-float 5.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.trend-sparkle {
+  position: absolute;
+  z-index: 2;
+  top: -10px;
+  right: 120px;
+  width: 22px;
+  height: 22px;
+  pointer-events: none;
+  animation: creator-twinkle 2.8s ease-in-out infinite;
+}
+
+@keyframes creator-twinkle {
+  50% {
+    opacity: 0.45;
+    scale: 0.65;
+  }
+}
+
+.top-panel .pink-tape {
+  left: 56px;
+  background: var(--meng-detail-tape);
+  rotate: -5deg;
+}
+
+.top-panel .top-flower {
+  top: auto;
+  right: -14px;
+  bottom: 56px;
+}
+
+.top-panel .panel-heading {
+  padding-bottom: 12px;
+  border-bottom: 2px dashed var(--meng-tint);
 }
 
 .panel-bubble {
@@ -427,6 +704,7 @@ h2 span:first-child {
 
   .metric {
     flex-basis: 120px;
+    min-width: max-content;
     padding: 12px 16px;
   }
 
@@ -449,7 +727,14 @@ h2 span:first-child {
 
 @media (prefers-reduced-motion: reduce) {
   .creator-cheer,
-  .panel-bubble {
+  .panel-bubble,
+  .trend-face,
+  .trend-sparkle,
+  .metric,
+  .metric-sparkle,
+  .metric:hover .metric-icon,
+  .creator-new::after,
+  .creator-new:hover svg {
     animation: none;
   }
 

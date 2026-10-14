@@ -36,9 +36,8 @@ export default defineComponent({
         text: token('muted'),
         grid: token('tint'),
         base: token('bg'),
-        primary: token('primary'),
         lines: ['creator-green', 'creator-pink', 'creator-purple', 'creator-yellow'].map(token),
-        bars: ['creator-yellow', 'creator-pink', 'category-anime', 'border', 'border'].map(token),
+        bars: ['creator-yellow', 'creator-pink', 'category-anime', 'creator-green', 'creator-purple'].map(token),
         sources: ['category-anime', 'category-daily', 'category-game-dot'].map(token),
       }
     }
@@ -135,15 +134,15 @@ export default defineComponent({
         return
       }
       if (props.type === CreatorChartType.TREND) {
-        // 重新进入折线系列时让 ECharts 的裁剪矩形从左向右展开，坐标轴保持静止。
-        if (reveal) chart.clear()
+        // 折线进场由 CSS 从左向右展开，每次换数据都重播；ECharts 只负责图例开关时的过渡。
+        if (reveal) replay()
         chart.setOption(
           {
             ...common,
-            animationDuration: 1150,
-            animationDurationUpdate: 420,
+            animationDuration: 0,
+            animationDurationUpdate: 360,
             animationEasing: 'cubicInOut',
-            grid: { left: 8, right: 8, top: 12, bottom: 48 },
+            grid: { left: 8, right: 8, top: 12, bottom: 34 },
             tooltip: {
               trigger: 'axis',
               renderMode: 'richText',
@@ -171,11 +170,7 @@ export default defineComponent({
                 fontWeight: 700,
                 hideOverlap: true,
                 margin: 14,
-                formatter: (value, i) =>
-                  value.slice(5).replace('-', '/') +
-                  '\n' +
-                  (props.data[i].postCount ? '{posted|' + t('creator.posted') + '}' : ''),
-                rich: { posted: { color: palette.primary, lineHeight: 16 } },
+                formatter: (value) => value.slice(5).replace('-', '/'),
               },
             },
             yAxis: {
@@ -203,6 +198,8 @@ export default defineComponent({
         chart.setOption(
           {
             ...common,
+            animationDuration: 900,
+            animationEasing: 'cubicOut',
             grid: { left: 40, right: 0, top: 0, bottom: (5 - props.data.length) * 70 },
             xAxis: {
               type: 'value',
@@ -218,6 +215,7 @@ export default defineComponent({
             series: [
               {
                 type: 'bar',
+                animationDelay: (index) => index * 90,
                 barWidth: 10,
                 showBackground: true,
                 backgroundStyle: { color: palette.base, borderRadius: 5 },
@@ -231,6 +229,14 @@ export default defineComponent({
           { notMerge: true },
         )
       }
+    }
+    // 重新触发进场动画：先摘掉类、强制回流，再加回去
+    function replay() {
+      const el = host.value
+      if (!el) return
+      el.classList.remove('reveal')
+      void el.offsetWidth
+      el.classList.add('reveal')
     }
     function toggle(field) {
       const next = new Set(enabled.value)

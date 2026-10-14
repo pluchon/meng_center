@@ -20,10 +20,17 @@
           class="metric"
           :class="metric.key"
         >
-          <span><component
-            :is="metric.icon"
-            :size="18"
-          />{{ t('creator.'+metric.key) }}</span><strong>{{ formatNumber(overview.data[metric.field]) }}</strong>
+          <span><img
+            :src="metric.icon"
+            class="metric-icon"
+            width="26"
+            height="26"
+            alt=""
+            aria-hidden="true"
+          >{{ t('creator.'+metric.key) }}</span><strong>{{ formatNumber(counts[metric.field]??0) }}</strong><i
+            class="metric-sparkle"
+            aria-hidden="true"
+          />
         </div>
       </div>
       <div class="creator-charts">
@@ -82,9 +89,25 @@
           >
             {{ t('creator.emptyTrend') }}
           </p>
+          <span
+            class="trend-face"
+            aria-hidden="true"
+          >{{ t('creator.trendFace') }}</span><span
+            :style="{ maskImage: 'url('+JSON.stringify(communitySparkle)+')' }"
+            class="creator-star trend-sparkle"
+            aria-hidden="true"
+          />
         </section>
         <section class="creator-panel top-panel">
           <span
+            class="creator-tape pink-tape"
+            aria-hidden="true"
+          /><img
+            :src="detailFlower"
+            alt=""
+            class="panel-flower top-flower"
+            aria-hidden="true"
+          ><span
             class="creator-cheer"
             aria-hidden="true"
           >{{ t('creator.cheer') }}</span>
@@ -146,7 +169,7 @@
               :class="{selected:tab===CreatorTab.PUBLISHED}"
               @click="change({tab:CreatorTab.PUBLISHED})"
             >
-              {{ t('creator.published') }}<span>{{ overview.data?.postCount??published.data.total }}</span>
+              {{ t('creator.published') }}<span class="tab-count"><b>{{ overview.data?.postCount??published.data.total }}</b></span>
             </button>
             <button
               type="button"
@@ -155,7 +178,10 @@
               :class="{selected:tab===CreatorTab.DRAFTS}"
               @click="change({tab:CreatorTab.DRAFTS})"
             >
-              {{ t('creator.drafts') }}<span>{{ t('creator.draftCount',{count:drafts.data.length,max:Creator.DRAFT_MAX}) }}</span>
+              {{ t('creator.drafts') }}<span
+                class="tab-count"
+                :style="{'--ratio':draftRatio}"
+              ><b>{{ drafts.data.length }}</b><i>{{ t('creator.draftMax',{max:Creator.DRAFT_MAX}) }}</i></span>
             </button>
           </div>
           <router-link

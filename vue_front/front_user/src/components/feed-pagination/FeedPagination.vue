@@ -3,12 +3,21 @@
     class="feed-pagination"
     :class="{compact}"
   >
-    <nav :aria-label="t('home.page',{page})">
+    <nav
+      ref="nav"
+      :aria-label="t('home.page',{page})"
+    >
       <span
         v-if="!compact"
         class="pagination-sparkle"
         aria-hidden="true"
         :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
+      /><span
+        v-if="!compact"
+        class="page-slider"
+        :class="slider.sliderClass.value"
+        :style="slider.sliderStyle.value"
+        aria-hidden="true"
       />
       <button
         v-if="!compact"

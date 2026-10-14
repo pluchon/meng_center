@@ -4,6 +4,12 @@
     :class="type"
   >
     <div
+      ref="host"
+      class="chart-host"
+      role="img"
+      :aria-label="chartDescription"
+    />
+    <div
       v-if="type===CreatorChartType.TREND"
       class="chart-legend"
       role="group"
@@ -21,12 +27,6 @@
       </button>
     </div>
     <div
-      ref="host"
-      class="chart-host"
-      role="img"
-      :aria-label="chartDescription"
-    />
-    <div
       v-if="type===CreatorChartType.TOP"
       class="ranking-links"
     >
@@ -34,6 +34,7 @@
         v-for="(post,index) in data"
         :key="post.id"
         type="button"
+        :style="{'--i':index}"
         @click="$emit('open',post.id)"
       >
         <span class="rank">{{ index+1 }}</span><strong>{{ post.title }}</strong><span class="score">{{ formatNumber(post.hotScore) }}</span>

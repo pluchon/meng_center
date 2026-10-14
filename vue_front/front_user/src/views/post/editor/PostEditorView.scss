@@ -12,10 +12,72 @@
   max-width: var(--meng-home-width);
   margin: auto;
   padding: 32px;
-  border: 1px solid var(--meng-border);
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-card);
   background: var(--meng-editor-card);
+  box-shadow: var(--meng-creator-shadow);
   animation: editor-card-arrive 360ms ease-out;
+}
+
+// 外围一圈粉彩渐变描边，压在装饰贴纸下面，所以顶上的小气泡、胶带不会被挡住
+.post-editor-card::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  z-index: 1;
+  padding: 3px;
+  border-radius: calc(var(--meng-radius-card) + 3px);
+  background: linear-gradient(100deg, var(--meng-card-ring));
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+// 各处图标：同一套冰蓝描边 SVG，只在这里统一尺寸
+.tool-icon,
+.ai-icon,
+.mode-icon {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.ai-icon,
+.mode-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.format-icon {
+  width: 26px;
+  height: 26px;
+}
+
+.heading-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.action-icon {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.title-icon {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  animation: editor-decor-float 3.6s ease-in-out infinite;
+}
+
+.empty-icon {
+  flex: none;
+  width: 34px;
+  height: 34px;
 }
 
 @keyframes editor-card-arrive {
@@ -43,10 +105,11 @@
     border-color 200ms ease;
 }
 
-.ai-tool .el-icon,
-.add-image .el-icon,
-.choose-cover .el-icon,
-.editor-actions .el-button .el-icon {
+.ai-tool .ai-icon,
+.add-image img,
+.choose-cover .cover-plus,
+.choose-cover .cover-art,
+.editor-actions .action-icon {
   transition: transform 240ms ease;
 }
 
@@ -63,30 +126,24 @@
 
 @media (hover: hover) {
   .ai-tool:enabled:hover,
-  .format-tools button:enabled:hover,
   .editor-header a:hover {
     transform: translateY(-2px);
   }
 
-  .ai-tool:enabled:hover .el-icon {
-    transform: rotate(-12deg) scale(1.15);
+  .add-image:enabled:hover img,
+  .choose-cover:enabled:hover .cover-plus {
+    transform: rotate(90deg) scale(1.15);
   }
 
-  .add-image:enabled:hover,
-  .choose-cover:enabled:hover {
-    background: var(--meng-tint);
-  }
-
-  .add-image:enabled:hover .el-icon,
-  .choose-cover:enabled:hover .el-icon {
-    transform: rotate(90deg) scale(1.12);
+  .choose-cover:enabled:hover .cover-art {
+    transform: translateY(-4px) rotate(-4deg);
   }
 
   .editor-actions .el-button:enabled:hover {
     transform: translateY(-2px);
   }
 
-  .editor-actions .el-button--primary:enabled:hover .el-icon {
+  .editor-actions .el-button:enabled:hover .action-icon {
     transform: translateY(-2px) rotate(-8deg);
   }
 }
@@ -124,6 +181,48 @@
   font-size: 13px;
   white-space: nowrap;
   animation: editor-decor-float 5s ease-in-out infinite;
+}
+
+.editor-tape {
+  position: absolute;
+  top: -12px;
+  left: 33%;
+  width: 104px;
+  height: 24px;
+  border-radius: 4px;
+  background: var(--meng-creator-tape);
+  opacity: 0.92;
+  rotate: -3deg;
+}
+
+.editor-glint {
+  position: absolute;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  animation: editor-twinkle 2.8s ease-in-out infinite;
+}
+
+.glint-1 {
+  top: 78px;
+  right: 26%;
+  width: 20px;
+  height: 20px;
+}
+
+.glint-2 {
+  bottom: 74px;
+  left: 52%;
+  width: 14px;
+  height: 14px;
+  animation-delay: -1.3s;
+}
+
+@keyframes editor-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.6;
+  }
 }
 
 .sticker-writing {
@@ -249,12 +348,19 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .editor-decorations * {
+  .editor-decorations *,
+  .meter-fill::after,
+  .title-icon,
+  .editor-panel,
+  .image-slot,
+  .ai-tool:enabled:hover .ai-icon {
     animation: none;
   }
 }
 
 .editor-greeting {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -298,14 +404,11 @@ h1 {
 
 h1 span {
   padding: 2px 14px;
+  border: 3px solid var(--meng-surface);
   background: var(--meng-warning);
+  box-shadow: 0 4px 0 var(--meng-category-daily);
   border-radius: var(--meng-radius-note);
   transform: rotate(-3deg);
-}
-
-h1 .el-icon {
-  color: var(--meng-category-daily);
-  font-size: 26px;
 }
 
 .editor-header a {
@@ -313,10 +416,18 @@ h1 .el-icon {
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
-  color: var(--meng-text);
-  font-weight: 700;
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+  font-weight: 800;
+  rotate: 2deg;
+}
+
+.editor-header a:hover {
+  box-shadow: 0 6px 0 var(--meng-category-anime);
+  rotate: 0deg;
 }
 
 fieldset {
@@ -352,64 +463,86 @@ button:disabled {
   min-width: 0;
 }
 
-.title-field label,
-.category-field strong {
-  display: block;
-  font-size: 14px;
-  margin: 0 0 8px 6px;
-}
-
 .editor-categories {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
+// 分类是五张小贴纸，每个板块一种颜色；选中的会歪着并露出底影，悬停上浮不铺底色
 .editor-categories button {
+  --cat-fill: var(--meng-warning);
+  --cat-edge: var(--meng-category-daily);
+  --cat-dot: var(--meng-category-daily);
+  --cat-ink: var(--meng-favorite-text);
+
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 0;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
-  color: var(--meng-text);
-  font-weight: 700;
+  background: var(--meng-surface);
+  color: var(--meng-muted);
+  font-weight: 800;
+  box-shadow: 0 2px 0 var(--meng-tint);
   transition:
-    transform 180ms ease,
-    background 180ms ease;
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    background 200ms ease,
+    box-shadow 200ms ease,
+    color 200ms ease;
+}
+
+.editor-categories button.category-anime {
+  --cat-fill: var(--meng-tint);
+  --cat-edge: var(--meng-category-anime);
+  --cat-dot: var(--meng-category-anime);
+  --cat-ink: var(--meng-shadow-hard);
+}
+
+.editor-categories button.category-creation {
+  --cat-fill: var(--meng-danger);
+  --cat-edge: var(--meng-creator-pink);
+  --cat-dot: var(--meng-category-creation);
+  --cat-ink: var(--meng-like-text);
+}
+
+.editor-categories button.category-game {
+  --cat-fill: var(--meng-category-game);
+  --cat-edge: var(--meng-creator-purple);
+  --cat-dot: var(--meng-category-game-dot);
+  --cat-ink: var(--meng-creator-purple-text);
+}
+
+.editor-categories button.category-tech {
+  --cat-fill: var(--meng-success);
+  --cat-edge: var(--meng-creator-green-shadow);
+  --cat-dot: var(--meng-growth-green);
+  --cat-ink: var(--meng-success-shadow);
 }
 
 .editor-categories button.selected {
-  background: var(--meng-warning);
-  box-shadow: 0 3px 0 var(--meng-category-daily);
+  background: var(--cat-fill);
+  box-shadow: 0 3px 0 var(--cat-edge);
+  color: var(--cat-ink);
+  rotate: -2deg;
 }
 
 .editor-categories button:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 4px 0 var(--cat-edge);
+  color: var(--cat-ink);
+  rotate: 0deg;
+  translate: 0 -2px;
 }
 
 .editor-categories button span {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-category-daily);
-}
-
-.category-anime span {
-  background: var(--meng-category-anime) !important;
-}
-
-.category-creation span {
-  background: var(--meng-category-creation) !important;
-}
-
-.category-game span {
-  background: var(--meng-category-game-dot) !important;
-}
-
-.category-tech span {
-  background: var(--meng-growth-green) !important;
+  background: var(--cat-dot);
+  box-shadow: 0 0 0 1px var(--cat-edge);
 }
 
 .input-shell {
@@ -418,9 +551,10 @@ button:disabled {
   align-items: center;
   min-height: 48px;
   padding: 0 16px;
-  border: 1px solid var(--meng-border);
+  border: 2px solid var(--meng-tint);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-tint);
 }
 
 .input-shell input {
@@ -439,9 +573,13 @@ button:disabled {
 
 .title-counter {
   flex: none;
+  margin-left: 12px;
+  padding: 2px 10px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
   color: var(--meng-muted);
   font-size: 12px;
-  margin-left: 12px;
+  font-weight: 800;
 }
 
 .field-error {
@@ -481,6 +619,9 @@ button:disabled {
 }
 
 h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 18px;
   font-weight: 800;
 }
@@ -491,8 +632,66 @@ h2 {
   gap: 12px;
 }
 
-.body-count .el-progress {
-  width: 120px;
+// 内容量：一根带白边的药丸形量杯，里面是会滑动的斜纹，快满时由蓝变粉
+.body-meter {
+  position: relative;
+  width: 150px;
+  height: 14px;
+  overflow: hidden;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow:
+    0 0 0 1.5px var(--meng-border),
+    0 3px 0 var(--meng-border);
+}
+
+.meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  min-width: 10px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  transition:
+    width 360ms var(--meng-slide-ease),
+    background-color 300ms ease;
+}
+
+.meter-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--meng-growth-stripes);
+  background-size: 24px 24px;
+  animation: meter-slide 1.4s linear infinite;
+}
+
+@keyframes meter-slide {
+  to {
+    background-position: 24px 0;
+  }
+}
+
+.body-meter.near .meter-fill {
+  background: var(--meng-creator-pink);
+}
+
+.meter-count {
+  padding: 2px 10px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.meter-count b {
+  color: var(--meng-shadow-hard);
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 small {
@@ -505,10 +704,11 @@ small {
   flex: 1;
   flex-direction: column;
   min-height: 540px;
-  border: 1px solid var(--meng-border);
+  border: 3px solid var(--meng-tint);
   border-radius: var(--meng-radius-note);
   overflow: hidden;
   background: var(--meng-surface);
+  box-shadow: 0 5px 0 var(--meng-card-base);
 }
 
 .body-shell.invalid {
@@ -520,7 +720,7 @@ small {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border-bottom: 1px solid var(--meng-border);
+  border-bottom: 2px dashed var(--meng-tint);
   background: var(--meng-bg);
   flex-wrap: wrap;
 }
@@ -530,24 +730,44 @@ small {
   gap: 2px;
 }
 
+// 图标本身就是贴纸，格式按钮不再加底和边，只在悬停时让图标上浮、转一下
+.format-tools {
+  gap: 4px;
+}
+
 .format-tools button {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 34px;
   height: 34px;
+  padding: 0;
   border: 0;
   border-radius: var(--meng-radius-pill);
   background: transparent;
-  color: var(--meng-text);
+  color: var(--meng-shadow-hard);
+  line-height: 1;
 }
 
-.format-tools button:hover {
-  background: var(--meng-tint);
+.format-tools button > img,
+.format-tools button > span {
+  display: block;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease);
+}
+
+.format-tools button:enabled:hover > img,
+.format-tools button:enabled:hover > span {
+  rotate: -8deg;
+  translate: 0 -2px;
 }
 
 .format-tools button span {
-  font-weight: 800;
-  font-size: 17px;
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-weight: 400;
+  font-size: 22px;
+  color: var(--meng-primary);
 }
 
 .format-tools .format-italic {
@@ -558,23 +778,51 @@ small {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 6px 10px;
-  border: 0;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-danger);
-  color: var(--meng-danger-text);
+  box-shadow: 0 3px 0 var(--meng-creator-pink);
+  color: var(--meng-like-text);
   font-size: 12px;
+  font-weight: 800;
   white-space: nowrap;
+  rotate: -2deg;
 }
 
+.ai-tool:enabled:hover {
+  box-shadow: 0 5px 0 var(--meng-creator-pink);
+  rotate: 0deg;
+}
+
+.ai-tool:enabled:hover .ai-icon {
+  animation: editor-wiggle 480ms ease-in-out;
+}
+
+@keyframes editor-wiggle {
+  25% {
+    rotate: -16deg;
+  }
+
+  75% {
+    rotate: 16deg;
+  }
+}
+
+// 编辑/预览：两个等宽的选项放在一条白色小轨道里，金色贴纸在两者之间滑动
 .editor-modes {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
   margin-left: auto;
   position: relative;
-  background: var(--meng-tint);
-  border-radius: var(--meng-radius-pill);
   padding: 3px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow:
+    0 0 0 1.5px var(--meng-border),
+    0 3px 0 var(--meng-border);
   isolation: isolate;
 }
 
@@ -583,9 +831,11 @@ small {
   position: absolute;
   inset: 3px auto 3px 3px;
   width: calc(50% - 3px);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-primary);
-  transition: transform 220ms ease;
+  background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  transition: transform 320ms var(--meng-slide-ease);
   z-index: -1;
 }
 
@@ -594,15 +844,33 @@ small {
 }
 
 .editor-modes button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 74px;
+  height: 28px;
   border: 0;
   background: transparent;
-  padding: 6px 10px;
-  color: var(--meng-text);
-  font-size: 12px;
+  padding: 0 12px;
+  color: var(--meng-muted);
+  font-size: 13px;
+  font-weight: 800;
+  transition: color 200ms ease;
+}
+
+.editor-modes button .mode-icon {
+  width: 18px;
+  height: 18px;
+  transition: rotate 250ms var(--meng-slide-ease);
 }
 
 .editor-modes button[aria-pressed='true'] {
-  color: var(--meng-surface);
+  color: var(--meng-favorite-text);
+}
+
+.editor-modes button[aria-pressed='true'] .mode-icon {
+  rotate: -8deg;
 }
 
 .body-content {
@@ -612,10 +880,29 @@ small {
   height: 540px;
 }
 
+// 水印放在右下角：居中会和正文抢位置，写满字之后还会穿过文字
+.editor-mascot {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  width: clamp(150px, 30%, 250px);
+  max-width: 55%;
+  max-height: 70%;
+  object-fit: contain;
+  opacity: 0.16;
+  pointer-events: none;
+  user-select: none;
+}
+
 .body-content .markdown-editor,
 .preview-scroll {
   position: absolute;
+  z-index: 1;
   inset: 0;
+}
+
+.body-content :deep(.cm-editor) {
+  background: transparent;
 }
 
 .preview-scroll {
@@ -625,6 +912,7 @@ small {
 
 .editor-placeholder {
   position: absolute;
+  z-index: 1;
   top: 20px;
   left: 22px;
   pointer-events: none;
@@ -646,10 +934,33 @@ small {
   min-width: 0;
 }
 
+// 右侧三个面板是三张虚线贴纸卡，依次浮现
 .editor-panel {
   padding: 18px;
+  border: 2px dashed var(--meng-border);
   border-radius: var(--meng-radius-note);
   background: var(--meng-bg);
+  animation: editor-panel-in 480ms var(--meng-slide-ease) backwards;
+}
+
+.cover-panel {
+  animation-delay: 90ms;
+}
+
+.tags-panel {
+  animation-delay: 180ms;
+}
+
+@keyframes editor-panel-in {
+  0% {
+    opacity: 0;
+    translate: 16px 0;
+  }
+
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 .media-tabs {
@@ -660,17 +971,21 @@ small {
   gap: 4px;
   padding: 3px;
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-tint);
+  background: var(--meng-surface);
+  border: 2px dashed var(--meng-tint);
 }
 
+// 配图/视频的滑块是一张薄荷色贴纸
 .media-tabs::before {
   content: '';
   position: absolute;
   z-index: -1;
   inset: 3px auto 3px 3px;
   width: calc(50% - 5px);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-primary);
+  background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-creator-green-shadow);
   transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -695,15 +1010,15 @@ small {
 }
 
 .media-tabs .selected {
-  color: var(--meng-surface);
+  color: var(--meng-success-shadow);
 }
 
-.media-tabs .el-icon {
+.media-tabs .tool-icon {
   transition: transform 300ms ease;
 }
 
-.media-tabs button.selected .el-icon {
-  transform: rotate(-8deg) scale(1.1);
+.media-tabs button.selected .tool-icon {
+  transform: rotate(-8deg) scale(1.15);
 }
 
 .media-content {
@@ -739,9 +1054,33 @@ small {
 .image-slot {
   position: relative;
   aspect-ratio: 1;
-  border-radius: 12px;
+  border-radius: 14px;
   background: var(--meng-surface);
   overflow: hidden;
+}
+
+// 已放进去的图是白边小贴纸，左右错开微微倾斜
+.image-slot:not(.add-image, .empty-image) {
+  border: 3px solid var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-border);
+  rotate: -2deg;
+  animation: slot-pop 380ms var(--meng-slide-ease) backwards;
+}
+
+.image-slot:not(.add-image, .empty-image):nth-child(even) {
+  rotate: 2deg;
+}
+
+@keyframes slot-pop {
+  0% {
+    opacity: 0;
+    scale: 0.6;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
 }
 
 .image-slot img {
@@ -758,8 +1097,16 @@ small {
   color: var(--meng-muted);
 }
 
-.add-image .el-icon {
-  font-size: 24px;
+.add-image img {
+  width: 55%;
+  height: 55%;
+  object-fit: contain;
+}
+
+.empty-image img {
+  width: 52%;
+  height: 52%;
+  object-fit: contain;
 }
 
 .empty-image {
@@ -825,48 +1172,77 @@ small {
   color: var(--meng-muted);
 }
 
-.video-placeholder .el-icon {
-  flex: none;
-  font-size: 24px;
+.video-placeholder .empty-icon {
+  opacity: 0.8;
 }
 
 .cover-box {
   position: relative;
   aspect-ratio: 16 / 9;
-  border: 2px dashed var(--meng-border);
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-note);
+  box-shadow:
+    0 0 0 2px var(--meng-border),
+    0 4px 0 2px var(--meng-tint);
   overflow: hidden;
 }
 
+// 占位：整个小区域铺满，里面一圈虚线，中间是封面图标，下面一枚「＋ 上传封面」的小贴纸
 .choose-cover {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 0;
-  gap: 8px;
+  padding: 0 0 8px;
+  gap: 4px;
   border: 0;
   background: var(--meng-surface);
   color: var(--meng-muted);
   font-size: 13px;
 }
 
-.choose-cover img {
+.choose-cover:not(:has(.cover-preview))::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border: 2px dashed var(--meng-border);
+  border-radius: calc(var(--meng-radius-note) - 6px);
+  pointer-events: none;
+}
+
+.cover-art {
+  flex: none;
+  width: clamp(40px, 34%, 76px);
+  height: auto;
+  max-height: 50%;
+  object-fit: contain;
+}
+
+.cover-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 12px 3px 6px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+  font-weight: 800;
+}
+
+.cover-hint .cover-plus {
+  width: 18px;
+  height: 18px;
+}
+
+.choose-cover .cover-preview {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.default-cover {
-  position: absolute;
-  bottom: 8px;
-  left: 8px;
-  right: 8px;
-  padding: 4px;
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-surface);
 }
 
 .selected-tags {
@@ -906,18 +1282,30 @@ small {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 5px 8px;
+  padding: 5px 8px 5px 10px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   font-size: 12px;
+  font-weight: 800;
+  rotate: -2deg;
+}
+
+.editor-tag::before {
+  content: '#';
+  opacity: 0.55;
 }
 
 .editor-tag:nth-child(2n) {
   background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-creator-green-shadow);
+  rotate: 2deg;
 }
 
 .editor-tag:nth-child(3n) {
   background: var(--meng-danger);
+  box-shadow: 0 2px 0 var(--meng-creator-pink);
 }
 
 .editor-tag button {
@@ -973,17 +1361,36 @@ small {
   margin-top: 24px;
 }
 
+// 底部两个按钮是贴纸：存草稿是淡蓝色，发布是金色；悬停上浮加厚底影，不铺底色
 .editor-actions .el-button {
   height: 48px;
-  padding-inline: 24px;
+  padding-inline: 22px;
   gap: 8px;
+  border: 3px solid var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 5px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
   font-weight: 800;
-  box-shadow: 0 4px 0 var(--meng-border);
+  rotate: -1.5deg;
 }
 
 .editor-actions .el-button--primary {
   min-width: 170px;
-  box-shadow: 0 4px 0 var(--meng-shadow-hard);
+  background: var(--meng-warning);
+  box-shadow: 0 5px 0 var(--meng-creator-yellow);
+  color: var(--meng-favorite-text);
+  rotate: 1.5deg;
+}
+
+.editor-actions .el-button:enabled:hover {
+  box-shadow: 0 7px 0 var(--meng-category-anime);
+  rotate: 0deg;
+}
+
+.editor-actions .el-button--primary:enabled:hover {
+  background: var(--meng-warning);
+  box-shadow: 0 7px 0 var(--meng-creator-yellow);
+  color: var(--meng-favorite-text);
 }
 
 .draft-state {
@@ -1170,10 +1577,10 @@ small {
 
   .cover-box {
     height: 100%;
-    width: auto;
-    max-width: 100%;
+    width: 100%;
+    aspect-ratio: auto;
     min-height: 0;
-    justify-self: center;
+    justify-self: stretch;
   }
 
   .tags-panel {
@@ -1247,6 +1654,7 @@ small {
 @media (width <= 800px) {
   .sticker-cheer,
   .sticker-smile,
+  .editor-glint,
   .editor-bubble,
   .editor-flower,
   .editor-star {
@@ -1295,7 +1703,7 @@ small {
     width: 30px;
   }
 
-  .body-count .el-progress {
+  .body-meter {
     width: 70px;
   }
 
