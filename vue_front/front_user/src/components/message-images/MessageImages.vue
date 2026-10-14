@@ -44,11 +44,10 @@
         {{ t('im.collapse') }}
       </button>
     </template>
-    <el-image-viewer
+    <ImageViewer
       v-if="preview!==null"
-      :url-list="urls"
+      :urls="urls"
       :initial-index="preview"
-      hide-on-click-modal
       @close="preview=null"
     />
   </div>

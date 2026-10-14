@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, reactive, ref } from 'vue'
 import {
   Picture as PictureIcon,
   Clock,
@@ -21,6 +21,7 @@ import { avatarUrl } from '@/api/user'
 export default defineComponent({
   name: 'PostCard',
   components: {
+    ImageViewer: defineAsyncComponent(() => import('@/components/image-viewer/ImageViewer.vue')),
     HighlightText,
     PictureIcon,
     Clock,
@@ -114,6 +115,8 @@ export default defineComponent({
       pending,
       previewIndex,
       preview,
+      viewerUrls: computed(() => props.post.images.map((image) => contentImage(image.url))),
+      viewerThumbs: computed(() => props.post.images.map((image) => contentImage(image.thumbUrl))),
       toggle,
       openCard,
       preloadDetail,

@@ -62,10 +62,10 @@
         </el-image><span v-if="index===4&&post.imageCount>5">{{ t('home.extraImages',{count:post.imageCount-5}) }}</span>
       </button>
     </div>
-    <el-image-viewer
+    <ImageViewer
       v-if="previewIndex!==null"
-      teleported
-      :url-list="post.images.map(image=>contentImage(image.url))"
+      :urls="viewerUrls"
+      :thumbs="viewerThumbs"
       :initial-index="previewIndex"
       @close="previewIndex=null"
     />
