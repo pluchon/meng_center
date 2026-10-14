@@ -3,7 +3,18 @@ import CardEdge from '@/components/card-edge/CardEdge.vue'
 import { defineComponent, ref, computed, watch, nextTick, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { brandIcon, legalArtwork } from '@/assets/images'
+import {
+  brandIcon,
+  communitySparkle,
+  detailFlower,
+  growthCheckIcon,
+  growthClockIcon,
+  growthFlagIcon,
+  legalArtwork,
+  legalPrivacyIcon,
+  legalTermsIcon,
+} from '@/assets/images'
+import { useSlider } from '@/composables/useSlider'
 import ParticleBackground from '@/components/particle-background/ParticleBackground.vue'
 import terms from '@/content/legal/terms'
 import privacy from '@/content/legal/privacy'
@@ -21,12 +32,19 @@ export default defineComponent({
           : LegalDocument.TERMS,
       ),
       scrollArea = ref(null),
+      toc = ref(null),
       active = ref('publication'),
       progress = ref(0)
     const returnRoute = computed(() =>
       [RouteName.HOME, RouteName.LOGIN].includes(route.query.from) ? route.query.from : RouteName.REGISTER,
     )
     const document = computed(() => (selected.value === LegalDocument.PRIVACY ? privacy : terms))
+    // 目录里的贴纸跟着悬停和当前章节滑动
+    const tocSlider = useSlider(toc, {
+      item: 'button',
+      active: '.active',
+      deps: () => [selected.value, active.value],
+    })
     function jump(id) {
       const section = scrollArea.value?.querySelector('#' + id)
       if (section) scrollArea.value.scrollTop = section.offsetTop - scrollArea.value.offsetTop
@@ -45,7 +63,9 @@ export default defineComponent({
     watch(selected, async () => {
       window.document.title = t('common.pageTitle', { page: t(document.value.titleKey) })
       await nextTick()
-      jump(document.value.sections[0].id)
+      // 换一份协议从头读起，标题和阅读提示要看得到
+      if (scrollArea.value) scrollArea.value.scrollTop = 0
+      active.value = document.value.sections[0].id
       updateActive()
     })
     onMounted(updateActive)
@@ -55,7 +75,16 @@ export default defineComponent({
       returnRoute,
       progress,
       brandIcon,
+      communitySparkle,
+      detailFlower,
+      growthCheckIcon,
+      growthClockIcon,
+      growthFlagIcon,
       legalArtwork,
+      legalPrivacyIcon,
+      legalTermsIcon,
+      tocSlider,
+      toc,
       selected,
       scrollArea,
       active,

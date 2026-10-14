@@ -77,3 +77,6 @@ export { default as growthChartIcon } from './growth-chart.svg'
 export { default as growthTrendIcon } from './growth-trend.svg'
 export { default as growthCheckIcon } from './growth-check.svg'
 export { default as growthClockIcon } from './growth-clock.svg'
+
+export { default as legalTermsIcon } from './legal-terms.svg'
+export { default as legalPrivacyIcon } from './legal-privacy.svg'
