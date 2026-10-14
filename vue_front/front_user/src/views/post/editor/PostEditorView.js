@@ -2,7 +2,8 @@ import { defineComponent, computed, ref, reactive, watch, onMounted, onUnmounted
 import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import {
   ArrowLeft,
   Plus,
@@ -237,16 +238,12 @@ export default defineComponent({
     async function confirmLeave() {
       if (busy.value && !allowLeave) return false
       if (allowLeave || !hasChanges.value) return true
-      try {
-        await ElMessageBox.confirm(t('editor.leaveMessage'), t('editor.leaveTitle'), {
-          confirmButtonText: t('editor.leave'),
-          cancelButtonText: t('editor.stay'),
-          type: 'warning',
-        })
-        return true
-      } catch {
-        return false
-      }
+      return confirmDialog({
+        message: t('editor.leaveMessage'),
+        title: t('editor.leaveTitle'),
+        confirmText: t('editor.leave'),
+        cancelText: t('editor.stay'),
+      })
     }
     onBeforeRouteLeave(confirmLeave)
     onBeforeRouteUpdate(async (to, from) =>

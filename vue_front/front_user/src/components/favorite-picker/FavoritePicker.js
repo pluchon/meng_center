@@ -1,6 +1,7 @@
 import { computed, defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import { Check, Close, FolderOpened } from '@element-plus/icons-vue'
 import { useFavoriteStore } from '@/stores/favorites'
 import { contentImage } from '@/api/content'
@@ -22,16 +23,12 @@ export default defineComponent({
     // 有没保存的勾选时离开要先确认，避免白选
     async function allowLeave() {
       if (!favorites.dirty) return true
-      try {
-        await ElMessageBox.confirm(t('account.discardChanges'), t('account.confirm'), {
-          confirmButtonText: t('account.discard'),
-          cancelButtonText: t('account.keepEditing'),
-          type: 'warning',
-        })
-        return true
-      } catch {
-        return false
-      }
+      return confirmDialog({
+        message: t('account.discardChanges'),
+        title: t('account.confirm'),
+        confirmText: t('account.discard'),
+        cancelText: t('account.keepEditing'),
+      })
     }
     async function leave() {
       if (await allowLeave()) favorites.close()

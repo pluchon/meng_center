@@ -37,7 +37,6 @@ export default {
     OTHER: '其他',
   },
   error: {
-    content: '正文最多 {max} 字',
     attachments: '表情和图片合计最多 {max} 个',
     upload: '请等待上传完成，并重试或移除失败图片',
   },

@@ -100,7 +100,8 @@
         :aria-label="t('detail.write')"
         :disabled="busy"
         rows="3"
-        @input="resize"
+        @input="limit"
+        @compositionend="limit"
       /><small>{{ t('editor.counters', { count, max: Comment.LENGTH }) }}</small>
     </div>
     <CollapsePanel :open="panel">

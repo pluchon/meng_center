@@ -10,7 +10,7 @@ import {
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import { RouteName } from '@/router/names'
 import { useUserStore } from '@/stores/user'
 import { useImStore } from '@/stores/im'
@@ -229,15 +229,14 @@ export default defineComponent({
     }
     async function action(kind, item) {
       if (kind === 'delete') {
-        try {
-          await ElMessageBox.confirm(t('im.removeConfirm'), t('im.remove'), {
-            confirmButtonText: t('im.remove'),
-            cancelButtonText: t('im.cancel'),
-            type: 'warning',
-          })
-        } catch {
-          return
-        }
+        const confirmed = await confirmDialog({
+          message: t('im.removeConfirm'),
+          title: t('im.remove'),
+          confirmText: t('im.remove'),
+          cancelText: t('im.cancel'),
+          danger: true,
+        })
+        if (!confirmed) return
       }
       try {
         if (kind === 'delete') {

@@ -5,6 +5,7 @@ export default {
   registerPageTitle: '加入社区',
   growthPageTitle: '成长中心',
   loading: '正在加载',
+  close: '关闭',
   empty: '暂无内容',
   retry: '重试',
   unauthenticated: '请先登录',

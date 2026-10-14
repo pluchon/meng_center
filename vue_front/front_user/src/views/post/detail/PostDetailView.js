@@ -9,7 +9,8 @@ import {
   watch,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import {
   ArrowLeft,
   Location,
@@ -152,15 +153,14 @@ export default defineComponent({
     }
     async function remove() {
       if (pending.delete) return
-      try {
-        await ElMessageBox.confirm(t('detail.deletePost'), t('detail.delete'), {
-          confirmButtonText: t('detail.confirm'),
-          cancelButtonText: t('detail.cancel'),
-          type: 'warning',
-        })
-      } catch {
-        return
-      }
+      const confirmed = await confirmDialog({
+        message: t('detail.deletePost'),
+        title: t('detail.delete'),
+        confirmText: t('detail.confirm'),
+        cancelText: t('detail.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
       pending.delete = true
       try {
         await contentApi.delete(post.value.id)

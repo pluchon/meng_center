@@ -283,26 +283,16 @@
           {{ t('account.blockHint') }}
         </p>
         <div
-          v-else
+          v-else-if="list.some(item => !item.current)"
           class="account-dialog-actions account-device-actions"
         >
           <el-button
-            v-if="list.some(item => !item.current)"
             class="account-offline-others"
             :disabled="!!pending"
             :loading="pending === 'others'"
             @click="removeOthers"
           >
             {{ t('account.offlineOthers') }}
-          </el-button><el-button
-            type="primary"
-            :disabled="!!pending"
-            @click="close"
-          >
-            <span
-              class="account-confirm-symbol"
-              aria-hidden="true"
-            ><el-icon><Check /></el-icon></span>{{ t('account.done') }}
           </el-button>
         </div>
       </template>

@@ -2,20 +2,74 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--meng-space-3);
-  margin-bottom: var(--meng-space-6);
+  margin-bottom: var(--meng-space-5);
 }
 
+// 举报原因：歪着的彩色贴纸，选中后外面多一圈描边
 .report-reasons button {
-  padding: var(--meng-space-2) var(--meng-space-4);
-  border: 0;
-  box-shadow: 0 4px 0 var(--meng-tint);
+  --reason-fill: var(--meng-success);
+  --reason-edge: var(--meng-growth-mint-edge);
+  --reason-ink: var(--meng-success-shadow);
+
+  min-height: 36px;
+  padding: 0 var(--meng-space-4);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
-  color: var(--meng-text);
+  background: var(--reason-fill);
+  box-shadow: 0 3px 0 var(--reason-edge);
+  color: var(--reason-ink);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  rotate: -2deg;
+  transition:
+    rotate 0.25s var(--meng-slide-ease),
+    translate 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.report-reasons button.reason-1 {
+  --reason-fill: var(--meng-danger);
+  --reason-edge: var(--meng-category-creation);
+  --reason-ink: var(--meng-like-text);
+
+  rotate: 2deg;
+}
+
+.report-reasons button.reason-2 {
+  --reason-fill: var(--meng-warning);
+  --reason-edge: var(--meng-category-daily);
+  --reason-ink: var(--meng-favorite-text);
+
+  rotate: -1deg;
+}
+
+.report-reasons button.reason-3 {
+  --reason-fill: var(--meng-category-game);
+  --reason-edge: var(--meng-category-game-dot);
+  --reason-ink: var(--meng-creator-purple-text);
+
+  rotate: 2deg;
+}
+
+.report-reasons button.reason-4 {
+  --reason-fill: var(--meng-tint);
+  --reason-edge: var(--meng-category-anime);
+  --reason-ink: var(--meng-shadow-hard);
+}
+
+.report-reasons button:hover:not(:disabled) {
+  box-shadow: 0 5px 0 var(--reason-edge);
+  rotate: 0deg;
+  translate: 0 -2px;
 }
 
 .report-reasons button.selected {
-  background: var(--meng-danger);
-  color: var(--meng-danger-text);
-  border-color: var(--meng-danger-text);
+  outline: 2px solid var(--reason-edge);
+  outline-offset: 2px;
+}
+
+.report-reasons button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

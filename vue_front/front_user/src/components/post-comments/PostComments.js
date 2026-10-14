@@ -1,7 +1,8 @@
 import { computed, defineComponent, nextTick, reactive, ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import { EditPen } from '@element-plus/icons-vue'
 import { Comment, ReportTarget } from '@/constants/comments'
 import { contentApi } from '@/api/content'
@@ -203,15 +204,14 @@ export default defineComponent({
     }
     async function remove(comment) {
       if (pending[comment.id]) return
-      try {
-        await ElMessageBox.confirm(t('detail.deleteComment'), t('detail.delete'), {
-          confirmButtonText: t('detail.confirm'),
-          cancelButtonText: t('detail.cancel'),
-          type: 'warning',
-        })
-      } catch {
-        return
-      }
+      const confirmed = await confirmDialog({
+        message: t('detail.deleteComment'),
+        title: t('detail.delete'),
+        confirmText: t('detail.confirm'),
+        cancelText: t('detail.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
       pending[comment.id] = true
       try {
         const count = await contentApi.deleteComment(comment.id)

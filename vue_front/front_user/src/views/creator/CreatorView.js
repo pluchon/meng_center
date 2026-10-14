@@ -1,7 +1,8 @@
 import { computed, defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import { IconPencil, IconEye, IconHeart, IconMessage, IconStar } from '@tabler/icons-vue'
 import { contentApi } from '@/api/content'
 import { Creator, CreatorTab, CreatorChartType } from '@/constants/content'
@@ -107,19 +108,14 @@ export default defineComponent({
     async function remove(id, isDraft) {
       const key = (isDraft ? CreatorTab.DRAFTS : CreatorTab.PUBLISHED) + id
       if (deleting.has(key)) return
-      try {
-        await ElMessageBox.confirm(
-          t(isDraft ? 'creator.deleteDraft' : 'creator.deletePost'),
-          t('creator.confirmTitle'),
-          {
-            confirmButtonText: t('creator.confirm'),
-            cancelButtonText: t('creator.cancel'),
-            type: 'warning',
-          },
-        )
-      } catch {
-        return
-      }
+      const confirmed = await confirmDialog({
+        message: t(isDraft ? 'creator.deleteDraft' : 'creator.deletePost'),
+        title: t('creator.confirmTitle'),
+        confirmText: t('creator.confirm'),
+        cancelText: t('creator.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
       deleting.add(key)
       try {
         if (isDraft) {

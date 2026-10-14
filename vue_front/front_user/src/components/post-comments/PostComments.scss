@@ -20,23 +20,42 @@
   margin: 0;
 }
 
-.comments-title {
-  padding-inline: var(--meng-space-3);
+// 标题和数量是同一个粉色小药丸：数量嵌在右边的白色圆里
+.comments-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+  padding: 2px 5px 2px var(--meng-space-4);
+  border: 2px solid var(--meng-surface);
   background: var(--meng-danger);
   border-radius: var(--meng-radius-pill);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
   transform: rotate(-3deg);
 }
 
 .comments-count {
-  font: 800 16px Nunito, sans-serif;
-  color: var(--meng-muted);
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  height: 30px;
+  padding: 0 var(--meng-space-2);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  font:
+    800 16px Nunito,
+    sans-serif;
+  color: var(--meng-like-text);
 }
 
 .comments-cheer {
   padding: var(--meng-space-1) var(--meng-space-3);
+  border: 2px solid var(--meng-surface);
   background: var(--meng-warning);
   border-radius: var(--meng-radius-pill);
-  font: 800 13px Nunito, sans-serif;
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  font:
+    800 13px Nunito,
+    sans-serif;
   transform: rotate(4deg);
 }
 
@@ -45,23 +64,27 @@
   align-items: center;
   gap: var(--meng-space-2);
   padding: var(--meng-space-2) var(--meng-space-4);
-  border: 0;
   border-radius: var(--meng-radius-pill);
   color: var(--meng-text);
   background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-card-base);
+  border: 2px solid var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
   font-weight: 800;
   font-size: 15px;
   min-height: 44px;
-  transition: transform 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .comments-heading button:hover {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 0 var(--meng-category-anime);
 }
 
 .comments-heading button:active {
   transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--meng-category-anime);
 }
 
 .comments-heading button .el-icon {
@@ -79,32 +102,104 @@
   color: var(--meng-muted);
 }
 
+// 评论的配色：蓝、粉、金、绿、紫轮换；楼中楼的回复错开两格，和上面那条评论颜色不同
+.comment-thread:nth-child(5n + 1),
+.replies > :nth-child(5n + 3) {
+  --comment-fill: var(--meng-tint);
+  --comment-edge: var(--meng-category-anime);
+  --comment-ink: var(--meng-shadow-hard);
+}
+
+.comment-thread:nth-child(5n + 2),
+.replies > :nth-child(5n + 4) {
+  --comment-fill: var(--meng-danger);
+  --comment-edge: var(--meng-category-creation);
+  --comment-ink: var(--meng-like-text);
+}
+
+.comment-thread:nth-child(5n + 3),
+.replies > :nth-child(5n + 5) {
+  --comment-fill: var(--meng-warning);
+  --comment-edge: var(--meng-category-daily);
+  --comment-ink: var(--meng-favorite-text);
+}
+
+.comment-thread:nth-child(5n + 4),
+.replies > :nth-child(5n + 1) {
+  --comment-fill: var(--meng-success);
+  --comment-edge: var(--meng-growth-mint-edge);
+  --comment-ink: var(--meng-success-shadow);
+}
+
+.comment-thread:nth-child(5n + 5),
+.replies > :nth-child(5n + 2) {
+  --comment-fill: var(--meng-category-game);
+  --comment-edge: var(--meng-category-game-dot);
+  --comment-ink: var(--meng-creator-purple-text);
+}
+
+// 楼中楼：一张浅色的小卡片，左边一条虚线连回上面那条评论，顶上有个小三角指向它
 .replies {
+  position: relative;
   background: var(--meng-bg);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-note);
+  box-shadow: 0 4px 0 var(--meng-tint);
   padding: var(--meng-space-2) var(--meng-space-5);
   margin: 0 0 var(--meng-space-4) var(--meng-space-12);
+}
+
+.replies::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 18px;
+  left: -26px;
+  border-left: 2px dashed var(--meng-border);
+}
+
+.replies::after {
+  content: '';
+  position: absolute;
+  bottom: 12px;
+  left: -32px;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
 }
 
 .more-replies {
   display: block;
   margin: var(--meng-space-2) 0;
-  padding: var(--meng-space-2) var(--meng-space-3);
+  padding: var(--meng-space-2) var(--meng-space-4);
   border-radius: var(--meng-radius-pill);
-  border: 0;
-  background: transparent;
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
   color: var(--meng-primary);
   font-size: 13px;
   font-weight: 800;
-  transition: background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .more-replies:hover {
-  background: var(--meng-tint);
+  box-shadow: 0 5px 0 var(--meng-category-anime);
+  transform: translateY(-2px);
+}
+
+.more-replies:active {
+  box-shadow: 0 1px 0 var(--meng-category-anime);
+  transform: translateY(2px);
 }
 
 @include narrow {
-  .comments-cheer { display: none; }
+  .comments-cheer {
+    display: none;
+  }
 
   .replies {
     margin-left: var(--meng-space-4);
@@ -118,5 +213,4 @@
   .more-replies {
     transition: none;
   }
-
 }

@@ -2,8 +2,9 @@
   position: relative;
   padding: var(--meng-space-4);
   background: var(--meng-bg);
-  border: 1px solid var(--meng-border);
-  border-radius: var(--meng-radius-note);
+  border: 2px dashed var(--meng-border);
+  border-radius: 24px;
+  box-shadow: 0 4px 0 var(--meng-tint);
   margin-block: var(--meng-space-6);
   transition:
     border-color 0.2s ease,
@@ -27,9 +28,10 @@
 }
 
 .comment-composer:focus-within {
-  border-color: var(--meng-primary);
+  border-style: solid;
+  border-color: var(--meng-category-anime);
   background: var(--meng-surface);
-  box-shadow: 0 0 0 3px var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
 }
 
 .composer-field {
@@ -68,10 +70,13 @@
 }
 
 .comment-composer footer > button:not(.el-button) {
-  border: 0;
+  --edge: var(--meng-tint);
+
+  border: 2px solid var(--meng-surface);
   height: 40px;
   padding: 0 var(--meng-space-4);
   background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--edge);
   color: var(--meng-tool-text);
   display: inline-flex;
   align-items: center;
@@ -81,7 +86,15 @@
   font-weight: 800;
   transition:
     transform 0.2s ease,
-    background 0.2s ease;
+    box-shadow 0.2s ease;
+}
+
+.comment-composer footer > button:first-child {
+  --edge: var(--meng-category-daily);
+}
+
+.comment-composer footer > button:nth-child(2) {
+  --edge: var(--meng-category-creation);
 }
 
 .comment-composer footer > button:first-child .el-icon {
@@ -94,16 +107,28 @@
 
 .comment-composer footer > button:not(.el-button):hover {
   transform: translateY(-2px);
-  background: var(--meng-tint);
+  box-shadow: 0 5px 0 var(--edge);
 }
 
+// 发送按钮：薄荷色贴纸，不用实心青蓝
 .comment-composer footer > .el-button {
+  --el-button-bg-color: var(--meng-success);
+  --el-button-hover-bg-color: var(--meng-success);
+  --el-button-active-bg-color: var(--meng-success);
+  --el-button-border-color: var(--meng-surface);
+  --el-button-hover-border-color: var(--meng-surface);
+  --el-button-active-border-color: var(--meng-surface);
+  --el-button-text-color: var(--meng-success-shadow);
+  --el-button-hover-text-color: var(--meng-success-shadow);
+  --el-button-active-text-color: var(--meng-success-shadow);
+
   margin-left: auto;
   height: 44px;
   padding-inline: var(--meng-space-6);
+  border-width: 2px;
   font-size: 15px;
   font-weight: 800;
-  box-shadow: 0 5px 0 var(--meng-shadow-hard);
+  box-shadow: 0 5px 0 var(--meng-growth-mint-edge);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
@@ -111,12 +136,12 @@
 
 .comment-composer footer > .el-button:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 7px 0 var(--meng-shadow-hard);
+  box-shadow: 0 7px 0 var(--meng-growth-mint-edge);
 }
 
 .comment-composer footer > .el-button:not(:disabled):active {
   transform: translateY(3px);
-  box-shadow: 0 2px 0 var(--meng-shadow-hard);
+  box-shadow: 0 2px 0 var(--meng-growth-mint-edge);
 }
 
 .comment-composer footer > .el-button:disabled {
@@ -129,6 +154,7 @@
 
 .comment-composer footer > button.selected {
   background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
 }
 
 .composer-images {
@@ -203,14 +229,43 @@
 }
 
 .composer-target {
+  position: relative;
   display: inline-flex;
   gap: var(--meng-space-2);
   align-items: center;
-  padding: var(--meng-space-1) var(--meng-space-3);
+  padding: 2px var(--meng-space-2) 2px 22px;
+  border: 2px solid var(--meng-surface);
   background: var(--meng-tint);
-  color: var(--meng-primary);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
   border-radius: var(--meng-radius-pill);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  rotate: -2deg;
+}
+
+.composer-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  translate: 0 -50%;
+}
+
+.composer-target::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
 }
 
 .reply-target-enter-active,
@@ -227,11 +282,20 @@
 }
 
 .composer-target button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
   border: 0;
-  background: transparent;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
   color: inherit;
-  display: flex;
   padding: 0;
+  transition: rotate 0.25s var(--meng-slide-ease);
+}
+
+.composer-target button:hover:not(:disabled) {
+  rotate: 90deg;
 }
 
 .emotion-panel {

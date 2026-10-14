@@ -1,7 +1,8 @@
 import { computed, defineComponent, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import {
   IconPhoto as PictureIcon,
   IconX as Close,
@@ -225,16 +226,13 @@ export default defineComponent({
         busy.value = false
       }
     }
-    async function confirm(key) {
-      try {
-        await ElMessageBox.confirm(t(key), t('account.confirm'), {
-          confirmButtonText: t('account.confirm'),
-          cancelButtonText: t('account.cancel'),
-        })
-        return true
-      } catch {
-        return false
-      }
+    function confirm(key) {
+      return confirmDialog({
+        message: t(key),
+        title: t('account.confirm'),
+        confirmText: t('account.confirm'),
+        cancelText: t('account.cancel'),
+      })
     }
     async function remove(item) {
       if (pending.value) return

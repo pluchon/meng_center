@@ -48,6 +48,14 @@ export default defineComponent({
       void nextTick(() => field.value?.focus({ preventScroll: true }))
     }
     expose({ focus })
+    // 总字数封顶：表情也占字数，超出的部分直接截掉，不再输入（输入法组词中先不截）
+    function limit(event) {
+      if (event?.isComposing) return
+      const room = Comment.LENGTH - Array.from(content.value.slice(text.value.length)).length
+      const chars = Array.from(text.value)
+      if (chars.length > room) text.value = chars.slice(0, Math.max(0, room)).join('')
+      resize()
+    }
     function resize() {
       if (field.value) {
         field.value.style.height = 'auto'
@@ -55,6 +63,8 @@ export default defineComponent({
       }
     }
     function insert(item) {
+      // 字数已满时不再加入表情
+      if (count.value + Array.from(emotionToken(item.name)).length > Comment.LENGTH) return
       if (attachmentCount.value >= Comment.ATTACHMENTS) {
         error.value = t('detail.error.attachments', { max: Comment.ATTACHMENTS })
         return
@@ -119,7 +129,6 @@ export default defineComponent({
       panel,
       busy,
       error: computed(() => {
-        if (count.value > Comment.LENGTH) return t('detail.error.content', { max: Comment.LENGTH })
         if (attachmentCount.value > Comment.ATTACHMENTS)
           return t('detail.error.attachments', { max: Comment.ATTACHMENTS })
         return error.value
@@ -134,6 +143,7 @@ export default defineComponent({
       insert,
       send,
       resize,
+      limit,
       picked,
       paste,
       images: uploads.images,

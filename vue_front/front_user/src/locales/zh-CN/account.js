@@ -99,7 +99,6 @@ export default {
   unblock: '取消屏蔽',
   blockedAt: '{time} 屏蔽',
   blockHint: '被屏蔽的人给你发不了私信，对方不会收到提示',
-  done: '好了',
   emailPlaceholder: '验证码会发到这个邮箱',
   confirmEmailChange: '确认更换',
   confirmPasswordChange: '确认修改',

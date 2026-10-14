@@ -1,11 +1,14 @@
 import { defineComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
+import { Flag } from '@element-plus/icons-vue'
+import DialogShell from '@/components/dialog-shell/DialogShell.vue'
 import { contentApi } from '@/api/content'
 import { ReportReasons } from '@/constants/comments'
 import { notifyFailure } from '@/composables/useFailureNotice'
 export default defineComponent({
   name: 'ReportDialog',
+  components: { DialogShell },
   props: { target: { type: Object, default: null } },
   emits: ['close'],
   setup(props, { emit }) {
@@ -35,6 +38,6 @@ export default defineComponent({
         busy.value = false
       }
     }
-    return { t, reason, note, busy, ReportReasons, submit }
+    return { t, reason, note, busy, ReportReasons, submit, Flag }
   },
 })

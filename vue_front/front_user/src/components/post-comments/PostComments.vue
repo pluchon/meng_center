@@ -4,7 +4,7 @@
     class="post-comments"
   >
     <header class="comments-heading">
-      <h2><span class="comments-title">{{ t('detail.comments') }}</span><span class="comments-count">{{ count }}</span><span class="comments-cheer">{{ t('detail.commentCheer') }}</span></h2><button
+      <h2><span class="comments-badge"><span class="comments-title">{{ t('detail.comments') }}</span><span class="comments-count">{{ count }}</span></span><span class="comments-cheer">{{ t('detail.commentCheer') }}</span></h2><button
         type="button"
         :aria-expanded="open"
         @click="toggleComposer"

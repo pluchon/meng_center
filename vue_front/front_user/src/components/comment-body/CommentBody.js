@@ -4,6 +4,10 @@ export default defineComponent({
   name: 'CommentBody',
   props: { content: { type: String, default: '' } },
   setup(props) {
-    return { segments: computed(() => commentSegments(props.content)) }
+    const segments = computed(() => commentSegments(props.content))
+    return {
+      texts: computed(() => segments.value.filter((item) => !item.image)),
+      images: computed(() => segments.value.filter((item) => item.image)),
+    }
   },
 })

@@ -4,7 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
 import { Categories, PostSort, Search } from '@/constants/content'
-import { communitySparkle, detailBubble } from '@/assets/images'
+import { communitySparkle, detailBubble, navSearchIcon } from '@/assets/images'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import FeedFilters from '@/components/feed-filters/FeedFilters.vue'
 import PostCard from '@/components/post-card/PostCard.vue'
@@ -22,7 +22,8 @@ export default defineComponent({
       records = ref([]),
       total = ref(0),
       loading = ref(false),
-      error = ref(null)
+      error = ref(null),
+      pageRoot = ref(null)
     const query = computed(() => ({
       q: typeof route.query.q === 'string' ? route.query.q.trim() : '',
       category: Categories.includes(route.query.category) ? route.query.category : undefined,
@@ -59,7 +60,12 @@ export default defineComponent({
     }
     function filter(next) {
       const merged = { ...query.value, page: 1, ...next }
-      scrollToTop()
+      // 翻页后回到列表开头；切换分类或排序时筛选栏就在眼前，不滚动
+      if (next?.page) {
+        pageRoot.value?.scrollIntoView({
+          behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        })
+      }
       return router.push({
         name: route.name,
         query: {
@@ -84,6 +90,7 @@ export default defineComponent({
     })
     return {
       scrollToTop,
+      pageRoot,
       ...useI18n(),
       query,
       records,
@@ -96,6 +103,7 @@ export default defineComponent({
       totalPages: computed(() => Math.ceil(Math.min(total.value, Search.WINDOW) / Search.SIZE)),
       communitySparkle,
       detailBubble,
+      navSearchIcon,
     }
   },
 })

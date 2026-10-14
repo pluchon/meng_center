@@ -20,8 +20,18 @@
         class="search-bubble bubble-right"
       >
     </div>
-    <main class="search-page">
+    <main
+      ref="pageRoot"
+      class="search-page"
+    >
       <header class="search-summary">
+        <span
+          class="search-icon"
+          aria-hidden="true"
+        ><img
+          :src="navSearchIcon"
+          alt=""
+        ></span>
         <h1>{{ query.q || t('search.title') }}</h1><span
           class="search-sparkle"
           aria-hidden="true"

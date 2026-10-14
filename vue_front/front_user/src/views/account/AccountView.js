@@ -1,7 +1,8 @@
 import { computed, defineAsyncComponent, defineComponent, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import {
   IconCamera as CameraIcon,
   IconAdjustmentsHorizontal as Setting,
@@ -155,10 +156,14 @@ export default defineComponent({
       if (deleting.value) return
       deleting.value = true
       try {
-        await ElMessageBox.confirm(t('account.deleteConfirm'), t('account.deleteFolder'), {
-          confirmButtonText: t('account.confirm'),
-          cancelButtonText: t('account.cancel'),
+        const confirmed = await confirmDialog({
+          message: t('account.deleteConfirm'),
+          title: t('account.deleteFolder'),
+          confirmText: t('account.confirm'),
+          cancelText: t('account.cancel'),
+          danger: true,
         })
+        if (!confirmed) return
         await contentApi.deleteFolder(value.id)
         favorites.invalidate()
         folderRevision.value++
@@ -176,10 +181,13 @@ export default defineComponent({
       if (loggingOut.value) return
       loggingOut.value = true
       try {
-        await ElMessageBox.confirm(t('account.logoutConfirm'), t('account.logout'), {
-          confirmButtonText: t('account.confirm'),
-          cancelButtonText: t('account.cancel'),
+        const confirmed = await confirmDialog({
+          message: t('account.logoutConfirm'),
+          title: t('account.logout'),
+          confirmText: t('account.confirm'),
+          cancelText: t('account.cancel'),
         })
+        if (!confirmed) return
         await user.logout()
         router.replace({ name: RouteName.LOGIN })
       } catch (error) {
