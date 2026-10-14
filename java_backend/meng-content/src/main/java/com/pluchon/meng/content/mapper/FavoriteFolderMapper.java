@@ -82,7 +82,7 @@ public interface FavoriteFolderMapper extends BaseMapper<FavoriteFolder> {
     );
 
     @Select(
-        "SELECT COUNT(*) FROM post_favorite f JOIN post p ON p.id=f.post_id AND p.delete_state=0 WHERE f.user_id=#{user} AND (#{folder} IS NULL OR f.folder_id=#{folder})"
+        "SELECT COUNT(DISTINCT f.post_id) FROM post_favorite f JOIN post p ON p.id=f.post_id AND p.delete_state=0 WHERE f.user_id=#{user} AND (#{folder} IS NULL OR f.folder_id=#{folder})"
     )
     long favorites(@Param("user") long user, @Param("folder") Long folder);
 

@@ -109,6 +109,48 @@ button:hover {
   rotate: 4deg;
 }
 
+// 两端的前后翻页按钮：圆形贴纸，悬停时箭头朝各自方向挪一点，不带虚线圈
+.feed-pagination:not(.compact) nav button.step,
+.feed-pagination:not(.compact) nav button.step:not(.selected) {
+  flex: none;
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
+  color: var(--meng-primary);
+  rotate: 0deg;
+}
+
+.feed-pagination:not(.compact) nav button.step:not(.selected):hover {
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: 0deg;
+}
+
+.feed-pagination:not(.compact) nav button.step::after,
+.feed-pagination:not(.compact) nav button.step:not(.selected):hover::after {
+  content: none;
+}
+
+.feed-pagination:not(.compact) nav button.step .el-icon {
+  font-size: 16px;
+  transition: translate 240ms var(--meng-slide-ease);
+}
+
+.feed-pagination:not(.compact) nav button.step:first-of-type:hover .el-icon {
+  translate: -2px 0;
+}
+
+.feed-pagination:not(.compact) nav button.step:last-of-type:hover .el-icon {
+  translate: 2px 0;
+}
+
+.feed-pagination:not(.compact) nav button.step:disabled {
+  box-shadow: none;
+}
+
 @keyframes pager-ring {
   to {
     rotate: 360deg;

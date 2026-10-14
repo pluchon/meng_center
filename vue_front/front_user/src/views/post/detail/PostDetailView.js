@@ -125,22 +125,23 @@ export default defineComponent({
         count = kind === 'like' ? 'likeCount' : 'favoriteCount',
         old = item[field]
       pending[kind] = true
-      let folderId
-      if (kind === 'favorite' && !old) {
+      if (kind === 'favorite') {
         try {
-          folderId = await useFavoriteStore().choose()
+          await useFavoriteStore().manage(item, ({ favorited, favoriteCount }) => {
+            item.favorited = favorited
+            item.favoriteCount = favoriteCount
+          })
         } catch (error) {
           notifyFailure(error)
-        }
-        if (!folderId) {
+        } finally {
           pending[kind] = false
-          return
         }
+        return
       }
       item[field] = !old
       item[count] += old ? -1 : 1
       try {
-        await contentApi[kind](item.id, !old, folderId)
+        await contentApi[kind](item.id, !old)
       } catch (e) {
         item[field] = old
         item[count] += old ? 1 : -1

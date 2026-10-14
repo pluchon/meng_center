@@ -51,10 +51,13 @@ export const contentApi = {
     on
       ? request.put(Root + '/posts/' + id + '/like')
       : request.delete(Root + '/posts/' + id + '/like'),
-  favorite: (id, on, folderId) =>
-    on
-      ? request.put(Root + '/posts/' + id + '/favorite', folderId ? { folderId } : undefined)
-      : request.delete(Root + '/posts/' + id + '/favorite'),
+  postFolderIds: (postId) => request.get(Root + '/posts/' + postId + '/favorite-folders'),
+  savePostFolders: (postId, folderIds) =>
+    request.put(Root + '/posts/' + postId + '/favorite-folders', { folderIds }),
+  addToFolder: (folderId, postId) =>
+    request.put(Root + '/favorite-folders/' + folderId + '/posts/' + postId),
+  removeFromFolder: (folderId, postId) =>
+    request.delete(Root + '/favorite-folders/' + folderId + '/posts/' + postId),
 }
 export function contentImage(path) {
   return (import.meta.env.VITE_API_BASE || '') + path

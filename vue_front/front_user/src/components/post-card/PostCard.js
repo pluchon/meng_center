@@ -72,17 +72,22 @@ export default defineComponent({
       const field = kind === 'like' ? 'liked' : 'favorited',
         on = !props.post[field]
       pending[kind] = true
-      let folderId
-      if (kind === 'favorite' && on) {
+      if (kind === 'favorite') {
         try {
-          folderId = await useFavoriteStore().choose()
+          await useFavoriteStore().manage(props.post, ({ favorited, favoriteCount }) =>
+            emit('change', {
+              id: props.post.id,
+              field: 'favorited',
+              value: favorited,
+              delta: favoriteCount - props.post.favoriteCount,
+            }),
+          )
         } catch (error) {
           notifyFailure(error)
-        }
-        if (!folderId) {
+        } finally {
           pending[kind] = false
-          return
         }
+        return
       }
       emit('change', {
         id: props.post.id,
@@ -91,7 +96,7 @@ export default defineComponent({
         delta: on ? 1 : -1,
       })
       try {
-        await contentApi[kind](props.post.id, on, folderId)
+        await contentApi[kind](props.post.id, on)
       } catch (e) {
         emit('change', {
           id: props.post.id,

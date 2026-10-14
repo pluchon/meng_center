@@ -1,40 +1,312 @@
+// 面板垂直居中且整体放得进窗口，遮罩层不出现滚动条
+.favorite-picker-overlay .el-overlay-dialog {
+  overflow: hidden;
+}
+
 .favorite-picker {
   max-width: calc(100vw - 28px);
-  border-radius: 24px;
-  padding: 22px;
+  padding: 22px 24px 24px;
+  border-radius: var(--meng-radius-dialog);
   box-shadow: var(--meng-shadow-card);
 }
 
+// 标题和关闭按钮同高、同一条水平线
+.favorite-picker .el-dialog__header {
+  margin: 0;
+  padding: 0 0 12px;
+}
+
+.favorite-picker .el-dialog__body {
+  padding: 0;
+}
+
+.favorite-picker .el-dialog__footer {
+  padding: 14px 0 0;
+}
+
+.favorite-picker-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.favorite-picker-head h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 20px;
+  line-height: 40px;
+  color: var(--meng-text);
+}
+
+.favorite-picker-icon,
+.favorite-picker-close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  font-size: 20px;
+}
+
+.favorite-picker-icon {
+  background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
+  rotate: -8deg;
+}
+
+.favorite-picker-close {
+  padding: 0;
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+  cursor: pointer;
+  transition:
+    translate 220ms var(--meng-motion-ease),
+    rotate 320ms var(--meng-slide-ease);
+}
+
+.favorite-picker-close:hover {
+  rotate: 90deg;
+  translate: 0 -2px;
+}
+
+// 面板大小固定：始终留出三行的高度，卡片不足时下面留白；窗口太矮时列表自己滚动，底栏不动
 .favorite-picker-list {
   display: grid;
-  gap: 10px;
-  max-height: 50vh;
-  overflow: auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 184px;
+  align-content: start;
+  gap: 14px;
+  min-height: min(598px, calc(100dvh - 240px));
+  max-height: calc(100dvh - 240px);
+  padding: 10px 6px;
+  overflow-y: auto;
   scrollbar-width: none;
+  transition: opacity 180ms ease;
+}
+
+.favorite-picker-list.loading {
+  opacity: 0.5;
 }
 
 .favorite-picker-list button {
-  border: 0;
-  background: var(--meng-warning);
-  border-radius: 15px;
-  padding: 14px;
+  --tone-fill: var(--meng-warning);
+  --tone-edge: var(--meng-category-daily);
+
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  height: 100%;
+  padding: 8px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 22px;
+  background: var(--tone-fill);
+  box-shadow: 0 4px 0 var(--tone-edge);
   color: var(--meng-text);
   cursor: pointer;
   text-align: left;
+  transition:
+    translate 260ms var(--meng-slide-ease),
+    box-shadow 260ms var(--meng-slide-ease);
+}
+
+.favorite-picker-list button.tone-1 {
+  --tone-fill: var(--meng-tint);
+  --tone-edge: var(--meng-category-anime);
+}
+
+.favorite-picker-list button.tone-2 {
+  --tone-fill: var(--meng-danger);
+  --tone-edge: var(--meng-category-creation);
 }
 
 .favorite-picker-list button:hover {
-  background: var(--meng-tint);
+  translate: 0 -3px;
+  box-shadow: 0 7px 0 var(--tone-edge);
 }
 
-.favorite-picker-list span {
+.favorite-picker-list button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+// 右侧的小圆圈：空心是没放进这个夹，打勾是已经放进
+.favorite-picker-check {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin-left: auto;
+  border: 2px dashed var(--tone-edge);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  color: transparent;
+  font-size: 16px;
+  transition:
+    background 220ms ease,
+    color 220ms ease,
+    scale 320ms var(--meng-slide-ease);
+}
+
+.favorite-picker-list button:hover .favorite-picker-check {
+  scale: 1.12;
+}
+
+.favorite-picker-list button.checked .favorite-picker-check {
+  border-style: solid;
+  border-color: var(--meng-surface);
+  background: var(--meng-success-text);
+  box-shadow: 0 2px 0 var(--meng-success-shadow);
+  color: var(--meng-surface);
+}
+
+.favorite-picker-list button:active {
+  translate: 0 2px;
+  box-shadow: 0 2px 0 var(--tone-edge);
+}
+
+// 封面是横屏的，和个人中心的收藏夹卡片一致
+.favorite-picker-cover {
+  flex: none;
+  height: 112px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 18px;
+  overflow: hidden;
+  background: var(--meng-surface);
+}
+
+.favorite-picker-cover img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.favorite-picker-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 0 4px 0 6px;
+}
+
+.favorite-picker-text strong {
   flex: 1;
-  overflow-wrap: anywhere;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.favorite-picker-list small {
+.favorite-picker-text small {
+  width: fit-content;
+  padding: 2px 10px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
   color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+// 默认收藏夹的小标签，斜贴在卡片右上角
+.favorite-picker-list em {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  padding: 1px 10px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--tone-edge);
+  color: var(--meng-favorite-text);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  rotate: 4deg;
+}
+
+// 底栏：左边是已选个数和保存按钮，右边是带前后按钮的翻页器
+.favorite-picker-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.favorite-picker-foot .feed-pagination {
+  margin-left: auto;
+  padding-top: 0;
+}
+
+.favorite-picker-count,
+.favorite-picker-save {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 42px;
+  padding: 0 18px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.favorite-picker-count {
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-tint);
+  color: var(--meng-muted);
+}
+
+.favorite-picker-save {
+  background: var(--meng-success);
+  box-shadow: 0 3px 0 var(--meng-growth-mint-edge);
+  color: var(--meng-success-shadow);
+  cursor: pointer;
+  transition:
+    translate 260ms var(--meng-slide-ease),
+    box-shadow 260ms var(--meng-slide-ease);
+}
+
+.favorite-picker-save .el-icon {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+}
+
+.favorite-picker-save:hover:not(:disabled) {
+  translate: 0 -2px;
+  box-shadow: 0 5px 0 var(--meng-growth-mint-edge);
+}
+
+.favorite-picker-save:active:not(:disabled) {
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--meng-growth-mint-edge);
+}
+
+.favorite-picker-save:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+@media (width <= 640px) {
+  .favorite-picker-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .favorite-picker-list button,
+  .favorite-picker-close {
+    transition: none;
+  }
 }

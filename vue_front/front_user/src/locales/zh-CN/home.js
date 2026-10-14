@@ -35,6 +35,8 @@ export default {
   views: '浏览',
   top: '飞回顶部',
   page: '第 {page} 页',
+  prevPage: '上一页',
+  nextPage: '下一页',
   exp: '经验 {exp} / {next}',
   expValue: '{exp} / {next}',
   maxLevel: '满级 · {exp} 经验',

@@ -1,11 +1,11 @@
 import { defineComponent, computed } from 'vue'
 import { feedPages } from '@/composables/feedPages'
 import { useI18n } from 'vue-i18n'
-import { Top } from '@element-plus/icons-vue'
+import { ArrowLeft, ArrowRight, Top } from '@element-plus/icons-vue'
 import { communitySparkle } from '@/assets/images'
 export default defineComponent({
   name: 'FeedPagination',
-  components: { Top },
+  components: { ArrowLeft, ArrowRight, Top },
   props: {
     page: { type: Number, required: true },
     totalPages: { type: Number, required: true },

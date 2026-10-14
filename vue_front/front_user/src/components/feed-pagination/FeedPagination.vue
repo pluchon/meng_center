@@ -10,6 +10,18 @@
         aria-hidden="true"
         :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
       />
+      <button
+        v-if="!compact"
+        type="button"
+        class="step"
+        :disabled="page<=1"
+        :aria-label="t('home.prevPage')"
+        @click="$emit('page',page-1)"
+      >
+        <el-icon aria-hidden="true">
+          <ArrowLeft />
+        </el-icon>
+      </button>
       <template
         v-for="(value,index) in pages"
         :key="index"
@@ -28,6 +40,18 @@
           aria-hidden="true"
         >{{ t('home.ellipsis') }}</span>
       </template>
+      <button
+        v-if="!compact"
+        type="button"
+        class="step"
+        :disabled="page>=totalPages"
+        :aria-label="t('home.nextPage')"
+        @click="$emit('page',page+1)"
+      >
+        <el-icon aria-hidden="true">
+          <ArrowRight />
+        </el-icon>
+      </button>
     </nav><button
       v-if="!compact&&showTop"
       type="button"

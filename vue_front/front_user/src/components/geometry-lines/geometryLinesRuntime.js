@@ -1,5 +1,5 @@
 // 三层几何线条：远层大而淡、不描点；中层有轮廓和内套小图形；近层小而实，带顶点和连线。
-// 层与层随页面滚动以不同速度错位，靠这个拉开前后层次
+// 背景固定不随页面滚动，层次靠透明度、大小和描边深浅拉开
 const layers = Object.freeze([
   {
     count: 3,
@@ -10,7 +10,6 @@ const layers = Object.freeze([
     wobble: 0.03,
     spin: [0.008, 0.025],
     drift: [3, 7],
-    parallax: 0.04,
     nested: 0,
     dots: false,
     links: false,
@@ -25,7 +24,6 @@ const layers = Object.freeze([
     wobble: 0.05,
     spin: [0.02, 0.06],
     drift: [5, 11],
-    parallax: 0.1,
     nested: 0.6,
     dots: false,
     links: false,
@@ -45,7 +43,6 @@ const layers = Object.freeze([
     wobble: 0.07,
     spin: [0.05, 0.12],
     drift: [8, 16],
-    parallax: 0.22,
     nested: 0.4,
     dots: true,
     links: true,
@@ -76,7 +73,7 @@ function positiveModulo(value, size) {
   return ((value % size) + size) % size
 }
 
-export function createGeometryField(canvas, { scroll = () => 0 } = {}) {
+export function createGeometryField(canvas) {
   const context = canvas.getContext('2d')
   // 顶点和连线节点都预先分配，逐帧原地更新，不在动画里新建对象
   const nodes = []
@@ -129,12 +126,11 @@ export function createGeometryField(canvas, { scroll = () => 0 } = {}) {
     })
     shapes.forEach((shape, id) => shape.polygon.forEach((p) => (p.owner = id)))
   }
-  // 顶点按时间起伏，图形会缓慢变形；层随滚动按各自速度错位
-  function layout(shape, scrollOffset) {
+  // 顶点按时间起伏，图形会缓慢变形
+  function layout(shape) {
     const { layer } = shape
     const margin = shape.radius * 1.4
-    const centerY =
-      positiveModulo(shape.y - scrollOffset * layer.parallax + margin, height + margin * 2) - margin
+    const centerY = positiveModulo(shape.y + margin, height + margin * 2) - margin
     // 完全在视口外的图形这一帧不计算也不绘制
     shape.onScreen = centerY + margin > 0 && centerY - margin < height
     if (!shape.onScreen) return
@@ -217,8 +213,7 @@ export function createGeometryField(canvas, { scroll = () => 0 } = {}) {
     if (!width || !height) return
     context.clearRect(0, 0, width, height)
     context.lineJoin = 'round'
-    const scrollOffset = scroll()
-    shapes.forEach((shape) => layout(shape, scrollOffset))
+    shapes.forEach(layout)
     // 先画远层再画近层，近层的连线夹在中间
     layers.forEach((layer) => {
       if (layer.links) {

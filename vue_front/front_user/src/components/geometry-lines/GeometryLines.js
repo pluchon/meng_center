@@ -9,7 +9,6 @@ export default defineComponent({
     let field, resizeObserver, motion
     let frame = 0,
       previousTime = null,
-      scrollOffset = 0,
       disposed = false
     function tick(time) {
       frame = requestAnimationFrame(tick)
@@ -32,28 +31,20 @@ export default defineComponent({
     }
     onMounted(() => {
       if (!canvas.value.getContext('2d')) return
-      scrollOffset = window.scrollY
-      field = createGeometryField(canvas.value, { scroll: () => scrollOffset })
+      field = createGeometryField(canvas.value)
       motion = matchMedia('(prefers-reduced-motion: reduce)')
       resizeObserver = new ResizeObserver(() => field.resize())
       resizeObserver.observe(canvas.value)
       motion.addEventListener('change', updatePlayback)
       document.addEventListener('visibilitychange', updatePlayback)
-      // 滚动位置在事件里缓存，绘制时不再读取布局；减少动态效果时滚动补画一帧，层次错位仍然有效
-      window.addEventListener('scroll', onScroll, { passive: true })
       updatePlayback()
     })
-    function onScroll() {
-      scrollOffset = window.scrollY
-      if (motion.matches) field.draw()
-    }
     onUnmounted(() => {
       disposed = true
       cancelAnimationFrame(frame)
       resizeObserver?.disconnect()
       motion?.removeEventListener('change', updatePlayback)
       document.removeEventListener('visibilitychange', updatePlayback)
-      window.removeEventListener('scroll', onScroll)
     })
     return { canvas }
   },

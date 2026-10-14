@@ -1,6 +1,7 @@
 package com.pluchon.meng.content.service;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.pluchon.meng.api.content.event.ContentInteractionEvent;
 import com.pluchon.meng.api.user.vo.PublicUserVO;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
@@ -8,6 +9,7 @@ import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.entity.FavoriteFolder;
+import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.*;
@@ -28,6 +30,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class FavoriteFolderService {
+
+    // 一篇帖子最多放进的收藏夹个数
+    private static final int MAX_FOLDERS_PER_POST = 10;
 
     @Autowired
     private FavoriteFolderMapper folders;
@@ -65,6 +70,9 @@ public class FavoriteFolderService {
         long count,
         LocalDateTime latestAt
     ) {}
+
+    // 帖子对当前用户的收藏状态
+    public record FavoriteState(boolean favorited, long favoriteCount) {}
 
     public record SavedPost(
         long id,
@@ -227,25 +235,11 @@ public class FavoriteFolderService {
         for (var relation : folders.relations(id)) {
             var post = posts.selectByIdForUpdate(relation.getPostId());
             if (
-                relations.deleteFavorite(relation.getPostId(), user()) == 1 &&
-                post != null
-            ) {
-                statistics.cancel(
-                    post.getAuthorId(),
-                    CreatorMetric.FAVORITE,
-                    relation.getCreateTime()
-                );
-                long delta = -properties.favoriteWeight();
-                posts.incrementHotScore(post.getId(), delta);
-                events.publishEvent(
-                    new PostReadModelEvent(
-                        post.getId(),
-                        null,
-                        PostReadModelEvent.Kind.SCORE,
-                        delta
-                    )
-                );
-            }
+                relations.deleteFavorite(relation.getPostId(), user(), id) ==
+                    1 &&
+                post != null &&
+                relations.countFavoriteFolders(post.getId(), user()) == 0
+            ) cancelFavorite(post, relation.getCreateTime());
         }
         folders.deleteById(id);
         if (
@@ -260,6 +254,144 @@ public class FavoriteFolderService {
                     );
                 }
             }
+        );
+    }
+
+    // 把帖子放进收藏夹：幂等，最多放进 10 个，第一次放进才算收藏
+    @Transactional(rollbackFor = Exception.class)
+    public FavoriteState add(long folderId, long postId) {
+        lockSelection(folderId);
+        long user = user();
+        var post = requirePost(postId);
+        long owned = relations.countFavoriteFolders(postId, user);
+        if (relations.insertFavorite(postId, user, folderId) == 1) {
+            if (owned >= MAX_FOLDERS_PER_POST) throw new BusinessException(
+                ContentErrorCode.FAVORITE_FOLDER_LIMIT
+            );
+            if (owned == 0) recordFavorite(post, user);
+        }
+        return state(postId, user);
+    }
+
+    // 把帖子从收藏夹拿走：幂等，拿走最后一个才算取消收藏
+    @Transactional(rollbackFor = Exception.class)
+    public FavoriteState remove(long folderId, long postId) {
+        lockSelection(folderId);
+        long user = user();
+        var post = requirePost(postId);
+        var created = relations.selectFavoriteCreateTime(postId, user, folderId);
+        if (
+            relations.deleteFavorite(postId, user, folderId) == 1 &&
+            relations.countFavoriteFolders(postId, user) == 0
+        ) cancelFavorite(post, created);
+        return state(postId, user);
+    }
+
+    // 这篇帖子放进了我的哪些收藏夹
+    public List<Long> selected(long postId) {
+        return relations.selectFavoriteFolderIds(postId, user());
+    }
+
+    // 一次性设定这篇帖子放进哪些收藏夹：补上新增的、去掉取消的，只在 0 到 n、n 到 0 时才算收藏和取消
+    @Transactional(rollbackFor = Exception.class)
+    public FavoriteState replace(long postId, List<Long> folderIds) {
+        ensure();
+        long user = user();
+        folders.lockDefault(user);
+        var target = new LinkedHashSet<>(folderIds);
+        if (target.size() > MAX_FOLDERS_PER_POST) throw new BusinessException(
+            ContentErrorCode.FAVORITE_FOLDER_LIMIT
+        );
+        if (!target.isEmpty()) {
+            long owned = folders.selectCount(
+                Wrappers.<FavoriteFolder>lambdaQuery()
+                    .eq(FavoriteFolder::getUserId, user)
+                    .in(FavoriteFolder::getId, target)
+            );
+            if (owned != target.size()) throw new BusinessException(
+                CommonErrorCode.FORBIDDEN
+            );
+        }
+        var post = requirePost(postId);
+        var current = new LinkedHashSet<>(
+            relations.selectFavoriteFolderIds(postId, user)
+        );
+        var created = current.isEmpty()
+            ? null
+            : relations.selectFavoriteCreateTime(
+                  postId,
+                  user,
+                  current.iterator().next()
+              );
+        for (var id : current) if (!target.contains(id)) relations.deleteFavorite(
+            postId,
+            user,
+            id
+        );
+        for (var id : target) if (!current.contains(id)) relations.insertFavorite(
+            postId,
+            user,
+            id
+        );
+        if (current.isEmpty() && !target.isEmpty()) recordFavorite(post, user);
+        else if (!current.isEmpty() && target.isEmpty()) cancelFavorite(
+            post,
+            created
+        );
+        return state(postId, user);
+    }
+
+    private PostEntity requirePost(long id) {
+        var post = posts.selectByIdForUpdate(id);
+        if (post == null) throw new BusinessException(
+            CommonErrorCode.NOT_FOUND
+        );
+        return post;
+    }
+
+    private FavoriteState state(long postId, long user) {
+        var counts = relations.selectFavoriteCounts(List.of(postId));
+        return new FavoriteState(
+            relations.countFavoriteFolders(postId, user) > 0,
+            counts.isEmpty() ? 0 : counts.get(0).count()
+        );
+    }
+
+    // 某人对这篇帖子的第一行收藏记录：计入统计、加热度、通知作者
+    private void recordFavorite(PostEntity post, long user) {
+        statistics.record(post.getAuthorId(), CreatorMetric.FAVORITE);
+        long delta = properties.favoriteWeight();
+        posts.incrementHotScore(post.getId(), delta);
+        events.publishEvent(
+            new ContentInteractionEvent(
+                "post.favorited",
+                post.getId(),
+                post.getTitle(),
+                null,
+                null,
+                user,
+                post.getAuthorId()
+            )
+        );
+        publishScore(post.getId(), delta);
+    }
+
+    // 最后一行收藏记录被删掉：回减统计和热度
+    private void cancelFavorite(PostEntity post, LocalDateTime created) {
+        statistics.cancel(post.getAuthorId(), CreatorMetric.FAVORITE, created);
+        long delta = -properties.favoriteWeight();
+        posts.incrementHotScore(post.getId(), delta);
+        publishScore(post.getId(), delta);
+    }
+
+    private void publishScore(long postId, long delta) {
+        events.publishEvent(
+            new PostReadModelEvent(
+                postId,
+                null,
+                PostReadModelEvent.Kind.SCORE,
+                delta
+            )
         );
     }
 

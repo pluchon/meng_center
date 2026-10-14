@@ -151,8 +151,9 @@ export default defineComponent({
       post.pending = true
       const on = !post.active
       try {
-        if (props.folderId) await contentApi.favorite(post.id, on, props.folderId)
-        else await contentApi.like(post.id, on)
+        if (props.folderId) {
+          await (on ? contentApi.addToFolder : contentApi.removeFromFolder)(props.folderId, post.id)
+        } else await contentApi.like(post.id, on)
         post.active = on
         emit('changed')
       } catch (error) {

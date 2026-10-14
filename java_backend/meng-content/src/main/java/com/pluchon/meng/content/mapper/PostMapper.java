@@ -58,7 +58,7 @@ public interface PostMapper extends BaseMapper<PostEntity> {
     int incrementHotScore(@Param("id") long id, @Param("delta") long delta);
 
     @Update(
-        "UPDATE post p LEFT JOIN (SELECT post_id,COUNT(*) n FROM post_favorite GROUP BY" +
+        "UPDATE post p LEFT JOIN (SELECT post_id,COUNT(DISTINCT user_id) n FROM post_favorite GROUP BY" +
             " post_id) f ON f.post_id=p.id SET" +
             " p.hot_score=p.view_count*#{view}+p.like_count*#{like}+p.comment_count*#{comment}+COALESCE(f.n,0)*#{favorite}" +
             " WHERE p.delete_state=0 AND p.create_time>=#{since}"

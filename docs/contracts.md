@@ -32,7 +32,7 @@
 | `post.deleted` | content | postId | ai：删索引 |
 | `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId、parentCommentId、excerpt、originalExcerpt | im：通知被评论或被回复的人；growth：加经验 |
 | `post.liked` | content | postId、postTitle、actorId、authorId | im：通知作者 |
-| `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者 |
+| `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者；某人对这篇帖子的第一行收藏记录插入成功时发一次，之后放进别的收藏夹不重复发 |
 | `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
 | `report.handled` | content | reportId、reporterId、targetType、targetId、postId、postTitle、excerpt、targetAuthorId、result | im：通知举报人；成立时通知内容作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
