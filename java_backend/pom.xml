@@ -33,6 +33,7 @@
     <module>meng-content</module>
     <module>meng-growth</module>
     <module>meng-im</module>
+    <module>meng-game</module>
   </modules>
   <dependencyManagement>
     <dependencies>

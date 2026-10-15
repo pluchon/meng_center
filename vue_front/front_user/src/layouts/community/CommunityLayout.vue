@@ -73,6 +73,16 @@
             aria-hidden="true"
           ></span>{{ t('home.nav.growth') }}
         </router-link>
+        <router-link
+          data-slide
+          :to="{name:RouteName.GAME}"
+        >
+          <span class="nav-icon"><img
+            :src="navIslandIcon"
+            alt=""
+            aria-hidden="true"
+          ></span>{{ t('home.nav.game') }}
+        </router-link>
         <button
           type="button"
           data-slide

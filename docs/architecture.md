@@ -1,7 +1,7 @@
 # 萌部落社区 · 架构设计
 
 > 2026-10-08 首版，搭骨架前的共识。
-> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[消息域](im.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
+> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[消息域](im.md)、[游戏域](game.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
 
@@ -71,10 +71,11 @@ java_backend/
 ├── meng-user/               用户域
 ├── meng-content/            内容域
 ├── meng-im/                 私信与通知域
-└── meng-growth/             成长域
+├── meng-growth/             成长域
+└── meng-game/               游戏域（萌岛）
 ```
 
-`meng-im` 通过网关向前端提供消息接口，没有被其他服务调用的内部接口，也不生产跨服务事件，因此没有 `meng-api-im`。
+`meng-im` 通过网关向前端提供消息接口，没有被其他服务调用的内部接口，也不生产跨服务事件，因此没有 `meng-api-im`。`meng-game` 同理没有 `meng-api-game`。
 
 ### 4.1 api 模块放什么
 
@@ -117,6 +118,7 @@ java_backend/
 | content | 帖子、评论、点赞、收藏、搜索索引同步 |
 | im | 私信、通知（WebSocket） |
 | growth | 经验、等级、签到、积分、抽奖（积分已做，抽奖未做） |
+| game | 萌岛（单机 3D 小游戏）的玩家档案、金币与结算、商店、存档；金币不与任何其他服务共享，见 [game.md](game.md) |
 | ai（Python） | 萌萌对话、RAG、向量索引 |
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
@@ -168,13 +170,14 @@ java_backend/
 | content | user | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理 | 无 |
 | im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖 |
 | growth | 无 | 等级变更、中奖 | 发帖、评论 |
+| game | 无 | 无 | 无 |
 | ai | content | 无 | 发帖、改帖、删帖 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
 
 ## 8. 数据约定
 
-- 库名：`meng_user`、`meng_content`、`meng_im`、`meng_growth`，同一个 MySQL 实例。
+- 库名：`meng_user`、`meng_content`、`meng_im`、`meng_growth`、`meng_game`，同一个 MySQL 实例。
 - 主键 BIGINT 自增，不用雪花 ID 和 UUID。
 - 业务表都带 `create_time`、`update_time`、`delete_state`，默认逻辑删除。
 - 全局唯一的字段加唯一索引，入库前归一化（去空格、邮箱转小写、手机号转成带区号的统一格式）。

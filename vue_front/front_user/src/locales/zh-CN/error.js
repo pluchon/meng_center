@@ -22,4 +22,10 @@ export default {
   USER_DELIVERY_FAILED: '验证码发送失败，请稍后重试',
   USER_SMS_UNAVAILABLE: '短信通道尚未配置',
   USER_LEGAL_VERSION_CHANGED: '协议已更新，请重新阅读并同意',
+  GAME_TOO_FAR: '离得太远了，再走近一点',
+  GAME_OUT_OF_ISLAND: '位置不在岛上',
+  GAME_NOT_ENOUGH_COINS: '金币不够，再去岛上转转吧',
+  GAME_ITEM_OWNED: '已经拥有这件了',
+  GAME_ITEM_NOT_OWNED: '还没有这件',
+  GAME_STARS_MISSING: '星之碎片还没集齐',
 }

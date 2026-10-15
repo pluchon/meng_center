@@ -1,0 +1,27 @@
+server:
+  address: 127.0.0.1
+  port: 8105
+spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${MENG_MYSQL_PORT}/meng_game?characterEncoding=utf8&connectionTimeZone=UTC
+    username: meng_game_app
+    password: ${MENG_MYSQL_GAME_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+meng.game:
+  timezone: Asia/Taipei
+  pickup-distance: 3
+  chest-coins: 20
+  clear-reward: 100
+  radius: 110
+  min-y: -10
+  max-y: 60

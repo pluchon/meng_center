@@ -13,6 +13,7 @@ export const RouteName = Object.freeze({
   AGREEMENT: 'agreement',
   ACCOUNT: 'account',
   USER: 'user',
+  GAME: 'game',
   REVIEW: 'review',
   NOT_FOUND: 'not-found',
 })
