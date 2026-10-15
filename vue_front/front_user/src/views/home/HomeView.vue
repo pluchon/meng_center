@@ -55,13 +55,13 @@
                 state="error"
                 @retry="load"
               />
-              <div
+              <PageState
                 v-else-if="!records.length"
                 class="feed-empty"
-                role="status"
-              >
-                {{ t('home.empty') }}
-              </div>
+                state="empty"
+                size="tall"
+                :text="t('home.empty')"
+              />
               <div
                 v-else
                 class="post-list"

@@ -5,13 +5,12 @@ import {
   ArrowRight,
   Download,
   FullScreen,
-  Picture as PictureIcon,
   RefreshLeft,
   RefreshRight,
   ZoomIn,
   ZoomOut,
 } from '@element-plus/icons-vue'
-import { messageCloseIcon, messagePhotoIcon } from '@/assets/images'
+import { messageCloseIcon, messagePhotoIcon, stateFailImageFailedArt } from '@/assets/images'
 // 缩放档位（百分比），默认停在 100%
 const ZOOMS = Object.freeze([50, 75, 100, 150, 200, 300])
 const DEFAULT_ZOOM = 2
@@ -24,7 +23,6 @@ export default defineComponent({
     ArrowRight,
     Download,
     FullScreen,
-    PictureIcon,
     RefreshLeft,
     RefreshRight,
     ZoomIn,
@@ -106,6 +104,7 @@ export default defineComponent({
     onUnmounted(() => document.removeEventListener('keydown', onKey))
     return {
       t,
+      stateFailImageFailedArt,
       open,
       total,
       maxStrip,

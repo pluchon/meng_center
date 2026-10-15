@@ -386,10 +386,10 @@
   color: var(--meng-text);
 }
 
-.sidebar-state,
-.messages-state {
-  padding: 40px 12px;
+.sidebar-state {
+  padding: 12px;
   color: var(--meng-muted);
+  font-size: 13px;
   text-align: center;
 }
 
@@ -400,8 +400,6 @@
   height: 100%;
 }
 
-.sidebar-state button,
-.messages-state button,
 .sidebar-more {
   padding: 7px 16px;
   border: 0;
@@ -551,82 +549,6 @@
 
 .sidebar-pane {
   min-height: 100%;
-}
-
-// 加载中：三个依次弹跳的小圆点
-.state-dots {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.state-dots i {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--meng-category-anime);
-  animation: dot-bounce 1s ease-in-out infinite;
-}
-
-.state-dots i:nth-child(2) {
-  background: var(--meng-category-creation);
-  animation-delay: 150ms;
-}
-
-.state-dots i:nth-child(3) {
-  background: var(--meng-category-daily);
-  animation-delay: 300ms;
-}
-
-@keyframes dot-bounce {
-  50% {
-    translate: 0 -9px;
-  }
-}
-
-// 还没选会话：一枚大号图标贴纸 + 颜文字
-.messages-state.choose {
-  gap: 4px;
-}
-
-.choose-badge {
-  display: grid;
-  place-items: center;
-  width: 116px;
-  height: 116px;
-  margin-bottom: 14px;
-  border: 4px solid var(--meng-surface);
-  border-radius: 50%;
-  background: var(--meng-tint);
-  box-shadow:
-    0 0 0 3px var(--meng-category-anime),
-    0 8px 0 3px var(--meng-category-anime);
-  rotate: -6deg;
-  animation: choose-bob 4s ease-in-out infinite;
-}
-
-.messages-state.choose p {
-  margin: 0;
-  padding: 4px 18px;
-  border: 3px solid var(--meng-surface);
-  border-radius: 22px;
-  background: var(--meng-warning);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
-  color: var(--meng-favorite-text);
-  font-weight: 800;
-  rotate: 2deg;
-}
-
-.messages-state.choose small {
-  margin-top: 12px;
-  font-size: 15px;
-}
-
-@keyframes choose-bob {
-  50% {
-    translate: 0 -8px;
-    rotate: 4deg;
-  }
 }
 
 .messages-main {
@@ -828,9 +750,7 @@
   }
 
   .tab-icon,
-  .message-tabs .unread-badge,
-  .state-dots i,
-  .choose-badge {
+  .message-tabs .unread-badge {
     animation: none;
   }
 

@@ -52,12 +52,22 @@
         v-if="pending"
         class="auth-notice"
       >
+        <img
+          class="auth-notice-art"
+          :src="stateFailReviewArt"
+          alt=""
+        >
         {{ t('auth.login.pending') }}
       </div>
       <div
         v-if="rejected"
         class="auth-notice"
       >
+        <img
+          class="auth-notice-art"
+          :src="stateFailRejectedArt"
+          alt=""
+        >
         <p>{{ t('auth.login.rejected') }}</p>
         <p>{{ t('auth.login.reason') }}{{ rejectionReason }}</p>
         <ReasonEditor v-model="form.applyReason" />

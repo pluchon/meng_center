@@ -268,11 +268,8 @@ h1 span {
 }
 
 .feed-empty {
-  padding: var(--meng-space-8);
   border-radius: var(--meng-radius-card);
   background: var(--meng-surface);
-  text-align: center;
-  color: var(--meng-muted);
 }
 
 @media (width <= 1100px) {

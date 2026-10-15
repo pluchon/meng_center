@@ -168,6 +168,8 @@
           <PageState
             v-if="!records.data.records.length"
             state="empty"
+            art="growth"
+            size="large"
           />
         </template>
         <footer

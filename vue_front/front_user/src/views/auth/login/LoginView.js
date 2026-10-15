@@ -9,7 +9,14 @@ import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import { RouteName } from '@/router/names'
 import { Auth } from '@/constants/app'
-import { authKeyIcon, authLockIcon, authUnlockIcon, authUserIcon } from '@/assets/images'
+import {
+  authKeyIcon,
+  authLockIcon,
+  authUnlockIcon,
+  authUserIcon,
+  stateFailRejectedArt,
+  stateFailReviewArt,
+} from '@/assets/images'
 import AuthLayout from '@/layouts/auth/AuthLayout.vue'
 import LegalConsent from '@/components/legal-consent/LegalConsent.vue'
 import ReasonEditor from '@/components/reason-editor/ReasonEditor.vue'
@@ -84,6 +91,8 @@ export default defineComponent({
     }
     return {
       icons,
+      stateFailRejectedArt,
+      stateFailReviewArt,
       errors,
       fieldId,
       t,

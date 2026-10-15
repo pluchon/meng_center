@@ -33,9 +33,11 @@ import {
   creatorViewsIcon,
 } from '@/assets/images'
 import LiquidEther from '@/components/liquid-ether/LiquidEther.vue'
+import PageState from '@/components/page-state/PageState.vue'
 export default defineComponent({
   name: 'PostEditorView',
   components: {
+    PageState,
     LiquidEther,
     MarkdownEditor,
     MarkdownBody,

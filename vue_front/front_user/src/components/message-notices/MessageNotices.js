@@ -16,6 +16,7 @@ import {
 import CommentBody from '@/components/comment-body/CommentBody.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
+import PageState from '@/components/page-state/PageState.vue'
 // 每种通知对应的小图标
 const typeIcons = {
   [NoticeType.POST_COMMENT]: authCodeIcon,
@@ -28,7 +29,7 @@ const typeIcons = {
 }
 export default defineComponent({
   name: 'MessageNotices',
-  components: { MessageAvatar, CommentBody, FeedPagination },
+  components: { MessageAvatar, CommentBody, FeedPagination, PageState },
   props: {
     tab: { type: String, required: true },
     group: { type: String, required: true },

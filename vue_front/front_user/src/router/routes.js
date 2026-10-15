@@ -78,5 +78,10 @@ export const routes = [
     component: () => import('@/views/account/AccountView.vue'),
     meta: { titleKey: 'account.title', requiresAuth: true },
   },
-  { path: '/:pathMatch(.*)*', redirect: { name: RouteName.LOGIN } },
+  {
+    path: '/:pathMatch(.*)*',
+    name: RouteName.NOT_FOUND,
+    component: () => import('@/views/not-found/NotFoundView.vue'),
+    meta: { titleKey: 'common.notFoundTitle' },
+  },
 ]

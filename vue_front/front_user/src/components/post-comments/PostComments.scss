@@ -96,12 +96,6 @@
   transform: rotate(-12deg);
 }
 
-.comments-empty {
-  padding-block: var(--meng-space-12);
-  text-align: center;
-  color: var(--meng-muted);
-}
-
 // 评论的配色：蓝、粉、金、绿、紫轮换；楼中楼的回复错开两格，和上面那条评论颜色不同
 .comment-thread:nth-child(5n + 1),
 .replies > :nth-child(5n + 3) {

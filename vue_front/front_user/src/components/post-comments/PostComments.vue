@@ -30,12 +30,13 @@
       v-else-if="error"
       state="error"
       @retry="load"
-    /><p
+    /><PageState
       v-else-if="!records.length"
-      class="comments-empty"
-    >
-      {{ t('detail.empty') }}
-    </p>
+      state="empty"
+      art="chat"
+      size="large"
+      :text="t('detail.empty')"
+    />
     <div
       v-else
       class="comment-list"

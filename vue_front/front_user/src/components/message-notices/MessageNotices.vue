@@ -28,41 +28,23 @@
           :key="view"
           class="notices-body"
         >
-          <p
+          <PageState
             v-if="view==='loading'"
-            class="notices-state"
-            role="status"
-          >
-            <span
-              class="state-dots"
-              aria-hidden="true"
-            ><i /><i /><i /></span>{{ t('im.loading') }}
-          </p>
-          <div
+            state="loading"
+            :text="t('im.loading')"
+          />
+          <PageState
             v-else-if="view==='error'"
-            class="notices-state"
-            role="alert"
-          >
-            <p>{{ error }}</p><button
-              type="button"
-              @click="$emit('retry')"
-            >
-              {{ t('im.retry') }}
-            </button>
-          </div>
-          <p
+            state="error"
+            @retry="$emit('retry')"
+          />
+          <PageState
             v-else-if="view==='empty'"
-            class="notices-state empty"
-          >
-            <span class="empty-badge"><img
-              class="message-art-icon"
-              :src="headerIcon"
-              width="56"
-              height="56"
-              alt=""
-              aria-hidden="true"
-            ></span>{{ t('im.noNotices') }}
-          </p>
+            state="empty"
+            art="notification"
+            size="tall"
+            :text="t('im.noNotices')"
+          />
           <TransitionGroup
             v-else
             name="notice-rise"

@@ -60,13 +60,14 @@
           state="error"
           @retry="load"
         />
-        <p
+        <PageState
           v-else-if="!records.length"
           class="search-empty"
-          role="status"
-        >
-          {{ t(query.q?'search.empty':'search.prompt') }}
-        </p>
+          state="empty"
+          art="search"
+          size="tall"
+          :text="t(query.q?'search.empty':'search.prompt')"
+        />
         <div
           v-else
           class="post-list"

@@ -95,18 +95,15 @@
           >{{ t('editor.home') }}
         </router-link>
       </header>
-      <div
+      <PageState
         v-if="loading||loadError"
         class="draft-state"
-        role="status"
-      >
-        <p>{{ t(loading?'editor.loading':'editor.error.draftLoad') }}</p><el-button
-          v-if="loadError"
-          @click="loadDraft"
-        >
-          {{ t('home.retry') }}
-        </el-button>
-      </div>
+        :state="loading?'loading':'error'"
+        art="draftFailed"
+        size="large"
+        :text="t(loading?'editor.loading':'editor.error.draftLoad')"
+        @retry="loadDraft"
+      />
       <fieldset :disabled="busy||loading||loadError">
         <div class="editor-top-row">
           <div class="category-field">

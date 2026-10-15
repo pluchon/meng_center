@@ -83,12 +83,13 @@
             :days="days"
             :type="CreatorChartType.TREND"
           />
-          <p
+          <PageState
             v-else
-            class="creator-empty"
-          >
-            {{ t('creator.emptyTrend') }}
-          </p>
+            state="empty"
+            art="chart"
+            size="large"
+            :text="t('creator.emptyTrend')"
+          />
           <span
             class="trend-face"
             aria-hidden="true"
@@ -129,12 +130,13 @@
             :type="CreatorChartType.TOP"
             @open="openPost"
           />
-          <p
+          <PageState
             v-else
-            class="creator-empty"
-          >
-            {{ t('creator.emptyTop') }}
-          </p>
+            state="empty"
+            art="ranking"
+            size="large"
+            :text="t('creator.emptyTop')"
+          />
         </section>
       </div>
       <section class="creator-panel content-panel">
@@ -211,12 +213,13 @@
               @open="openPost"
               @delete="remove($event,false)"
             />
-            <p
+            <PageState
               v-if="!published.data.records.length"
-              class="creator-empty"
-            >
-              {{ t('creator.emptyPosts') }}
-            </p>
+              state="empty"
+              art="create"
+              size="large"
+              :text="t('creator.emptyPosts')"
+            />
             <FeedPagination
               v-if="totalPages>1"
               ref="pagination"
@@ -246,12 +249,13 @@
               draft
               :pending="deleting.has(CreatorTab.DRAFTS+entry.id)"
               @delete="remove($event,true)"
-            /><p
+            /><PageState
               v-if="!drafts.data.length"
-              class="creator-empty"
-            >
-              {{ t('creator.emptyDrafts') }}
-            </p>
+              state="empty"
+              art="create"
+              size="large"
+              :text="t('creator.emptyDrafts')"
+            />
           </template>
         </div>
         <div

@@ -376,14 +376,15 @@
 
 .viewer-failed {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
   color: var(--meng-muted);
   font-weight: 700;
 }
 
-.viewer-failed .el-icon {
-  font-size: 28px;
+.viewer-failed img {
+  height: 130px;
 }
 
 .viewer-arrow {

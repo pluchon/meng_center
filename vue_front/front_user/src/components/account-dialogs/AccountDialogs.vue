@@ -228,6 +228,8 @@
         <PageState
           v-if="!list.length"
           state="empty"
+          art="security"
+          size="large"
         />
         <div class="account-dialog-list">
           <article

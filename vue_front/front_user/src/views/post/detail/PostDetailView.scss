@@ -448,9 +448,15 @@
   background: var(--meng-danger);
 }
 
+// 帖子不存在或加载失败：白色卡片压在背景图上，保证文字看得清
 .detail-state {
+  width: min(460px, 100%);
+  margin: var(--meng-space-12) auto;
+  padding: var(--meng-space-6) var(--meng-space-8) var(--meng-space-8);
+  border-radius: var(--meng-radius-card);
+  background: var(--meng-surface);
+  box-shadow: var(--meng-shadow-card);
   text-align: center;
-  padding: var(--meng-space-8);
 }
 
 .detail-state > a {

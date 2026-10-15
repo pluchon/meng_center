@@ -90,30 +90,28 @@
               class="sidebar-pane"
             >
               <template v-if="tab===MessageTab.CHAT">
-                <p
+                <PageState
                   v-if="im.conversationsLoading&&!im.conversations.length"
-                  class="sidebar-state"
-                  role="status"
-                >
-                  {{ t('im.loading') }}
-                </p>
-                <div
+                  state="loading"
+                  size="small"
+                  :text="t('im.loading')"
+                />
+                <PageState
                   v-else-if="im.conversationsError"
-                  class="sidebar-state"
-                  role="alert"
-                >
-                  <p>{{ im.conversationsError }}</p><button
-                    type="button"
-                    @click="im.loadConversations()"
-                  >
-                    {{ t('im.retry') }}
-                  </button>
-                </div>
+                  state="error"
+                  size="small"
+                  @retry="im.loadConversations()"
+                />
                 <div
                   v-else-if="!im.conversations.length"
                   class="sidebar-state"
                 >
-                  <p>{{ t('im.noConversations') }}</p><small>{{ t('im.noConversationsHint') }}</small>
+                  <PageState
+                    state="empty"
+                    art="chat"
+                    size="small"
+                    :text="t('im.noConversations')"
+                  /><small>{{ t('im.noConversationsHint') }}</small>
                 </div>
                 <div
                   v-for="(item,index) in im.conversations"
@@ -145,25 +143,18 @@
                 </button>
               </template>
               <template v-else>
-                <p
+                <PageState
                   v-if="groupsLoading&&!groups.length"
-                  class="sidebar-state"
-                  role="status"
-                >
-                  {{ t('im.loading') }}
-                </p>
-                <div
+                  state="loading"
+                  size="small"
+                  :text="t('im.loading')"
+                />
+                <PageState
                   v-if="groupsError"
-                  class="sidebar-state"
-                  role="alert"
-                >
-                  <p>{{ groupsError }}</p><button
-                    type="button"
-                    @click="loadGroups"
-                  >
-                    {{ t('im.retry') }}
-                  </button>
-                </div>
+                  state="error"
+                  size="small"
+                  @retry="loadGroups"
+                />
                 <button
                   v-for="key in availableGroups"
                   :key="key"
@@ -291,48 +282,35 @@
               name="chat-swap"
               mode="out-in"
             >
-              <p
+              <PageState
                 v-if="im.opening"
                 key="opening"
                 class="messages-state"
-                role="status"
-              >
-                <span
-                  class="state-dots"
-                  aria-hidden="true"
-                ><i /><i /><i /></span>{{ t('im.loading') }}
-              </p>
-              <div
+                state="loading"
+                size="large"
+                :text="t('im.loading')"
+              />
+              <PageState
                 v-else-if="im.currentError"
                 key="error"
                 class="messages-state"
-                role="alert"
-              >
-                <p>{{ im.currentError }}</p><button
-                  type="button"
-                  @click="im.open(Number(route.query.with))"
-                >
-                  {{ t('im.retry') }}
-                </button>
-              </div>
+                state="error"
+                size="large"
+                @retry="im.open(Number(route.query.with))"
+              />
               <MessageChat
                 v-else-if="im.current"
                 :key="im.current.peer.id"
               />
-              <div
+              <PageState
                 v-else
                 key="empty"
-                class="messages-state choose"
-              >
-                <span class="choose-badge"><img
-                  class="message-art-icon"
-                  :src="navMessageIcon"
-                  width="64"
-                  height="64"
-                  alt=""
-                  aria-hidden="true"
-                ></span><p>{{ t('im.choose') }}</p><small>{{ t('im.sticker') }}</small>
-              </div>
+                class="messages-state"
+                state="empty"
+                art="chat"
+                size="tall"
+                :text="t('im.choose')"
+              />
             </Transition>
             <MessageNotices
               v-else

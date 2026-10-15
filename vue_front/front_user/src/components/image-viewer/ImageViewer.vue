@@ -75,7 +75,10 @@
           class="viewer-failed"
           role="status"
         >
-          <el-icon><PictureIcon /></el-icon>{{ t('viewer.failed') }}
+          <img
+            :src="stateFailImageFailedArt"
+            alt=""
+          >{{ t('viewer.failed') }}
         </div>
       </Transition>
       <button

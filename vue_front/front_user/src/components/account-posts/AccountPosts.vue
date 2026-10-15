@@ -115,6 +115,8 @@
     <PageState
       v-else-if="!resource.data.records.length"
       state="empty"
+      art="collection"
+      size="tall"
     />
     <div
       v-else

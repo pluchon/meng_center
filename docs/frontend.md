@@ -213,7 +213,8 @@ export const UserStatusLabelKey = Object.freeze({
 每个有异步数据的页面都要处理：加载中、出错、未登录、空数据。
 
 - `composables/useAsyncState.js`：统一提供 `loading`、`error`、`data` 和执行函数。
-- `components/` 下一组状态组件：加载中、出错（带重试）、空数据、未登录（带登录入口）。
+- `components/page-state` 是统一的状态组件，上面是插画、下面一行说明：加载中是八帧逐帧动画（减少动态效果时停在第一帧）；出错和未登录把说明和按钮合成一枚贴纸按钮（「加载失败了，点击重试」「请先登录，点击登录」）；空数据只有一行说明。`art` 选插画、`size` 选大小、`text` 换说明，`error` 传请求错误时按类型换图（断网、无权限、请求太频繁、服务异常、维护）。
+- 插画在 `assets/states/`，从 `assets/images.js` 导出，页面用 `constants/stateArt.js` 里的名字引用。没有对应路由的地址显示 `views/not-found` 的 404 页；帖子不存在、草稿载入失败、登录页的审核中和未通过、大图查看失败使用各自的插画。
 - 破坏性操作（删除等）先用 `ElMessageBox.confirm` 确认。
 - 提交中的按钮置为加载或禁用，防止重复提交。
 

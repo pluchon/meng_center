@@ -26,10 +26,12 @@ import MessageChat from '@/components/message-chat/MessageChat.vue'
 import MessageNotices from '@/components/message-notices/MessageNotices.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 import PixelBlast from '@/components/pixel-blast/PixelBlast.vue'
+import PageState from '@/components/page-state/PageState.vue'
 export default defineComponent({
   name: 'MessagesView',
   components: {
     PixelBlast,
+    PageState,
     MessageAvatar,
 
     MessageChat,

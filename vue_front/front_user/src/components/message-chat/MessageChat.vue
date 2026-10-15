@@ -73,12 +73,13 @@
       >
         {{ im.historyError }}{{ t('im.separator') }}{{ t('im.retry') }}
       </button>
-      <p
+      <PageState
         v-if="!rows.length"
-        class="chat-empty"
-      >
-        {{ t('im.emptyChat') }}
-      </p>
+        state="empty"
+        art="chat"
+        size="large"
+        :text="t('im.emptyChat')"
+      />
       <TransitionGroup
         name="message-appear"
         tag="div"

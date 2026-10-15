@@ -92,86 +92,6 @@
   display: none;
 }
 
-.notices-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 60px 14px;
-  text-align: center;
-  color: var(--meng-muted);
-}
-
-// 加载中：三个依次弹跳的小圆点
-.state-dots {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.state-dots i {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--meng-category-anime);
-  animation: dot-bounce 1s ease-in-out infinite;
-}
-
-.state-dots i:nth-child(2) {
-  background: var(--meng-category-creation);
-  animation-delay: 150ms;
-}
-
-.state-dots i:nth-child(3) {
-  background: var(--meng-category-daily);
-  animation-delay: 300ms;
-}
-
-@keyframes dot-bounce {
-  50% {
-    translate: 0 -9px;
-  }
-}
-
-// 没有通知：一枚大号图标贴纸
-.empty-badge {
-  display: grid;
-  place-items: center;
-  width: 108px;
-  height: 108px;
-  margin-bottom: 16px;
-  border: 4px solid var(--meng-surface);
-  border-radius: 50%;
-  background: var(--meng-category-game);
-  box-shadow:
-    0 0 0 3px var(--meng-category-game-dot),
-    0 8px 0 3px var(--meng-category-game-dot);
-  rotate: -6deg;
-  animation: header-bob 4s ease-in-out infinite;
-}
-
-.like .empty-badge {
-  background: var(--meng-danger);
-  box-shadow:
-    0 0 0 3px var(--meng-category-creation),
-    0 8px 0 3px var(--meng-category-creation);
-}
-
-.system .empty-badge {
-  background: var(--meng-success);
-  box-shadow:
-    0 0 0 3px var(--meng-creator-green),
-    0 8px 0 3px var(--meng-creator-green);
-}
-
-.notices-state button {
-  padding: 8px 18px;
-  border: 0;
-  border-radius: 20px;
-  background: var(--meng-tint);
-  color: var(--meng-primary);
-  cursor: pointer;
-}
-
 // 每种通知一个颜色：白边加同色系底影的贴纸卡片
 .notice-card {
   position: relative;
@@ -488,8 +408,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .header-badge,
-  .empty-badge,
-  .state-dots i,
   .notice-card.new::after {
     animation: none;
   }

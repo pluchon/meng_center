@@ -67,7 +67,7 @@ export default {
     upload: '请先重试或移除失败图片，并等待上传完成',
     file: '请选择 JPEG、PNG、WebP 或 GIF 图片，单张不超过 5 MB',
     decode: '这张图片无法处理，请换一张',
-    draftLoad: '草稿无法载入，请重试或返回主页',
+    draftLoad: '草稿无法载入，点击重试',
   },
   noContent: '还没有正文，写点什么再来预览吧',
   imageAlt: '帖子配图',

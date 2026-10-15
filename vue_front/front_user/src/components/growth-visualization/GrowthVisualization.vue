@@ -122,6 +122,8 @@
         <PageState
           v-else
           state="empty"
+          art="chart"
+          size="large"
         />
         <footer class="visual-footer">
           <span class="visual-period"><img

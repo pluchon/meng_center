@@ -23,6 +23,7 @@ import CommentBody from '@/components/comment-body/CommentBody.vue'
 import EmotionPanel from '@/components/emotion-panel/EmotionPanel.vue'
 import MessageImages from '@/components/message-images/MessageImages.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
+import PageState from '@/components/page-state/PageState.vue'
 // 把一条消息拆成文字、表情和图片：附件只有一个时放在气泡里文字的下一行，多个时在气泡下面排成图集
 const partsCache = new WeakMap()
 function parts(item) {
@@ -63,6 +64,7 @@ function split(item) {
 export default defineComponent({
   name: 'MessageChat',
   components: {
+    PageState,
     MessageAvatar,
     EmotionPanel,
     CommentBody,

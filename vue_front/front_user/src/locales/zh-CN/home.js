@@ -22,7 +22,6 @@ export default {
   categories: { ANIME: '追番', CREATION: '创作', GAME: '游戏', TECH: '技术', DAILY: '日常' },
   sort: { LATEST: '最新', HOT: '热门' },
   empty: '这里还空空的',
-  retry: '再试一次',
   authorFallback: '部落成员',
   level: 'Lv.{level}',
   image: '帖子配图',
