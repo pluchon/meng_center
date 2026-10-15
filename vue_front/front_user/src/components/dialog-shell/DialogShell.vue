@@ -13,12 +13,19 @@
     @close="$emit('close')"
   >
     <template #header>
+      <span
+        v-if="face"
+        class="shell-face"
+        aria-hidden="true"
+      >{{ face }}</span>
       <div class="shell-head">
         <span
           class="shell-icon"
           aria-hidden="true"
         ><el-icon><component :is="icon" /></el-icon></span>
-        <h2><span>{{ title }}</span></h2>
+        <slot name="title">
+          <h2><span>{{ title }}</span></h2>
+        </slot>
         <button
           type="button"
           class="shell-close"

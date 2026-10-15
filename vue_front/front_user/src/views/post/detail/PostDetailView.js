@@ -83,13 +83,16 @@ export default defineComponent({
     )
     const homeLink = computed(() => ({
       name:
-        route.query.from === 'account'
-          ? RouteName.ACCOUNT
-          : route.query.from === 'creator'
-            ? RouteName.CREATOR
-            : route.query.from === 'search'
-              ? RouteName.SEARCH
-              : RouteName.HOME,
+        route.query.from === 'user'
+          ? RouteName.USER
+          : route.query.from === 'account'
+            ? RouteName.ACCOUNT
+            : route.query.from === 'creator'
+              ? RouteName.CREATOR
+              : route.query.from === 'search'
+                ? RouteName.SEARCH
+                : RouteName.HOME,
+      params: route.query.from === 'user' ? { id: route.query.user } : undefined,
       query: Object.fromEntries(
         ['q', 'category', 'sort', 'page', 'tab', 'pane', 'folder']
           .filter((key) => route.query[key])

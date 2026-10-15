@@ -42,6 +42,19 @@ public class UserEntity {
     private LocalDateTime agreedAt;
     private Integer level;
 
+    // 关注数和粉丝数只由关注、取消关注的 SQL 加减，实体写回时不带这两列，避免盖掉并发的更新
+    @TableField(
+        insertStrategy = FieldStrategy.NEVER,
+        updateStrategy = FieldStrategy.NEVER
+    )
+    private Integer followingCount;
+
+    @TableField(
+        insertStrategy = FieldStrategy.NEVER,
+        updateStrategy = FieldStrategy.NEVER
+    )
+    private Integer followerCount;
+
     // 创建和更新时间由数据库维护，写入时不带这两列，否则会把更新时间钉在旧值上
     @TableField(
         insertStrategy = FieldStrategy.NEVER,

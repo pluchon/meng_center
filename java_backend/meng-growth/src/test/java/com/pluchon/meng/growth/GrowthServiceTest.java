@@ -63,7 +63,7 @@ class GrowthServiceTest {
         ReflectionTestUtils.setField(
                 service,
                 "properties",
-                new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L, 300L)));
+                new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L, 300L), 5, 10, 2));
         ReflectionTestUtils.setField(
                 service,
                 "clock",
@@ -110,6 +110,32 @@ class GrowthServiceTest {
         when(mapper.countDailyRecords(7, "POST", LocalDate.parse("2026-10-11"))).thenReturn(3);
         service.earned(7, ExpSource.POST, "5", instant);
         verify(mapper, never()).insertExperienceRecord(anyLong(), anyString(), anyString(), anyInt(), any());
+    }
+
+    @Test
+    void pointsAreRecordedTogetherWithExperience() {
+        service.earned(7, ExpSource.POST, "5", Instant.now());
+        verify(mapper).insertPointRecord(eq(7L), eq("POST"), eq("5"), eq(10), any());
+        verify(mapper).addPointBalance(7, 10);
+    }
+
+    @Test
+    void signInGivesPoints() {
+        when(mapper.insertCheckInIfAbsent(7, LocalDate.parse("2026-10-12"))).thenReturn(1);
+        service.checkIn();
+        verify(mapper)
+                .insertPointRecord(7, "CHECK_IN", "2026-10-12", 5, LocalDate.parse("2026-10-12"));
+        verify(mapper).addPointBalance(7, 5);
+    }
+
+    @Test
+    void noPointsWhenExperienceIsRefused() {
+        when(mapper.countSourceRecords(7, "POST", "5")).thenReturn(1);
+        service.earned(7, ExpSource.POST, "5", Instant.now());
+        when(mapper.countDailyRecords(eq(7L), eq("COMMENT"), any())).thenReturn(10);
+        service.earned(7, ExpSource.COMMENT, "1", Instant.now());
+        verify(mapper, never()).insertPointRecord(anyLong(), anyString(), anyString(), anyInt(), any());
+        verify(mapper, never()).addPointBalance(anyLong(), anyInt());
     }
 
     @Test

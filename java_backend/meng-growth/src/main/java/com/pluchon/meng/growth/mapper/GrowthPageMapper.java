@@ -1,9 +1,13 @@
 package com.pluchon.meng.growth.mapper;
 
 import com.pluchon.meng.growth.entity.DailyExperience;
+import com.pluchon.meng.growth.entity.DailyPoints;
 import com.pluchon.meng.growth.entity.ExperienceRecordRow;
+import com.pluchon.meng.growth.entity.PointRecordRow;
 import com.pluchon.meng.growth.entity.SourceExperience;
+import com.pluchon.meng.growth.entity.SourcePoints;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
+import com.pluchon.meng.growth.entity.enums.PointSource;
 import java.time.LocalDate;
 import java.util.List;
 import org.apache.ibatis.annotations.Mapper;
@@ -40,6 +44,32 @@ public interface GrowthPageMapper {
     @Select("<script>SELECT COUNT(*) FROM exp_record WHERE user_id=#{user} AND delete_state=0 "
             + "<if test='source != null'>AND source=#{source}</if></script>")
     long countExperienceRecords(@Param("user") long user, @Param("source") ExpSource source);
+
+    // 积分余额，没有账户时是零
+    @Select("SELECT COALESCE(SUM(balance),0) FROM point_account WHERE user_id=#{user} AND delete_state=0")
+    long selectPointBalance(@Param("user") long user);
+
+    // 按业务日期聚合选定区间每天获得的积分，花掉的不计入
+    @Select("SELECT record_date date,SUM(amount) amount FROM point_record WHERE user_id=#{user} "
+            + "AND delete_state=0 AND amount>0 AND record_date>=#{start} AND record_date<#{end} GROUP BY record_date ORDER BY record_date")
+    List<DailyPoints> selectDailyPoints(@Param("user") long user, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    // 与每日统计使用同一个区间汇总各来源获得的积分
+    @Select("SELECT source,SUM(amount) amount FROM point_record WHERE user_id=#{user} AND delete_state=0 AND amount>0 "
+            + "AND record_date>=#{start} AND record_date<#{end} GROUP BY source")
+    List<SourcePoints> selectSourcePoints(@Param("user") long user, @Param("start") LocalDate start, @Param("end") LocalDate end);
+
+    // 统计来源筛选后的积分明细数量
+    @Select("<script>SELECT COUNT(*) FROM point_record WHERE user_id=#{user} AND delete_state=0 "
+            + "<if test='source != null'>AND source=#{source}</if></script>")
+    long countPointRecords(@Param("user") long user, @Param("source") PointSource source);
+
+    // 积分明细按主键倒序稳定翻页，来源标识不投影
+    @Select("<script>SELECT source,amount,create_time FROM point_record WHERE user_id=#{user} AND delete_state=0 "
+            + "<if test='source != null'>AND source=#{source}</if> "
+            + "ORDER BY id DESC LIMIT #{size} OFFSET #{offset}</script>")
+    List<PointRecordRow> selectPointRecords(@Param("user") long user, @Param("source") PointSource source,
+            @Param("offset") long offset, @Param("size") long size);
 
     // 相同创建时间以主键倒序稳定翻页，来源标识不投影
     @Select("<script>SELECT source,amount,create_time FROM exp_record WHERE user_id=#{user} AND delete_state=0 "

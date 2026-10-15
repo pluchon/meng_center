@@ -9,8 +9,12 @@ import com.pluchon.meng.growth.controller.vo.CheckInMonthVO;
 import com.pluchon.meng.growth.controller.vo.ExperienceRecordVO;
 import com.pluchon.meng.growth.controller.vo.ExperienceStatsVO;
 import com.pluchon.meng.growth.controller.vo.GrowthOverviewVO;
+import com.pluchon.meng.growth.controller.vo.PointRecordVO;
+import com.pluchon.meng.growth.controller.vo.PointStatsVO;
+import com.pluchon.meng.growth.controller.vo.PointsVO;
 import com.pluchon.meng.growth.entity.SourceExperience;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
+import com.pluchon.meng.growth.entity.enums.PointSource;
 import com.pluchon.meng.growth.mapper.GrowthMapper;
 import com.pluchon.meng.growth.mapper.GrowthPageMapper;
 import java.time.Clock;
@@ -122,6 +126,53 @@ public class GrowthPageService {
         if (offset >= count) return new PageResult<>(List.of(), count, page, size);
         var records = pageMapper.selectExperienceRecords(user, source, offset, size).stream()
                 .map(row -> new ExperienceRecordVO(row.source(), row.amount(), row.createTime()
+                        .atOffset(ZoneOffset.UTC).atZoneSameInstant(ZoneId.of(properties.timezone())).toOffsetDateTime())).toList();
+        return new PageResult<>(records, count, page, size);
+    }
+
+    // 积分余额和各来源的获得规则，规则来自配置
+    public PointsVO points() {
+        long user = UserContext.require().userId();
+        return new PointsVO(
+                pageMapper.selectPointBalance(user),
+                List.of(
+                        new PointsVO.Rule(PointSource.CHECK_IN, properties.checkInPoints(), 1),
+                        new PointsVO.Rule(PointSource.POST, properties.postPoints(), properties.postDailyMax()),
+                        new PointsVO.Rule(PointSource.COMMENT, properties.commentPoints(), properties.commentDailyMax())));
+    }
+
+    // 固定业务时区计算连续日期的积分并补全零值，来源合计与每日合计同一区间
+    public PointStatsVO pointStats(int days) {
+        long user = UserContext.require().userId();
+        if (days != 7 && days != 30) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        var today = today();
+        var start = today.minusDays(days - 1L);
+        var end = today.plusDays(1);
+        var daily = new HashMap<LocalDate, Long>();
+        pageMapper.selectDailyPoints(user, start, end).forEach(row -> daily.put(row.date(), row.amount()));
+        var bySource = new EnumMap<PointSource, Long>(PointSource.class);
+        pageMapper.selectSourcePoints(user, start, end).forEach(row -> bySource.put(row.source(), row.amount()));
+        var rows = new ArrayList<PointStatsVO.Day>(days);
+        for (int index = 0; index < days; index++) {
+            var date = start.plusDays(index);
+            rows.add(new PointStatsVO.Day(date, daily.getOrDefault(date, 0L)));
+        }
+        var sources = new ArrayList<PointStatsVO.Source>();
+        for (var source : PointSource.values()) sources.add(new PointStatsVO.Source(source, bySource.getOrDefault(source, 0L)));
+        return new PointStatsVO(List.copyOf(rows), List.copyOf(sources));
+    }
+
+    // 积分明细：来源筛选和稳定分页
+    public PageResult<PointRecordVO> pointRecords(PointSource source, long page, long size) {
+        long user = UserContext.require().userId();
+        if (page < 1 || size < 1 || size > 50 || page - 1 > Long.MAX_VALUE / size) {
+            throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        }
+        long count = pageMapper.countPointRecords(user, source);
+        long offset = (page - 1) * size;
+        if (offset >= count) return new PageResult<>(List.of(), count, page, size);
+        var records = pageMapper.selectPointRecords(user, source, offset, size).stream()
+                .map(row -> new PointRecordVO(row.source(), row.amount(), row.createTime()
                         .atOffset(ZoneOffset.UTC).atZoneSameInstant(ZoneId.of(properties.timezone())).toOffsetDateTime())).toList();
         return new PageResult<>(records, count, page, size);
     }

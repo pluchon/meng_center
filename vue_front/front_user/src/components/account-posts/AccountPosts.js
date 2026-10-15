@@ -17,11 +17,13 @@ import {
   IconStar as Star,
   IconHeart,
   IconCheck as Check,
+  IconLock,
+  IconWorld,
 } from '@tabler/icons-vue'
 import { contentApi, contentImage } from '@/api/content'
 import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
-import { Account } from '@/constants/account'
+import { Account, AccountPane, FolderVisibility } from '@/constants/account'
 import { accountPaletteIcon, accountScenes } from '@/assets/images'
 import { accountDate } from '@/utils/accountDate'
 import { RouteName } from '@/router/names'
@@ -37,11 +39,16 @@ export default defineComponent({
     Check,
     Star,
     IconHeart,
+    IconLock,
+    IconWorld,
     PageState,
     FeedPagination,
     FolderColorPicker,
   },
   props: {
+    // 别人的主页传他的编号：只看他公开的收藏夹和发布的帖子，没有任何修改入口
+    userId: { type: String, default: null },
+    pane: { type: String, default: AccountPane.LIKES },
     folderId: { type: String, default: null },
     folder: { type: Object, default: null },
     page: { type: Number, default: 1 },
@@ -50,6 +57,7 @@ export default defineComponent({
   emits: ['page', 'back', 'folder-updated', 'delete', 'changed'],
   setup(props, { emit }) {
     const { t } = useI18n()
+    const own = computed(() => !props.userId)
     const editing = reactive({ name: false, description: false })
     const draft = reactive({ name: '', description: '' })
     const saving = ref(null)
@@ -112,6 +120,30 @@ export default defineComponent({
         await nextTick()
         if (editing[field]) inputFor(field)?.focus()
         else buttonFor(field)?.focus()
+      }
+    }
+    // 公开或私密：别人能不能在他的主页看到这个收藏夹
+    async function toggleVisibility() {
+      if (!props.folder || saving.value) return
+      const visibility =
+        props.folder.visibility === FolderVisibility.PUBLIC
+          ? FolderVisibility.PRIVATE
+          : FolderVisibility.PUBLIC
+      saving.value = 'visibility'
+      try {
+        await contentApi.changeFolderVisibility(props.folder.id, visibility)
+        emit('folder-updated', { id: props.folder.id, visibility })
+        ElMessage.success(
+          t(
+            visibility === FolderVisibility.PUBLIC
+              ? 'account.visibilityPublicDone'
+              : 'account.visibilityPrivateDone',
+          ),
+        )
+      } catch (error) {
+        notifyFailure(error)
+      } finally {
+        saving.value = null
       }
     }
     async function saveColor(color) {
@@ -184,9 +216,19 @@ export default defineComponent({
     const { state: resource, load } = useRequestResource(
       async (signal) => {
         const params = { page: props.page, size: pageSize.value }
-        const result = props.folderId
-          ? await contentApi.folderPosts(props.folderId, params, { signal })
-          : await contentApi.likedPosts(params, { signal })
+        const config = { signal }
+        let result
+        if (props.userId && props.folderId)
+          result = await contentApi.userFolderPosts(props.userId, props.folderId, params, config)
+        else if (props.userId) {
+          result = await contentApi.userPosts(props.userId, params, config)
+          result.records = result.records.map((post) => ({
+            ...post,
+            cover: post.images[0]?.thumbUrl || post.images[0]?.url || null,
+            savedAt: post.createTime,
+          }))
+        } else if (props.folderId) result = await contentApi.folderPosts(props.folderId, params, config)
+        else result = await contentApi.likedPosts(params, config)
         return {
           ...result,
           records: result.records.map((post) => ({ ...post, active: true, pending: false })),
@@ -223,9 +265,17 @@ export default defineComponent({
       }
       void load()
     })
+    // 卡片右下角的时间：收藏于、喜欢于、发布于
+    const timeKey = computed(() =>
+      props.folderId ? 'account.savedAt' : props.userId ? 'account.publishedAt' : 'account.likedAt',
+    )
     return {
       t,
       Account,
+      FolderVisibility,
+      own,
+      timeKey,
+      toggleVisibility,
       editing,
       draft,
       saving,

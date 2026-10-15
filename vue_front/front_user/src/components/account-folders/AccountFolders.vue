@@ -34,7 +34,7 @@
             >
           </Transition>
           <span
-            v-if="!folder.isDefault"
+            v-if="!folder.isDefault && !userId"
             class="account-folder-change"
             :class="{ busy: changing === folder.id }"
             role="button"
@@ -45,6 +45,11 @@
           >
             <CoverCamera />{{ changing === folder.id ? t('account.coverChanging') : t('account.changeCover') }}
           </span>
+          <span
+            v-if="!userId"
+            class="account-folder-visibility"
+            :class="folder.visibility === FolderVisibility.PUBLIC ? 'is-public' : 'is-private'"
+          ><el-icon><IconWorld v-if="folder.visibility === FolderVisibility.PUBLIC" /><IconLock v-else /></el-icon>{{ t(folder.visibility === FolderVisibility.PUBLIC ? 'account.visibilityPublic' : 'account.visibilityPrivate') }}</span>
         </div>
         <span
           v-if="folder.isDefault"
@@ -56,7 +61,7 @@
         </div>
       </button>
       <button
-        v-if="!resource.error && !resource.loading && rows.length >= total && total < Account.FOLDERS_MAX"
+        v-if="!userId && !resource.error && !resource.loading && rows.length >= total && total < Account.FOLDERS_MAX"
         class="account-folder account-folder-create"
         aria-haspopup="dialog"
         @click="$emit('create')"

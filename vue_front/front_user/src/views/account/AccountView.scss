@@ -294,20 +294,6 @@
   line-height: 1.2;
 }
 
-.account-sticker.gold {
-  background: var(--meng-warning);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
-  color: var(--meng-favorite-text);
-  transform: rotate(3deg);
-}
-
-.account-sticker.pink {
-  background: var(--meng-danger);
-  box-shadow: 0 4px 0 var(--meng-category-creation);
-  color: var(--meng-like-text);
-  transform: rotate(-2deg);
-}
-
 .account-sticker.violet {
   background: var(--meng-category-game);
   box-shadow: 0 4px 0 var(--meng-creator-purple);
@@ -323,6 +309,183 @@
 .account-sticker:hover,
 .account-level:hover {
   transform: rotate(0deg) translateY(-2px);
+}
+
+// 签名下面一排小贴纸：关注、粉丝，自己的页面再多一个积分
+.account-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 8px;
+}
+
+.account-social-sticker {
+  --social-fill: var(--meng-tint);
+  --social-edge: var(--meng-category-anime);
+  --social-ink: var(--meng-shadow-hard);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 15px 5px 11px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
+  background: var(--social-fill);
+  box-shadow: 0 4px 0 var(--social-edge);
+  color: var(--social-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  rotate: -3deg;
+  transition:
+    rotate 180ms var(--meng-motion-ease),
+    translate 180ms var(--meng-motion-ease);
+}
+
+.account-social-sticker.pink {
+  --social-fill: var(--meng-danger);
+  --social-edge: var(--meng-category-creation);
+  --social-ink: var(--meng-like-text);
+
+  rotate: 2deg;
+}
+
+.account-social-sticker.gold {
+  --social-fill: var(--meng-warning);
+  --social-edge: var(--meng-creator-yellow);
+  --social-ink: var(--meng-favorite-text);
+
+  rotate: -2deg;
+}
+
+.account-social-sticker b {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.account-social-sticker .el-icon {
+  font-size: 17px;
+}
+
+.account-social-sticker:hover {
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.account-social-sticker:active {
+  translate: 0 3px;
+}
+
+.account-social-sticker:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+// 别人的主页右侧：关注和私信两个大按钮
+.account-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px 4px 0;
+}
+
+.account-action {
+  --action-fill: var(--meng-primary);
+  --action-edge: var(--meng-shadow-hard);
+  --action-ink: var(--meng-surface);
+  --action-chip: var(--meng-surface);
+  --action-chip-ink: var(--meng-primary);
+
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  height: 48px;
+  margin-bottom: 4px;
+  padding: 0 22px 0 9px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 27px;
+  background: var(--action-fill);
+  box-shadow: 0 4px 0 var(--action-edge);
+  color: var(--action-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  rotate: -2deg;
+  transition:
+    translate 120ms ease,
+    rotate 200ms ease,
+    box-shadow 150ms ease;
+}
+
+.account-action.is-followed {
+  --action-fill: var(--meng-bg);
+  --action-edge: var(--meng-border);
+  --action-ink: var(--meng-muted);
+  --action-chip: var(--meng-success);
+  --action-chip-ink: var(--meng-success-shadow);
+}
+
+.account-action.is-message {
+  --action-fill: var(--meng-danger);
+  --action-edge: var(--meng-category-creation);
+  --action-ink: var(--meng-like-text);
+  --action-chip: var(--meng-surface);
+  --action-chip-ink: var(--meng-like-icon);
+
+  rotate: 2deg;
+}
+
+.account-action-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--action-chip);
+  color: var(--action-chip-ink);
+  font-size: 18px;
+}
+
+.account-action-sparkle {
+  position: absolute;
+  top: -9px;
+  right: -8px;
+  color: var(--meng-category-daily);
+  font-size: 18px;
+  font-style: normal;
+  animation: bio-twinkle 3s ease-in-out infinite;
+}
+
+.account-action-sparkle::before {
+  content: '✦';
+}
+
+.account-action:not(:disabled):hover {
+  box-shadow: 0 6px 0 var(--meng-decor-shadow);
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.account-action:not(:disabled):active {
+  translate: 0 3px;
+}
+
+.account-action:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.account-action:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
 }
 
 .account-settings-button {
@@ -608,7 +771,8 @@
     min-height: 0;
   }
 
-  .account-stats {
+  .account-stats,
+  .account-actions {
     width: 100%;
     padding-left: 138px;
   }
@@ -644,7 +808,8 @@
     flex: 1 1 160px;
   }
 
-  .account-stats {
+  .account-stats,
+  .account-actions {
     padding-left: 0;
     gap: 9px;
   }
@@ -811,6 +976,9 @@
   }
 
   .account-sticker,
+  .account-social-sticker,
+  .account-action,
+  .account-action-sparkle,
   .account-level,
   .account-section-title > span,
   .account-tab-indicator,

@@ -173,6 +173,14 @@
                     alt=""
                     aria-hidden="true"
                   ><img
+                    v-else-if="key==='FOLLOW'"
+                    class="message-art-icon"
+                    :src="authHeartIcon"
+                    width="24"
+                    height="24"
+                    alt=""
+                    aria-hidden="true"
+                  ><img
                     v-else-if="key==='REPORT'||key==='APPROVAL'"
                     class="message-art-icon"
                     :src="messageShieldIcon"

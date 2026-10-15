@@ -59,7 +59,14 @@ public class GrowthService {
         var date = today();
         if (mapper.insertCheckInIfAbsent(user, date) != 1)
             throw new BusinessException(CommonErrorCode.CONFLICT);
-        award(a, ExpSource.CHECK_IN, date.toString(), date, properties.checkInExp(), 1);
+        award(
+                a,
+                ExpSource.CHECK_IN,
+                date.toString(),
+                date,
+                properties.checkInExp(),
+                properties.checkInPoints(),
+                1);
         return view(a);
     }
 
@@ -79,6 +86,7 @@ public class GrowthService {
                 sourceId,
                 date,
                 source == ExpSource.POST ? properties.postExp() : properties.commentExp(),
+                source == ExpSource.POST ? properties.postPoints() : properties.commentPoints(),
                 source == ExpSource.POST
                         ? properties.postDailyMax()
                         : properties.commentDailyMax());
@@ -92,18 +100,21 @@ public class GrowthService {
         return a;
     }
 
-    // 按事件去重并累计经验和升级
+    // 按事件去重并累计经验、升级和积分；积分和经验同一件事、同一个每日上限、同一个事务
     private void award(
             GrowthAccountEntity a,
             ExpSource source,
             String id,
             LocalDate date,
             int amount,
+            int points,
             int max) {
         String name = source.name();
         if (mapper.countSourceRecords(a.getUserId(), name, id) > 0
                 || mapper.countDailyRecords(a.getUserId(), name, date) >= max) return;
         mapper.insertExperienceRecord(a.getUserId(), name, id, amount, date);
+        mapper.insertPointRecord(a.getUserId(), name, id, points, date);
+        mapper.addPointBalance(a.getUserId(), points);
         long exp = Math.addExact(a.getExp(), amount);
         int level = a.getLevel();
         for (int i = 0; i < properties.thresholds().size(); i++)

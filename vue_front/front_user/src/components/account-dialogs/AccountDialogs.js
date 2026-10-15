@@ -13,6 +13,7 @@ import {
   IconDeviceDesktop as Monitor,
   IconDeviceLaptop as Laptop,
   IconBan as CircleClose,
+  IconWorld,
 } from '@tabler/icons-vue'
 import { userApi } from '@/api/user'
 import { contentApi } from '@/api/content'
@@ -22,7 +23,7 @@ import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { Auth, Regions } from '@/constants/app'
 import { RouteName } from '@/router/names'
-import { Account } from '@/constants/account'
+import { Account, FolderVisibility } from '@/constants/account'
 import { accountDate } from '@/utils/accountDate'
 import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
 import PageState from '@/components/page-state/PageState.vue'
@@ -34,6 +35,8 @@ export default defineComponent({
     PictureIcon,
     Close,
     Check,
+    IconLock: Lock,
+    IconWorld,
     CaptchaDialog,
     PageState,
     MessageAvatar,
@@ -52,6 +55,7 @@ export default defineComponent({
       name: '',
       description: '',
       color: 'GOLD',
+      visibility: FolderVisibility.PRIVATE,
       oldPassword: '',
       password: '',
       confirmPassword: '',
@@ -209,6 +213,7 @@ export default defineComponent({
           body.append('name', form.name.trim())
           body.append('description', form.description.trim())
           body.append('color', form.color)
+          body.append('visibility', form.visibility)
           if (cover.value) body.append('cover', cover.value)
           await contentApi.createFolder(body)
           ElMessage.success(t('account.folderCreated'))
@@ -315,6 +320,7 @@ export default defineComponent({
       removeOthers,
       Regions,
       Account,
+      FolderVisibility,
       date: (value) => accountDate(value, t),
     }
   },

@@ -12,6 +12,7 @@ import com.pluchon.meng.content.entity.FavoriteFolder;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.enums.FolderColor;
+import com.pluchon.meng.content.entity.enums.FolderVisibility;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.*;
 import com.pluchon.meng.content.validation.ContentErrorCode;
@@ -69,9 +70,13 @@ public class FavoriteFolderService {
         String description,
         String cover,
         FolderColor color,
+        FolderVisibility visibility,
         long count,
         LocalDateTime latestAt
     ) {}
+
+    // 别人主页上的数量：发布的帖子、公开的收藏夹、公开收藏夹里的帖子
+    public record PublicCounts(long posts, long folders, long favorites) {}
 
     // 帖子对当前用户的收藏状态
     public record FavoriteState(boolean favorited, long favoriteCount) {}
@@ -120,20 +125,38 @@ public class FavoriteFolderService {
     }
 
     private long count() {
+        return count(user(), null);
+    }
+
+    // 某人的收藏夹个数，visibility 为空时不按可见性筛
+    private long count(long owner, FolderVisibility visibility) {
         return folders.selectCount(
-            Wrappers.<FavoriteFolder>lambdaQuery().eq(
-                FavoriteFolder::getUserId,
-                user()
-            )
+            Wrappers.<FavoriteFolder>lambdaQuery()
+                .eq(FavoriteFolder::getUserId, owner)
+                .eq(visibility != null, FavoriteFolder::getVisibility, visibility)
         );
     }
 
     @Transactional
     public PageResult<FolderVO> list(long page, long size) {
         ensure();
+        return folderPage(user(), null, page, size);
+    }
+
+    // 别人的主页：只给他公开的收藏夹，不替他建默认收藏夹
+    public PageResult<FolderVO> publicList(long owner, long page, long size) {
+        return folderPage(owner, FolderVisibility.PUBLIC, page, size);
+    }
+
+    private PageResult<FolderVO> folderPage(
+        long owner,
+        FolderVisibility visibility,
+        long page,
+        long size
+    ) {
         return new PageResult<>(
             folders
-                .folders(user(), (page - 1) * size, size)
+                .folders(owner, visibility, (page - 1) * size, size)
                 .stream()
                 .map(r ->
                     new FolderVO(
@@ -147,12 +170,13 @@ public class FavoriteFolderService {
                               ? "/content/files/" + r.getPostCover()
                               : null,
                         r.getColor(),
+                        r.getVisibility(),
                         r.getCount(),
                         r.getLatestAt()
                     )
                 )
                 .toList(),
-            count(),
+            count(owner, visibility),
             page,
             size
         );
@@ -184,6 +208,7 @@ public class FavoriteFolderService {
         String name,
         String description,
         FolderColor color,
+        FolderVisibility visibility,
         MultipartFile cover
     ) throws IOException {
         lockSelection(null);
@@ -196,6 +221,9 @@ public class FavoriteFolderService {
         folder.setName(name.strip());
         folder.setDescription(description.strip());
         folder.setColor(color == null ? FolderColor.GOLD : color);
+        folder.setVisibility(
+            visibility == null ? FolderVisibility.PRIVATE : visibility
+        );
         if (cover != null && !cover.isEmpty()) {
             folder.setCoverName(saveCover(cover));
         }
@@ -223,6 +251,18 @@ public class FavoriteFolderService {
             }
         );
         return image.thumbName();
+    }
+
+    // 改收藏夹对别人是否可见，默认收藏夹也能改；幂等
+    @Transactional(rollbackFor = Exception.class)
+    public void changeVisibility(long id, FolderVisibility visibility) {
+        lockSelection(null);
+        var folder = require(id);
+        if (visibility == null) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
+        folder.setVisibility(visibility);
+        folders.updateById(folder);
     }
 
     // 更换封面：默认收藏夹的封面固定，不能换；旧封面在事务提交后删除
@@ -448,10 +488,49 @@ public class FavoriteFolderService {
 
     public PageResult<SavedPost> saved(Long folder, long page, long size) {
         if (folder != null) require(folder);
+        return savedOf(user(), folder, page, size);
+    }
+
+    // 别人公开收藏夹里的帖子：收藏夹不是他的、或者是私密的，都按不存在处理
+    public PageResult<SavedPost> publicSaved(
+        long owner,
+        long folder,
+        long page,
+        long size
+    ) {
+        var row = folders.selectById(folder);
+        if (
+            row == null ||
+            row.getUserId() != owner ||
+            row.getVisibility() != FolderVisibility.PUBLIC
+        ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        return savedOf(owner, folder, page, size);
+    }
+
+    // 别人主页上的数量
+    public PublicCounts publicCounts(long owner) {
+        return new PublicCounts(
+            posts.selectCount(
+                Wrappers.<PostEntity>lambdaQuery().eq(
+                    PostEntity::getAuthorId,
+                    owner
+                )
+            ),
+            count(owner, FolderVisibility.PUBLIC),
+            folders.publicFavorites(owner)
+        );
+    }
+
+    private PageResult<SavedPost> savedOf(
+        long owner,
+        Long folder,
+        long page,
+        long size
+    ) {
         var rows =
             folder == null
-                ? folders.likes(user(), (page - 1) * size, size)
-                : folders.posts(user(), folder, (page - 1) * size, size);
+                ? folders.likes(owner, (page - 1) * size, size)
+                : folders.posts(owner, folder, (page - 1) * size, size);
         var people = authors.batch(
             rows
                 .stream()
@@ -476,8 +555,8 @@ public class FavoriteFolderService {
                 )
                 .toList(),
             folder == null
-                ? folders.liked(user())
-                : folders.favorites(user(), folder),
+                ? folders.liked(owner)
+                : folders.favorites(owner, folder),
             page,
             size
         );
@@ -486,8 +565,14 @@ public class FavoriteFolderService {
     public Resource cover(String name) {
         var folder = folders.selectOne(
             Wrappers.<FavoriteFolder>lambdaQuery()
-                .eq(FavoriteFolder::getUserId, user())
                 .eq(FavoriteFolder::getCoverName, name)
+                // 自己的封面能看；别人只能看公开收藏夹的封面
+                .and(w ->
+                    w
+                        .eq(FavoriteFolder::getUserId, user())
+                        .or()
+                        .eq(FavoriteFolder::getVisibility, FolderVisibility.PUBLIC)
+                )
         );
         if (folder == null) throw new BusinessException(
             CommonErrorCode.NOT_FOUND

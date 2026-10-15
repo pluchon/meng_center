@@ -1,6 +1,7 @@
 export const Account = Object.freeze({
   SIZE: 8,
   FOLDERS_MAX: 20,
+  FOLLOW_SIZE: 6,
   PICKER_SIZE: 6,
   POST_FOLDERS_MAX: 10,
   AVATAR_BYTES: 2 * 1024 * 1024,
@@ -13,4 +14,8 @@ export const AccountPane = Object.freeze({
   FOLDERS: 'folders',
   LIKES: 'likes',
   SETTINGS: 'settings',
+  // 别人的主页：他发布的帖子
+  POSTS: 'posts',
 })
+// 收藏夹对别人是否可见，和后端 FolderVisibility 一一对应
+export const FolderVisibility = Object.freeze({ PUBLIC: 'PUBLIC', PRIVATE: 'PRIVATE' })

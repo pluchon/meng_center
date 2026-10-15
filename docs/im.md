@@ -45,7 +45,7 @@
 - 通知列表默认每页 10 条。喜欢频道返回的是聚合后的条目（见 5.3）。
 - 没有「只取一条通知」的接口，通知点了直接跳到对应的帖子或评论。
 - 请求字段：发送为 `{peerId, clientMsgId, content, imageIds}`；会话已读为 `{messageId}`；通知已读为 `{channel, source, category}`，系统频道只传 category，其他通知只传 source；设置为 `{hidden}`；屏蔽为 `{userId}`。
-- 频道枚举为 COMMENT / LIKE / SYSTEM；来源为 POST；系统分组为 GROWTH / REPORT / APPROVAL。REPORT 保留设计稿中的分组，目前没有处理事件，显示空状态。
+- 频道枚举为 COMMENT / LIKE / SYSTEM；来源为 POST；系统分组为 GROWTH / REPORT / APPROVAL / FOLLOW（有人关注了你，通知类型 `FOLLOWED`，触发人是关注者，同一对人只通知一次）。REPORT 保留设计稿中的分组，目前没有处理事件，显示空状态。
 - 未指定对方时默认打开列表中最近的会话；没有会话时展示空状态。会话响应带对方资料、双方已发条数和已读游标；历史响应为 `{records, hasMore}`。会话与通知列表沿用 `PageResult`。通知条目为 `{notice, actors}`，喜欢的 notice 额外带 actorCount。
 
 ## 4. 私信

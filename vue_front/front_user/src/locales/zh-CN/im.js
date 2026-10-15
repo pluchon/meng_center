@@ -6,6 +6,7 @@ export default {
   progress: '{count}%',
   profile: '查看{name}的资料',
   sendMessage: '发私信',
+  viewProfile: '看主页',
   back: '回到首页',
   chat: '私信',
   comment: '评论',
@@ -18,6 +19,7 @@ export default {
   GROWTH: '成长通知',
   REPORT: '举报通知',
   APPROVAL: '审核通知',
+  FOLLOW: '关注通知',
   online: '在线',
   offline: '离线',
   hidden: '隐身',
@@ -90,5 +92,6 @@ export default {
     COMMENT_LIKED: '喜欢了你的评论',
     LEVEL_CHANGED: '升级啦',
     USER_APPROVED: '注册申请通过啦',
+    FOLLOWED: '关注了你',
   },
 }

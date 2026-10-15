@@ -1,0 +1,1 @@
+ALTER TABLE favorite_folder ADD COLUMN visibility VARCHAR(8) NOT NULL DEFAULT 'PRIVATE' AFTER color;

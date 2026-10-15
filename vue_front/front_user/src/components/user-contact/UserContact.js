@@ -20,6 +20,13 @@ export default defineComponent({
           : { name: RouteName.LOGIN, query: { redirect: router.resolve(target).fullPath } },
       )
     }
-    return { t, user, message, userAvatar, avatarUrl }
+    function profile() {
+      void router.push(
+        props.author.id === user.current?.id
+          ? { name: RouteName.ACCOUNT }
+          : { name: RouteName.USER, params: { id: props.author.id } },
+      )
+    }
+    return { t, user, message, profile, userAvatar, avatarUrl }
   },
 })

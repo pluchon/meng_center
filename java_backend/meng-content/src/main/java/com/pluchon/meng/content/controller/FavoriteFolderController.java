@@ -4,6 +4,7 @@ import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.core.response.ApiResponse;
 import com.pluchon.meng.content.controller.dto.FavoriteFoldersDTO;
 import com.pluchon.meng.content.entity.enums.FolderColor;
+import com.pluchon.meng.content.entity.enums.FolderVisibility;
 import com.pluchon.meng.content.service.FavoriteFolderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -80,10 +81,11 @@ public class FavoriteFolderController {
         @RequestParam String name,
         @RequestParam(defaultValue = "") String description,
         @RequestParam(required = false) FolderColor color,
+        @RequestParam(required = false) FolderVisibility visibility,
         @RequestParam(required = false) MultipartFile cover
     ) throws IOException {
         return ApiResponse.success(
-            folders.create(name, description, color, cover)
+            folders.create(name, description, color, visibility, cover)
         );
     }
 
@@ -93,6 +95,18 @@ public class FavoriteFolderController {
         @Valid @RequestBody Change body
     ) {
         folders.update(id, body.name(), body.description(), body.color());
+        return ApiResponse.success(null);
+    }
+
+    public record VisibilityChange(@NotNull FolderVisibility visibility) {}
+
+    /** 改收藏夹对别人是否可见，默认收藏夹也能改。 */
+    @PutMapping("/favorite-folders/{id}/visibility")
+    public ApiResponse<Void> changeVisibility(
+        @PathVariable @Positive long id,
+        @Valid @RequestBody VisibilityChange body
+    ) {
+        folders.changeVisibility(id, body.visibility());
         return ApiResponse.success(null);
     }
 

@@ -33,5 +33,6 @@ export const NoticeType = Object.freeze({
   COMMENT_LIKED: 'COMMENT_LIKED',
   LEVEL_CHANGED: 'LEVEL_CHANGED',
   USER_APPROVED: 'USER_APPROVED',
+  FOLLOWED: 'FOLLOWED',
 })
 export const MessageAvatarTones = Object.freeze(['blue', 'mint', 'violet', 'gold', 'pink'])

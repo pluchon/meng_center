@@ -282,3 +282,30 @@
     transition: none;
   }
 }
+
+// 封面左上角：这个收藏夹对别人公开还是私密
+.account-folder-visibility {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 9px 0 7px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--meng-surface) 92%, transparent);
+  color: var(--meng-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.account-folder-visibility.is-public {
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+}
+
+.account-folder-visibility .el-icon {
+  font-size: 13px;
+}

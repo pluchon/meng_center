@@ -11,6 +11,7 @@ public enum UserErrorCode implements ErrorCode {
     ),
     PASSWORD_WRONG("USER_PASSWORD_WRONG", "当前密码不正确", 400),
     INVALID_CREDENTIALS("USER_INVALID_CREDENTIALS", "账号或密码错误", 401),
+    FOLLOW_SELF("USER_FOLLOW_SELF", "不能关注自己", 409),
     PENDING("USER_PENDING", "申请仍在审核中", 403),
     REJECTED("USER_REJECTED", "申请未通过审核", 403),
     INVALID_TICKET("USER_INVALID_TICKET", "滑块验证已失效", 400),

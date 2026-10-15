@@ -291,6 +291,56 @@
   box-shadow: none;
 }
 
+// 公开或私密：私密是淡蓝灰贴纸，公开是薄荷色
+.account-folder-summary > .account-visibility {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 15px 0 11px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
+  background: var(--meng-bg);
+  box-shadow: 0 4px 0 var(--meng-border);
+  color: var(--meng-shadow-hard);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    box-shadow 180ms;
+}
+
+.account-folder-summary > .account-visibility.is-public {
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-growth-mint-edge);
+  color: var(--meng-success-shadow);
+}
+
+.account-visibility .el-icon {
+  font-size: 16px;
+}
+
+.account-folder-summary > .account-visibility:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.account-folder-summary > .account-visibility:active:not(:disabled) {
+  transform: translateY(3px) scale(0.97);
+  box-shadow: none;
+}
+
+.account-folder-summary > .account-visibility:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.account-folder-summary > .account-visibility:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
 .account-post-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -747,7 +797,8 @@
   .account-inline-confirm,
   .account-folder-description button,
   .account-folder-tools h2 > span,
-  .account-folder-summary > .account-delete {
+  .account-folder-summary > .account-delete,
+  .account-folder-summary > .account-visibility {
     transition: none;
   }
 

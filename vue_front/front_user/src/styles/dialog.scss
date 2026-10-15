@@ -407,3 +407,24 @@
     transition: none;
   }
 }
+
+// 对话框右上角探出来的颜文字小气泡
+.shell-face {
+  position: absolute;
+  top: -20px;
+  right: 74px;
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 3px solid var(--meng-surface);
+  border-radius: 21px;
+  background: var(--tone-chip);
+  box-shadow: 0 4px 0 var(--meng-decor-shadow);
+  color: var(--meng-text);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  rotate: 4deg;
+  pointer-events: none;
+}

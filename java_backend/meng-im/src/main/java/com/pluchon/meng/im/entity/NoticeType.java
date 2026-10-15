@@ -10,4 +10,5 @@ public enum NoticeType {
     COMMENT_LIKED,
     LEVEL_CHANGED,
     USER_APPROVED,
+    FOLLOWED,
 }

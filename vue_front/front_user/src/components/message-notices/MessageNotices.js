@@ -27,6 +27,7 @@ const typeIcons = {
   [NoticeType.POST_FAVORITED]: growthFlagIcon,
   [NoticeType.LEVEL_CHANGED]: navGrowthIcon,
   [NoticeType.USER_APPROVED]: authHeartIcon,
+  [NoticeType.FOLLOWED]: authHeartIcon,
 }
 export default defineComponent({
   name: 'MessageNotices',
@@ -60,15 +61,19 @@ export default defineComponent({
         ? authCodeIcon
         : props.tab === MessageTab.LIKE
           ? messageHeartIcon
-          : props.group === 'GROWTH'
-            ? navGrowthIcon
+          : props.group === 'FOLLOW'
+            ? authHeartIcon
+            : props.group === 'GROWTH'
+              ? navGrowthIcon
             : props.group === 'POST'
               ? navMessageIcon
               : messageShieldIcon,
     )
     function open(item) {
       const notice = item.notice
-      if (notice.postId)
+      if (notice.type === NoticeType.FOLLOWED && item.actors.length)
+        void router.push({ name: RouteName.USER, params: { id: item.actors[0].id } })
+      else if (notice.postId)
         void router.push({
           name: RouteName.POST_DETAIL,
           params: { id: notice.postId },

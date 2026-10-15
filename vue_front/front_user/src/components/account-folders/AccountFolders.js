@@ -1,9 +1,14 @@
 import { defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { IconCamera as CoverCamera, IconPlus as Plus } from '@tabler/icons-vue'
+import {
+  IconCamera as CoverCamera,
+  IconLock,
+  IconPlus as Plus,
+  IconWorld,
+} from '@tabler/icons-vue'
 import { contentApi, contentImage } from '@/api/content'
-import { Account } from '@/constants/account'
+import { Account, FolderVisibility } from '@/constants/account'
 import { accountFolderCover } from '@/assets/images'
 import { accountDate } from '@/utils/accountDate'
 import PageState from '@/components/page-state/PageState.vue'
@@ -13,8 +18,12 @@ const COVER_BYTES = 5 * 1024 * 1024
 const COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export default defineComponent({
   name: 'AccountFolders',
-  components: { CoverCamera, Plus, PageState },
-  props: { revision: { type: Number, default: 0 } },
+  components: { CoverCamera, IconLock, IconWorld, Plus, PageState },
+  props: {
+    revision: { type: Number, default: 0 },
+    // 别人的主页传他的编号，只列他公开的收藏夹
+    userId: { type: String, default: null },
+  },
   emits: ['open', 'create', 'loaded', 'total'],
   setup(props, { emit }) {
     const { t } = useI18n(),
@@ -42,10 +51,10 @@ export default defineComponent({
       resource.loading = true
       resource.error = null
       try {
-        const value = await contentApi.folders(
-          { page: Math.floor(rows.value.length / Account.SIZE) + 1, size: Account.SIZE },
-          { signal: controller.signal },
-        )
+        const params = { page: Math.floor(rows.value.length / Account.SIZE) + 1, size: Account.SIZE }
+        const value = await (props.userId
+          ? contentApi.userFolders(props.userId, params, { signal: controller.signal })
+          : contentApi.folders(params, { signal: controller.signal }))
         if (current !== generation) return
         rows.value.push(...value.records)
         total.value = value.total
@@ -130,6 +139,7 @@ export default defineComponent({
       coverSelected,
       loadMore: () => loadMore(),
       Account,
+      FolderVisibility,
       contentImage,
       accountFolderCover,
       date: (value) => accountDate(value, t),

@@ -5,7 +5,9 @@ export default defineComponent({
   name: 'DialogShell',
   props: {
     modelValue: { type: Boolean, default: false },
-    title: { type: String, required: true },
+    title: { type: String, default: '' },
+    // 右上角探出来的颜文字小气泡，可不要
+    face: { type: String, default: '' },
     icon: { type: [Object, Function], required: true },
     // 语义色：gold（默认）、pink、blue、mint、violet
     tone: { type: String, default: 'gold' },

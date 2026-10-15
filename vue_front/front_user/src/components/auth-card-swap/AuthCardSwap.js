@@ -147,6 +147,9 @@ export default defineComponent({
       reducedMotion?.removeEventListener('change', cleanup)
       cleanup()
     })
-    return { stage, swapping, sharedBackground, leave, enter }
+    // 别人的主页按用户分开挂载，从一个人的主页点到另一个人的主页时整页换新
+    const pageKey = (current) =>
+      current.name === RouteName.USER ? RouteName.USER + '-' + current.params.id : current.name
+    return { stage, swapping, sharedBackground, leave, enter, pageKey }
   },
 })

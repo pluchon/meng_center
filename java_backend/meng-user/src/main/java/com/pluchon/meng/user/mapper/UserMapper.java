@@ -17,6 +17,24 @@ public interface UserMapper extends BaseMapper<UserEntity> {
         @org.apache.ibatis.annotations.Param("level") int level
     );
 
+    // 关注数加减，减到零为止
+    @org.apache.ibatis.annotations.Update(
+        "UPDATE user SET following_count=GREATEST(following_count+#{delta},0) WHERE id=#{id}"
+    )
+    int addFollowing(
+        @org.apache.ibatis.annotations.Param("id") long id,
+        @org.apache.ibatis.annotations.Param("delta") int delta
+    );
+
+    // 粉丝数加减，减到零为止
+    @org.apache.ibatis.annotations.Update(
+        "UPDATE user SET follower_count=GREATEST(follower_count+#{delta},0) WHERE id=#{id}"
+    )
+    int addFollowers(
+        @org.apache.ibatis.annotations.Param("id") long id,
+        @org.apache.ibatis.annotations.Param("delta") int delta
+    );
+
     String FOR_UPDATE = "FOR UPDATE";
 
     // 按用户名加锁读取

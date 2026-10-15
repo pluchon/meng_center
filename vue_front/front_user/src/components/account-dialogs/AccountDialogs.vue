@@ -197,6 +197,22 @@
         /></label>
       </template>
       <div class="account-dialog-actions">
+        <button
+          v-if="type === 'folder'"
+          type="button"
+          class="account-visibility-switch"
+          :class="{ 'is-public': form.visibility === FolderVisibility.PUBLIC }"
+          role="switch"
+          :aria-checked="form.visibility === FolderVisibility.PUBLIC"
+          :aria-label="t('account.publicSwitch')"
+          :disabled="busy"
+          @click="form.visibility = form.visibility === FolderVisibility.PUBLIC ? FolderVisibility.PRIVATE : FolderVisibility.PUBLIC"
+        >
+          <el-icon><IconWorld v-if="form.visibility === FolderVisibility.PUBLIC" /><IconLock v-else /></el-icon>{{ t(form.visibility === FolderVisibility.PUBLIC ? 'account.visibilityPublic' : 'account.visibilityPrivate') }}<span
+            class="switch-track"
+            aria-hidden="true"
+          ><i /></span>
+        </button>
         <el-button
           :disabled="busy"
           @click="close"

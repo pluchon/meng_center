@@ -12,6 +12,7 @@ export const RouteName = Object.freeze({
   RESET_PASSWORD: 'reset-password',
   AGREEMENT: 'agreement',
   ACCOUNT: 'account',
+  USER: 'user',
   REVIEW: 'review',
   NOT_FOUND: 'not-found',
 })

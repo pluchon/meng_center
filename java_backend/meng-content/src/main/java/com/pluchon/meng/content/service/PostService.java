@@ -206,6 +206,23 @@ public class PostService {
         );
     }
 
+    // 某个作者发布的帖子，新的在前，别人主页的「发布」页用
+    public PageResult<PostFeedVO> byAuthor(long author, long page, long size) {
+        var result = posts.selectPage(
+            new Page<>(page, size),
+            Wrappers.<PostEntity>lambdaQuery()
+                .eq(PostEntity::getAuthorId, author)
+                .orderByDesc(PostEntity::getCreateTime)
+                .orderByDesc(PostEntity::getId)
+        );
+        return new PageResult<>(
+            hydrate(result.getRecords()),
+            result.getTotal(),
+            page,
+            size
+        );
+    }
+
     // 批量组装作者、配图和互动状态
     public List<PostFeedVO> hydrate(List<PostEntity> list) {
         long user = UserContext.require().userId();

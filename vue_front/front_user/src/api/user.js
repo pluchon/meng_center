@@ -25,6 +25,15 @@ export const userApi = Object.freeze({
   devices: (config = {}) => request.get(Root + '/me/sessions', config),
   revokeDevice: (id) => request.delete(Root + '/me/sessions/' + id),
   revokeOthers: () => request.delete(Root + '/me/sessions/others'),
+  publicProfile: (id, config = {}) => request.get(Root + '/users/' + id, config),
+  follow: (id, on) =>
+    on
+      ? request.put(Root + '/users/' + id + '/follow')
+      : request.delete(Root + '/users/' + id + '/follow'),
+  following: (id, params, config = {}) =>
+    request.get(Root + '/users/' + id + '/following', { ...config, params }),
+  followers: (id, params, config = {}) =>
+    request.get(Root + '/users/' + id + '/followers', { ...config, params }),
 })
 export function avatarUrl(value) {
   return value?.startsWith('/user/avatars/') ? (import.meta.env.VITE_API_BASE || '') + value : value

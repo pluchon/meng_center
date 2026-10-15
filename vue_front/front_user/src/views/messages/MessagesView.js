@@ -2,6 +2,7 @@ import {
   messageBackIcon,
   navMessageIcon,
   messageChevronIcon,
+  authHeartIcon,
   navGrowthIcon,
   messageHeartIcon,
   messageShieldIcon,
@@ -57,7 +58,7 @@ export default defineComponent({
     const pixel = ref(null)
     const pausePixels = () => pixel.value?.hold(220)
     const availableGroups = computed(() =>
-      tab.value === MessageTab.SYSTEM ? ['GROWTH', 'REPORT', 'APPROVAL'] : ['POST'],
+      tab.value === MessageTab.SYSTEM ? ['GROWTH', 'FOLLOW', 'REPORT', 'APPROVAL'] : ['POST'],
     )
     const group = computed(() =>
       availableGroups.value.includes(route.query.group)
@@ -281,6 +282,7 @@ export default defineComponent({
       messageBackIcon,
       navMessageIcon,
       messageChevronIcon,
+      authHeartIcon,
       navGrowthIcon,
       messageHeartIcon,
       messageShieldIcon,

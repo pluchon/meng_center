@@ -25,3 +25,6 @@ meng.growth:
   post-daily-max: 3
   comment-daily-max: 10
   thresholds: [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000]
+  check-in-points: 5
+  post-points: 10
+  comment-points: 2

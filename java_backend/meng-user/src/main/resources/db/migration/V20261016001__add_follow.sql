@@ -1,0 +1,8 @@
+ALTER TABLE user ADD COLUMN following_count INT NOT NULL DEFAULT 0, ADD COLUMN follower_count INT NOT NULL DEFAULT 0;
+CREATE TABLE user_follow (
+ id BIGINT PRIMARY KEY AUTO_INCREMENT, follower_id BIGINT NOT NULL, followee_id BIGINT NOT NULL,
+ create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ delete_state INT NOT NULL DEFAULT 0,
+ UNIQUE KEY uk_pair(follower_id,followee_id), KEY idx_followee(followee_id,delete_state,id)
+) CHARACTER SET utf8mb4;

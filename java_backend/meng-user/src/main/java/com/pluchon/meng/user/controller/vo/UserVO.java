@@ -24,5 +24,7 @@ public class UserVO {
     private String applyReason;
     private String rejectReason;
     private Integer level;
+    private Integer followingCount;
+    private Integer followerCount;
     private LocalDateTime createTime;
 }

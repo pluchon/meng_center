@@ -44,6 +44,12 @@
           state="loading"
         />
         <PageState
+          v-else-if="profile.error?.status === 404"
+          state="empty"
+          art="notFound"
+          :text="t('account.userMissing')"
+        />
+        <PageState
           v-else-if="profile.error"
           state="error"
           @retry="loadProfile"
@@ -53,41 +59,44 @@
             <div class="account-portrait">
               <img
                 :src="avatarUrl(profile.data.avatar) || userAvatar"
-                :alt="profile.data.nickname || profile.data.username"
+                :alt="displayName"
                 width="112"
                 height="112"
               >
-              <button
-                class="account-camera"
-                :aria-label="t('account.camera')"
-                :title="t('account.avatarHint')"
-                :disabled="uploading"
-                @click="$refs.avatarInput.click()"
-              >
-                <img
-                  :src="cameraIcon"
-                  alt=""
-                  aria-hidden="true"
+              <template v-if="!other">
+                <button
+                  class="account-camera"
+                  :aria-label="t('account.camera')"
+                  :title="t('account.avatarHint')"
+                  :disabled="uploading"
+                  @click="$refs.avatarInput.click()"
                 >
-              </button>
-              <input
-                ref="avatarInput"
-                type="file"
-                accept="image/jpeg,image/png,image/webp"
-                hidden
-                @change="uploadAvatar"
-              >
+                  <img
+                    :src="cameraIcon"
+                    alt=""
+                    aria-hidden="true"
+                  >
+                </button>
+                <input
+                  ref="avatarInput"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  hidden
+                  @change="uploadAvatar"
+                >
+              </template>
             </div>
             <div class="account-identity">
               <div class="account-name">
-                <h1 :title="profile.data.nickname || profile.data.username">
-                  {{ profile.data.nickname || profile.data.username }}
-                </h1><RouterLink
+                <h1 :title="displayName">
+                  {{ displayName }}
+                </h1><component
+                  :is="other ? 'span' : 'RouterLink'"
                   class="account-level"
-                  :to="{ name: RouteName.GROWTH }"
+                  :to="other ? undefined : { name: RouteName.GROWTH }"
                 >
                   {{ t('growth.level', { level: profile.data.level }) }} {{ profile.data.level > 0 ? t('growth.levels.' + (profile.data.level - 1)) : '' }}
-                </RouterLink><span
+                </component><span
                   class="account-sparkle"
                   aria-hidden="true"
                 />
@@ -98,18 +107,63 @@
                 <i
                   class="account-bio-mark"
                   aria-hidden="true"
-                />{{ profile.data.bio || t('account.noBio') }}
+                />{{ profile.data.bio || t(other ? 'account.otherBio' : 'account.noBio') }}
               </p>
+              <div class="account-social">
+                <button
+                  class="account-social-sticker blue"
+                  @click="followDialog = 'following'"
+                >
+                  <el-icon><IconUsers /></el-icon>{{ t('account.followCount') }} <b>{{ profile.data.followingCount }}</b>
+                </button><button
+                  class="account-social-sticker pink"
+                  @click="followDialog = 'followers'"
+                >
+                  <el-icon><IconUsers /></el-icon>{{ t('account.fansCount') }} <b>{{ profile.data.followerCount }}</b>
+                </button><button
+                  v-if="!other"
+                  class="account-social-sticker gold"
+                  @click="pointsOpen = true"
+                >
+                  <el-icon><IconCoin /></el-icon>{{ t('account.pointsSticker') }} <b>{{ pointsBalance }}</b>
+                </button>
+              </div>
             </div>
-            <div class="account-stats">
-              <span class="account-sticker blue">{{ t('account.joined') }} <b>{{ joinedDays }}</b> {{ t('account.days') }}</span><template v-if="counts.data">
-                <span class="account-sticker gold">{{ t('account.favorites') }} <b>{{ counts.data.favorites }}</b> {{ t('account.articles') }}</span><span class="account-sticker pink">{{ t('account.likes') }} <b>{{ counts.data.likes }}</b> {{ t('account.articles') }}</span>
-              </template><button
-                v-else-if="counts.error"
-                @click="loadCounts"
+            <div
+              v-if="other"
+              class="account-actions"
+            >
+              <button
+                class="account-action"
+                :class="profile.data.followed ? 'is-followed' : 'is-follow'"
+                :aria-pressed="profile.data.followed"
+                :disabled="followBusy"
+                @click="toggleFollow"
               >
-                {{ t('account.retry') }}
+                <span
+                  class="account-action-icon"
+                  aria-hidden="true"
+                ><el-icon><IconUserCheck v-if="profile.data.followed" /><IconUserPlus v-else /></el-icon></span>{{ t(profile.data.followed ? 'account.following' : 'account.follow') }}
+                <i
+                  v-if="!profile.data.followed"
+                  class="account-action-sparkle"
+                  aria-hidden="true"
+                />
               </button><button
+                class="account-action is-message"
+                @click="message"
+              >
+                <span
+                  class="account-action-icon"
+                  aria-hidden="true"
+                ><el-icon><IconMessage /></el-icon></span>{{ t('account.message') }}
+              </button>
+            </div>
+            <div
+              v-else
+              class="account-stats"
+            >
+              <button
                 class="account-sticker account-settings-button"
                 :class="pane === AccountPane.SETTINGS ? 'mint' : 'violet'"
                 :aria-pressed="pane === AccountPane.SETTINGS"
@@ -122,15 +176,15 @@
           <div
             v-if="pane !== AccountPane.SETTINGS && !folderId"
             class="account-section-heading"
-            :class="{ 'is-likes': pane === AccountPane.LIKES }"
+            :class="{ 'is-likes': secondPane }"
           >
             <h2 class="account-section-title">
-              <el-icon><IconHeart v-if="pane === AccountPane.LIKES" /><Star v-else /></el-icon><span>{{ pane === AccountPane.LIKES ? t('account.liked') : folder ? folderName(folder) : t('account.collections') }}</span><i
+              <el-icon><IconPencil v-if="pane === AccountPane.POSTS" /><IconHeart v-else-if="pane === AccountPane.LIKES" /><Star v-else /></el-icon><span>{{ sectionTitle }}</span><i
                 class="account-sparkle"
                 aria-hidden="true"
               />
             </h2><i18n-t
-              v-if="pane === AccountPane.FOLDERS"
+              v-if="pane === AccountPane.FOLDERS && !other"
               keypath="account.folderCount"
               scope="global"
               tag="span"
@@ -140,9 +194,8 @@
                 <b>{{ folderTotal }}</b>
               </template>
             </i18n-t><nav
-              v-if="!folderId"
               class="account-tabs"
-              :class="{ 'is-likes': pane === AccountPane.LIKES }"
+              :class="{ 'is-likes': secondPane }"
               :aria-label="t('account.collections')"
             >
               <span
@@ -153,12 +206,12 @@
                 :aria-pressed="pane === AccountPane.FOLDERS"
                 @click="goPane(AccountPane.FOLDERS)"
               >
-                {{ t('account.favorites') }}
+                {{ t(other ? 'account.publicFolders' : 'account.favorites') }}
               </button><button
-                :aria-pressed="pane === AccountPane.LIKES"
-                @click="goPane(AccountPane.LIKES)"
+                :aria-pressed="secondPane"
+                @click="goPane(other ? AccountPane.POSTS : AccountPane.LIKES)"
               >
-                {{ t('account.likes') }}
+                {{ t(other ? 'account.published' : 'account.likes') }}
               </button>
             </nav>
           </div>
@@ -177,8 +230,10 @@
               @logout="logout"
             />
             <AccountPosts
-              v-else-if="pane === AccountPane.LIKES || folderId"
+              v-else-if="secondPane || folderId"
               :key="pane + ':' + folderId"
+              :user-id="viewedId"
+              :pane="pane"
               :folder-id="folderId"
               :folder="folder"
               :page="page"
@@ -192,6 +247,7 @@
             <AccountFolders
               v-else
               key="folders"
+              :user-id="viewedId"
               :revision="folderRevision"
               @open="openFolder"
               @create="openDialog('folder')"
@@ -212,6 +268,18 @@
         @close="dialog = null"
         @saved="dialogSaved"
         @changed="$refs.settings?.refresh($event)"
+      />
+      <FollowDialog
+        v-if="followDialog"
+        :user-id="other ? viewedId : profile.data.id"
+        :initial="followDialog"
+        :counts="{ following: profile.data.followingCount, followers: profile.data.followerCount }"
+        @close="closeFollowDialog"
+        @changed="loadProfile"
+      />
+      <PointsDialog
+        v-if="pointsOpen"
+        @close="closePoints"
       />
     </main>
   </CommunityLayout>

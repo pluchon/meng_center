@@ -5,6 +5,18 @@ export const contentApi = {
   createFolder: (data) => request.post(Root + '/favorite-folders', data),
   updateFolder: (id, data) => request.put(Root + '/favorite-folders/' + id, data),
   changeFolderCover: (id, data) => request.post(Root + '/favorite-folders/' + id + '/cover', data),
+  changeFolderVisibility: (id, visibility) =>
+    request.put(Root + '/favorite-folders/' + id + '/visibility', { visibility }),
+  userFolders: (userId, params, config = {}) =>
+    request.get(Root + '/users/' + userId + '/favorite-folders', { ...config, params }),
+  userFolderPosts: (userId, id, params, config = {}) =>
+    request.get(Root + '/users/' + userId + '/favorite-folders/' + id + '/posts', {
+      ...config,
+      params,
+    }),
+  userPosts: (userId, params, config = {}) =>
+    request.get(Root + '/users/' + userId + '/posts', { ...config, params }),
+  userCounts: (userId, config = {}) => request.get(Root + '/users/' + userId + '/counts', config),
   deleteFolder: (id) => request.delete(Root + '/favorite-folders/' + id),
   folderPosts: (id, params, config = {}) =>
     request.get(Root + '/favorite-folders/' + id + '/posts', { ...config, params }),

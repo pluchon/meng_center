@@ -4,6 +4,7 @@ import com.pluchon.meng.api.content.event.CommentCreatedEvent;
 import com.pluchon.meng.api.content.event.ContentInteractionEvent;
 import com.pluchon.meng.api.growth.event.LevelChangedEvent;
 import com.pluchon.meng.api.user.event.UserApprovedEvent;
+import com.pluchon.meng.api.user.event.UserFollowedEvent;
 import com.pluchon.meng.common.core.event.EventEnvelope;
 import com.pluchon.meng.im.entity.Channel;
 import com.pluchon.meng.im.entity.ImRows;
@@ -125,6 +126,22 @@ public class NotificationListener {
         row.setCategory("APPROVAL");
         row.setType(NoticeType.USER_APPROVED);
         row.setDedupeKey("approved:" + event.body().userId());
+        notices.receive(row);
+    }
+
+    // 有人关注了你：进系统通知的「关注」分类；同一个人反复关注、取消只通知一次
+    @RabbitListener(queues = "meng.im.user.followed")
+    public void followed(EventEnvelope<UserFollowedEvent> event) {
+        check(event, UserFollowedEvent.EVENT_TYPE);
+        var row = new ImRows.Notice();
+        row.setReceiverId(event.body().followeeId());
+        row.setActorId(event.body().followerId());
+        row.setChannel(Channel.SYSTEM);
+        row.setCategory("FOLLOW");
+        row.setType(NoticeType.FOLLOWED);
+        row.setDedupeKey(
+            "followed:" + event.body().followerId() + ":" + event.body().followeeId()
+        );
         notices.receive(row);
     }
 

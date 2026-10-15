@@ -27,6 +27,7 @@
 | 事件 | 生产者 | 关键字段 | 消费者及用途 |
 |---|---|---|---|
 | `user.approved` | user | userId | im：欢迎通知 |
+| `user.followed` | user | followerId、followeeId | im：通知被关注的人（系统频道的「关注」分类）；只在新增关注时发，取消不发 |
 | `post.published` | content | postId、authorId | growth：加经验；ai：建向量索引 |
 | `post.updated` | content | postId | ai：重建该帖索引 |
 | `post.deleted` | content | postId | ai：删索引 |

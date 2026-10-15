@@ -20,7 +20,13 @@ public record GrowthProperties(
         // 每日评论奖励次数上限
         int commentDailyMax,
         // 各等级累计经验门槛
-        List<Long> thresholds) {
+        List<Long> thresholds,
+        // 签到积分奖励
+        int checkInPoints,
+        // 发帖积分奖励
+        int postPoints,
+        // 评论积分奖励
+        int commentPoints) {
 
     public GrowthProperties {
         if (thresholds == null || thresholds.isEmpty() || thresholds.get(0) != 0L)
@@ -32,7 +38,10 @@ public record GrowthProperties(
                 || postExp < 1
                 || commentExp < 1
                 || postDailyMax < 1
-                || commentDailyMax < 1) throw new IllegalArgumentException("Invalid rewards");
+                || commentDailyMax < 1
+                || checkInPoints < 1
+                || postPoints < 1
+                || commentPoints < 1) throw new IllegalArgumentException("Invalid rewards");
         java.time.ZoneId.of(timezone);
         thresholds = List.copyOf(thresholds);
     }
