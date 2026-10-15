@@ -272,8 +272,42 @@ nav > span {
 }
 
 .compact button.selected {
-  background: var(--meng-primary);
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
   animation: meng-feedback-pop 320ms var(--meng-motion-ease);
+}
+
+// 紧凑翻页器两端也有前后翻页按钮：小号圆形贴纸，到头禁用
+.compact button.step {
+  padding: 0;
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
+  color: var(--meng-primary);
+}
+
+.compact button.step:hover:not(:disabled) {
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+}
+
+.compact button.step:disabled {
+  box-shadow: none;
+}
+
+.compact button.step .el-icon {
+  font-size: 14px;
+}
+
+.compact button.selected:hover {
+  background: var(--meng-warning);
+}
+
+.compact button:hover:not(.selected, :disabled) {
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
 }
 
 @media (width <= 480px) {

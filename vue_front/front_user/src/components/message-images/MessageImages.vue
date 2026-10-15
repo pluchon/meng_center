@@ -1,52 +1,47 @@
 <template>
   <div
     class="message-images"
-    :class="{album,expanded}"
+    :class="[{album,large},items.length===1?items[0].kind:'']"
   >
     <button
-      v-if="album&&!expanded"
+      v-if="album"
       type="button"
       class="album-cover"
-      :aria-label="t('im.expand')"
-      @click="expanded=true"
+      :class="items[0].kind"
+      :aria-label="t('im.viewAlbum',{count:items.length})"
+      @click="preview=0"
     >
       <img
-        :src="imImage(images[0].id,true)"
-        :alt="t('im.image')"
+        :src="items[0].thumb"
+        :alt="items[0].name||t('im.image')"
+        :draggable="items[0].kind!=='emotion'"
         loading="lazy"
         decoding="async"
+        @contextmenu="guard(items[0],$event)"
       >
-      <span>{{ t('im.album',{count:images.length-1}) }}</span>
+      <span>{{ t('im.album',{count:items.length-1}) }}</span>
     </button>
-    <template v-else>
-      <button
-        v-for="(item,index) in images"
-        :key="item.id"
-        type="button"
-        :aria-label="t('im.viewImage')"
-        @click="preview=index"
+    <button
+      v-else-if="items.length===1"
+      type="button"
+      class="album-item"
+      :aria-label="t('im.viewImage')"
+      @click="preview=0"
+    >
+      <img
+        :src="items[0].thumb"
+        :alt="items[0].name||t('im.image')"
+        :draggable="items[0].kind!=='emotion'"
+        loading="lazy"
+        decoding="async"
+        @contextmenu="guard(items[0],$event)"
       >
-        <img
-          :src="imImage(item.id,true)"
-          :alt="t('im.image')"
-          :width="item.width"
-          :height="item.height"
-          loading="lazy"
-          decoding="async"
-        >
-      </button>
-      <button
-        v-if="album"
-        type="button"
-        class="album-collapse"
-        @click="expanded=false"
-      >
-        {{ t('im.collapse') }}
-      </button>
-    </template>
+    </button>
     <ImageViewer
       v-if="preview!==null"
       :urls="urls"
+      :thumbs="thumbs"
+      :no-download="noDownload"
       :initial-index="preview"
       @close="preview=null"
     />

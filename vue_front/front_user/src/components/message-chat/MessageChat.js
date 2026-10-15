@@ -4,52 +4,110 @@ import {
   messageSendIcon,
   messageRefreshIcon,
   messageCloseIcon,
+  messageTrashIcon,
+  authTickIcon,
 } from '@/assets/images'
 import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useImStore } from '@/stores/im'
 import { useEditorUploads } from '@/composables/useEditorUploads'
-import { imApi } from '@/api/im'
-import { Im, MessageKind } from '@/constants/im'
-import { Emotions, emotionToken } from '@/constants/comments'
+import { confirmDialog } from '@/composables/useConfirm'
+import { notifyFailure } from '@/composables/useFailureNotice'
+import { imApi, imImage } from '@/api/im'
+import { Im, MessageTab } from '@/constants/im'
+import { RouteName } from '@/router/names'
+import { commentSegments, emotionToken } from '@/constants/comments'
 import CommentBody from '@/components/comment-body/CommentBody.vue'
+import EmotionPanel from '@/components/emotion-panel/EmotionPanel.vue'
 import MessageImages from '@/components/message-images/MessageImages.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
+// 把一条消息拆成文字、表情和图片：附件只有一个时放在气泡里文字的下一行，多个时在气泡下面排成图集
+const partsCache = new WeakMap()
+function parts(item) {
+  const cached = partsCache.get(item)
+  if (cached && cached.content === item.content && cached.images === item.images)
+    return cached.value
+  const value = split(item)
+  partsCache.set(item, { content: item.content, images: item.images, value })
+  return value
+}
+function split(item) {
+  const segments = commentSegments(item.content || '')
+  const emotions = segments
+    .filter((segment) => segment.image)
+    .map((segment) => ({ name: segment.name, image: segment.image }))
+  const text = segments
+    .filter((segment) => !segment.image)
+    .map((segment) => segment.text)
+    .join('')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+  // 表情和图片排在一起：一个时放在气泡里文字的下一行，多个时在气泡下面叠成图集
+  const items = [
+    ...emotions.map((emotion) => ({
+      kind: 'emotion',
+      name: emotion.name,
+      url: emotion.image,
+      thumb: emotion.image,
+    })),
+    ...(item.images || []).map((image) => ({
+      kind: 'image',
+      url: imImage(image.id),
+      thumb: imImage(image.id, true),
+    })),
+  ]
+  return { text, items }
+}
 export default defineComponent({
   name: 'MessageChat',
   components: {
     MessageAvatar,
-
+    EmotionPanel,
     CommentBody,
     MessageImages,
   },
   setup() {
     const { t } = useI18n(),
+      router = useRouter(),
       im = useImStore(),
       uploads = useEditorUploads(imApi.upload)
     const text = ref(''),
-      error = ref(''),
+      selectedEmotions = ref([]),
       field = ref(null),
       input = ref(null),
       scroll = ref(null),
       emotions = ref(false),
+      changing = ref(false),
       busy = ref(false)
-    const count = computed(() => Array.from(text.value).length)
+    // 选中的表情和输入的文字合在一起发出去，字数一起算
+    const content = computed(
+      () => text.value + selectedEmotions.value.map((item) => emotionToken(item.name)).join(''),
+    )
+    const count = computed(() => Array.from(content.value).length)
     const remaining = computed(() =>
       im.current?.peerSentCount ? null : Math.max(0, 3 - (im.current?.sentCount || 0)),
     )
     const disabled = computed(() => im.current?.unavailable || remaining.value === 0)
+    const blocked = computed(() =>
+      Boolean(
+        im.conversations.find((item) => item.peer.id === im.current?.peer.id)?.blocked ??
+        im.current?.blocked,
+      ),
+    )
     const valid = computed(
       () =>
         !disabled.value &&
         !busy.value &&
         !uploads.blocked.value &&
         count.value <= Im.TEXT_MAX &&
-        Boolean(text.value.trim() || uploads.images.value.length),
+        Boolean(content.value.trim() || uploads.images.value.length),
     )
     const rows = computed(() =>
       im.messages.map((item, index, all) => ({
         ...item,
+        ...parts(item),
         timeLabel:
           !index ||
           Date.parse(item.createTime) - Date.parse(all[index - 1].createTime) > Im.TIME_GAP,
@@ -63,6 +121,15 @@ export default defineComponent({
       timeZone: 'Asia/Taipei',
     })
     const formatTime = (value) => timeFormatter.format(new Date(value))
+    // 图片上传的提示（太大、格式不对、张数超限）统一用顶部的消息弹框
+    const stopNotice = watch(
+      () => uploads.notice.value,
+      (message) => {
+        if (message) ElMessage.warning(message)
+      },
+      // 同样的提示连续出现也要每次都弹
+      { flush: 'sync' },
+    )
     function resize() {
       if (field.value) {
         field.value.style.height = 'auto'
@@ -109,34 +176,24 @@ export default defineComponent({
       if (scroll.value?.scrollTop < 40 && im.hasMore && !im.historyError) void earlier()
     }
     function insert(item) {
-      const total = (text.value.match(/\[表情:[^\s[\]]{1,12}\]/gu) || []).length
-      if (total >= Im.EMOTION_MAX) {
-        error.value = t('im.tooLong', { max: Im.TEXT_MAX, emotions: Im.EMOTION_MAX })
+      if (selectedEmotions.value.length >= Im.EMOTION_MAX) {
+        ElMessage.warning(t('im.emotionMax', { max: Im.EMOTION_MAX }))
         return
       }
-      const token = emotionToken(item.name),
-        start = field.value?.selectionStart ?? text.value.length,
-        end = field.value?.selectionEnd ?? start
-      text.value = text.value.slice(0, start) + token + text.value.slice(end)
+      if (count.value + Array.from(emotionToken(item.name)).length > Im.TEXT_MAX) {
+        ElMessage.warning(t('im.tooLong', { max: Im.TEXT_MAX, emotions: Im.EMOTION_MAX }))
+        return
+      }
+      selectedEmotions.value.push({ ...item, key: crypto.randomUUID() })
       emotions.value = false
-      void nextTick(() => {
-        field.value?.focus()
-        field.value?.setSelectionRange(start + token.length, start + token.length)
-        resize()
-      })
+      void nextTick(() => field.value?.focus())
+    }
+    function removeEmotion(item) {
+      selectedEmotions.value = selectedEmotions.value.filter((emotion) => emotion.key !== item.key)
     }
     async function send() {
       if (!valid.value) return
-      error.value = ''
-      if (text.value.trim() && uploads.images.value.length) {
-        error.value = t('im.mixed')
-        return
-      }
-      if ((text.value.match(/\[表情:[^\s[\]]{1,12}\]/gu) || []).length > Im.EMOTION_MAX) {
-        error.value = t('im.tooLong', { max: Im.TEXT_MAX, emotions: Im.EMOTION_MAX })
-        return
-      }
-      const content = text.value,
+      const body = content.value,
         images = uploads.images.value.map((item) => ({
           id: item.id,
           width: item.width,
@@ -144,10 +201,11 @@ export default defineComponent({
         }))
       busy.value = true
       text.value = ''
+      selectedEmotions.value = []
       uploads.hydrate([], null)
       emotions.value = false
       resize()
-      const promise = im.send(content, images)
+      const promise = im.send(body, images)
       void bottom()
       try {
         await promise
@@ -171,6 +229,41 @@ export default defineComponent({
         uploads.add(event.clipboardData.files)
       }
     }
+    // 屏蔽对方：直接勾选，失败就把勾还回去
+    async function toggleBlock(event) {
+      if (changing.value || !im.current) return
+      const target = event.target.checked
+      changing.value = true
+      try {
+        await im.setBlocked(im.current.peer.id, target)
+      } catch (failure) {
+        event.target.checked = !target
+        notifyFailure(failure)
+      } finally {
+        changing.value = false
+      }
+    }
+    async function removeChat() {
+      if (changing.value || !im.current?.id) return
+      const confirmed = await confirmDialog({
+        message: t('im.removeConfirm'),
+        title: t('im.remove'),
+        confirmText: t('im.remove'),
+        cancelText: t('im.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
+      changing.value = true
+      try {
+        await im.deleteConversation(im.current.id)
+        if (!im.current)
+          await router.replace({ name: RouteName.MESSAGES, query: { tab: MessageTab.CHAT } })
+      } catch (failure) {
+        notifyFailure(failure)
+      } finally {
+        changing.value = false
+      }
+    }
     const focus = () => {
       void im.markRead()
     }
@@ -191,6 +284,7 @@ export default defineComponent({
       disposed = true
       resizeObserver?.disconnect()
       stopMessages()
+      stopNotice()
       window.removeEventListener('focus', focus)
       document.removeEventListener('visibilitychange', focus)
     })
@@ -200,20 +294,23 @@ export default defineComponent({
       messageSendIcon,
       messageRefreshIcon,
       messageCloseIcon,
+      messageTrashIcon,
+      tickIcon: authTickIcon,
       t,
       im,
       Im,
-      MessageKind,
       text,
-      error,
+      selectedEmotions,
       field,
       input,
       scroll,
       emotions,
       busy,
+      changing,
       count,
       remaining,
       disabled,
+      blocked,
       valid,
       rows,
       formatTime,
@@ -221,12 +318,14 @@ export default defineComponent({
       earlier,
       scrollHistory,
       insert,
+      removeEmotion,
       send,
       keydown,
       picked,
       paste,
+      toggleBlock,
+      removeChat,
       uploads,
-      Emotions,
     }
   },
 })

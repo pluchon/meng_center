@@ -63,7 +63,6 @@ export default defineComponent({
     const busy = ref(false),
       sending = ref(false),
       seconds = ref(0),
-      failure = ref(''),
       captcha = ref(null),
       cover = ref(null),
       coverPreview = ref(''),
@@ -134,7 +133,7 @@ export default defineComponent({
         !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
         file.size > 5 * 1024 * 1024
       ) {
-        failure.value = t('account.coverInvalid')
+        ElMessage.warning(t('account.coverInvalid'))
         return
       }
       clearCover()
@@ -152,8 +151,8 @@ export default defineComponent({
           ? !Auth.EMAIL_PATTERN.test(form.email.trim())
           : !/^\d{5,15}$/.test(form.phone.trim())
       ) {
-        failure.value = t(
-          props.type === 'email' ? 'auth.validation.email' : 'auth.validation.phone',
+        ElMessage.warning(
+          t(props.type === 'email' ? 'auth.validation.email' : 'auth.validation.phone'),
         )
         return false
       }
@@ -162,7 +161,6 @@ export default defineComponent({
     async function sendCode() {
       if (sending.value || seconds.value || !validContact()) return
       sending.value = true
-      failure.value = ''
       const target = contact()
       try {
         const ticket = await captcha.value.solve()
@@ -175,35 +173,34 @@ export default defineComponent({
         }, 1000)
         ElMessage.success(t('account.sent'))
       } catch (error) {
-        failure.value = error.message
+        notifyFailure(error)
       } finally {
         sending.value = false
       }
     }
     async function submit() {
       if (busy.value) return
-      failure.value = ''
       if (
         props.type === 'folder' &&
         (!form.name.trim() || Array.from(form.name.trim()).length > Account.NAME_MAX)
       ) {
-        failure.value = t('account.invalidName')
+        ElMessage.warning(t('account.invalidName'))
         return
       }
       if (props.type === 'password' && !Auth.PASSWORD_PATTERN.test(form.password)) {
-        failure.value = t('account.passwordRule')
+        ElMessage.warning(t('account.passwordRule'))
         return
       }
       if (props.type === 'password' && form.password !== form.confirmPassword) {
-        failure.value = t('account.passwordMismatch')
+        ElMessage.warning(t('account.passwordMismatch'))
         return
       }
-      if (
-        (props.type === 'email' || props.type === 'phone') &&
-        (!validContact() || !Auth.CODE_PATTERN.test(form.code) || !form.password)
-      ) {
-        failure.value ||= t('account.invalidCode')
-        return
+      if (props.type === 'email' || props.type === 'phone') {
+        if (!validContact()) return
+        if (!Auth.CODE_PATTERN.test(form.code) || !form.password) {
+          ElMessage.warning(t('account.invalidCode'))
+          return
+        }
       }
       busy.value = true
       try {
@@ -232,7 +229,7 @@ export default defineComponent({
           ElMessage.success(t('account.saved'))
         }
       } catch (error) {
-        failure.value = error.message
+        notifyFailure(error)
       } finally {
         busy.value = false
       }
@@ -301,7 +298,6 @@ export default defineComponent({
       busy,
       sending,
       seconds,
-      failure,
       captcha,
       cover,
       coverPreview,

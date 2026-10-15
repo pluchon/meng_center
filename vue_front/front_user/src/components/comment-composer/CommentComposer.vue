@@ -121,13 +121,6 @@
         </button>
       </div>
     </CollapsePanel>
-    <p
-      v-if="error || notice"
-      class="composer-error"
-      role="alert"
-    >
-      {{ error || notice }}
-    </p>
     <footer>
       <button
         type="button"

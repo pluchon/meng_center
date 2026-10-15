@@ -66,6 +66,8 @@
           draggable="false"
           @load="loaded"
           @error="failed=true"
+          @contextmenu="blockSave"
+          @dragstart.prevent
         >
         <div
           v-else
@@ -201,6 +203,7 @@
         </button>
       </div>
       <button
+        v-if="canDownload"
         type="button"
         class="viewer-btn viewer-download"
         :aria-label="t('viewer.download')"

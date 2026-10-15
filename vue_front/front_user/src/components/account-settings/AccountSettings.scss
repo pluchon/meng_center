@@ -286,12 +286,6 @@
   transform: translateY(3px);
 }
 
-.account-settings-error {
-  flex-shrink: 0;
-  color: var(--meng-danger-text);
-  font-size: 13px;
-}
-
 @media (width <= 1050px) {
   .account-setting {
     grid-template-columns: 100px minmax(0, 1fr);

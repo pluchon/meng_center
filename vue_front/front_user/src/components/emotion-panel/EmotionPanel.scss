@@ -1,0 +1,151 @@
+// 表情面板：上面是当前系列的表情，系列内上下滚动；最下面一行是系列栏，后面留着位置给以后的新系列
+.emotion-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.emotion-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  gap: 10px;
+  height: 232px;
+  padding: 4px 4px 8px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--meng-border) transparent;
+  align-content: start;
+}
+
+.emotion-grid button {
+  aspect-ratio: 1;
+  padding: 4px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 18px;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 240ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+  animation: emotion-pop 320ms var(--meng-slide-ease) both;
+  animation-delay: calc(var(--i, 0) * 18ms);
+}
+
+.emotion-grid button:hover {
+  box-shadow: 0 6px 0 var(--meng-tint);
+  rotate: -5deg;
+  translate: 0 -3px;
+}
+
+.emotion-grid button:active {
+  box-shadow: 0 1px 0 var(--meng-tint);
+  translate: 0 2px;
+}
+
+.emotion-grid img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+// 系列栏：每个系列是一个带封面的贴纸，选中的是金色，最后留一个虚线空位
+.emotion-series {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 4px 4px;
+  border-top: 2px dashed var(--meng-tint);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.emotion-series button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px 3px 4px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
+  color: var(--meng-muted);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    color 200ms ease;
+}
+
+.emotion-series button img {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  object-fit: contain;
+}
+
+.emotion-series button:hover {
+  box-shadow: 0 5px 0 var(--meng-tint);
+  translate: 0 -2px;
+}
+
+.emotion-series button.selected {
+  background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
+}
+
+.series-more {
+  flex: none;
+  padding: 4px 14px;
+  border: 2px dashed var(--meng-border);
+  border-radius: var(--meng-radius-pill);
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0.7;
+}
+
+// 换系列：旧的淡出，新的淡入并轻轻放大
+.emotion-swap-enter-active {
+  transition:
+    opacity 260ms ease,
+    scale 320ms var(--meng-slide-ease);
+}
+
+.emotion-swap-leave-active {
+  transition:
+    opacity 140ms ease,
+    scale 140ms ease;
+}
+
+.emotion-swap-enter-from,
+.emotion-swap-leave-to {
+  opacity: 0;
+  scale: 0.97;
+}
+
+@keyframes emotion-pop {
+  from {
+    opacity: 0;
+    scale: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .emotion-grid button,
+  .emotion-series button,
+  .emotion-swap-enter-active,
+  .emotion-swap-leave-active {
+    transition: none;
+    animation: none;
+  }
+}

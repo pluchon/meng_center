@@ -33,6 +33,8 @@ export default defineComponent({
   props: {
     urls: { type: Array, required: true },
     thumbs: { type: Array, default: () => [] },
+    // 和 urls 一一对应，为真的那张不能下载（隐藏下载按钮，也拦截右键另存和拖拽）
+    noDownload: { type: Array, default: () => [] },
     initialIndex: { type: Number, default: 0 },
   },
   emits: ['close'],
@@ -80,7 +82,12 @@ export default defineComponent({
     function wheel(event) {
       zoom.value = Math.min(ZOOMS.length - 1, Math.max(0, zoom.value + (event.deltaY < 0 ? 1 : -1)))
     }
+    const canDownload = computed(() => !props.noDownload[index.value])
+    function blockSave(event) {
+      if (!canDownload.value) event.preventDefault()
+    }
     function download() {
+      if (!canDownload.value) return
       const link = document.createElement('a')
       link.href = props.urls[index.value]
       link.download = decodeURIComponent(
@@ -116,6 +123,8 @@ export default defineComponent({
       loaded,
       wheel,
       download,
+      canDownload,
+      blockSave,
       ZOOMS,
       VISIBLE,
       messageCloseIcon,

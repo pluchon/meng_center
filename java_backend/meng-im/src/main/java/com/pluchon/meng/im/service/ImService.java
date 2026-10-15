@@ -200,9 +200,9 @@ public class ImService {
         message.setType(
             dto.imageIds().isEmpty() ? MessageType.TEXT : MessageType.IMAGE
         );
-        message.setContent(
-            dto.imageIds().isEmpty() ? dto.content().strip() : null
-        );
+        // 文字和图片可以同时发；只有图片时内容为空
+        String text = dto.content() == null ? "" : dto.content().strip();
+        message.setContent(text.isEmpty() ? null : text);
         message.setClientMsgId(dto.clientMsgId());
         mapper.insertMessage(message);
         for (int i = 0; i < dto.imageIds().size(); i++) {

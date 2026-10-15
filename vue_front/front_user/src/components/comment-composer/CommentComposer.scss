@@ -348,12 +348,6 @@
   object-fit: contain;
 }
 
-.composer-error {
-  color: var(--meng-danger-text);
-  font-size: 12px;
-  margin-top: var(--meng-space-2);
-}
-
 @media (prefers-reduced-motion: reduce) {
   .emotion-panel button,
   .comment-composer,

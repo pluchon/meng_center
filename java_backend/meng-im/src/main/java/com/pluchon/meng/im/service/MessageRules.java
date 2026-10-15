@@ -29,7 +29,7 @@ public final class MessageRules {
                 .stream()
                 .anyMatch(id -> id == null || id < 1) ||
             new HashSet<>(dto.imageIds()).size() != dto.imageIds().size() ||
-            text.isEmpty() == dto.imageIds().isEmpty() ||
+            (text.isEmpty() && dto.imageIds().isEmpty()) ||
             text.codePointCount(0, text.length()) > 500 ||
             EMOTION.matcher(text).results().count() > 10 ||
             EMOTION.matcher(text).replaceAll("").contains("[表情:")

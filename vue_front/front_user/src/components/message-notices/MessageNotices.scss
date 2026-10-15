@@ -35,10 +35,49 @@
   box-shadow: 0 4px 0 var(--meng-creator-green);
 }
 
-.notices-header > span {
+// 标题前的圆形图标贴纸，颜色跟这一类通知一致
+.header-badge {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-category-game);
+  box-shadow: 0 4px 0 var(--meng-category-game-dot);
+  rotate: -8deg;
+  animation: header-bob 4s ease-in-out infinite;
+}
+
+.like .header-badge {
+  background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-category-creation);
+}
+
+.system .header-badge {
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-creator-green);
+}
+
+.notices-total {
   margin-left: auto;
+  padding: 2px 14px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
   color: var(--meng-muted);
   font-size: 13px;
+  font-weight: 800;
+  rotate: 2deg;
+}
+
+@keyframes header-bob {
+  50% {
+    translate: 0 -3px;
+    rotate: 2deg;
+  }
 }
 
 .notices-list {
@@ -54,9 +93,74 @@
 }
 
 .notices-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 60px 14px;
   text-align: center;
   color: var(--meng-muted);
+}
+
+// 加载中：三个依次弹跳的小圆点
+.state-dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.state-dots i {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--meng-category-anime);
+  animation: dot-bounce 1s ease-in-out infinite;
+}
+
+.state-dots i:nth-child(2) {
+  background: var(--meng-category-creation);
+  animation-delay: 150ms;
+}
+
+.state-dots i:nth-child(3) {
+  background: var(--meng-category-daily);
+  animation-delay: 300ms;
+}
+
+@keyframes dot-bounce {
+  50% {
+    translate: 0 -9px;
+  }
+}
+
+// 没有通知：一枚大号图标贴纸
+.empty-badge {
+  display: grid;
+  place-items: center;
+  width: 108px;
+  height: 108px;
+  margin-bottom: 16px;
+  border: 4px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-category-game);
+  box-shadow:
+    0 0 0 3px var(--meng-category-game-dot),
+    0 8px 0 3px var(--meng-category-game-dot);
+  rotate: -6deg;
+  animation: header-bob 4s ease-in-out infinite;
+}
+
+.like .empty-badge {
+  background: var(--meng-danger);
+  box-shadow:
+    0 0 0 3px var(--meng-category-creation),
+    0 8px 0 3px var(--meng-category-creation);
+}
+
+.system .empty-badge {
+  background: var(--meng-success);
+  box-shadow:
+    0 0 0 3px var(--meng-creator-green),
+    0 8px 0 3px var(--meng-creator-green);
 }
 
 .notices-state button {
@@ -68,55 +172,63 @@
   cursor: pointer;
 }
 
+// 每种通知一个颜色：白边加同色系底影的贴纸卡片
 .notice-card {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 14px;
   width: 100%;
   margin-bottom: 18px;
-  padding: 16px;
-  border: 0;
-  border-radius: 22px;
-  background: var(--meng-bg);
-  box-shadow: 0 3px 0 var(--meng-card-base);
+  padding: 14px 16px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 24px;
+  background: var(--notice-bg, var(--meng-bg));
+  box-shadow: 0 4px 0 var(--notice-edge, var(--meng-card-base));
   color: var(--meng-text);
   font: inherit;
   text-align: start;
   cursor: pointer;
   transition:
-    transform 180ms var(--meng-motion-ease),
-    background 180ms ease;
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 }
 
 .notice-card:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--notice-edge, var(--meng-card-base));
+  translate: 0 -3px;
+}
+
+.notice-card:active {
+  box-shadow: 0 1px 0 var(--notice-edge, var(--meng-card-base));
+  translate: 0 3px;
 }
 
 .post_comment,
 .comment_reply {
-  background: var(--meng-category-game);
-  box-shadow: none;
+  --notice-bg: var(--meng-category-game);
+  --notice-edge: var(--meng-category-game-dot);
 }
 
 .post_liked,
 .comment_liked {
-  background: var(--meng-danger);
-  box-shadow: none;
+  --notice-bg: var(--meng-danger);
+  --notice-edge: var(--meng-category-creation);
 }
 
 .post_favorited {
-  background: var(--meng-warning);
-  box-shadow: none;
+  --notice-bg: var(--meng-warning);
+  --notice-edge: var(--meng-creator-yellow);
 }
 
 .level_changed {
-  background: var(--meng-success);
-  box-shadow: none;
+  --notice-bg: var(--meng-success);
+  --notice-edge: var(--meng-creator-green);
 }
 
 .user_approved {
-  background: var(--meng-tint);
-  box-shadow: none;
+  --notice-bg: var(--meng-tint);
+  --notice-edge: var(--meng-category-anime);
 }
 
 .notice-main {
@@ -196,9 +308,13 @@
 
 .notice-card time {
   flex: none;
-  padding-top: 3px;
+  padding: 1px 10px;
+  border-radius: 20px;
+  background: var(--meng-surface);
   color: var(--meng-muted);
   font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .notice-avatars {
@@ -215,19 +331,48 @@
   margin-left: -18px;
 }
 
-.notice-dot {
+// 没有头像的通知（升级、审核）：用一枚白色圆章放对应图标
+.notice-badge {
+  display: grid;
   flex: none;
-  width: 12px;
-  height: 12px;
-  margin: 7px 2px;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--meng-surface);
   border-radius: 50%;
-  background: var(--meng-success-text);
-  box-shadow: 0 0 0 5px var(--meng-success);
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--notice-edge, var(--meng-card-base));
+  rotate: -8deg;
+  transition: rotate 260ms var(--meng-slide-ease);
 }
 
-.user_approved .notice-dot {
-  background: var(--meng-primary);
-  box-shadow: 0 0 0 5px var(--meng-tint);
+.notice-card:hover .notice-badge {
+  rotate: 0deg;
+}
+
+.notice-type {
+  display: inline-block;
+  margin-right: 4px;
+  vertical-align: -3px;
+}
+
+// 还没看的通知：右上角闪一颗小星星
+.notice-card.new::after {
+  position: absolute;
+  top: -10px;
+  right: 18px;
+  color: var(--meng-category-daily);
+  font-size: 20px;
+  content: '✦';
+  animation: new-twinkle 2.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes new-twinkle {
+  50% {
+    opacity: 0.5;
+    scale: 0.7;
+  }
 }
 
 .notice-level {
@@ -274,15 +419,39 @@
   display: none;
 }
 
+// 切换类别、翻页：整块淡出再淡入
+.notice-swap-enter-active {
+  transition:
+    opacity 340ms ease,
+    translate 420ms var(--meng-slide-ease);
+}
+
+.notice-swap-leave-active {
+  transition: opacity 160ms ease;
+}
+
+.notice-swap-enter-from {
+  opacity: 0;
+  translate: 0 12px;
+}
+
+.notice-swap-leave-to {
+  opacity: 0;
+}
+
+// 通知卡片按顺序浮上来
 .notice-rise-enter-active {
   transition:
-    opacity 220ms ease,
-    transform 220ms var(--meng-motion-ease);
+    opacity 320ms ease,
+    translate 380ms var(--meng-slide-ease),
+    scale 380ms var(--meng-slide-ease);
+  transition-delay: calc(var(--i, 0) * 50ms);
 }
 
 .notice-rise-enter-from {
   opacity: 0;
-  transform: translateY(8px);
+  scale: 0.97;
+  translate: 0 14px;
 }
 
 @media (width <= 760px) {
@@ -318,8 +487,21 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .header-badge,
+  .empty-badge,
+  .state-dots i,
+  .notice-card.new::after {
+    animation: none;
+  }
+
+  .notice-swap-enter-active,
+  .notice-swap-leave-active,
   .notice-card,
   .notice-rise-enter-active {
     transition: none;
+  }
+
+  .notice-card:hover {
+    translate: none;
   }
 }

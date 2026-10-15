@@ -20,7 +20,6 @@
         aria-hidden="true"
       />
       <button
-        v-if="!compact"
         type="button"
         class="step"
         :disabled="page<=1"
@@ -50,7 +49,6 @@
         >{{ t('home.ellipsis') }}</span>
       </template>
       <button
-        v-if="!compact"
         type="button"
         class="step"
         :disabled="page>=totalPages"

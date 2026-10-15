@@ -1,5 +1,6 @@
-import { computed, defineComponent, nextTick, ref } from 'vue'
+import { computed, defineComponent, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { ElMessage } from 'element-plus'
 import { Close, Plus, Picture as PictureIcon, Refresh } from '@element-plus/icons-vue'
 import { IconMoodSmile } from '@tabler/icons-vue'
 import CollapsePanel from '@/components/collapse-panel/CollapsePanel.vue'
@@ -28,6 +29,12 @@ export default defineComponent({
       panel = ref(false),
       busy = ref(false),
       error = ref('')
+    // 超出张数、图片不合规这类提示统一用顶部的消息弹框，不在输入框上面插一行红字
+    const tip = computed(() => {
+      if (attachmentCount.value > Comment.ATTACHMENTS)
+        return t('detail.error.attachments', { max: Comment.ATTACHMENTS })
+      return error.value
+    })
     const content = computed(
       () => text.value + selectedEmotions.value.map((item) => emotionToken(item.name)).join(''),
     )
@@ -43,6 +50,16 @@ export default defineComponent({
         count.value <= Comment.LENGTH &&
         attachmentCount.value <= Comment.ATTACHMENTS &&
         !uploads.blocked.value,
+    )
+    watch(tip, (message) => {
+      if (message) ElMessage.warning(message)
+    })
+    watch(
+      () => uploads.notice.value,
+      (message) => {
+        if (message) ElMessage.warning(message)
+      },
+      { flush: 'sync' },
     )
     function focus() {
       void nextTick(() => field.value?.focus({ preventScroll: true }))
@@ -128,11 +145,6 @@ export default defineComponent({
       input,
       panel,
       busy,
-      error: computed(() => {
-        if (attachmentCount.value > Comment.ATTACHMENTS)
-          return t('detail.error.attachments', { max: Comment.ATTACHMENTS })
-        return error.value
-      }),
       count,
       attachmentCount,
       selectedEmotions,
@@ -147,7 +159,6 @@ export default defineComponent({
       picked,
       paste,
       images: uploads.images,
-      notice: uploads.notice,
       blocked: uploads.blocked,
       remove: uploads.remove,
       retry: uploads.retry,

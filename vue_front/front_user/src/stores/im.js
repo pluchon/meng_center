@@ -229,7 +229,7 @@ export const useImStore = defineStore('im', {
         peerId,
         clientMsgId: crypto.randomUUID(),
         senderId: useUserStore().current.id,
-        content: images.length ? null : content,
+        content: content || null,
         imageIds: images.map((item) => item.id),
         images,
         type: images.length ? MessageKind.IMAGE : MessageKind.TEXT,

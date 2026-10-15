@@ -7,11 +7,12 @@
       class="messages-background"
       aria-hidden="true"
     >
-      <PixelBlast />
+      <PixelBlast ref="pixel" />
     </div>
     <div
       class="messages-card"
       data-pixel-exclude
+      @scroll.capture.passive="pausePixels"
     >
       <span
         class="messages-tape"
@@ -66,165 +67,155 @@
             @click="switchTab(value)"
             @keydown="tabKey($event,value)"
           >
-            {{ t('im.'+value) }}<span
+            <img
+              class="tab-icon message-art-icon"
+              :src="tabIcons[value]"
+              width="30"
+              height="30"
+              alt=""
+              aria-hidden="true"
+            ><span class="tab-label">{{ t('im.'+value) }}</span><span
               v-if="im.unread[value]"
               class="unread-badge"
             >{{ im.unread[value]>99?t('im.badgeMax'):im.unread[value] }}</span>
           </button>
         </nav>
         <div class="sidebar-list">
-          <template v-if="tab===MessageTab.CHAT">
-            <p
-              v-if="im.conversationsLoading&&!im.conversations.length"
-              class="sidebar-state"
-              role="status"
-            >
-              {{ t('im.loading') }}
-            </p>
+          <Transition
+            name="sidebar-swap"
+            mode="out-in"
+          >
             <div
-              v-else-if="im.conversationsError"
-              class="sidebar-state"
-              role="alert"
+              :key="tab"
+              class="sidebar-pane"
             >
-              <p>{{ im.conversationsError }}</p><button
-                type="button"
-                @click="im.loadConversations()"
-              >
-                {{ t('im.retry') }}
-              </button>
-            </div>
-            <div
-              v-else-if="!im.conversations.length"
-              class="sidebar-state"
-            >
-              <p>{{ t('im.noConversations') }}</p><small>{{ t('im.noConversationsHint') }}</small>
-            </div>
-            <div
-              v-for="item in im.conversations"
-              :key="item.id"
-              class="conversation-row"
-              :class="{selected:im.current?.peer.id===item.peer.id}"
-            >
-              <button
-                class="conversation-select"
-                type="button"
-                :aria-pressed="im.current?.peer.id===item.peer.id"
-                @click="selectPeer(item.peer.id)"
-              >
-                <MessageAvatar :user="item.peer" /><span class="conversation-info"><strong>{{ item.peer.nickname||t('home.authorFallback') }}</strong><small>{{ item.preview===t('im.imagePreview')?t('im.imagePreview'):item.preview }}</small></span><span class="conversation-tail"><time>{{ item.lastMessageTime?relativeTime(item.lastMessageTime):'' }}</time><span
-                  v-if="item.unreadCount"
-                  class="unread-badge"
-                >{{ item.unreadCount>99?t('im.badgeMax'):item.unreadCount }}</span></span>
-              </button>
-              <el-dropdown
-                trigger="click"
-                placement="bottom-end"
-                @command="action($event,item)"
-              >
-                <button
-                  class="conversation-menu"
-                  type="button"
-                  :aria-label="t('im.menu')"
+              <template v-if="tab===MessageTab.CHAT">
+                <p
+                  v-if="im.conversationsLoading&&!im.conversations.length"
+                  class="sidebar-state"
+                  role="status"
                 >
-                  <img
+                  {{ t('im.loading') }}
+                </p>
+                <div
+                  v-else-if="im.conversationsError"
+                  class="sidebar-state"
+                  role="alert"
+                >
+                  <p>{{ im.conversationsError }}</p><button
+                    type="button"
+                    @click="im.loadConversations()"
+                  >
+                    {{ t('im.retry') }}
+                  </button>
+                </div>
+                <div
+                  v-else-if="!im.conversations.length"
+                  class="sidebar-state"
+                >
+                  <p>{{ t('im.noConversations') }}</p><small>{{ t('im.noConversationsHint') }}</small>
+                </div>
+                <div
+                  v-for="(item,index) in im.conversations"
+                  :key="item.id"
+                  class="conversation-row"
+                  :class="['tone-'+index%5,{selected:im.current?.peer.id===item.peer.id}]"
+                  :style="{'--i':index}"
+                >
+                  <button
+                    class="conversation-select"
+                    type="button"
+                    :aria-pressed="im.current?.peer.id===item.peer.id"
+                    @click="selectPeer(item.peer.id)"
+                  >
+                    <MessageAvatar :user="item.peer" /><span class="conversation-info"><strong>{{ item.peer.nickname||t('home.authorFallback') }}</strong><small>{{ previewText(item.preview) }}</small></span><span class="conversation-tail"><time>{{ item.lastMessageTime?relativeTime(item.lastMessageTime):'' }}</time><span
+                      v-if="item.unreadCount"
+                      class="unread-badge"
+                    >{{ item.unreadCount>99?t('im.badgeMax'):item.unreadCount }}</span></span>
+                  </button>
+                </div>
+                <button
+                  v-if="im.conversations.length<im.conversationTotal"
+                  class="sidebar-more"
+                  type="button"
+                  :disabled="im.conversationsLoading"
+                  @click="im.loadConversations(true)"
+                >
+                  {{ t(im.conversationsLoading?'im.loading':'im.more') }}
+                </button>
+              </template>
+              <template v-else>
+                <p
+                  v-if="groupsLoading&&!groups.length"
+                  class="sidebar-state"
+                  role="status"
+                >
+                  {{ t('im.loading') }}
+                </p>
+                <div
+                  v-if="groupsError"
+                  class="sidebar-state"
+                  role="alert"
+                >
+                  <p>{{ groupsError }}</p><button
+                    type="button"
+                    @click="loadGroups"
+                  >
+                    {{ t('im.retry') }}
+                  </button>
+                </div>
+                <button
+                  v-for="key in availableGroups"
+                  :key="key"
+                  class="notification-group"
+                  :class="[tab,key.toLowerCase(),{selected:group===key}]"
+                  type="button"
+                  :aria-pressed="group===key"
+                  @click="selectGroup(key)"
+                >
+                  <span class="group-icon"><img
+                    v-if="key==='GROWTH'"
                     class="message-art-icon"
-                    :src="messageMoreIcon"
-                    width="18"
-                    height="18"
+                    :src="navGrowthIcon"
+                    width="24"
+                    height="24"
                     alt=""
                     aria-hidden="true"
-                  >
-                </button><template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="block">
-                      {{ t(item.blocked?'im.unblock':'im.block') }}
-                    </el-dropdown-item><el-dropdown-item command="delete">
-                      {{ t('im.remove') }}
-                    </el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+                  ><img
+                    v-else-if="key==='REPORT'||key==='APPROVAL'"
+                    class="message-art-icon"
+                    :src="messageShieldIcon"
+                    width="24"
+                    height="24"
+                    alt=""
+                    aria-hidden="true"
+                  ><img
+                    v-else-if="tab===MessageTab.LIKE"
+                    class="message-art-icon"
+                    :src="messageHeartIcon"
+                    width="24"
+                    height="24"
+                    alt=""
+                    aria-hidden="true"
+                  ><img
+                    v-else
+                    class="message-art-icon"
+                    :src="navMessageIcon"
+                    width="24"
+                    height="24"
+                    alt=""
+                    aria-hidden="true"
+                  ></span><span class="group-info"><strong>{{ t('im.'+key) }}</strong><small><span
+                    v-if="nickname(groupRow(key))"
+                    class="summary-name"
+                  >{{ nickname(groupRow(key)) }}</span>{{ summary(groupRow(key)) }}</small></span><span class="group-tail"><time v-if="groupRow(key)?.latest">{{ relativeTime(groupRow(key).latest.notice.createTime) }}</time><span
+                    v-if="groupRow(key)?.unreadCount"
+                    class="unread-badge"
+                  >{{ groupRow(key).unreadCount>99?t('im.badgeMax'):groupRow(key).unreadCount }}</span></span>
+                </button>
+              </template>
             </div>
-            <button
-              v-if="im.conversations.length<im.conversationTotal"
-              class="sidebar-more"
-              type="button"
-              :disabled="im.conversationsLoading"
-              @click="im.loadConversations(true)"
-            >
-              {{ t(im.conversationsLoading?'im.loading':'im.more') }}
-            </button>
-          </template>
-          <template v-else>
-            <p
-              v-if="groupsLoading&&!groups.length"
-              class="sidebar-state"
-              role="status"
-            >
-              {{ t('im.loading') }}
-            </p>
-            <div
-              v-if="groupsError"
-              class="sidebar-state"
-              role="alert"
-            >
-              <p>{{ groupsError }}</p><button
-                type="button"
-                @click="loadGroups"
-              >
-                {{ t('im.retry') }}
-              </button>
-            </div>
-            <button
-              v-for="key in availableGroups"
-              :key="key"
-              class="notification-group"
-              :class="[tab,key.toLowerCase(),{selected:group===key}]"
-              type="button"
-              :aria-pressed="group===key"
-              @click="selectGroup(key)"
-            >
-              <span class="group-icon"><img
-                v-if="key==='GROWTH'"
-                class="message-art-icon"
-                :src="navGrowthIcon"
-                width="24"
-                height="24"
-                alt=""
-                aria-hidden="true"
-              ><img
-                v-else-if="key==='REPORT'||key==='APPROVAL'"
-                class="message-art-icon"
-                :src="messageShieldIcon"
-                width="24"
-                height="24"
-                alt=""
-                aria-hidden="true"
-              ><img
-                v-else-if="tab===MessageTab.LIKE"
-                class="message-art-icon"
-                :src="messageHeartIcon"
-                width="24"
-                height="24"
-                alt=""
-                aria-hidden="true"
-              ><img
-                v-else
-                class="message-art-icon"
-                :src="navMessageIcon"
-                width="24"
-                height="24"
-                alt=""
-                aria-hidden="true"
-              ></span><span class="group-info"><strong>{{ t('im.'+key) }}</strong><small><span
-                v-if="nickname(groupRow(key))"
-                class="summary-name"
-              >{{ nickname(groupRow(key)) }}</span>{{ summary(groupRow(key)) }}</small></span><span class="group-tail"><time v-if="groupRow(key)?.latest">{{ relativeTime(groupRow(key).latest.notice.createTime) }}</time><span
-                v-if="groupRow(key)?.unreadCount"
-                class="unread-badge"
-              >{{ groupRow(key).unreadCount>99?t('im.badgeMax'):groupRow(key).unreadCount }}</span></span>
-            </button>
-          </template>
+          </Transition>
         </div>
         <footer class="messages-profile">
           <el-avatar
@@ -280,6 +271,13 @@
         role="tabpanel"
         :aria-labelledby="'message-tab-'+tab"
       >
+        <img
+          class="messages-mascot"
+          :src="editorCirnoMascot"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        >
         <Transition
           name="message-pane"
           mode="out-in"
@@ -288,16 +286,25 @@
             :key="tab"
             class="message-panel-content"
           >
-            <template v-if="tab===MessageTab.CHAT">
+            <Transition
+              v-if="tab===MessageTab.CHAT"
+              name="chat-swap"
+              mode="out-in"
+            >
               <p
                 v-if="im.opening"
+                key="opening"
                 class="messages-state"
                 role="status"
               >
-                {{ t('im.loading') }}
+                <span
+                  class="state-dots"
+                  aria-hidden="true"
+                ><i /><i /><i /></span>{{ t('im.loading') }}
               </p>
               <div
                 v-else-if="im.currentError"
+                key="error"
                 class="messages-state"
                 role="alert"
               >
@@ -314,18 +321,19 @@
               />
               <div
                 v-else
-                class="messages-state"
+                key="empty"
+                class="messages-state choose"
               >
-                <img
+                <span class="choose-badge"><img
                   class="message-art-icon"
                   :src="navMessageIcon"
-                  width="60"
-                  height="60"
+                  width="64"
+                  height="64"
                   alt=""
                   aria-hidden="true"
-                ><p>{{ t('im.choose') }}</p>
+                ></span><p>{{ t('im.choose') }}</p><small>{{ t('im.sticker') }}</small>
               </div>
-            </template>
+            </Transition>
             <MessageNotices
               v-else
               :key="tab+'-'+group"

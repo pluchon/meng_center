@@ -196,13 +196,6 @@
           :aria-label="t('account.currentPassword')"
         /></label>
       </template>
-      <p
-        v-if="failure"
-        class="account-dialog-error"
-        role="alert"
-      >
-        {{ failure }}
-      </p>
       <div class="account-dialog-actions">
         <el-button
           :disabled="busy"

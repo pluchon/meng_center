@@ -15,7 +15,6 @@ export const Im = Object.freeze({
   NOTICE_SIZE: 10,
   TEXT_MAX: 500,
   IMAGE_MAX: 10,
-  ALBUM_MIN: 5,
   EMOTION_MAX: 10,
   TIME_GAP: 5 * 60000,
   HEARTBEAT_MS: 25000,

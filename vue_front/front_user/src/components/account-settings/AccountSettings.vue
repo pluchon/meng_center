@@ -68,13 +68,6 @@
         </section>
       </div>
     </div>
-    <p
-      v-if="failure"
-      class="account-settings-error"
-      role="alert"
-    >
-      {{ failure }}
-    </p>
     <footer class="account-settings-footer">
       <el-button
         class="account-logout"

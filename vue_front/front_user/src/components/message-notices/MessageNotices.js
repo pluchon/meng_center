@@ -1,12 +1,31 @@
-import { defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { usePostTime } from '@/composables/usePostTime'
 import { RouteName } from '@/router/names'
 import { MessageTab, NoticeType } from '@/constants/im'
+import {
+  authCodeIcon,
+  authHeartIcon,
+  growthFlagIcon,
+  messageHeartIcon,
+  messageShieldIcon,
+  navGrowthIcon,
+  navMessageIcon,
+} from '@/assets/images'
 import CommentBody from '@/components/comment-body/CommentBody.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
+// 每种通知对应的小图标
+const typeIcons = {
+  [NoticeType.POST_COMMENT]: authCodeIcon,
+  [NoticeType.COMMENT_REPLY]: authCodeIcon,
+  [NoticeType.POST_LIKED]: messageHeartIcon,
+  [NoticeType.COMMENT_LIKED]: messageHeartIcon,
+  [NoticeType.POST_FAVORITED]: growthFlagIcon,
+  [NoticeType.LEVEL_CHANGED]: navGrowthIcon,
+  [NoticeType.USER_APPROVED]: authHeartIcon,
+}
 export default defineComponent({
   name: 'MessageNotices',
   components: { MessageAvatar, CommentBody, FeedPagination },
@@ -21,9 +40,30 @@ export default defineComponent({
     error: { type: String, default: '' },
   },
   emits: ['page', 'retry'],
-  setup() {
+  setup(props) {
     const { t, tm, rt } = useI18n(),
       router = useRouter()
+    // 列表区当前显示哪一块：加载、出错、空、或某一页；换块时整块淡出淡入
+    const view = computed(() =>
+      props.loading && !props.records.length
+        ? 'loading'
+        : props.error
+          ? 'error'
+          : !props.records.length
+            ? 'empty'
+            : 'page-' + props.page,
+    )
+    const headerIcon = computed(() =>
+      props.tab === MessageTab.COMMENT
+        ? authCodeIcon
+        : props.tab === MessageTab.LIKE
+          ? messageHeartIcon
+          : props.group === 'GROWTH'
+            ? navGrowthIcon
+            : props.group === 'POST'
+              ? navMessageIcon
+              : messageShieldIcon,
+    )
     function open(item) {
       const notice = item.notice
       if (notice.postId)
@@ -48,6 +88,9 @@ export default defineComponent({
       open,
       names,
       levelName,
+      view,
+      headerIcon,
+      typeIcon: (item) => typeIcons[item.notice.type] || navMessageIcon,
       relativeTime: usePostTime(),
       MessageTab,
       NoticeType,
