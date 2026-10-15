@@ -1,7 +1,7 @@
 <template>
   <div
     class="account-posts"
-    :class="{ 'is-likes': !folderId }"
+    :class="[{ 'is-likes': !folderId }, 'folder-' + tone]"
   >
     <div
       v-if="folderId"
@@ -46,6 +46,37 @@
         >
           <el-icon><Check /></el-icon>
         </button>
+      </div><div
+        v-if="folder && !folder.isDefault"
+        ref="colorBox"
+        class="account-folder-color"
+      >
+        <button
+          class="account-color-trigger"
+          :aria-label="t('account.changeColor')"
+          :title="t('account.changeColor')"
+          :aria-expanded="colorOpen"
+          :disabled="Boolean(saving)"
+          @click="colorOpen = !colorOpen"
+        >
+          <img
+            :src="paletteIcon"
+            alt=""
+            aria-hidden="true"
+          >
+        </button>
+        <Transition name="color-pop">
+          <div
+            v-if="colorOpen"
+            class="account-color-menu"
+          >
+            <FolderColorPicker
+              :model-value="folder.color"
+              :disabled="Boolean(saving)"
+              @update:model-value="saveColor"
+            />
+          </div>
+        </Transition>
       </div><span
         class="account-folder-sparkle"
         aria-hidden="true"
@@ -181,13 +212,13 @@
         >
           <el-icon><Check /></el-icon>
         </button>
-      </div><el-pagination
+      </div><FeedPagination
         v-if="resource.data.total > pageSize"
-        :current-page="page"
-        :page-size="pageSize"
-        :total="resource.data.total"
-        :layout="page > 1 ? 'prev, pager, next' : 'pager, next'"
-        @current-change="$emit('page', $event)"
+        class="account-pager"
+        :page="page"
+        :total-pages="Math.ceil(resource.data.total / pageSize)"
+        :show-top="false"
+        @page="$emit('page', $event)"
       />
     </footer>
   </div>

@@ -3,7 +3,7 @@
     :model-value="true"
     width="440px"
     class="account-dialog"
-    :class="'account-dialog-' + type"
+    :class="['account-dialog-' + type, type === 'folder' ? 'folder-' + form.color.toLowerCase() : '']"
     append-to-body
     align-center
     destroy-on-close
@@ -87,7 +87,10 @@
             <el-icon><Close /></el-icon>
           </button>
         </div>
-        <label>{{ t('account.name') }}<el-input
+        <label><span class="account-field-head"><span>{{ t('account.name') }}</span><FolderColorPicker
+          v-model="form.color"
+          :disabled="busy"
+        /></span><el-input
           v-model="form.name"
           :maxlength="Account.NAME_MAX"
           :aria-label="t('account.name')"

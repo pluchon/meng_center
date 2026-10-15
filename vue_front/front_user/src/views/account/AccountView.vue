@@ -28,6 +28,13 @@
           :class="side"
           aria-hidden="true"
         />
+        <img
+          class="account-mascot"
+          :src="editorCirnoMascot"
+          alt=""
+          aria-hidden="true"
+          draggable="false"
+        >
         <span
           class="account-face"
           aria-hidden="true"
@@ -57,7 +64,11 @@
                 :disabled="uploading"
                 @click="$refs.avatarInput.click()"
               >
-                <el-icon><CameraIcon /></el-icon>
+                <img
+                  :src="cameraIcon"
+                  alt=""
+                  aria-hidden="true"
+                >
               </button>
               <input
                 ref="avatarInput"
@@ -80,7 +91,15 @@
                   class="account-sparkle"
                   aria-hidden="true"
                 />
-              </div><p>{{ profile.data.bio || t('account.noBio') }}</p>
+              </div><p
+                class="account-bio"
+                :class="{ 'is-empty': !profile.data.bio }"
+              >
+                <i
+                  class="account-bio-mark"
+                  aria-hidden="true"
+                />{{ profile.data.bio || t('account.noBio') }}
+              </p>
             </div>
             <div class="account-stats">
               <span class="account-sticker blue">{{ t('account.joined') }} <b>{{ joinedDays }}</b> {{ t('account.days') }}</span><template v-if="counts.data">

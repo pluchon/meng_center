@@ -5,6 +5,7 @@
         v-for="(folder, index) in rows"
         :key="folder.id"
         class="account-folder"
+        :class="'folder-' + (folder.color || 'GOLD').toLowerCase()"
         :style="{ '--folder-delay': index % 8 * 35 + 'ms' }"
         @click="$emit('open', folder)"
       >
@@ -29,7 +30,7 @@
         </div>
       </button>
       <button
-        v-if="!resource.error && total < Account.FOLDERS_MAX && !resource.loading"
+        v-if="!resource.error && !resource.loading && rows.length >= total && total < Account.FOLDERS_MAX"
         class="account-folder account-folder-create"
         aria-haspopup="dialog"
         @click="$emit('create')"

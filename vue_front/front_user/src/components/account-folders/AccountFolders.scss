@@ -1,3 +1,5 @@
+@use '@/styles/folder-tone';
+
 .account-folders {
   flex: 1;
   min-height: 0;
@@ -14,17 +16,20 @@
 .account-folder-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+
+  // 每一行等高：最后一行只剩「新建收藏夹」时，它也和其他卡片一样高
+  grid-auto-rows: 1fr;
   gap: 18px;
 }
 
 .account-folder {
   text-align: left;
   border: 0;
-  background: var(--meng-account-folder);
+  background: var(--folder-soft, var(--meng-account-folder));
   padding: 16px 16px 14px;
   border-radius: 24px;
   position: relative;
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  box-shadow: 0 4px 0 var(--folder-fill, var(--meng-creator-yellow));
   color: var(--meng-text);
   min-width: 0;
   cursor: pointer;
@@ -36,12 +41,12 @@
 
 .account-folder:hover {
   transform: translateY(-3px);
-  box-shadow: 0 7px 0 var(--meng-creator-yellow);
+  box-shadow: 0 7px 0 var(--folder-fill, var(--meng-creator-yellow));
 }
 
 .account-folder:active {
   transform: translateY(3px) scale(0.98);
-  box-shadow: 0 1px 0 var(--meng-creator-yellow);
+  box-shadow: 0 1px 0 var(--folder-fill, var(--meng-creator-yellow));
 }
 
 .account-folder:focus-visible {
@@ -79,13 +84,15 @@
   right: 12px;
   top: -8px;
   z-index: 1;
-  background: var(--meng-primary);
-  color: var(--meng-surface);
+  background: var(--meng-tint);
+  border: 2px solid var(--meng-surface);
+  color: var(--meng-shadow-hard);
   border-radius: 12px;
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   padding: 0 10px;
   font-size: 12px;
   font-weight: 800;
-  line-height: 1.8;
+  line-height: 1.6;
   transform: rotate(5deg);
 }
 
@@ -109,7 +116,7 @@
 }
 
 .account-folder-quantity {
-  color: var(--meng-favorite-text);
+  color: var(--folder-ink, var(--meng-favorite-text));
   font-size: 13px;
   white-space: nowrap;
 }

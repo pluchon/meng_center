@@ -14,8 +14,6 @@
         /></label>
         <label class="account-setting gold"><span><el-icon><EditPen /></el-icon>{{ t('account.bio') }}</span><el-input
           v-model="form.bio"
-          type="textarea"
-          :rows="2"
           :maxlength="Account.BIO_MAX"
           show-word-limit
           :aria-label="t('account.bio')"

@@ -26,10 +26,19 @@ import { Account } from '@/constants/account'
 import { accountDate } from '@/utils/accountDate'
 import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
 import PageState from '@/components/page-state/PageState.vue'
+import FolderColorPicker from '@/components/folder-color-picker/FolderColorPicker.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 export default defineComponent({
   name: 'AccountDialogs',
-  components: { PictureIcon, Close, Check, CaptchaDialog, PageState, MessageAvatar },
+  components: {
+    PictureIcon,
+    Close,
+    Check,
+    CaptchaDialog,
+    PageState,
+    MessageAvatar,
+    FolderColorPicker,
+  },
   props: {
     type: { type: String, required: true },
     profile: { type: Object, required: true },
@@ -42,6 +51,7 @@ export default defineComponent({
     const form = reactive({
       name: '',
       description: '',
+      color: 'GOLD',
       oldPassword: '',
       password: '',
       confirmPassword: '',
@@ -201,6 +211,7 @@ export default defineComponent({
           const body = new FormData()
           body.append('name', form.name.trim())
           body.append('description', form.description.trim())
+          body.append('color', form.color)
           if (cover.value) body.append('cover', cover.value)
           await contentApi.createFolder(body)
           ElMessage.success(t('account.folderCreated'))

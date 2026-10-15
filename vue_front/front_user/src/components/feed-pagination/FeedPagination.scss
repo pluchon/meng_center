@@ -29,10 +29,11 @@
 }
 
 // 选中页的金色贴纸由 .page-slider 画，会滑到新页码上；按钮本身只负责文字
+// 换色：在外层设置 --pager-fill / --pager-edge / --pager-ink
 .feed-pagination:not(.compact) button.selected,
 .feed-pagination:not(.compact) button.selected:hover {
   background: transparent;
-  color: var(--meng-favorite-text);
+  color: var(--pager-ink, var(--meng-favorite-text));
   box-shadow: none;
 }
 
@@ -61,8 +62,8 @@
   box-sizing: border-box;
   border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-warning);
-  box-shadow: 0 2px 0 var(--meng-category-daily);
+  background: var(--pager-fill, var(--meng-warning));
+  box-shadow: 0 2px 0 var(--pager-edge, var(--meng-category-daily));
   rotate: 4deg;
 }
 

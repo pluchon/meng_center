@@ -11,6 +11,7 @@ import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.entity.FavoriteFolder;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.CreatorMetric;
+import com.pluchon.meng.content.entity.enums.FolderColor;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.*;
 import com.pluchon.meng.content.validation.ContentErrorCode;
@@ -67,6 +68,7 @@ public class FavoriteFolderService {
         String name,
         String description,
         String cover,
+        FolderColor color,
         long count,
         LocalDateTime latestAt
     ) {}
@@ -144,6 +146,7 @@ public class FavoriteFolderService {
                             : r.getPostCover() != null
                               ? "/content/files/" + r.getPostCover()
                               : null,
+                        r.getColor(),
                         r.getCount(),
                         r.getLatestAt()
                     )
@@ -177,8 +180,12 @@ public class FavoriteFolderService {
     }
 
     @Transactional(rollbackFor = Exception.class)
-    public long create(String name, String description, MultipartFile cover)
-        throws IOException {
+    public long create(
+        String name,
+        String description,
+        FolderColor color,
+        MultipartFile cover
+    ) throws IOException {
         lockSelection(null);
         if (count() >= 20) throw new BusinessException(
             ContentErrorCode.FOLDER_LIMIT
@@ -188,6 +195,7 @@ public class FavoriteFolderService {
         folder.setUserId(user());
         folder.setName(name.strip());
         folder.setDescription(description.strip());
+        folder.setColor(color == null ? FolderColor.GOLD : color);
         if (cover != null && !cover.isEmpty()) {
             if (
                 cover.getSize() > ImageStorage.MAX_BYTES
@@ -213,7 +221,12 @@ public class FavoriteFolderService {
     }
 
     @Transactional
-    public void update(long id, String name, String description) {
+    public void update(
+        long id,
+        String name,
+        String description,
+        FolderColor color
+    ) {
         lockSelection(null);
         var folder = require(id);
         if (folder.getDefaultOwnerId() != null) throw new BusinessException(
@@ -222,6 +235,8 @@ public class FavoriteFolderService {
         validate(name, description, id);
         folder.setName(name.strip());
         folder.setDescription(description.strip());
+        // 不传颜色表示不改
+        if (color != null) folder.setColor(color);
         folders.updateById(folder);
     }
 

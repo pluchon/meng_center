@@ -1,0 +1,10 @@
+// 收藏夹的五种主题色，颜色取成长中心的五色；--folder-soft 是铺在大块区域上的淡底
+@each $tone in 'gold', 'blue', 'mint', 'pink', 'violet' {
+  .folder-#{$tone} {
+    --folder-fill: var(--meng-growth-#{$tone});
+    --folder-bg: var(--meng-growth-#{$tone}-bg);
+    --folder-ink: var(--meng-growth-#{$tone}-text);
+    --folder-edge: var(--meng-growth-#{$tone}-edge);
+    --folder-soft: color-mix(in srgb, var(--meng-growth-#{$tone}-bg) 45%, var(--meng-surface));
+  }
+}

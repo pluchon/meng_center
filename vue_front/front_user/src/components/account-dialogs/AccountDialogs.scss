@@ -1,3 +1,5 @@
+@use '@/styles/folder-tone';
+
 .account-dialog {
   --dialog-tint: var(--meng-warning);
   --dialog-edge: var(--meng-creator-yellow);
@@ -12,6 +14,37 @@
   background: var(--meng-surface);
   color: var(--meng-text);
   box-shadow: var(--meng-account-dialog-shadow);
+}
+
+// 新建收藏夹：主题色跟着选中的颜色走，变量由 .folder-* 给出
+.account-dialog-folder {
+  --dialog-tint: var(--folder-bg);
+  --dialog-edge: var(--folder-fill);
+  --dialog-icon: var(--folder-fill);
+  --dialog-icon-edge: var(--folder-edge);
+}
+
+.account-dialog-folder .account-dialog-title > .el-icon,
+.account-dialog-folder .account-dialog-actions .el-button--primary {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.account-dialog-folder .account-dialog-title > span {
+  transition:
+    background-color 300ms ease,
+    box-shadow 300ms ease,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.account-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .account-dialog-password {
@@ -295,6 +328,16 @@
   content: '✦';
 }
 
+.account-dialog-folder .account-dialog-face {
+  background: var(--folder-bg);
+  color: var(--folder-ink);
+  transition: background-color 300ms ease;
+}
+
+.account-dialog-folder .account-dialog-sparkle {
+  color: var(--folder-fill);
+}
+
 .account-dialog-form {
   display: grid;
   gap: 14px;
@@ -435,9 +478,9 @@
 }
 
 .account-dialog-folder .account-dialog-actions .el-button--primary {
-  background: var(--meng-warning);
-  color: var(--meng-favorite-text);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  background: var(--folder-bg);
+  color: var(--folder-ink);
+  box-shadow: 0 4px 0 var(--folder-fill);
 }
 
 .account-cover-choice {
@@ -458,8 +501,8 @@
   overflow: hidden;
   border: 2px dashed var(--meng-border);
   border-radius: 18px;
-  background: var(--meng-account-folder);
-  color: var(--meng-favorite-text);
+  background: var(--folder-soft, var(--meng-account-folder));
+  color: var(--folder-ink, var(--meng-favorite-text));
   font: inherit;
   font-size: 14px;
   font-weight: 800;
@@ -498,8 +541,9 @@
   color: var(--meng-success-text);
 }
 
-.account-dialog-folder .account-confirm-symbol {
-  color: var(--meng-favorite-stroke);
+.account-dialog-folder .account-confirm-symbol,
+.account-dialog-folder .account-cover-symbol {
+  color: var(--folder-edge);
 }
 
 .account-cover-picker:has(img) .account-cover-caption {
@@ -526,7 +570,7 @@
 }
 
 .account-cover-picker:hover:not(:disabled) {
-  border-color: var(--meng-category-daily);
+  border-color: var(--folder-fill, var(--meng-category-daily));
   transform: translateY(-2px);
 }
 

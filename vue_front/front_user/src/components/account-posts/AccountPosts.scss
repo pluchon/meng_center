@@ -1,3 +1,5 @@
+@use '@/styles/folder-tone';
+
 .account-posts {
   flex: 1;
   min-width: 0;
@@ -13,6 +15,98 @@
   flex-wrap: wrap;
 }
 
+// 改颜色：圆形调色盘按钮，点开后下面浮出一排色块
+.account-folder-color {
+  position: relative;
+  flex: none;
+}
+
+.account-color-trigger {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--folder-bg);
+  box-shadow: 0 3px 0 var(--folder-fill);
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 260ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    background-color 300ms ease;
+
+  img {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+.account-color-trigger:not(:disabled):hover {
+  box-shadow: 0 5px 0 var(--folder-fill);
+  rotate: -12deg;
+  translate: 0 -2px;
+}
+
+.account-color-trigger:not(:disabled):active {
+  box-shadow: 0 1px 0 var(--folder-fill);
+  translate: 0 2px;
+}
+
+.account-color-trigger:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.account-color-trigger:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.account-color-menu {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 12px);
+  left: 50%;
+  padding: 10px 14px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-surface);
+  box-shadow:
+    0 0 0 2px var(--meng-tint),
+    0 5px 0 2px var(--meng-tint),
+    0 14px 28px var(--meng-decor-shadow);
+  translate: -50% 0;
+}
+
+.account-color-menu::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: calc(50% - 7px);
+  width: 14px;
+  height: 14px;
+  border-top: 3px solid var(--meng-tint);
+  border-left: 3px solid var(--meng-tint);
+  background: var(--meng-surface);
+  rotate: 45deg;
+}
+
+.color-pop-enter-active,
+.color-pop-leave-active {
+  transition:
+    opacity 160ms ease,
+    scale 240ms var(--meng-slide-ease);
+}
+
+.color-pop-enter-from,
+.color-pop-leave-to {
+  opacity: 0;
+  scale: 0.85;
+}
+
 .account-folder-summary {
   display: flex;
   align-items: center;
@@ -25,11 +119,11 @@
   align-items: baseline;
   gap: 5px;
   border: 3px solid var(--meng-surface);
-  background: var(--meng-warning);
+  background: var(--folder-bg);
   border-radius: 22px;
   padding: 6px 14px;
-  color: var(--meng-favorite-text);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  color: var(--folder-ink);
+  box-shadow: 0 4px 0 var(--folder-fill);
   transform: rotate(3deg);
   font-size: 13px;
   font-weight: 800;
@@ -67,10 +161,13 @@
   display: inline-block;
   padding: 2px 16px;
   border-radius: 20px;
-  background: var(--meng-warning);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  background: var(--folder-bg);
+  box-shadow: 0 4px 0 var(--folder-fill);
   transform: rotate(-3deg);
-  transition: transform 180ms var(--meng-motion-ease);
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    background-color 300ms ease,
+    box-shadow 300ms ease;
   max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
@@ -111,9 +208,9 @@
   padding: 0;
   border: 3px solid var(--meng-surface);
   border-radius: 50%;
-  background: var(--meng-category-daily);
+  background: var(--folder-fill);
   color: var(--meng-surface);
-  box-shadow: 0 4px 0 var(--meng-growth-gold-edge);
+  box-shadow: 0 4px 0 var(--folder-edge);
   font-size: 24px;
   cursor: pointer;
   transition:
@@ -130,13 +227,13 @@
   height: 36px;
   border: 0;
   background: transparent;
-  color: var(--meng-nav-gold);
+  color: var(--folder-edge);
   box-shadow: none;
   font-size: 19px;
 }
 
 .account-folder-sparkle {
-  color: var(--meng-category-daily);
+  color: var(--folder-fill);
   font-size: 24px;
 }
 
@@ -209,7 +306,7 @@
   align-items: center;
   gap: 14px;
   padding: 10px 14px 10px 10px;
-  background: var(--meng-account-folder);
+  background: var(--folder-soft);
   border-radius: 22px;
   min-width: 0;
   transition:
@@ -386,7 +483,7 @@
   background: var(--meng-surface);
   color: var(--meng-muted);
   border: 0;
-  box-shadow: 0 3px 0 var(--meng-creator-yellow);
+  box-shadow: 0 3px 0 var(--folder-fill);
   font-size: 20px;
   cursor: pointer;
   transition:
@@ -396,7 +493,7 @@
 }
 
 .account-post-action.selected {
-  color: var(--meng-favorite-stroke);
+  color: var(--folder-edge);
 }
 
 .account-post-action.pink {
@@ -455,8 +552,8 @@
   font-size: 14px;
   overflow-wrap: anywhere;
   padding: 4px 12px;
-  background: var(--meng-account-folder);
-  border-left: 4px solid var(--meng-creator-yellow);
+  background: var(--folder-soft);
+  border-left: 4px solid var(--folder-fill);
   border-radius: 4px 12px 12px 4px;
 }
 
@@ -466,9 +563,9 @@
   min-width: 0;
   padding: 4px 12px;
   border: 0;
-  border-left: 4px solid var(--meng-creator-yellow);
+  border-left: 4px solid var(--folder-fill);
   border-radius: 4px 12px 12px 4px;
-  background: var(--meng-account-folder);
+  background: var(--folder-soft);
   color: var(--meng-tool-text);
   font: inherit;
   font-size: 14px;
@@ -485,7 +582,7 @@
   display: inline-grid;
   place-items: center;
   font-size: 17px;
-  color: var(--meng-nav-gold);
+  color: var(--folder-edge);
   transition:
     transform 180ms var(--meng-motion-ease),
     background-color 180ms;
@@ -534,63 +631,22 @@
   cursor: wait;
 }
 
-.account-post-footer :deep(.el-pagination) {
-  --account-page-bg: var(--meng-warning);
-  --account-page-edge: var(--meng-creator-yellow);
-  --account-page-ink: var(--meng-favorite-text);
+.account-post-footer {
+  --pager-fill: var(--folder-bg);
+  --pager-edge: var(--folder-fill);
+  --pager-ink: var(--folder-ink);
+}
 
+.is-likes .account-post-footer {
+  --pager-fill: var(--meng-danger);
+  --pager-edge: var(--meng-category-creation);
+  --pager-ink: var(--meng-like-text);
+}
+
+// 翻页器沿用公共的滑动贴纸，只让它靠右、去掉自带的上边距
+.account-post-footer :deep(.account-pager) {
   margin-left: auto;
-  padding: 4px;
-  background: transparent;
-  gap: 6px;
-}
-
-.is-likes .account-post-footer :deep(.el-pagination) {
-  --account-page-bg: var(--meng-danger);
-  --account-page-edge: var(--meng-category-creation);
-  --account-page-ink: var(--meng-like-text);
-}
-
-.account-post-footer :deep(.el-pager) {
-  gap: 6px;
-}
-
-.account-post-footer :deep(.el-pager li),
-.account-post-footer :deep(.btn-prev),
-.account-post-footer :deep(.btn-next) {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border: 3px solid transparent;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--account-page-ink);
-  font-size: 15px;
-  font-weight: 800;
-  transition:
-    transform 180ms var(--meng-motion-ease),
-    background-color 180ms;
-}
-
-.account-post-footer :deep(.el-pager li.is-active) {
-  border-color: var(--meng-surface);
-  background: var(--account-page-bg);
-  color: var(--account-page-ink);
-  box-shadow: 0 4px 0 var(--account-page-edge);
-  transform: rotate(-5deg);
-}
-
-.account-post-footer :deep(.el-pager li:hover),
-.account-post-footer :deep(.btn-prev:hover),
-.account-post-footer :deep(.btn-next:hover) {
-  background: var(--account-page-bg);
-  transform: translateY(-2px);
-}
-
-.account-post-footer :deep(.el-pager li:active),
-.account-post-footer :deep(.btn-prev:active),
-.account-post-footer :deep(.btn-next:active) {
-  transform: scale(0.94);
+  padding-top: 0;
 }
 
 @keyframes account-mark {
@@ -701,11 +757,5 @@
 
   .account-inline-confirm {
     animation: none;
-  }
-
-  .account-post-footer :deep(.el-pager li),
-  .account-post-footer :deep(.btn-prev),
-  .account-post-footer :deep(.btn-next) {
-    transition: none;
   }
 }

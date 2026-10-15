@@ -7,6 +7,8 @@ export const Account = Object.freeze({
   NAME_MAX: 12,
   BIO_MAX: 50,
 })
+// 收藏夹可选的主题色，和后端 FolderColor 一一对应
+export const FolderColors = Object.freeze(['GOLD', 'BLUE', 'MINT', 'PINK', 'VIOLET'])
 export const AccountPane = Object.freeze({
   FOLDERS: 'folders',
   LIKES: 'likes',

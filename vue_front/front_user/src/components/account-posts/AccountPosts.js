@@ -22,13 +22,25 @@ import { contentApi, contentImage } from '@/api/content'
 import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { Account } from '@/constants/account'
-import { accountScenes } from '@/assets/images'
+import { accountPaletteIcon, accountScenes } from '@/assets/images'
 import { accountDate } from '@/utils/accountDate'
 import { RouteName } from '@/router/names'
 import PageState from '@/components/page-state/PageState.vue'
+import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
+import FolderColorPicker from '@/components/folder-color-picker/FolderColorPicker.vue'
 export default defineComponent({
   name: 'AccountPosts',
-  components: { Back, Delete, EditPen, Check, Star, IconHeart, PageState },
+  components: {
+    Back,
+    Delete,
+    EditPen,
+    Check,
+    Star,
+    IconHeart,
+    PageState,
+    FeedPagination,
+    FolderColorPicker,
+  },
   props: {
     folderId: { type: String, default: null },
     folder: { type: Object, default: null },
@@ -44,7 +56,11 @@ export default defineComponent({
     const nameInput = ref(null),
       descriptionInput = ref(null)
     const nameEdit = ref(null),
-      descriptionEdit = ref(null)
+      descriptionEdit = ref(null),
+      colorBox = ref(null),
+      colorOpen = ref(false)
+    // 夹内的主题色跟着收藏夹的颜色走，喜欢页没有收藏夹，用默认的金色
+    const tone = computed(() => (props.folder?.color || 'GOLD').toLowerCase())
     const inputFor = (field) => (field === 'name' ? nameInput.value : descriptionInput.value)
     const buttonFor = (field) => (field === 'name' ? nameEdit.value : descriptionEdit.value)
     async function editField(field) {
@@ -98,6 +114,41 @@ export default defineComponent({
         else buttonFor(field)?.focus()
       }
     }
+    async function saveColor(color) {
+      if (!props.folder || props.folder.isDefault || saving.value) return
+      colorOpen.value = false
+      if (color === props.folder.color) return
+      saving.value = 'color'
+      try {
+        const change = {
+          name: props.folder.name,
+          description: props.folder.description || '',
+          color,
+        }
+        await contentApi.updateFolder(props.folder.id, change)
+        emit('folder-updated', { id: props.folder.id, ...change })
+        ElMessage.success(t('account.saved'))
+      } catch (error) {
+        notifyFailure(error)
+      } finally {
+        saving.value = null
+      }
+    }
+    // 点菜单以外的地方、按 Esc 都收起颜色菜单
+    function closeColor(event) {
+      if (!colorOpen.value) return
+      if (event.type === 'keydown') {
+        if (event.key === 'Escape') colorOpen.value = false
+      } else if (!colorBox.value?.contains(event.target)) colorOpen.value = false
+    }
+    onMounted(() => {
+      document.addEventListener('pointerdown', closeColor)
+      document.addEventListener('keydown', closeColor)
+    })
+    onUnmounted(() => {
+      document.removeEventListener('pointerdown', closeColor)
+      document.removeEventListener('keydown', closeColor)
+    })
     function editKey(field, event) {
       if (event.isComposing || saving.value) return
       if (event.key === 'Enter') {
@@ -185,6 +236,11 @@ export default defineComponent({
       editField,
       saveField,
       editKey,
+      tone,
+      colorBox,
+      colorOpen,
+      saveColor,
+      paletteIcon: accountPaletteIcon,
       resource,
       load,
       total,

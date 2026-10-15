@@ -2,6 +2,7 @@ package com.pluchon.meng.content.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.pluchon.meng.content.entity.FavoriteFolder;
+import com.pluchon.meng.content.entity.enums.FolderColor;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
@@ -31,6 +32,7 @@ public interface FavoriteFolderMapper extends BaseMapper<FavoriteFolder> {
         private String name;
         private String description;
         private String coverName;
+        private FolderColor color;
         private Long defaultOwnerId;
         private Long count;
         private LocalDateTime latestAt;
@@ -38,7 +40,7 @@ public interface FavoriteFolderMapper extends BaseMapper<FavoriteFolder> {
     }
 
     @Select(
-        "SELECT d.id,d.name,d.description,d.cover_name,d.default_owner_id,COUNT(p.id) count,MAX(CASE WHEN p.id IS NOT NULL THEN f.create_time END) latest_at,(SELECT i.thumb_name FROM post_favorite z JOIN post q ON q.id=z.post_id AND q.delete_state=0 JOIN post_image i ON i.id=q.cover_image_id WHERE z.folder_id=d.id ORDER BY z.id DESC LIMIT 1) post_cover FROM favorite_folder d LEFT JOIN post_favorite f ON f.folder_id=d.id LEFT JOIN post p ON p.id=f.post_id AND p.delete_state=0 WHERE d.user_id=#{user} AND d.delete_state=0 GROUP BY d.id ORDER BY (d.default_owner_id IS NOT NULL) DESC,COALESCE(MAX(CASE WHEN p.id IS NOT NULL THEN f.create_time END),d.create_time) DESC,d.id DESC LIMIT #{offset},#{size}"
+        "SELECT d.id,d.name,d.description,d.cover_name,d.color,d.default_owner_id,COUNT(p.id) count,MAX(CASE WHEN p.id IS NOT NULL THEN f.create_time END) latest_at,(SELECT i.thumb_name FROM post_favorite z JOIN post q ON q.id=z.post_id AND q.delete_state=0 JOIN post_image i ON i.id=q.cover_image_id WHERE z.folder_id=d.id ORDER BY z.id DESC LIMIT 1) post_cover FROM favorite_folder d LEFT JOIN post_favorite f ON f.folder_id=d.id LEFT JOIN post p ON p.id=f.post_id AND p.delete_state=0 WHERE d.user_id=#{user} AND d.delete_state=0 GROUP BY d.id ORDER BY (d.default_owner_id IS NOT NULL) DESC,COALESCE(MAX(CASE WHEN p.id IS NOT NULL THEN f.create_time END),d.create_time) DESC,d.id DESC LIMIT #{offset},#{size}"
     )
     List<Row> folders(
         @Param("user") long user,

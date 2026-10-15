@@ -1,0 +1,78 @@
+@use '@/styles/folder-tone';
+
+// 五个圆形色块，选中的那个多一圈描边并盖一个对勾
+.folder-color-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.folder-swatch {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--folder-fill);
+  box-shadow: 0 3px 0 var(--folder-edge);
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    scale 200ms var(--meng-slide-ease);
+
+  img {
+    width: 14px;
+    height: 14px;
+    opacity: 0;
+    scale: 0.3;
+    rotate: -25deg;
+    transition:
+      opacity 140ms ease,
+      scale 300ms var(--meng-slide-ease),
+      rotate 300ms var(--meng-slide-ease);
+  }
+}
+
+.folder-swatch:not(:disabled):hover {
+  box-shadow: 0 5px 0 var(--folder-edge);
+  translate: 0 -2px;
+}
+
+.folder-swatch:not(:disabled):active {
+  box-shadow: 0 1px 0 var(--folder-edge);
+  translate: 0 2px;
+}
+
+.folder-swatch.selected {
+  box-shadow:
+    0 0 0 2px var(--folder-edge),
+    0 3px 0 2px var(--folder-edge);
+  scale: 1.12;
+
+  img {
+    opacity: 1;
+    scale: 1;
+    rotate: 0deg;
+  }
+}
+
+.folder-swatch:focus-visible {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.folder-swatch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .folder-swatch,
+  .folder-swatch img {
+    transition: none;
+  }
+}

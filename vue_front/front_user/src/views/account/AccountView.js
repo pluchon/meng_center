@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { confirmDialog } from '@/composables/useConfirm'
 import {
-  IconCamera as CameraIcon,
   IconAdjustmentsHorizontal as Setting,
   IconStar as Star,
   IconHeart,
@@ -18,7 +17,13 @@ import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { RouteName } from '@/router/names'
 import { Account, AccountPane } from '@/constants/account'
-import { userAvatar, detailBubble, detailFlower } from '@/assets/images'
+import {
+  userAvatar,
+  detailBubble,
+  detailFlower,
+  editorCirnoMascot,
+  accountCameraIcon,
+} from '@/assets/images'
 import PageState from '@/components/page-state/PageState.vue'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import AccountFolders from '@/components/account-folders/AccountFolders.vue'
@@ -32,7 +37,6 @@ export default defineComponent({
     AccountFolders,
     AccountPosts,
     AccountSettings,
-    CameraIcon,
     Setting,
     Star,
     IconHeart,
@@ -236,6 +240,8 @@ export default defineComponent({
       userAvatar,
       detailBubble,
       detailFlower,
+      editorCirnoMascot,
+      cameraIcon: accountCameraIcon,
       AccountPane,
       RouteName,
     }

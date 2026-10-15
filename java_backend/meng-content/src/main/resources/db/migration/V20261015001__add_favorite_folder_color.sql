@@ -1,0 +1,1 @@
+ALTER TABLE favorite_folder ADD COLUMN color VARCHAR(16) NOT NULL DEFAULT 'GOLD' AFTER cover_name;

@@ -3,6 +3,7 @@ package com.pluchon.meng.content.controller;
 import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.core.response.ApiResponse;
 import com.pluchon.meng.content.controller.dto.FavoriteFoldersDTO;
+import com.pluchon.meng.content.entity.enums.FolderColor;
 import com.pluchon.meng.content.service.FavoriteFolderService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
@@ -26,7 +27,9 @@ public class FavoriteFolderController {
 
     public record Change(
         @NotNull @Size(min = 1, max = 12) String name,
-        @NotNull @Size(max = 50) String description
+        @NotNull @Size(max = 50) String description,
+        // 不传表示不改颜色
+        FolderColor color
     ) {}
 
     @GetMapping("/favorite-folders")
@@ -76,9 +79,12 @@ public class FavoriteFolderController {
     public ApiResponse<Long> create(
         @RequestParam String name,
         @RequestParam(defaultValue = "") String description,
+        @RequestParam(required = false) FolderColor color,
         @RequestParam(required = false) MultipartFile cover
     ) throws IOException {
-        return ApiResponse.success(folders.create(name, description, cover));
+        return ApiResponse.success(
+            folders.create(name, description, color, cover)
+        );
     }
 
     @PutMapping("/favorite-folders/{id}")
@@ -86,7 +92,7 @@ public class FavoriteFolderController {
         @PathVariable long id,
         @Valid @RequestBody Change body
     ) {
-        folders.update(id, body.name(), body.description());
+        folders.update(id, body.name(), body.description(), body.color());
         return ApiResponse.success(null);
     }
 

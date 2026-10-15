@@ -1,4 +1,19 @@
-import { userAvatar, mengAvatar, articleEditAvatar, resetAvatar, waterDropIcon } from '@/assets/images'
+import {
+  userAvatar,
+  mengAvatar,
+  articleEditAvatar,
+  resetAvatar,
+  waterDropIcon,
+  cirnoConfusedEmotion,
+  cirnoMonkeyKingEmotion,
+  cirnoWorkEmotion,
+  cirnoCheerEmotion,
+  cirnoLoveEmotion,
+  cirnoAwesomeEmotion,
+  cirnoNoChaosEmotion,
+  cirnoPopsicleEmotion,
+  cirnoShakeEmotion,
+} from '@/assets/images'
 export const Comment = Object.freeze({ SIZE: 10, LENGTH: 500, ATTACHMENTS: 10 })
 export const ReportTarget = Object.freeze({ POST: 'POST', COMMENT: 'COMMENT' })
 export const ReportReasons = Object.freeze([
@@ -14,6 +29,15 @@ export const Emotions = Object.freeze([
   { name: '写帖', image: articleEditAvatar },
   { name: '找回', image: resetAvatar },
   { name: '水滴', image: waterDropIcon },
+  { name: '疑惑', image: cirnoConfusedEmotion },
+  { name: '齐天小圣', image: cirnoMonkeyKingEmotion },
+  { name: '开工', image: cirnoWorkEmotion },
+  { name: '好耶', image: cirnoCheerEmotion },
+  { name: '超喜欢', image: cirnoLoveEmotion },
+  { name: '牛', image: cirnoAwesomeEmotion },
+  { name: '不准发癫', image: cirnoNoChaosEmotion },
+  { name: '吃冰棍', image: cirnoPopsicleEmotion },
+  { name: '摇葫芦', image: cirnoShakeEmotion },
 ])
 export function emotionToken(name) {
   return `[表情:${name}]`
