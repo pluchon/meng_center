@@ -21,20 +21,39 @@
   min-width: 0;
 }
 
+// 忘记密码：带小锁图标的小贴纸
 .forgot-password {
+  display: inline-flex;
+  align-items: center;
   flex: none;
-  padding: 0;
-  border: 0;
-  background: transparent;
+  gap: var(--meng-space-1);
+  padding: 1px var(--meng-space-3) 1px var(--meng-space-2);
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
   color: var(--meng-muted);
   font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    color 200ms ease;
+
+  img {
+    width: 16px;
+    height: 16px;
+    transition: rotate 240ms var(--meng-slide-ease);
+  }
 }
 
 .forgot-password:hover {
+  box-shadow: 0 4px 0 var(--meng-tint);
   color: var(--meng-primary);
+  translate: 0 -2px;
 }
 
-.login-options {
-  align-items: flex-start;
+.forgot-password:hover img {
+  rotate: -14deg;
 }

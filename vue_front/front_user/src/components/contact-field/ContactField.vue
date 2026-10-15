@@ -1,9 +1,13 @@
 <template>
   <div
-    class="contact-field"
+    class="contact-field field-group"
     :class="{ 'is-sms': channel === ContactChannel.SMS }"
   >
-    <span class="contact-label">{{ t('auth.register.contact') }}</span>
+    <span class="contact-label field-name"><img
+      :src="mailIcon"
+      alt=""
+      aria-hidden="true"
+    >{{ t('auth.register.contact') }}</span>
     <div
       class="contact-control"
       :class="{ 'email-control': channel === ContactChannel.EMAIL, 'has-error': Boolean(error) }"

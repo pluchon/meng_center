@@ -1,8 +1,12 @@
 <template>
-  <div class="reason-field">
+  <div class="reason-field field-group">
     <span
       :id="labelId"
-      class="reason-label"
+      class="reason-label field-name"
+    ><img
+      :src="pencilIcon"
+      alt=""
+      aria-hidden="true"
     >{{ t('auth.register.applyReason') }}</span>
     <div class="reason-shell">
       <div

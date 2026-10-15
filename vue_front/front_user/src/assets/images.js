@@ -80,3 +80,12 @@ export { default as growthClockIcon } from './growth-clock.svg'
 
 export { default as legalTermsIcon } from './legal-terms.svg'
 export { default as legalPrivacyIcon } from './legal-privacy.svg'
+
+export { default as authUserIcon } from './auth-user.svg'
+export { default as authLockIcon } from './auth-lock.svg'
+export { default as authMailIcon } from './auth-mail.svg'
+export { default as authCodeIcon } from './auth-code.svg'
+export { default as authKeyIcon } from './auth-key.svg'
+export { default as authHeartIcon } from './auth-heart.svg'
+export { default as authUnlockIcon } from './auth-unlock.svg'
+export { default as authTickIcon } from './auth-tick.svg'

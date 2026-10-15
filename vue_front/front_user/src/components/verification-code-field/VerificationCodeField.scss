@@ -1,24 +1,40 @@
+@use '@/styles/field-name';
+
 .code-field :deep(.el-input .el-input__wrapper) {
   padding-right: var(--meng-space-2);
 }
 
+// 发送验证码：输入框里的小药丸贴纸，倒计时期间变灰不可点
 .code-send {
-  height: 28px;
+  height: 26px;
   padding-inline: var(--meng-space-3);
-  border: 0;
-  border-left: 1px solid var(--meng-border);
-  border-radius: 0;
-  background: transparent;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   color: var(--meng-primary);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   transition:
-    color 0.2s,
-    background 0.2s;
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 }
 
 .code-send:not(:disabled):hover {
   background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  translate: 0 -1px;
+}
+
+.code-send:not(:disabled):active {
+  box-shadow: 0 0 0 var(--meng-category-anime);
+  translate: 0 2px;
+}
+
+.code-send:disabled {
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-border);
+  color: var(--meng-muted);
 }
 
 // 错误提示盖在输入区内，右侧让出发送按钮

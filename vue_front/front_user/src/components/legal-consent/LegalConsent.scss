@@ -6,14 +6,77 @@
   font-size: 12px;
   line-height: 20px;
 
-  .consent-checkbox {
-    display: block;
-    flex: none;
-    width: 14px;
-    height: 14px;
-    accent-color: var(--meng-primary);
-    margin: 0;
-    padding: 0;
+}
+
+// 自绘的勾选框：白底圆角小方块，勾上后变薄荷绿并盖上一个对勾贴纸
+.consent-mark {
+  position: relative;
+  display: grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+}
+
+.consent-checkbox {
+  appearance: none;
+  display: block;
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  padding: 0;
+  border: 2px solid var(--meng-primary-light-5);
+  border-radius: 7px;
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-tint);
+  cursor: pointer;
+  transition:
+    background-color 200ms ease,
+    border-color 200ms ease,
+    translate 200ms var(--meng-slide-ease);
+}
+
+.consent-checkbox:hover {
+  border-color: var(--meng-primary);
+  translate: 0 -1px;
+}
+
+.consent-checkbox:focus-visible {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 2px;
+}
+
+.consent-checkbox:checked {
+  border-color: var(--meng-growth-mint-edge);
+  background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-growth-mint-edge);
+}
+
+// 对勾直接画在勾选框里，勾上时弹一下
+.consent-tick {
+  position: absolute;
+  inset: 3px;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  scale: 0.3;
+  rotate: -25deg;
+  pointer-events: none;
+  transition:
+    opacity 140ms ease,
+    scale 320ms var(--meng-slide-ease),
+    rotate 320ms var(--meng-slide-ease);
+}
+
+.consent-checkbox:checked + .consent-tick {
+  opacity: 1;
+  scale: 1;
+  rotate: 0deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .consent-checkbox,
+  .consent-tick {
+    transition: none;
   }
 }
 

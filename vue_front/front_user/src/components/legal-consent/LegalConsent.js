@@ -2,6 +2,7 @@ import { defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LegalDocument } from '@/constants/app'
 import { RouteName } from '@/router/names'
+import { authTickIcon } from '@/assets/images'
 export default defineComponent({
   name: 'LegalConsent',
   props: {
@@ -12,6 +13,6 @@ export default defineComponent({
   },
   emits: ['update:modelValue'],
   setup() {
-    return { t: useI18n().t, RouteName, LegalDocument }
+    return { t: useI18n().t, RouteName, LegalDocument, checkIcon: authTickIcon }
   },
 })

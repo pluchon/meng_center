@@ -1,3 +1,18 @@
+// 页面主色：登录奶油黄、注册樱花粉，按钮、标题标签和底部链接都取这一组
+.tone-gold {
+  --auth-fill: var(--meng-growth-gold);
+  --auth-bg: var(--meng-growth-gold-bg);
+  --auth-ink: var(--meng-growth-gold-text);
+  --auth-edge: var(--meng-growth-gold-edge);
+}
+
+.tone-pink {
+  --auth-fill: var(--meng-growth-pink);
+  --auth-bg: var(--meng-growth-pink-bg);
+  --auth-ink: var(--meng-growth-pink-text);
+  --auth-edge: var(--meng-growth-pink-edge);
+}
+
 .auth-layout {
   position: relative;
   isolation: isolate;
@@ -59,6 +74,17 @@
   align-self: center;
 }
 
+// 海报四周一圈白边，像贴纸纸的边
+.poster::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border: 3px solid var(--meng-surface);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
 .poster-brand {
   display: flex;
   align-items: center;
@@ -71,43 +97,76 @@
   }
 
   position: absolute;
+  z-index: 2;
   top: var(--meng-space-4);
   left: var(--meng-space-4);
-  padding: var(--meng-space-3) var(--meng-space-5);
+  padding: var(--meng-space-2) var(--meng-space-5);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
-  border: 2px solid var(--meng-surface);
+  border: 3px solid var(--meng-surface);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 24px;
+  rotate: -3deg;
+  transition: rotate 260ms var(--meng-slide-ease);
 }
 
+.poster-brand:hover {
+  rotate: 0deg;
+}
+
+// 海报上的气泡贴纸：各自轻轻浮动，悬停时摆正
 .poster-chip {
   position: absolute;
-  padding: var(--meng-space-3) var(--meng-space-4);
-  border: 2px solid var(--meng-surface);
+  z-index: 2;
+  padding: var(--meng-space-2) var(--meng-space-4);
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  font-weight: 700;
+  font-weight: 800;
+  animation: chip-float 4.6s ease-in-out infinite;
+  transition: rotate 260ms var(--meng-slide-ease);
+}
+
+.poster-chip:hover {
+  rotate: 0deg;
 }
 
 .chip-one {
   top: var(--meng-space-5);
   right: var(--meng-space-4);
   background: var(--meng-warning);
-  transform: rotate(8deg);
+  box-shadow: 0 4px 0 var(--meng-category-daily);
+  rotate: 8deg;
 }
 
 .chip-two {
   top: 15%;
   right: var(--meng-space-12);
   background: var(--meng-tint);
-  transform: rotate(-8deg);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: -8deg;
+  animation-delay: -1.6s;
 }
 
 .chip-three {
   bottom: 20%;
   left: var(--meng-space-7);
   background: var(--meng-success);
-  transform: rotate(8deg);
+  box-shadow: 0 4px 0 var(--meng-growth-mint-edge);
+  rotate: 8deg;
+  animation-delay: -3s;
+}
+
+@keyframes chip-float {
+  50% {
+    translate: 0 -5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .poster-chip {
+    animation: none;
+  }
 }
 
 @include narrow {

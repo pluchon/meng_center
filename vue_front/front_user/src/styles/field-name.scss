@@ -1,0 +1,21 @@
+// 表单项名称前的小图标：聚焦这一项时图标歪一下、上浮一点
+.field-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+
+  img {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    transition:
+      rotate 240ms var(--meng-slide-ease),
+      translate 240ms var(--meng-slide-ease);
+  }
+}
+
+label:focus-within > .field-name img,
+.field-group:focus-within > .field-name img {
+  rotate: -12deg;
+  translate: 0 -2px;
+}

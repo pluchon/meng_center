@@ -2,7 +2,7 @@
   <main class="reset-layout">
     <ParticleBackground />
     <section
-      class="reset-card"
+      class="reset-card tone-mint"
       aria-labelledby="reset-title"
     >
       <CardEdge />
@@ -19,6 +19,13 @@
           id="reset-title"
           class="auth-heading"
         >
+          <span
+            class="heading-badge"
+            aria-hidden="true"
+          ><img
+            :src="icons.unlock"
+            alt=""
+          ></span>
           <span class="reset-action">{{ t('auth.reset.reset') }}</span>
           <span class="reset-highlight">{{ t('auth.reset.password') }}</span>
         </h1>
@@ -46,8 +53,11 @@
             @send="sendCode"
           />
           <div class="auth-pair">
-            <label>{{ t('auth.reset.newPassword')
-            }}<el-input
+            <label><span class="field-name"><img
+              :src="icons.lock"
+              alt=""
+              aria-hidden="true"
+            >{{ t('auth.reset.newPassword') }}</span><el-input
               v-model="form.password"
               :class="{ 'has-error': Boolean(errors.password) }"
               :aria-invalid="Boolean(errors.password)"
@@ -62,8 +72,11 @@
               :message="errors.password"
               :message-id="fieldId('password')"
             /></label>
-            <label>{{ t('auth.register.confirmPassword')
-            }}<el-input
+            <label><span class="field-name"><img
+              :src="icons.lock"
+              alt=""
+              aria-hidden="true"
+            >{{ t('auth.register.confirmPassword') }}</span><el-input
               v-model="form.confirmPassword"
               :class="{ 'has-error': Boolean(errors.confirmPassword) }"
               :aria-invalid="Boolean(errors.confirmPassword)"
@@ -104,13 +117,20 @@
           id="reset-title"
           class="auth-heading"
         >
+          <span
+            class="heading-badge"
+            aria-hidden="true"
+          ><img
+            :src="icons.key"
+            alt=""
+          ></span>
           {{ t('auth.reset.success') }}
         </h1>
         <p class="reset-description">
           {{ t('auth.reset.successDescription') }}
         </p>
         <router-link
-          class="reset-return"
+          class="auth-return"
           :to="{ name: RouteName.LOGIN }"
         >
           {{ t('auth.reset.backLogin') }}

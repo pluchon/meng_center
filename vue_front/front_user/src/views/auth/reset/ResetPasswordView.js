@@ -17,7 +17,7 @@ import ParticleBackground from '@/components/particle-background/ParticleBackgro
 import ContactField from '@/components/contact-field/ContactField.vue'
 import VerificationCodeField from '@/components/verification-code-field/VerificationCodeField.vue'
 import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
-import { resetAvatar as avatar } from '@/assets/images'
+import { authKeyIcon, authLockIcon, authUnlockIcon, resetAvatar as avatar } from '@/assets/images'
 export default defineComponent({
   name: 'ResetPasswordView',
   components: {
@@ -98,7 +98,9 @@ export default defineComponent({
         submitting.value = false
       }
     }
+    const icons = { key: authKeyIcon, lock: authLockIcon, unlock: authUnlockIcon }
     return {
+      icons,
       errors,
       fieldId,
       t,

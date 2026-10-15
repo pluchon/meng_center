@@ -1,24 +1,59 @@
 @use './mixins' as *;
+@use './field-name';
 
+// 每页一个主色：登录奶油黄、注册樱花粉、重置密码薄荷绿，颜色变量由页面外层给出
 .auth-heading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: var(--meng-space-2) var(--meng-space-3);
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 44px;
+  font-weight: 400;
   text-align: center;
   line-height: 1.2;
   margin-bottom: var(--meng-space-3);
 }
 
+// 标题前的圆形图标贴纸
+.heading-badge {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--auth-bg);
+  box-shadow: 0 4px 0 var(--auth-fill);
+  rotate: -8deg;
+  transition: rotate 260ms var(--meng-slide-ease);
+
+  img {
+    width: 36px;
+    height: 36px;
+    animation: auth-bob 3.6s ease-in-out infinite;
+  }
+}
+
+.auth-heading:hover .heading-badge {
+  rotate: 0deg;
+}
+
 .auth-brand {
   display: inline-block;
-  padding: var(--meng-space-2) var(--meng-space-4);
-  background: var(--meng-warning);
-  border-radius: var(--meng-radius-note);
-  transform: rotate(-3deg);
-  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  padding: 2px var(--meng-space-4);
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  background: var(--auth-bg);
+  box-shadow: 0 5px 0 var(--auth-fill);
+  rotate: -3deg;
+  transition: rotate 300ms var(--meng-slide-ease);
 
   // 悬停时自己扶正
   &:hover {
-    transform: rotate(0deg) scale(1.04);
+    rotate: 0deg;
   }
 }
 
@@ -26,6 +61,7 @@
   color: var(--meng-muted);
   line-height: 1.8;
   margin-bottom: var(--meng-space-7);
+  text-align: center;
 }
 
 .auth-form {
@@ -51,14 +87,23 @@
     padding-inline: var(--meng-space-5);
     background: var(--meng-bg);
     border-radius: var(--meng-radius-pill);
-    box-shadow: 0 0 0 1px var(--meng-border) inset;
+    box-shadow:
+      0 0 0 1.5px var(--meng-border) inset,
+      0 3px 0 var(--meng-tint);
+    transition: box-shadow 200ms ease;
+  }
+
+  :deep(.el-input__wrapper:hover) {
+    box-shadow:
+      0 0 0 1.5px var(--meng-primary-light-5) inset,
+      0 3px 0 var(--meng-tint);
   }
 
   :deep(.el-input__wrapper.is-focus),
   :deep(.el-select__wrapper.is-focused) {
     box-shadow:
-      0 0 0 3px var(--meng-tint),
-      0 0 0 1px var(--meng-primary) inset;
+      0 0 0 2px var(--meng-primary) inset,
+      0 3px 0 var(--meng-primary-light-5);
   }
 
   :deep(.el-input__inner) {
@@ -78,17 +123,33 @@
   }
 }
 
+// 果冻贴纸按钮：浅色底、白描边、同色系的厚底边
 .auth-primary {
+  --el-button-bg-color: var(--auth-bg);
+  --el-button-text-color: var(--auth-ink);
+  --el-button-border-color: var(--meng-surface);
+  --el-button-hover-bg-color: var(--auth-bg);
+  --el-button-hover-text-color: var(--auth-ink);
+  --el-button-hover-border-color: var(--meng-surface);
+  --el-button-active-bg-color: var(--auth-bg);
+  --el-button-active-text-color: var(--auth-ink);
+  --el-button-active-border-color: var(--meng-surface);
+  --el-button-disabled-bg-color: var(--auth-bg);
+  --el-button-disabled-text-color: var(--auth-ink);
+  --el-button-disabled-border-color: var(--meng-surface);
+
   width: 100%;
-  height: var(--meng-small-control-height);
+  height: calc(var(--meng-small-control-height) + 4px);
+  border-width: 3px;
   border-radius: var(--meng-radius-pill);
-  box-shadow: 0 5px 0 var(--meng-shadow-hard);
-  font-weight: 700;
+  box-shadow: 0 5px 0 var(--auth-fill);
+  font-size: 15px;
+  font-weight: 800;
   position: relative;
   overflow: hidden;
   transition:
-    transform 0.2s,
-    box-shadow 0.2s;
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 
   &::after {
     content: '';
@@ -104,11 +165,13 @@
   }
 
   &:not(:disabled):hover {
-    transform: translateY(-2px);
+    box-shadow: 0 7px 0 var(--auth-fill);
+    translate: 0 -2px;
   }
 
   &:active {
-    transform: translateY(4px);
+    box-shadow: 0 1px 0 var(--auth-fill);
+    translate: 0 4px;
   }
 }
 
@@ -117,19 +180,75 @@
   text-align: center;
   color: var(--meng-muted);
   font-size: 14px;
+
+  a {
+    display: inline-block;
+    margin-left: var(--meng-space-1);
+    padding: 1px var(--meng-space-3);
+    border: 2px solid var(--meng-surface);
+    border-radius: var(--meng-radius-pill);
+    background: var(--auth-bg);
+    box-shadow: 0 3px 0 var(--auth-fill);
+    color: var(--auth-ink);
+    font-weight: 800;
+    rotate: -2deg;
+    transition:
+      rotate 250ms var(--meng-slide-ease),
+      translate 200ms var(--meng-slide-ease),
+      box-shadow 200ms ease;
+  }
+
+  a:hover {
+    box-shadow: 0 5px 0 var(--auth-fill);
+    rotate: 0deg;
+    translate: 0 -2px;
+  }
+}
+
+// 注册、重置完成后的返回按钮
+.auth-return {
+  display: inline-block;
+  padding: var(--meng-space-2) var(--meng-space-8);
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-growth-mint-edge);
+  color: var(--meng-success-shadow);
+  font-weight: 800;
+  rotate: -2deg;
+  transition:
+    rotate 250ms var(--meng-slide-ease),
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+
+  &:hover {
+    box-shadow: 0 7px 0 var(--meng-growth-mint-edge);
+    rotate: 0deg;
+    translate: 0 -3px;
+  }
+
+  &:active {
+    box-shadow: 0 1px 0 var(--meng-growth-mint-edge);
+    translate: 0 3px;
+  }
 }
 
 .auth-notice {
   padding: var(--meng-space-4);
-  border-radius: var(--meng-radius-note);
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
   background: var(--meng-warning);
+  box-shadow: 0 4px 0 var(--meng-growth-gold);
+  color: var(--meng-favorite-text);
   line-height: 1.8;
 }
 
 .auth-error {
   padding: var(--meng-space-4);
-  border-radius: var(--meng-radius-note);
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
   background: var(--meng-danger);
+  box-shadow: 0 4px 0 var(--meng-growth-pink);
   color: var(--meng-danger-text);
   line-height: 1.8;
 }
@@ -145,6 +264,16 @@
 @include narrow {
   .auth-heading {
     font-size: 36px;
+  }
+
+  .heading-badge {
+    width: 48px;
+    height: 48px;
+
+    img {
+      width: 30px;
+      height: 30px;
+    }
   }
 
   .auth-pair {
@@ -221,4 +350,49 @@
 
 .consent-field {
   min-width: 0;
+}
+
+// 标题、各表单项、底部链接按顺序浮现
+.auth-heading,
+.auth-form > *,
+.auth-footer {
+  animation: auth-enter 460ms var(--meng-slide-ease) both;
+}
+
+.auth-heading {
+  animation-delay: 40ms;
+}
+
+@for $index from 1 through 8 {
+  .auth-form > :nth-child(#{$index}) {
+    animation-delay: #{80 + $index * 55}ms;
+  }
+}
+
+.auth-footer {
+  animation-delay: 560ms;
+}
+
+@keyframes auth-enter {
+  from {
+    opacity: 0;
+    scale: 0.97;
+    translate: 0 12px;
+  }
+}
+
+@keyframes auth-bob {
+  50% {
+    translate: 0 -2px;
+    rotate: 6deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-heading,
+  .auth-form > *,
+  .auth-footer,
+  .heading-badge img {
+    animation: none;
+  }
 }
