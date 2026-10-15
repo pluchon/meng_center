@@ -7,6 +7,16 @@ export default {
   cheer: '好耶！',
   face: '(≧▽≦)',
   meow: '喵～',
+  posterLabel: '首页展示图',
+  posterPrev: '上一张',
+  posterNext: '下一张',
+  posterGo: '第 {index} 张',
+  posters: {
+    mood: '心情营业中！今天，也来萌部落冒个泡吧～',
+    love: '热爱不必满分：琪露诺想造最强冰城，大妖精说「当然！我喜欢！」',
+    sparkle: '今天也有闪光：琪露诺用相机拍下一片冰叶，和大妖精一起翻看相册',
+    partners: '最强搭档：琪露诺和大妖精一起做冰饮',
+  },
   nav: {
     home: '首页',
     creator: '创作',

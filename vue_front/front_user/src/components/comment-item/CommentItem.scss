@@ -48,7 +48,8 @@
 }
 
 .level,
-.author-badge {
+.author-badge,
+.pin-badge {
   padding: 2px var(--meng-space-2);
   border: 2px solid var(--meng-surface);
   background: var(--meng-warning);
@@ -228,8 +229,47 @@
   transform: translateY(2px);
 }
 
+.pin-badge {
+  background: var(--meng-category-game);
+  box-shadow: 0 2px 0 var(--meng-category-game-dot);
+  color: var(--meng-creator-purple-text);
+  rotate: 3deg;
+  animation: meng-feedback-pop 320ms var(--meng-motion-ease);
+}
+
+.comment-item button.pin-action {
+  --edge: var(--meng-category-game-dot);
+
+  margin-left: auto;
+  background: var(--meng-category-game);
+  color: var(--meng-creator-purple-text);
+}
+
+.comment-item button.pin-action.pinned {
+  --edge: var(--meng-category-daily);
+
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+}
+
+.comment-item button.pin-action svg {
+  transition: rotate 0.25s var(--meng-motion-ease);
+}
+
+.comment-item button.pin-action:hover:not(:disabled) svg {
+  rotate: 25deg;
+}
+
+.comment-item button.pin-action.pinned svg {
+  rotate: 45deg;
+}
+
 .moderate {
   margin-left: auto;
+}
+
+.pin-action + .moderate {
+  margin-left: 0;
 }
 
 .comment-item .el-icon {
@@ -280,8 +320,13 @@
     transform: none;
   }
 
-  .comment-item button.liked svg {
+  .comment-item button.liked svg,
+  .pin-badge {
     animation: none;
+  }
+
+  .comment-item button.pin-action svg {
+    transition: none;
   }
 
   .comment-item {

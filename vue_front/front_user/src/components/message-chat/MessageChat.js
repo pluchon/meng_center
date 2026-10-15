@@ -11,6 +11,7 @@ import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { IconArrowBackUp } from '@tabler/icons-vue'
 import { useImStore } from '@/stores/im'
 import { useEditorUploads } from '@/composables/useEditorUploads'
 import { confirmDialog } from '@/composables/useConfirm'
@@ -64,6 +65,7 @@ function split(item) {
 export default defineComponent({
   name: 'MessageChat',
   components: {
+    IconArrowBackUp,
     PageState,
     MessageAvatar,
     EmotionPanel,
@@ -82,7 +84,9 @@ export default defineComponent({
       scroll = ref(null),
       emotions = ref(false),
       changing = ref(false),
-      busy = ref(false)
+      busy = ref(false),
+      revoking = ref(0),
+      clock = ref(performance.now())
     // 选中的表情和输入的文字合在一起发出去，字数一起算
     const content = computed(
       () => text.value + selectedEmotions.value.map((item) => emotionToken(item.name)).join(''),
@@ -123,6 +127,80 @@ export default defineComponent({
       timeZone: 'Asia/Taipei',
     })
     const formatTime = (value) => timeFormatter.format(new Date(value))
+    // 撤回按钮只在自己发出、还没过时限的消息上出现；到点后按钮自己消失
+    const nextExpiry = computed(() =>
+      im.messages.reduce(
+        (earliest, item) =>
+          item.senderId === im.userId && item.revokeAt > clock.value
+            ? Math.min(earliest, item.revokeAt)
+            : earliest,
+        Infinity,
+      ),
+    )
+    let expiryTimer
+    const stopExpiry = watch(
+      nextExpiry,
+      (at) => {
+        clearTimeout(expiryTimer)
+        if (at !== Infinity)
+          expiryTimer = setTimeout(
+            () => {
+              clock.value = performance.now()
+            },
+            Math.max(0, at - performance.now()) + 30,
+          )
+      },
+      { immediate: true },
+    )
+    function canRevoke(item) {
+      return (
+        item.senderId === im.userId &&
+        !item.pending &&
+        !item.error &&
+        !item.revoked &&
+        item.revokeAt > Math.max(clock.value, performance.now())
+      )
+    }
+    async function revoke(item) {
+      if (revoking.value) return
+      const confirmed = await confirmDialog({
+        message: t('im.revokeConfirm'),
+        title: t('im.revoke'),
+        confirmText: t('im.revoke'),
+        cancelText: t('im.cancel'),
+      })
+      if (!confirmed) return
+      revoking.value = item.id
+      try {
+        await im.revoke(item)
+      } catch (failure) {
+        notifyFailure(failure)
+      } finally {
+        revoking.value = 0
+      }
+    }
+    // 把撤回的消息放回输入框：文字接在已有内容后面，表情变回待发的表情
+    function reedit(item) {
+      const segments = commentSegments(item.content || '')
+      text.value += segments
+        .filter((segment) => !segment.image)
+        .map((segment) => segment.text)
+        .join('')
+      selectedEmotions.value = [
+        ...selectedEmotions.value,
+        ...segments
+          .filter((segment) => segment.image)
+          .map((segment) => ({
+            name: segment.name,
+            image: segment.image,
+            key: crypto.randomUUID(),
+          })),
+      ].slice(0, Im.EMOTION_MAX)
+      void nextTick(() => {
+        resize()
+        field.value?.focus()
+      })
+    }
     // 图片上传的提示（太大、格式不对、张数超限）统一用顶部的消息弹框
     const stopNotice = watch(
       () => uploads.notice.value,
@@ -287,6 +365,8 @@ export default defineComponent({
       resizeObserver?.disconnect()
       stopMessages()
       stopNotice()
+      stopExpiry()
+      clearTimeout(expiryTimer)
       window.removeEventListener('focus', focus)
       document.removeEventListener('visibilitychange', focus)
     })
@@ -308,6 +388,7 @@ export default defineComponent({
       scroll,
       emotions,
       busy,
+      revoking,
       changing,
       count,
       remaining,
@@ -316,6 +397,9 @@ export default defineComponent({
       valid,
       rows,
       formatTime,
+      canRevoke,
+      revoke,
+      reedit,
       resize,
       earlier,
       scrollHistory,

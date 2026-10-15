@@ -156,6 +156,7 @@
                 :post-id="post.id"
                 :initial-page="initialComments"
                 :count="post.commentCount"
+                :can-pin="own"
                 @count="post.commentCount=$event"
                 @report="reportTarget=$event"
               /><span

@@ -18,6 +18,8 @@ import HighlightText from '@/components/highlight-text/HighlightText.vue'
 import { RouteName } from '@/router/names'
 import { useFavoriteStore } from '@/stores/favorites'
 import { avatarUrl } from '@/api/user'
+// 卡片上最多摆几张缩略图，其余的从大图查看里翻
+const SHOWN_IMAGES = 5
 export default defineComponent({
   name: 'PostCard',
   components: {
@@ -115,6 +117,8 @@ export default defineComponent({
       pending,
       previewIndex,
       preview,
+      SHOWN_IMAGES,
+      shownImages: computed(() => props.post.images.slice(0, SHOWN_IMAGES)),
       viewerUrls: computed(() => props.post.images.map((image) => contentImage(image.url))),
       viewerThumbs: computed(() => props.post.images.map((image) => contentImage(image.thumbUrl))),
       toggle,

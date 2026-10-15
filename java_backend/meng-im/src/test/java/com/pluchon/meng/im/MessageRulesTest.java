@@ -28,11 +28,11 @@ class MessageRulesTest {
     }
 
     @Test
-    void requiresExactlyOneBodyKind() {
+    void requiresTextOrImagesAndAllowsBoth() {
         assertThrows(BusinessException.class, () ->
             MessageRules.validate(send(" ", List.of()))
         );
-        assertThrows(BusinessException.class, () ->
+        assertDoesNotThrow(() ->
             MessageRules.validate(send("text", List.of(1L)))
         );
         assertDoesNotThrow(() ->

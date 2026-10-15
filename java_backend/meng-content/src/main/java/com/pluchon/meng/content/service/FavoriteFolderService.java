@@ -197,27 +197,56 @@ public class FavoriteFolderService {
         folder.setDescription(description.strip());
         folder.setColor(color == null ? FolderColor.GOLD : color);
         if (cover != null && !cover.isEmpty()) {
-            if (
-                cover.getSize() > ImageStorage.MAX_BYTES
-            ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-            limits.upload(user());
-            var image = storage.save(cover.getBytes());
-            storage.delete(image.fileName(), image.fileName());
-            folder.setCoverName(image.thumbName());
-            TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-                    @Override
-                    public void afterCompletion(int status) {
-                        if (status != STATUS_COMMITTED) storage.delete(
-                            image.thumbName(),
-                            image.thumbName()
-                        );
-                    }
-                }
-            );
+            folder.setCoverName(saveCover(cover));
         }
         folders.insert(folder);
         return folder.getId();
+    }
+
+    // 保存封面文件，只留缩略图；事务没有提交时把刚存的文件删掉，返回文件名
+    private String saveCover(MultipartFile cover) throws IOException {
+        if (cover.getSize() > ImageStorage.MAX_BYTES) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
+        limits.upload(user());
+        var image = storage.save(cover.getBytes());
+        storage.delete(image.fileName(), image.fileName());
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) storage.delete(
+                        image.thumbName(),
+                        image.thumbName()
+                    );
+                }
+            }
+        );
+        return image.thumbName();
+    }
+
+    // 更换封面：默认收藏夹的封面固定，不能换；旧封面在事务提交后删除
+    @Transactional(rollbackFor = Exception.class)
+    public void changeCover(long id, MultipartFile cover) throws IOException {
+        lockSelection(null);
+        var folder = require(id);
+        if (folder.getDefaultOwnerId() != null) throw new BusinessException(
+            CommonErrorCode.FORBIDDEN
+        );
+        if (cover == null || cover.isEmpty()) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
+        var previous = folder.getCoverName();
+        folder.setCoverName(saveCover(cover));
+        folders.updateById(folder);
+        if (previous != null) TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    storage.delete(previous, previous);
+                }
+            }
+        );
     }
 
     @Transactional

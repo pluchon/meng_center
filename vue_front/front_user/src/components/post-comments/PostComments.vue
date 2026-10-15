@@ -50,11 +50,13 @@
           :comment="comment"
           :busy="pending[comment.id]||false"
           :expanded="replies[comment.id]?.open||false"
+          :can-pin="canPin"
           @like="like"
           @reply="reply"
           @delete="remove"
           @report="report"
           @expand="expand"
+          @pin="pin"
         />
         <CollapsePanel :open="replies[comment.id]?.open||false">
           <div

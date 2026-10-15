@@ -81,7 +81,7 @@ try {
    assert.equal(ok(await api('/im/conversations')).total,0);
    ok(await api('/im/messages',0,'POST',message(users[0])),409);
    ok(await api('/im/messages',0,'POST',message(users[3])),404);
-   ok(await api('/im/messages',0,'POST',message(users[1],'text',crypto.randomUUID(),[1])),400);
+   ok(await api('/im/messages',0,'POST',message(users[1],'text',crypto.randomUUID(),[1])),404);
    const anonymous=await browser.newContext(), page=await anonymous.newPage(); await page.goto(origin);
    const code=await page.evaluate(()=>new Promise(resolve=>{const ws=new WebSocket(location.origin.replace('http','ws')+'/api/im/ws');ws.onopen=()=>{resolve(101);ws.close()};ws.onclose=event=>resolve(event.code)})); assert.notEqual(code,101); await anonymous.close();
  });
@@ -110,6 +110,31 @@ try {
    await eventually(async()=>(await sa.frames()).some(frame=>frame.type==='dm.read'&&frame.data.messageId===read),'read receipt');
    ok(await api(`/im/conversations/${conversation}/read`,1,'PUT',{messageId:first.id}));
    assert.equal(ok(await api('/im/conversations/peer/'+users[0],1)).lastReadMessageId,read);
+ });
+ await check('Message revocation honours the window, privacy, unread counts and previews',async()=>{
+   await redis.del('meng:im:rate:msg:'+users[0]);
+   const sent=ok(await api('/im/messages',0,'POST',message(users[1],'发错了想撤回 [表情:萌萌]')));
+   assert.equal(sent.revoked,false);assert.ok(sent.revokeMillis>0&&sent.revokeMillis<=300000);
+   assert.equal(ok(await api('/im/unread',1)).chat,1);
+   ok(await api(`/im/messages/${sent.id}/revocation`,1,'PUT'),404);
+   ok(await api(`/im/messages/${sent.id}/revocation`,2,'PUT'),404);
+   const revoked=ok(await api(`/im/messages/${sent.id}/revocation`,0,'PUT'));
+   assert.equal(revoked.revoked,true);assert.equal(revoked.revokeMillis,0);assert.equal(revoked.content,sent.content);
+   assert.equal(ok(await api(`/im/messages/${sent.id}/revocation`,0,'PUT')).revoked,true);
+   for(const socket of [sa,sb]) await eventually(async()=>(await socket.frames()).some(frame=>frame.type==='dm.revoke'&&frame.data.messageId===sent.id),'revoke frame');
+   assert.equal(ok(await api('/im/unread',1)).chat,0);
+   const peerView=ok(await api(`/im/conversations/${conversation}/messages`,1)).records.find(row=>row.id===sent.id);
+   assert.equal(peerView.revoked,true);assert.equal(peerView.content==null,true);assert.deepEqual(peerView.images,[]);
+   assert.equal(ok(await api(`/im/conversations/${conversation}/messages`,0)).records.find(row=>row.id===sent.id).content,sent.content);
+   assert.equal(ok(await api('/im/conversations/peer/'+users[1],0)).preview,'你撤回了一条消息');
+   assert.equal(ok(await api('/im/conversations/peer/'+users[0],1)).preview,'对方撤回了一条消息');
+   const late=ok(await api('/im/messages',0,'POST',message(users[1],'过了五分钟')));
+   await imDb.execute('UPDATE private_message SET create_time=DATE_SUB(create_time,INTERVAL 301 SECOND) WHERE id=?',[late.id]);
+   const expired=await api(`/im/messages/${late.id}/revocation`,0,'PUT');ok(expired,409);assert.equal(expired.code,'IM_REVOKE_EXPIRED');
+   const edge=ok(await api('/im/messages',0,'POST',message(users[1],'刚好卡在时限内')));
+   await imDb.execute('UPDATE private_message SET create_time=DATE_SUB(create_time,INTERVAL 298 SECOND) WHERE id=?',[edge.id]);
+   assert.equal(ok(await api(`/im/messages/${edge.id}/revocation`,0,'PUT')).revoked,true);
+   ok(await api(`/im/conversations/${conversation}/read`,1,'PUT',{messageId:late.id}));
  });
  await check('Blocking and delete visibility boundaries',async()=>{
    ok(await api('/im/blocks',1,'POST',{userId:users[0]}));
@@ -149,7 +174,7 @@ try {
    ok(await api(`/content/posts/${postId}/comments`,0,'POST',{content:'借你吉言，下次一起画',imageIds:[],replyToCommentId:commentId}));
    await eventually(async()=>ok(await api('/im/notifications?channel=COMMENT&source=POST',1)).records.some(item=>item.notice.type==='COMMENT_REPLY'&&item.notice.originalExcerpt.includes('配色')),'reply snapshot');
    for(const account of [1,2]) ok(await api(`/content/posts/${postId}/like`,account,'PUT'));
-   ok(await api(`/content/posts/${postId}/favorite`,1,'PUT'));
+   const folder=ok(await api('/content/favorite-folders',1)).records.find(item=>item.isDefault).id; ok(await api(`/content/favorite-folders/${folder}/posts/${postId}`,1,'PUT'));
    ok(await api(`/content/comments/${commentId}/like`,0,'PUT'));
    ok(await api(`/content/posts/${postId}/like`,1,'DELETE')); ok(await api(`/content/posts/${postId}/like`,1,'PUT'));
    await eventually(async()=>ok(await api('/im/notifications?channel=LIKE&source=POST')).total===2,'like and favorite groups');

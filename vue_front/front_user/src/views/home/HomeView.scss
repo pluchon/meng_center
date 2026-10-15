@@ -1,11 +1,29 @@
 .home-hero {
   position: relative;
-  display: flex;
-  align-items: center;
   min-height: 460px;
-  padding-bottom: 70px;
   border-radius: var(--meng-radius-card) var(--meng-radius-card) 0 0;
   overflow: hidden;
+}
+
+// 海浪每张图都有，漫画海报上淡一点
+.hero-waves-layer {
+  transition: opacity 600ms ease;
+}
+
+.hero-waves-layer.soft {
+  opacity: 0.55;
+}
+
+// 几张展示图叠在一起，靠透明度交叉淡入淡出
+.hero-slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+
+.hero-slide.active {
+  opacity: 1;
 }
 
 .hero-art {
@@ -15,6 +33,107 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+
+// 海报整幅完整显示，两侧用它自己放大模糊后的样子铺满
+.hero-slide.poster .hero-art {
+  object-fit: contain;
+}
+
+.hero-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(26px) saturate(1.1);
+  scale: 1.2;
+}
+
+// 欢迎卡片、气泡、贴纸和海浪只属于第一张图
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding-bottom: 70px;
+}
+
+.hero-overlay-enter-active,
+.hero-overlay-leave-active {
+  transition: opacity 500ms ease;
+}
+
+.hero-overlay-enter-from,
+.hero-overlay-leave-to {
+  opacity: 0;
+}
+
+// 翻页器在图的右上角
+.hero-pager {
+  position: absolute;
+  top: var(--meng-space-4);
+  right: var(--meng-space-4);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-hero-glass);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+}
+
+.hero-dot {
+  width: 9px;
+  height: 9px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  cursor: pointer;
+  transition:
+    width 260ms var(--meng-motion-ease),
+    background 260ms ease;
+}
+
+.hero-dot:hover {
+  background: var(--meng-primary);
+}
+
+.hero-dot.active {
+  width: 22px;
+  background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+}
+
+.hero-arrow {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--meng-primary);
+  cursor: pointer;
+  transition:
+    background 200ms ease,
+    transform 200ms var(--meng-motion-ease);
+}
+
+.hero-arrow:hover {
+  background: var(--meng-tint);
+  transform: scale(1.1);
+}
+
+.hero-dot:focus-visible,
+.hero-arrow:focus-visible {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 2px;
 }
 
 .hero-welcome {
@@ -197,6 +316,19 @@ h1 span {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-waves-layer,
+  .hero-slide,
+  .hero-overlay-enter-active,
+  .hero-overlay-leave-active,
+  .hero-dot,
+  .hero-arrow {
+    transition: none;
+  }
+
+  .hero-arrow:hover {
+    transform: none;
+  }
+
   .hero-welcome,
   .hero-cheer,
   .hero-bubble,
@@ -290,6 +422,9 @@ h1 span {
 
   .home-hero {
     min-height: 320px;
+  }
+
+  .hero-overlay {
     align-items: flex-end;
   }
 
@@ -309,12 +444,14 @@ h1 span {
     display: none;
   }
 
+  // 翻页器在右上角，气泡往下让开
   .hero-bubble {
+    top: 64px;
     left: auto;
     right: var(--meng-space-5);
   }
 
-  .hero-art {
+  .hero-slide:not(.poster) .hero-art {
     object-position: 65% center;
   }
 }

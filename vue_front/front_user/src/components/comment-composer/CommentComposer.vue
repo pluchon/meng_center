@@ -100,25 +100,48 @@
         :aria-label="t('detail.write')"
         :disabled="busy"
         rows="3"
-        @input="limit"
-        @compositionend="limit"
+        @input="onInput"
+        @compositionend="onInput"
+        @keydown="mentionKey"
+        @keyup="detect"
+        @click="detect"
+        @blur="closeMention"
       /><small>{{ t('editor.counters', { count, max: Comment.LENGTH }) }}</small>
+      <Transition name="mention-pop">
+        <ul
+          v-if="showMentions"
+          class="mention-list"
+          role="listbox"
+          :aria-label="t('detail.mentionTitle')"
+        >
+          <li
+            v-for="(item, index) in matches"
+            :key="item.id"
+            role="option"
+            :aria-selected="index === mentionActive"
+            :class="{ active: index === mentionActive }"
+            @mousedown.prevent="pick(item)"
+            @mouseenter="mentionActive = index"
+          >
+            <el-avatar
+              :size="28"
+              :src="item.avatar ? avatarUrl(item.avatar) : userAvatar"
+            />
+            <span class="mention-name">{{ item.nickname }}</span>
+            <em v-if="item.postAuthor">{{ t('detail.author') }}</em>
+          </li>
+          <li
+            v-if="!matches.length"
+            class="mention-empty"
+          >
+            {{ t('detail.mentionEmpty') }}
+          </li>
+        </ul>
+      </Transition>
     </div>
     <CollapsePanel :open="panel">
-      <div class="emotion-panel">
-        <button
-          v-for="item in Emotions"
-          :key="item.name"
-          type="button"
-          :aria-label="item.name"
-          :disabled="busy"
-          @click="insert(item)"
-        >
-          <img
-            :src="item.image"
-            :alt="item.name"
-          >
-        </button>
+      <div class="composer-emotions">
+        <EmotionPanel @select="insert" />
       </div>
     </CollapsePanel>
     <footer>
@@ -137,12 +160,19 @@
       >
         <el-icon><PictureIcon /></el-icon>{{ t('detail.images') }}
       </button><el-button
+        class="send-button"
         type="primary"
         native-type="submit"
         :disabled="!valid"
         :loading="busy"
       >
-        {{ t('detail.send') }}
+        <el-icon class="send-icon">
+          <IconSend />
+        </el-icon>{{ t('detail.send') }}<i
+          class="send-spark"
+          aria-hidden="true"
+          :style="{ maskImage: 'url(' + JSON.stringify(communitySparkle) + ')' }"
+        />
       </el-button>
     </footer>
     <input

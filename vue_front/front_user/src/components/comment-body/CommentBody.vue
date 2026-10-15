@@ -3,7 +3,13 @@
     <span
       v-if="texts.length"
       class="body-text"
-    >{{ texts.map(item=>item.text).join('') }}</span>
+    ><template
+      v-for="(part,index) in parts"
+      :key="index"
+    ><b
+      v-if="part.mention"
+      class="body-mention"
+    >{{ part.text }}</b><template v-else>{{ part.text }}</template></template></span>
     <span
       v-if="images.length"
       class="body-images"

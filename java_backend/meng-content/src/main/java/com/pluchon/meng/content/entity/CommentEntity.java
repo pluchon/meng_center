@@ -47,6 +47,9 @@ public class CommentEntity {
     // 回复数量
     private Long replyCount = 0L;
 
+    // 置顶时间，空表示没有置顶
+    private LocalDateTime pinnedTime;
+
     // 请求地址属地
     private String ipRegion;
 

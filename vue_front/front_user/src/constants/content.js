@@ -8,6 +8,8 @@ export const PostCategory = Object.freeze({
 export const Categories = Object.freeze(Object.values(PostCategory))
 export const PostSort = Object.freeze({ LATEST: 'LATEST', HOT: 'HOT' })
 export const Feed = Object.freeze({ SIZE: 10, PAGE_SLOTS: 7 })
+// 首页展示图自动翻页的间隔（毫秒）
+export const Hero = Object.freeze({ INTERVAL: 6500 })
 export const PostEditor = Object.freeze({
   TITLE_MAX: 50,
   BODY_MAX: 10000,

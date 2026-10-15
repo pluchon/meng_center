@@ -6,8 +6,10 @@ import com.pluchon.meng.api.user.vo.PublicUserVO;
 import com.pluchon.meng.content.controller.dto.CreateCommentDTO;
 import com.pluchon.meng.content.controller.vo.CommentVO;
 import com.pluchon.meng.content.controller.vo.ImageVO;
+import com.pluchon.meng.content.controller.vo.MentionVO;
 import com.pluchon.meng.content.entity.CommentEntity;
 import com.pluchon.meng.content.entity.CommentImageEntity;
+import com.pluchon.meng.content.entity.CommentMentionEntity;
 
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,7 @@ public class CommentConverter {
     public CommentVO comment(
             CommentEntity c,
             List<CommentImageEntity> images,
+            List<CommentMentionEntity> mentions,
             Map<Long, PublicUserVO> authors,
             boolean liked,
             long postAuthor) {
@@ -56,6 +59,8 @@ public class CommentConverter {
                 c.getAuthorId() == postAuthor,
                 c.getReplyCount(),
                 c.getReplyToUserId(),
-                target == null ? null : target.nickname());
+                target == null ? null : target.nickname(),
+                c.getPinnedTime() != null,
+                mentions.stream().map(m -> new MentionVO(m.getUserId(), m.getNickname())).toList());
     }
 }

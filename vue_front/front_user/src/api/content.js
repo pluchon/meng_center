@@ -4,6 +4,7 @@ export const contentApi = {
   folders: (params, config = {}) => request.get(Root + '/favorite-folders', { ...config, params }),
   createFolder: (data) => request.post(Root + '/favorite-folders', data),
   updateFolder: (id, data) => request.put(Root + '/favorite-folders/' + id, data),
+  changeFolderCover: (id, data) => request.post(Root + '/favorite-folders/' + id + '/cover', data),
   deleteFolder: (id) => request.delete(Root + '/favorite-folders/' + id),
   folderPosts: (id, params, config = {}) =>
     request.get(Root + '/favorite-folders/' + id + '/posts', { ...config, params }),
@@ -25,6 +26,11 @@ export const contentApi = {
   replies: (id, params) => request.get(Root + '/comments/' + id + '/replies', { params }),
   comment: (id, body) => request.post(Root + '/posts/' + id + '/comments', body),
   deleteComment: (id) => request.delete(Root + '/comments/' + id),
+  pinComment: (id, on) =>
+    on
+      ? request.put(Root + '/comments/' + id + '/pin')
+      : request.delete(Root + '/comments/' + id + '/pin'),
+  mentionCandidates: (postId) => request.get(Root + '/posts/' + postId + '/mention-candidates'),
   commentLike: (id, on) =>
     on
       ? request.put(Root + '/comments/' + id + '/like')

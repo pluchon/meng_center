@@ -6,11 +6,13 @@ import com.pluchon.meng.common.core.security.IdentityHeaders;
 import com.pluchon.meng.content.controller.dto.CreateCommentDTO;
 import com.pluchon.meng.content.controller.vo.CommentLocationVO;
 import com.pluchon.meng.content.controller.vo.CommentVO;
+import com.pluchon.meng.content.controller.vo.MentionCandidateVO;
 import com.pluchon.meng.content.service.CommentService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Positive;
+import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -80,6 +82,28 @@ public class CommentController {
     @DeleteMapping("/comments/{id}")
     public ApiResponse<Long> delete(@PathVariable @Positive long id) {
         return ApiResponse.success(service.delete(id));
+    }
+
+    /** 查询输入 @ 时可以选的人。 */
+    @GetMapping("/posts/{id}/mention-candidates")
+    public ApiResponse<List<MentionCandidateVO>> mentionCandidates(
+        @PathVariable @Positive long id
+    ) {
+        return ApiResponse.success(service.mentionCandidates(id));
+    }
+
+    /** 帖子作者置顶一级评论。 */
+    @PutMapping("/comments/{id}/pin")
+    public ApiResponse<Void> pin(@PathVariable @Positive long id) {
+        service.pin(id, true);
+        return ApiResponse.success(null);
+    }
+
+    /** 帖子作者取消置顶。 */
+    @DeleteMapping("/comments/{id}/pin")
+    public ApiResponse<Void> unpin(@PathVariable @Positive long id) {
+        service.pin(id, false);
+        return ApiResponse.success(null);
     }
 
     /** 点赞评论。 */

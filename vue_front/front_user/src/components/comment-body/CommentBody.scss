@@ -17,6 +17,11 @@
   gap: var(--meng-space-2);
 }
 
+.body-mention {
+  color: var(--meng-primary);
+  font-weight: 800;
+}
+
 .body-text + .body-images {
   margin-top: var(--meng-space-2);
 }

@@ -137,7 +137,7 @@ public interface ImMapper {
     // duplicate 对应的消息域查询
     @Select(
         """
-        SELECT * FROM private_message WHERE sender_id=#{user} AND client_msg_id=#{client}
+        SELECT *,GREATEST(0,300000-TIMESTAMPDIFF(MICROSECOND,create_time,NOW(3)) DIV 1000) revoke_millis FROM private_message WHERE sender_id=#{user} AND client_msg_id=#{client}
         """
     )
     ImRows.Message duplicate(
@@ -148,7 +148,7 @@ public interface ImMapper {
     // message 对应的消息域查询
     @Select(
         """
-        SELECT * FROM private_message WHERE id=#{id} AND delete_state=0
+        SELECT *,GREATEST(0,300000-TIMESTAMPDIFF(MICROSECOND,create_time,NOW(3)) DIV 1000) revoke_millis FROM private_message WHERE id=#{id} AND delete_state=0
         """
     )
     ImRows.Message message(long id);
@@ -165,7 +165,7 @@ public interface ImMapper {
     // messages 对应的消息域查询
     @Select(
         """
-               <script>SELECT * FROM private_message WHERE conversation_id=#{id} AND id &gt; #{cleared} AND delete_state=0
+               <script>SELECT *,GREATEST(0,300000-TIMESTAMPDIFF(MICROSECOND,create_time,NOW(3)) DIV 1000) revoke_millis FROM private_message WHERE conversation_id=#{id} AND id &gt; #{cleared} AND delete_state=0
         <if test="before != null">AND id &lt; #{before}</if> ORDER BY id DESC LIMIT #{size}</script>
                """
     )
@@ -197,7 +197,7 @@ public interface ImMapper {
         """
                UPDATE conversation_member SET last_read_message_id=GREATEST(last_read_message_id,#{message}),
         unread_count=(SELECT COUNT(*) FROM private_message WHERE conversation_id=#{id} AND sender_id <> #{user}
-        AND id > GREATEST(#{message},last_read_message_id,cleared_message_id) AND delete_state=0)
+        AND id > GREATEST(#{message},last_read_message_id,cleared_message_id) AND revoked_time IS NULL AND delete_state=0)
         WHERE conversation_id=#{id} AND user_id=#{user}
                """
     )
@@ -205,6 +205,40 @@ public interface ImMapper {
         @Param("id") long id,
         @Param("user") long user,
         @Param("message") long message
+    );
+
+    // 撤回发出不超过限定秒数的自己的消息，时间以数据库为准，已撤回或过期时返回零
+    @Update(
+        "UPDATE private_message SET revoked_time=NOW(3) WHERE id=#{id} AND sender_id=#{user}" +
+            " AND revoked_time IS NULL AND delete_state=0" +
+            " AND create_time >= DATE_SUB(NOW(3), INTERVAL #{seconds} SECOND)"
+    )
+    int revoke(
+        @Param("id") long id,
+        @Param("user") long user,
+        @Param("seconds") int seconds
+    );
+
+    // 对方还没读的消息被撤回，未读数减一
+    @Update(
+        "UPDATE conversation_member SET unread_count=GREATEST(unread_count-1,0)" +
+            " WHERE conversation_id=#{id} AND user_id=#{user}" +
+            " AND last_read_message_id < #{message} AND cleared_message_id < #{message}"
+    )
+    int revokedUnread(
+        @Param("id") long id,
+        @Param("user") long user,
+        @Param("message") long message
+    );
+
+    // 改成员列表里的最近消息摘要
+    @Update(
+        "UPDATE conversation_member SET last_message_preview=#{preview} WHERE conversation_id=#{id} AND user_id=#{user}"
+    )
+    void preview(
+        @Param("id") long id,
+        @Param("user") long user,
+        @Param("preview") String preview
     );
 
     // lastMessage 对应的消息域查询

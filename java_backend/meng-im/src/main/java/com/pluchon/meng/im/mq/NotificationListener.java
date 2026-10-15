@@ -41,6 +41,27 @@ public class NotificationListener {
         row.setOriginalExcerpt(body.originalExcerpt());
         row.setDedupeKey("comment:" + body.commentId());
         notices.receive(row);
+        mentions(body);
+    }
+
+    // 被 @ 的人各收一条提到了你；已经因为被回复收到通知的人不再重复提醒
+    private void mentions(CommentCreatedEvent body) {
+        if (body.mentionedUserIds() == null) return;
+        for (var userId : body.mentionedUserIds()) {
+            if (userId.equals(body.targetUserId())) continue;
+            var row = new ImRows.Notice();
+            row.setReceiverId(userId);
+            row.setActorId(body.authorId());
+            row.setChannel(Channel.COMMENT);
+            row.setSource("POST");
+            row.setType(NoticeType.COMMENT_MENTION);
+            row.setPostId(body.postId());
+            row.setPostTitle(body.postTitle());
+            row.setCommentId(body.commentId());
+            row.setExcerpt(body.excerpt());
+            row.setDedupeKey("mention:" + body.commentId() + ":" + userId);
+            notices.receive(row);
+        }
     }
 
     @RabbitListener(

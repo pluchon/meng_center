@@ -1,5 +1,13 @@
 <template>
   <div class="account-folders">
+    <input
+      ref="coverInput"
+      class="account-folder-file"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      tabindex="-1"
+      @change="coverSelected"
+    >
     <div class="account-folder-grid">
       <button
         v-for="(folder, index) in rows"
@@ -13,12 +21,30 @@
           class="account-folder-cover"
           :class="'tone-' + index % 3"
         >
-          <img
-            :src="folder.cover ? contentImage(folder.cover) : accountFolderCover"
-            alt=""
-            loading="lazy"
-            decoding="async"
+          <Transition
+            name="folder-cover"
+            mode="out-in"
           >
+            <img
+              :key="folder.cover || 'default'"
+              :src="folder.cover ? contentImage(folder.cover) : accountFolderCover"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            >
+          </Transition>
+          <span
+            v-if="!folder.isDefault"
+            class="account-folder-change"
+            :class="{ busy: changing === folder.id }"
+            role="button"
+            tabindex="0"
+            @click.stop="pickCover(folder)"
+            @keydown.enter.stop.prevent="pickCover(folder)"
+            @keydown.space.stop.prevent="pickCover(folder)"
+          >
+            <CoverCamera />{{ changing === folder.id ? t('account.coverChanging') : t('account.changeCover') }}
+          </span>
         </div>
         <span
           v-if="folder.isDefault"

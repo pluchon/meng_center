@@ -125,7 +125,8 @@
 }
 
 .post_comment,
-.comment_reply {
+.comment_reply,
+.comment_mention {
   --notice-bg: var(--meng-category-game);
   --notice-edge: var(--meng-category-game-dot);
 }

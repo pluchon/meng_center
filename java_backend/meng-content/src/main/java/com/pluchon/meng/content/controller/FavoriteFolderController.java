@@ -96,6 +96,16 @@ public class FavoriteFolderController {
         return ApiResponse.success(null);
     }
 
+    /** 更换收藏夹的封面，默认收藏夹不能换。 */
+    @PostMapping("/favorite-folders/{id}/cover")
+    public ApiResponse<Void> changeCover(
+        @PathVariable @Positive long id,
+        @RequestParam MultipartFile cover
+    ) throws IOException {
+        folders.changeCover(id, cover);
+        return ApiResponse.success(null);
+    }
+
     @DeleteMapping("/favorite-folders/{id}")
     public ApiResponse<Void> delete(@PathVariable long id) {
         folders.delete(id);

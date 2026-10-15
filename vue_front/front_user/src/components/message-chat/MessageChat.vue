@@ -96,50 +96,90 @@
             class="message-time"
             :datetime="item.createTime"
           >{{ formatTime(item.createTime) }}</time>
-          <div class="message-content">
-            <div class="message-stack">
-              <div
-                v-if="item.text||item.items.length===1"
-                class="message-bubble"
+          <Transition
+            name="revoked-swap"
+            mode="out-in"
+          >
+            <div
+              v-if="item.revoked"
+              key="revoked"
+              class="message-revoked"
+            >
+              <span>{{ t(item.senderId===im.userId?'im.revokedSelf':'im.revokedPeer') }}</span>
+              <button
+                v-if="item.senderId===im.userId&&(item.text||item.items.length)"
+                class="revoke-edit"
+                type="button"
+                :disabled="disabled||busy"
+                @click="reedit(item)"
               >
-                <CommentBody
-                  v-if="item.text"
-                  :content="item.text"
-                />
+                {{ t('im.reedit') }}
+              </button>
+            </div>
+            <div
+              v-else
+              key="live"
+              class="message-content"
+            >
+              <div class="message-stack">
+                <div
+                  v-if="item.text||item.items.length===1"
+                  class="message-bubble"
+                >
+                  <CommentBody
+                    v-if="item.text"
+                    :content="item.text"
+                  />
+                  <MessageImages
+                    v-if="item.items.length===1"
+                    class="bubble-attachment"
+                    large
+                    :items="item.items"
+                  />
+                </div>
                 <MessageImages
-                  v-if="item.items.length===1"
-                  class="bubble-attachment"
-                  large
+                  v-if="item.items.length>1"
                   :items="item.items"
                 />
               </div>
-              <MessageImages
-                v-if="item.items.length>1"
-                :items="item.items"
-              />
+              <button
+                v-if="item.error"
+                class="message-failure"
+                type="button"
+                :title="item.error"
+                @click="im.send('',[],item)"
+              >
+                <img
+                  class="message-art-icon"
+                  :src="messageRefreshIcon"
+                  width="14"
+                  height="14"
+                  alt=""
+                  aria-hidden="true"
+                >{{ t('im.failed') }}
+              </button>
+              <div
+                v-else
+                class="message-meta"
+              >
+                <Transition name="revoke-btn">
+                  <button
+                    v-if="canRevoke(item)"
+                    class="message-revoke"
+                    type="button"
+                    :disabled="revoking===item.id"
+                    @click="revoke(item)"
+                  >
+                    <el-icon><IconArrowBackUp /></el-icon>{{ t('im.revoke') }}
+                  </button>
+                </Transition>
+                <small
+                  class="message-receipt"
+                  :class="{unread:item.senderId===im.userId&&item.id>im.current.peerReadMessageId}"
+                >{{ t(item.pending?'im.sending':item.id<=(item.senderId===im.userId?im.current.peerReadMessageId:im.current.lastReadMessageId)?'im.read':'im.unread') }}</small>
+              </div>
             </div>
-            <button
-              v-if="item.error"
-              class="message-failure"
-              type="button"
-              :title="item.error"
-              @click="im.send('',[],item)"
-            >
-              <img
-                class="message-art-icon"
-                :src="messageRefreshIcon"
-                width="14"
-                height="14"
-                alt=""
-                aria-hidden="true"
-              >{{ t('im.failed') }}
-            </button>
-            <small
-              v-else
-              class="message-receipt"
-              :class="{unread:item.senderId===im.userId&&item.id>im.current.peerReadMessageId}"
-            >{{ t(item.pending?'im.sending':item.id<=(item.senderId===im.userId?im.current.peerReadMessageId:im.current.lastReadMessageId)?'im.read':'im.unread') }}</small>
-          </div>
+          </Transition>
         </div>
       </TransitionGroup>
     </div>

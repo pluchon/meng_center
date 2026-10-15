@@ -9,6 +9,7 @@ export const imApi = {
   messages: (id, params, config = {}) =>
     request.get(Root + '/conversations/' + id + '/messages', { ...config, params }),
   send: (body) => request.post(Root + '/messages', body, { silent: true }),
+  revoke: (id) => request.put(Root + '/messages/' + id + '/revocation', null, { silent: true }),
   read: (id, messageId) =>
     request.put(Root + '/conversations/' + id + '/read', { messageId }, { silent: true }),
   delete: (id) => request.delete(Root + '/conversations/' + id),

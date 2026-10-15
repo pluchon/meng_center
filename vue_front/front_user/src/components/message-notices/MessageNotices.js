@@ -21,6 +21,7 @@ import PageState from '@/components/page-state/PageState.vue'
 const typeIcons = {
   [NoticeType.POST_COMMENT]: authCodeIcon,
   [NoticeType.COMMENT_REPLY]: authCodeIcon,
+  [NoticeType.COMMENT_MENTION]: authCodeIcon,
   [NoticeType.POST_LIKED]: messageHeartIcon,
   [NoticeType.COMMENT_LIKED]: messageHeartIcon,
   [NoticeType.POST_FAVORITED]: growthFlagIcon,

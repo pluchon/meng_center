@@ -12,7 +12,10 @@
         >{{ t('home.level',{level:comment.author.level}) }}</span><span
           v-if="comment.postAuthor"
           class="author-badge"
-        >{{ t('detail.author') }}</span><time :datetime="comment.createTime">{{ relativeTime(comment.createTime) }}</time><span
+        >{{ t('detail.author') }}</span><span
+          v-if="comment.pinned"
+          class="pin-badge"
+        >{{ t('detail.pinnedBadge') }}</span><time :datetime="comment.createTime">{{ relativeTime(comment.createTime) }}</time><span
           v-if="comment.ipRegion"
           class="region"
         ><el-icon><Location /></el-icon>{{ comment.ipRegion }}</span>
@@ -21,7 +24,10 @@
         <span
           v-if="comment.replyToUserId"
           class="reply-target"
-        >{{ t('detail.replyTo',{name:comment.replyToNickname||t('home.authorFallback')}) }}</span><CommentBody :content="comment.content" />
+        >{{ t('detail.replyTo',{name:comment.replyToNickname||t('home.authorFallback')}) }}</span><CommentBody
+          :content="comment.content"
+          :mentions="comment.mentions"
+        />
       </div>
       <PostImages
         :images="comment.images"
@@ -55,6 +61,17 @@
           {{ t('detail.replies',{count:comment.replyCount}) }}<el-icon :class="{expanded}">
             <ArrowDown />
           </el-icon>
+        </button>
+        <button
+          v-if="canPin&&!compact"
+          type="button"
+          class="pin-action"
+          :class="{pinned:comment.pinned}"
+          :disabled="busy"
+          :aria-pressed="comment.pinned"
+          @click="$emit('pin',comment)"
+        >
+          <el-icon><IconPin /></el-icon>{{ t(comment.pinned?'detail.unpin':'detail.pin') }}
         </button>
         <button
           v-if="own"

@@ -1,7 +1,7 @@
 import { defineComponent, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Delete, ArrowDown, Location } from '@element-plus/icons-vue'
-import { IconHeart, IconFlag } from '@tabler/icons-vue'
+import { IconHeart, IconFlag, IconPin } from '@tabler/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { usePostTime } from '@/composables/usePostTime'
 import CommentBody from '@/components/comment-body/CommentBody.vue'
@@ -15,6 +15,7 @@ export default defineComponent({
     PostImages,
     IconHeart,
     IconFlag,
+    IconPin,
     Delete,
     ArrowDown,
     Location,
@@ -24,8 +25,10 @@ export default defineComponent({
     compact: Boolean,
     expanded: Boolean,
     busy: Boolean,
+    // 当前用户是帖子作者，可以置顶一级评论
+    canPin: Boolean,
   },
-  emits: ['like', 'reply', 'delete', 'report', 'expand'],
+  emits: ['like', 'reply', 'delete', 'report', 'expand', 'pin'],
   setup(props) {
     const user = useUserStore()
     return {

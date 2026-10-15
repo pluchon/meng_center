@@ -360,6 +360,103 @@
   margin-top: 0;
 }
 
+// 已读未读和它上面的撤回按钮竖着排在气泡旁边
+.message-meta {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.self .message-meta {
+  align-items: flex-end;
+}
+
+.message-revoke {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 10px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.message-revoke:hover:not(:disabled) {
+  box-shadow: 0 4px 0 var(--meng-tint);
+  color: var(--meng-primary);
+  transform: translateY(-2px);
+}
+
+.message-revoke:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.revoke-btn-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms var(--meng-motion-ease);
+}
+
+.revoke-btn-leave-to {
+  opacity: 0;
+  transform: translateY(6px) scale(0.85);
+}
+
+// 撤回后的占位：居中的一行小字，自己撤回的末尾有一个换色的「重新编辑」
+.message-revoked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.revoke-edit {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--meng-primary);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.revoke-edit:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.revoke-edit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.revoked-swap-enter-active,
+.revoked-swap-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms var(--meng-motion-ease);
+}
+
+.revoked-swap-enter-from,
+.revoked-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.94);
+}
+
 .message-receipt {
   flex: none;
   margin-bottom: 3px;
@@ -695,6 +792,10 @@
 
   .message-appear-enter-active,
   .message-bubble,
+  .message-revoke,
+  .revoke-btn-leave-active,
+  .revoked-swap-enter-active,
+  .revoked-swap-leave-active,
   .composer-tools button,
   .composer-field textarea,
   .block-toggle,

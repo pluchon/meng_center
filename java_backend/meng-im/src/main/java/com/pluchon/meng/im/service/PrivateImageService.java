@@ -77,7 +77,9 @@ public class PrivateImageService {
             if (
                 member == null ||
                 member.getHiddenState() ||
-                message.getId() <= member.getClearedMessageId()
+                message.getId() <= member.getClearedMessageId() ||
+                (message.getRevokedTime() != null &&
+                    message.getSenderId() != user)
             ) missing();
         }
         return storage.path(thumb ? row.getThumbName() : row.getFileName());

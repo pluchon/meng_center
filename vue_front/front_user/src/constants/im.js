@@ -27,6 +27,7 @@ export const MessageKind = Object.freeze({ TEXT: 'TEXT', IMAGE: 'IMAGE' })
 export const NoticeType = Object.freeze({
   POST_COMMENT: 'POST_COMMENT',
   COMMENT_REPLY: 'COMMENT_REPLY',
+  COMMENT_MENTION: 'COMMENT_MENTION',
   POST_LIKED: 'POST_LIKED',
   POST_FAVORITED: 'POST_FAVORITED',
   COMMENT_LIKED: 'COMMENT_LIKED',

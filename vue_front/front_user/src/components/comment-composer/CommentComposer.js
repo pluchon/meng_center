@@ -2,17 +2,28 @@ import { computed, defineComponent, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Close, Plus, Picture as PictureIcon, Refresh } from '@element-plus/icons-vue'
-import { IconMoodSmile } from '@tabler/icons-vue'
+import { IconMoodSmile, IconSend } from '@tabler/icons-vue'
 import CollapsePanel from '@/components/collapse-panel/CollapsePanel.vue'
+import EmotionPanel from '@/components/emotion-panel/EmotionPanel.vue'
 import { contentApi } from '@/api/content'
-import { userAvatar } from '@/assets/images'
+import { userAvatar, communitySparkle } from '@/assets/images'
+import { avatarUrl } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useEditorUploads } from '@/composables/useEditorUploads'
-import { Comment, Emotions, emotionToken } from '@/constants/comments'
+import { Comment, emotionToken } from '@/constants/comments'
 import { notifyFailure } from '@/composables/useFailureNotice'
 export default defineComponent({
   name: 'CommentComposer',
-  components: { Close, Plus, PictureIcon, IconMoodSmile, Refresh, CollapsePanel },
+  components: {
+    Close,
+    Plus,
+    PictureIcon,
+    IconMoodSmile,
+    IconSend,
+    Refresh,
+    CollapsePanel,
+    EmotionPanel,
+  },
   props: {
     postId: { type: [String, Number], required: true },
     target: { type: Object, default: null },
@@ -28,7 +39,15 @@ export default defineComponent({
       input = ref(null),
       panel = ref(false),
       busy = ref(false),
-      error = ref('')
+      error = ref(''),
+      candidates = ref([]),
+      candidatesReady = ref(false),
+      mentionOpen = ref(false),
+      mentionWord = ref(''),
+      mentionActive = ref(0),
+      chosen = ref([])
+    let mentionStart = -1,
+      candidatesRequested = false
     // 超出张数、图片不合规这类提示统一用顶部的消息弹框，不在输入框上面插一行红字
     const tip = computed(() => {
       if (attachmentCount.value > Comment.ATTACHMENTS)
@@ -73,6 +92,87 @@ export default defineComponent({
       if (chars.length > room) text.value = chars.slice(0, Math.max(0, room)).join('')
       resize()
     }
+    const matches = computed(() => {
+      const word = mentionWord.value.toLowerCase()
+      return candidates.value.filter((item) => item.nickname.toLowerCase().includes(word)).slice(0, 8)
+    })
+    const showMentions = computed(
+      () =>
+        mentionOpen.value &&
+        (matches.value.length > 0 || (candidatesReady.value && !candidates.value.length)),
+    )
+    async function loadCandidates() {
+      if (candidatesRequested) return
+      candidatesRequested = true
+      try {
+        candidates.value = await contentApi.mentionCandidates(props.postId)
+        candidatesReady.value = true
+      } catch (e) {
+        candidatesRequested = false
+        notifyFailure(e)
+      }
+    }
+    function closeMention() {
+      mentionOpen.value = false
+      mentionStart = -1
+    }
+    // 光标前面紧跟着 @关键字 时打开候选
+    function detect() {
+      const el = field.value
+      if (!el || busy.value) {
+        closeMention()
+        return
+      }
+      const caret = el.selectionStart
+      const found = /(^|\s)@([^\s@]{0,20})$/u.exec(text.value.slice(0, caret))
+      if (!found) {
+        closeMention()
+        return
+      }
+      const start = caret - found[2].length - 1
+      if (!mentionOpen.value || start !== mentionStart || found[2] !== mentionWord.value)
+        mentionActive.value = 0
+      mentionStart = start
+      mentionWord.value = found[2]
+      mentionOpen.value = true
+      void loadCandidates()
+    }
+    function pick(item) {
+      const el = field.value
+      const start = mentionStart
+      const caret = el ? el.selectionStart : text.value.length
+      const inserted = '@' + item.nickname + ' '
+      text.value = text.value.slice(0, start) + inserted + text.value.slice(caret)
+      if (!chosen.value.some((mention) => mention.userId === item.id))
+        chosen.value.push({ userId: item.id, nickname: item.nickname })
+      closeMention()
+      void nextTick(() => {
+        limit()
+        field.value?.focus({ preventScroll: true })
+        field.value?.setSelectionRange(start + inserted.length, start + inserted.length)
+      })
+    }
+    function mentionKey(event) {
+      if (!showMentions.value || !matches.value.length || event.isComposing) return
+      const size = matches.value.length
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        mentionActive.value = (mentionActive.value + 1) % size
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        mentionActive.value = (mentionActive.value - 1 + size) % size
+      } else if (event.key === 'Enter' || event.key === 'Tab') {
+        event.preventDefault()
+        pick(matches.value[mentionActive.value])
+      } else if (event.key === 'Escape') {
+        event.preventDefault()
+        closeMention()
+      }
+    }
+    function onInput(event) {
+      limit(event)
+      detect()
+    }
     function resize() {
       if (field.value) {
         field.value.style.height = 'auto'
@@ -110,9 +210,14 @@ export default defineComponent({
           content: content.value,
           imageIds: uploads.images.value.map((i) => i.id),
           replyToCommentId: props.target?.id ?? null,
+          mentionUserIds: chosen.value
+            .filter((mention) => text.value.includes('@' + mention.nickname))
+            .map((mention) => mention.userId),
         })
         const target = props.target
         text.value = ''
+        chosen.value = []
+        closeMention()
         selectedEmotions.value = []
         uploads.hydrate([], null)
         panel.value = false
@@ -151,8 +256,18 @@ export default defineComponent({
       removeEmotion,
       valid,
       Comment,
-      Emotions,
       insert,
+      matches,
+      showMentions,
+      mentionActive,
+      pick,
+      mentionKey,
+      detect,
+      closeMention,
+      onInput,
+      avatarUrl,
+      userAvatar,
+      communitySparkle,
       send,
       resize,
       limit,

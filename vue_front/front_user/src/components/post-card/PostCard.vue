@@ -43,7 +43,7 @@
       class="post-images"
     >
       <button
-        v-for="(image,index) in post.images"
+        v-for="(image,index) in shownImages"
         :key="image.id"
         type="button"
         @click="preview(index)"
@@ -59,7 +59,7 @@
               <PictureIcon />
             </el-icon>
           </template>
-        </el-image><span v-if="index===4&&post.imageCount>5">{{ t('home.extraImages',{count:post.imageCount-5}) }}</span>
+        </el-image><span v-if="index===SHOWN_IMAGES-1&&post.imageCount>SHOWN_IMAGES">{{ t('home.extraImages',{count:post.imageCount-SHOWN_IMAGES}) }}</span>
       </button>
     </div>
     <ImageViewer

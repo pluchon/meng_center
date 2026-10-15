@@ -13,6 +13,9 @@ public final class MessageRules {
         "\\[表情:[^\\s\\[\\]]{1,12}\\]"
     );
 
+    // 发出后多少秒内可以撤回
+    public static final int REVOKE_SECONDS = 300;
+
     private MessageRules() {}
 
     public static void validate(ImDTO.Send dto) {
