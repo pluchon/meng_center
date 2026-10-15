@@ -14,7 +14,7 @@
   display: flex;
   flex-direction: column;
   padding: 16px;
-  border: 2px solid var(--meng-tint);
+  border: 2px dashed var(--meng-border);
   border-radius: 26px;
   background: var(--meng-growth-calendar-surface);
 }
@@ -89,18 +89,41 @@
   background: var(--meng-bg);
   color: var(--meng-primary-light-3);
   font-weight: 800;
-  transition: transform 180ms ease;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease);
+  animation: day-pop 360ms var(--meng-slide-ease) backwards;
+  animation-delay: calc(var(--d, 1) * 14ms);
 }
 
+@keyframes day-pop {
+  0% {
+    opacity: 0;
+    scale: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+// 签到过的日子像盖了章：带白边、同色底影，悬停时歪着跳一下
 .calendar-day.signed {
   border: 3px solid var(--meng-surface);
   background: var(--growth-fill);
   color: var(--meng-text);
   box-shadow: 0 3px 0 var(--growth-edge);
+  rotate: -4deg;
+}
+
+.calendar-day.signed:nth-child(even) {
+  rotate: 4deg;
 }
 
 .calendar-day.signed:hover {
-  transform: translateY(-3px) rotate(-6deg);
+  rotate: -10deg;
+  translate: 0 -4px;
 }
 
 .calendar-day.now {
@@ -131,10 +154,15 @@
   align-items: center;
   gap: 10px;
   padding: 4px;
+  border: 2px solid var(--meng-surface);
   border-radius: 28px;
-  background: var(--meng-bg);
+  background: var(--meng-surface);
+  box-shadow:
+    0 0 0 1.5px var(--meng-border),
+    0 3px 0 var(--meng-border);
   font-size: 14px;
-  color: var(--meng-muted);
+  font-weight: 800;
+  color: var(--meng-shadow-hard);
 }
 
 .month-controls button {
@@ -145,19 +173,36 @@
   border: 0;
   border-radius: 50%;
   color: var(--meng-primary);
-  background: var(--meng-surface);
-  box-shadow: 0 2px 0 var(--meng-tint);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   cursor: pointer;
-  transition: transform 180ms var(--meng-motion-ease);
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 }
 
 .month-controls button:hover:not(:disabled) {
-  transform: translateY(-2px);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  translate: 0 -2px;
 }
 
 .month-controls button:active:not(:disabled),
 .check-in:active:not(:disabled) {
-  transform: translateY(2px);
+  translate: 0 2px;
+}
+
+.chevron {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
+.chevron-left {
+  rotate: -90deg;
+}
+
+.chevron-right {
+  rotate: 90deg;
 }
 
 .month-controls button:disabled {
@@ -172,25 +217,55 @@
   gap: 8px;
   align-items: center;
   justify-content: center;
-  padding: 9px 18px;
-  min-height: 40px;
-  font-size: 14px;
-  border: 0;
+  padding: 6px 20px 6px 12px;
+  min-height: 44px;
+  font-size: 15px;
+  border: 3px solid var(--meng-surface);
   border-radius: 26px;
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 5px 0 var(--meng-shadow-hard);
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  box-shadow: 0 5px 0 var(--meng-creator-yellow);
   font-weight: 800;
-  transition: transform 180ms ease;
+  rotate: 1.5deg;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
   cursor: pointer;
 }
 
-.check-in:hover:not(:disabled) {
-  transform: translateY(-2px);
+.check-icon {
+  display: block;
+  width: 28px;
+  height: 28px;
 }
 
+.check-in:hover:not(:disabled) {
+  box-shadow: 0 7px 0 var(--meng-creator-yellow);
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.check-in:hover:not(:disabled) .check-icon {
+  animation: check-hop 520ms ease-in-out;
+}
+
+@keyframes check-hop {
+  40% {
+    translate: 0 -5px;
+    rotate: -10deg;
+  }
+
+  70% {
+    rotate: 8deg;
+  }
+}
+
+// 已签到：薄荷色，不再晃动
 .check-in:disabled {
-  opacity: 0.7;
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  box-shadow: 0 3px 0 var(--meng-creator-green-shadow);
   cursor: default;
 }
 
@@ -233,6 +308,7 @@
   .calendar-day,
   .month-controls button,
   .check-in,
+  .check-in .check-icon,
   .calendar-shift-enter-active,
   .calendar-shift-leave-active {
     animation: none;

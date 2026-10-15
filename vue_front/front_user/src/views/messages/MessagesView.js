@@ -1,17 +1,15 @@
+import {
+  messageBackIcon,
+  navMessageIcon,
+  messageChevronIcon,
+  authHeartIcon,
+  navGrowthIcon,
+  messageHeartIcon,
+  messageShieldIcon,
+} from '@/assets/images'
 import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  IconArrowBackUp,
-  IconMessageCircle,
-  IconDots,
-  IconChevronUp,
-  IconPlant2,
-  IconHeart,
-  IconMessages,
-  IconShieldCheck,
-} from '@tabler/icons-vue'
-import { ElMessageBox } from 'element-plus'
 import { RouteName } from '@/router/names'
 import { useUserStore } from '@/stores/user'
 import { useImStore } from '@/stores/im'
@@ -19,24 +17,24 @@ import { MessageTab, MessageTabs, NotificationChannel, NoticeType, Im } from '@/
 import { imApi } from '@/api/im'
 import { usePostTime } from '@/composables/usePostTime'
 import { notifyFailure } from '@/composables/useFailureNotice'
-import { userAvatar, communitySparkle } from '@/assets/images'
+import {
+  userAvatar,
+  communitySparkle,
+  authCodeIcon,
+  editorCirnoMascot,
+} from '@/assets/images'
 import MessageChat from '@/components/message-chat/MessageChat.vue'
 import MessageNotices from '@/components/message-notices/MessageNotices.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 import PixelBlast from '@/components/pixel-blast/PixelBlast.vue'
+import PageState from '@/components/page-state/PageState.vue'
 export default defineComponent({
   name: 'MessagesView',
   components: {
     PixelBlast,
+    PageState,
     MessageAvatar,
-    IconArrowBackUp,
-    IconMessageCircle,
-    IconDots,
-    IconChevronUp,
-    IconPlant2,
-    IconHeart,
-    IconMessages,
-    IconShieldCheck,
+
     MessageChat,
     MessageNotices,
   },
@@ -49,8 +47,18 @@ export default defineComponent({
     const tab = computed(() =>
       MessageTabs.includes(route.query.tab) ? route.query.tab : MessageTab.CHAT,
     )
+    // 四个页签各自的图标
+    const tabIcons = {
+      chat: navMessageIcon,
+      comment: authCodeIcon,
+      like: messageHeartIcon,
+      system: messageShieldIcon,
+    }
+    // 列表在滚动时先停掉背景动画，滚动更跟手
+    const pixel = ref(null)
+    const pausePixels = () => pixel.value?.hold(220)
     const availableGroups = computed(() =>
-      tab.value === MessageTab.SYSTEM ? ['GROWTH', 'REPORT', 'APPROVAL'] : ['POST'],
+      tab.value === MessageTab.SYSTEM ? ['GROWTH', 'FOLLOW', 'REPORT', 'APPROVAL'] : ['POST'],
     )
     const group = computed(() =>
       availableGroups.value.includes(route.query.group)
@@ -235,27 +243,9 @@ export default defineComponent({
         changingPresence.value = false
       }
     }
-    async function action(kind, item) {
-      if (kind === 'delete') {
-        try {
-          await ElMessageBox.confirm(t('im.removeConfirm'), t('im.remove'), {
-            confirmButtonText: t('im.remove'),
-            cancelButtonText: t('im.cancel'),
-            type: 'warning',
-          })
-        } catch {
-          return
-        }
-      }
-      try {
-        if (kind === 'delete') {
-          await im.deleteConversation(item.id)
-          if (!im.current)
-            await router.replace({ name: RouteName.MESSAGES, query: { tab: MessageTab.CHAT } })
-        } else await im.setBlocked(item.peer.id, !item.blocked)
-      } catch (failure) {
-        notifyFailure(failure)
-      }
+    // 会话列表里的预览：表情记号显示成「[表情]」
+    function previewText(value) {
+      return (value || '').replace(/\[表情:[^\s[\]]{1,12}\]/gu, t('im.emotionPreview'))
     }
     function groupRow(key) {
       return groups.value.find((item) => item.key === key)
@@ -289,6 +279,17 @@ export default defineComponent({
       document.documentElement.classList.remove('messages-scrollbar-hidden')
     })
     return {
+      messageBackIcon,
+      navMessageIcon,
+      messageChevronIcon,
+      authHeartIcon,
+      navGrowthIcon,
+      messageHeartIcon,
+      messageShieldIcon,
+      tabIcons,
+      editorCirnoMascot,
+      pixel,
+      pausePixels,
       t,
       route,
       user,
@@ -315,7 +316,7 @@ export default defineComponent({
       loadGroups,
       loadNotices,
       setPresence,
-      action,
+      previewText,
       groupRow,
       summary,
       nickname,

@@ -5,6 +5,12 @@ import { connectIm } from '@/api/imConnection'
 import { Im, MessageKind } from '@/constants/im'
 import { useUserStore } from '@/stores/user'
 const emptyUnread = () => ({ chat: 0, comment: 0, like: 0, system: 0 })
+// 记下撤回截止的本机时刻：服务端给的是剩余毫秒数，用单调时钟计算，不受本机时间偏差影响
+function withDeadline(message) {
+  return message.revokeMillis > 0
+    ? { ...message, revokeAt: performance.now() + message.revokeMillis }
+    : message
+}
 let connectionRuntime = null
 export const useImStore = defineStore('im', {
   state: () => ({
@@ -140,7 +146,7 @@ export const useImStore = defineStore('im', {
           : { records: [], hasMore: false }
         if (token !== this.generation) return
         this.current = current
-        this.messages = history.records
+        this.messages = history.records.map(withDeadline)
         this.hasMore = history.hasMore
         void this.markRead()
       } catch (error) {
@@ -181,7 +187,7 @@ export const useImStore = defineStore('im', {
           ...this.messages.filter(
             (item) => item.pending || item.error || (oldest && item.id < oldest),
           ),
-          ...history.records,
+          ...history.records.map(withDeadline),
         ].filter(
           (item, index, rows) =>
             rows.findIndex(
@@ -207,7 +213,10 @@ export const useImStore = defineStore('im', {
         )
         if (token !== this.generation) return
         const ids = new Set(this.messages.map((item) => item.id))
-        this.messages = [...data.records.filter((item) => !ids.has(item.id)), ...this.messages]
+        this.messages = [
+          ...data.records.filter((item) => !ids.has(item.id)).map(withDeadline),
+          ...this.messages,
+        ]
         this.hasMore = data.hasMore
       } catch (error) {
         if (token === this.generation) this.historyError = error.message
@@ -215,12 +224,52 @@ export const useImStore = defineStore('im', {
         if (token === this.generation) this.historyLoading = false
       }
     },
-    merge(message) {
+    merge(incoming) {
+      const message = withDeadline(incoming)
       const index = this.messages.findIndex(
         (item) => item.clientMsgId === message.clientMsgId && item.senderId === message.senderId,
       )
       if (index < 0) this.messages.push(message)
       else this.messages.splice(index, 1, message)
+    },
+    // 会话里有消息被撤回：对方看不到内容，自己保留文字用来重新编辑；会话列表的摘要稍后刷新
+    revoked({ conversationId, messageId, senderId }) {
+      if (this.current?.id === conversationId)
+        this.messages = this.messages.map((item) =>
+          item.id === messageId
+            ? {
+                ...item,
+                revoked: true,
+                revokeMillis: 0,
+                revokeAt: 0,
+                images: [],
+                content: senderId === this.userId ? item.content : null,
+              }
+            : item,
+        )
+      const runtime = connectionRuntime
+      clearTimeout(runtime?.refresh)
+      if (runtime)
+        runtime.refresh = setTimeout(() => {
+          void this.loadConversations()
+        }, Im.REFRESH_DELAY)
+    },
+    async revoke(message) {
+      try {
+        const result = await imApi.revoke(message.id)
+        this.revoked({
+          conversationId: result.conversationId,
+          messageId: result.id,
+          senderId: result.senderId,
+        })
+      } catch (error) {
+        // 服务端说已经过了时限：这条消息不再显示撤回按钮
+        if (error.code === 'IM_REVOKE_EXPIRED')
+          this.messages = this.messages.map((item) =>
+            item.id === message.id ? { ...item, revokeMillis: 0, revokeAt: 0 } : item,
+          )
+        throw error
+      }
     },
     async send(content, images = [], retry = null) {
       const peerId = retry?.peerId || this.current?.peer.id
@@ -229,7 +278,7 @@ export const useImStore = defineStore('im', {
         peerId,
         clientMsgId: crypto.randomUUID(),
         senderId: useUserStore().current.id,
-        content: images.length ? null : content,
+        content: content || null,
         imageIds: images.map((item) => item.id),
         images,
         type: images.length ? MessageKind.IMAGE : MessageKind.TEXT,
@@ -319,7 +368,8 @@ export const useImStore = defineStore('im', {
             void this.refreshCurrent()
           }, Im.REFRESH_DELAY)
         void this.markRead()
-      } else if (type === 'notice.new') this.revision++
+      } else if (type === 'dm.revoke') this.revoked(data)
+      else if (type === 'notice.new') this.revision++
     },
     async setHidden(hidden) {
       this.hidden = (await imApi.setting(hidden)).hidden

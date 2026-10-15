@@ -14,7 +14,7 @@
           <h1>{{ name }}</h1><span class="level-name">{{ levelName(account.level) }}</span><span
             class="level-star"
             aria-hidden="true"
-          /><strong class="experience-total">{{ account.exp }}<small v-if="account.nextLevelExp!=null">{{ ' / '+account.nextLevelExp }}</small><small v-else>{{ t('growth.maxLevel') }}</small></strong>
+          /><strong class="experience-total">{{ shown.exp }}<small v-if="account.nextLevelExp!=null">{{ ' / '+account.nextLevelExp }}</small><small v-else>{{ t('growth.maxLevel') }}</small></strong>
         </div>
         <div class="experience-row">
           <span class="level-badge">{{ t('growth.level',{level:account.level}) }}</span><div
@@ -25,7 +25,7 @@
             :aria-valuemax="100"
             :aria-label="t('growth.road')"
           >
-            <span :style="{width:progress+'%'}"><i
+            <span :style="{width:shownProgress+'%'}"><i
               class="progress-star"
               aria-hidden="true"
             ><span class="level-star" /></i></span>
@@ -65,7 +65,8 @@
             :offset="index/Math.max(1,levels.length-1)"
             :class="'tone-'+GrowthTones[index%GrowthTones.length]"
           /></linearGradient><clipPath id="growth-road-progress"><rect
-            :width="(width-100)*roadProgress/100+50"
+            class="road-clip"
+            :style="{width:(revealed?(width-100)*roadProgress/100+50:0)+'px'}"
             height="54"
           /></clipPath></defs>
           <path
@@ -83,6 +84,7 @@
             v-for="(level,index) in levels"
             :key="level.level"
             :class="['tone-'+GrowthTones[index%GrowthTones.length],{passed:level.level<=account.level,current:level.level===account.level}]"
+            :style="{'--i':index}"
           >
             <span
               class="road-number"

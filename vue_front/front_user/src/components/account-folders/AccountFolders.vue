@@ -1,10 +1,19 @@
 <template>
   <div class="account-folders">
+    <input
+      ref="coverInput"
+      class="account-folder-file"
+      type="file"
+      accept="image/jpeg,image/png,image/webp"
+      tabindex="-1"
+      @change="coverSelected"
+    >
     <div class="account-folder-grid">
       <button
         v-for="(folder, index) in rows"
         :key="folder.id"
         class="account-folder"
+        :class="'folder-' + (folder.color || 'GOLD').toLowerCase()"
         :style="{ '--folder-delay': index % 8 * 35 + 'ms' }"
         @click="$emit('open', folder)"
       >
@@ -12,12 +21,35 @@
           class="account-folder-cover"
           :class="'tone-' + index % 3"
         >
-          <img
-            :src="folder.cover ? contentImage(folder.cover) : accountFolderCover"
-            alt=""
-            loading="lazy"
-            decoding="async"
+          <Transition
+            name="folder-cover"
+            mode="out-in"
           >
+            <img
+              :key="folder.cover || 'default'"
+              :src="folder.cover ? contentImage(folder.cover) : accountFolderCover"
+              alt=""
+              loading="lazy"
+              decoding="async"
+            >
+          </Transition>
+          <span
+            v-if="!folder.isDefault && !userId"
+            class="account-folder-change"
+            :class="{ busy: changing === folder.id }"
+            role="button"
+            tabindex="0"
+            @click.stop="pickCover(folder)"
+            @keydown.enter.stop.prevent="pickCover(folder)"
+            @keydown.space.stop.prevent="pickCover(folder)"
+          >
+            <CoverCamera />{{ changing === folder.id ? t('account.coverChanging') : t('account.changeCover') }}
+          </span>
+          <span
+            v-if="!userId"
+            class="account-folder-visibility"
+            :class="folder.visibility === FolderVisibility.PUBLIC ? 'is-public' : 'is-private'"
+          ><el-icon><IconWorld v-if="folder.visibility === FolderVisibility.PUBLIC" /><IconLock v-else /></el-icon>{{ t(folder.visibility === FolderVisibility.PUBLIC ? 'account.visibilityPublic' : 'account.visibilityPrivate') }}</span>
         </div>
         <span
           v-if="folder.isDefault"
@@ -29,7 +61,7 @@
         </div>
       </button>
       <button
-        v-if="!resource.error && total < Account.FOLDERS_MAX && !resource.loading"
+        v-if="!userId && !resource.error && !resource.loading && rows.length >= total && total < Account.FOLDERS_MAX"
         class="account-folder account-folder-create"
         aria-haspopup="dialog"
         @click="$emit('create')"
@@ -39,12 +71,24 @@
     </div>
     <PageState
       v-if="resource.loading"
+      class="account-folder-state"
+      :class="{ 'is-bare': !rows.length }"
       state="loading"
     />
     <PageState
       v-else-if="resource.error"
+      class="account-folder-state"
+      :class="{ 'is-bare': !rows.length }"
       state="error"
       @retry="loadMore"
+    />
+    <PageState
+      v-else-if="userId && !rows.length"
+      class="account-folder-state is-bare"
+      state="empty"
+      art="collection"
+      size="tall"
+      :text="t('account.noPublicFolders')"
     />
     <div
       ref="sentinel"

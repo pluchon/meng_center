@@ -1,7 +1,8 @@
 import { computed, defineComponent, nextTick, reactive, ref, watch, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import { EditPen } from '@element-plus/icons-vue'
 import { Comment, ReportTarget } from '@/constants/comments'
 import { contentApi } from '@/api/content'
@@ -17,6 +18,8 @@ export default defineComponent({
   props: {
     postId: { type: [String, Number], required: true },
     count: { type: Number, default: 0 },
+    // 当前用户是帖子作者，可以置顶一级评论
+    canPin: Boolean,
     initialPage: { type: Object, default: null },
   },
   emits: ['count', 'report'],
@@ -203,15 +206,14 @@ export default defineComponent({
     }
     async function remove(comment) {
       if (pending[comment.id]) return
-      try {
-        await ElMessageBox.confirm(t('detail.deleteComment'), t('detail.delete'), {
-          confirmButtonText: t('detail.confirm'),
-          cancelButtonText: t('detail.cancel'),
-          type: 'warning',
-        })
-      } catch {
-        return
-      }
+      const confirmed = await confirmDialog({
+        message: t('detail.deleteComment'),
+        title: t('detail.delete'),
+        confirmText: t('detail.confirm'),
+        cancelText: t('detail.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
       pending[comment.id] = true
       try {
         const count = await contentApi.deleteComment(comment.id)
@@ -272,6 +274,22 @@ export default defineComponent({
         }
       }
     }
+    // 置顶或取消置顶后顺序变了，回到第一页重新取
+    async function pin(comment) {
+      if (pending[comment.id]) return
+      pending[comment.id] = true
+      const on = !comment.pinned
+      try {
+        await contentApi.pinComment(comment.id, on)
+        ElMessage.success(t(on ? 'detail.pinDone' : 'detail.unpinDone'))
+        if (page.value !== 1) page.value = 1
+        else await load()
+      } catch (e) {
+        notifyFailure(e)
+      } finally {
+        pending[comment.id] = false
+      }
+    }
     function report(comment) {
       emit('report', { targetType: ReportTarget.COMMENT, targetId: comment.id })
     }
@@ -298,6 +316,7 @@ export default defineComponent({
       like,
       remove,
       sent,
+      pin,
       report,
     }
   },

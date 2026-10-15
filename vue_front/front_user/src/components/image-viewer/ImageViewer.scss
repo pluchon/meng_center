@@ -1,0 +1,714 @@
+// 面板垂直居中且整体放得进窗口，遮罩层不出现滚动条
+.image-viewer-overlay .el-overlay-dialog {
+  overflow: hidden;
+}
+
+.image-viewer {
+  position: relative;
+  animation: viewer-pop 520ms var(--meng-slide-ease) backwards;
+  max-width: calc(100vw - 32px);
+  padding: 22px 26px 24px;
+  border: 4px solid transparent;
+  border-radius: 34px;
+  background:
+    linear-gradient(var(--meng-surface), var(--meng-surface)) padding-box,
+    linear-gradient(100deg, var(--meng-card-ring)) border-box;
+  box-shadow: var(--meng-account-dialog-shadow);
+}
+
+.image-viewer .el-dialog__header {
+  margin: 0;
+  padding: 0;
+}
+
+.image-viewer .el-dialog__body {
+  display: grid;
+  gap: 14px;
+  padding: 14px 0 0;
+}
+
+// 左上和右下各贴一条纸胶带
+.image-viewer::before,
+.image-viewer::after {
+  content: '';
+  position: absolute;
+  width: 100px;
+  height: 24px;
+  border-radius: 4px;
+  opacity: 0.92;
+  pointer-events: none;
+}
+
+.image-viewer::before {
+  top: -15px;
+  left: 120px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-danger) 0 10px,
+    var(--meng-category-creation) 10px 20px
+  );
+  rotate: -4deg;
+}
+
+.image-viewer::after {
+  right: 150px;
+  bottom: -15px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-warning) 0 10px,
+    var(--meng-category-daily) 10px 20px
+  );
+  rotate: 3deg;
+}
+
+.viewer-head {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 2px dashed var(--meng-tint);
+}
+
+// 右上角一颗闪烁的小星星
+.viewer-head::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: 110px;
+  width: 24px;
+  height: 24px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: viewer-twinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes viewer-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.6;
+  }
+}
+
+.viewer-head > * {
+  animation: viewer-drop 480ms var(--meng-slide-ease) calc(120ms + var(--n, 0) * 55ms) backwards;
+}
+
+.viewer-head > :nth-child(1) {
+  --n: 0;
+}
+
+.viewer-head > :nth-child(2) {
+  --n: 1;
+}
+
+.viewer-head > :nth-child(3) {
+  --n: 2;
+}
+
+.viewer-head > :nth-child(4) {
+  --n: 3;
+}
+
+.viewer-head > :nth-child(5) {
+  --n: 4;
+}
+
+.viewer-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: -8deg;
+}
+
+.viewer-icon img {
+  width: 32px;
+  height: 32px;
+}
+
+.viewer-head h2 {
+  margin: 0;
+  font-family: var(--meng-font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--meng-text);
+}
+
+.viewer-head h2 span {
+  display: inline-block;
+  padding: 2px 16px;
+  border-radius: 20px;
+  background: var(--meng-warning);
+  rotate: -3deg;
+  transition: rotate 200ms ease;
+}
+
+.viewer-head h2 span:hover {
+  rotate: 0deg;
+}
+
+.viewer-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 17px;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.viewer-counter,
+.viewer-size,
+.viewer-zoom {
+  animation: viewer-tick 360ms var(--meng-slide-ease);
+}
+
+.viewer-counter {
+  margin-left: 6px;
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+}
+
+.viewer-size {
+  background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
+  font-size: 13px;
+  rotate: 2deg;
+}
+
+// 所有按钮共用的贴纸样子：悬停上浮并加厚底影，不铺底色
+.viewer-btn {
+  --edge: var(--meng-category-anime);
+  --fill: var(--meng-tint);
+  --ink: var(--meng-shadow-hard);
+
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--fill);
+  box-shadow: 0 3px 0 var(--edge);
+  color: var(--ink);
+  font: inherit;
+  font-size: 18px;
+  cursor: pointer;
+  transition:
+    translate 150ms ease,
+    box-shadow 150ms ease,
+    rotate 250ms ease,
+    opacity 150ms ease;
+}
+
+.viewer-btn:hover:not(:disabled) {
+  translate: 0 -3px;
+  box-shadow: 0 6px 0 var(--edge);
+}
+
+.viewer-btn:active:not(:disabled) {
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--edge);
+}
+
+.viewer-btn:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.viewer-btn:disabled,
+.viewer-arrow:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.viewer-btn.tone-violet {
+  --edge: var(--meng-category-game-dot);
+  --fill: var(--meng-category-game);
+  --ink: var(--meng-creator-purple-text);
+}
+
+.viewer-close {
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  border-width: 3px;
+  box-shadow: 0 4px 0 var(--edge);
+}
+
+.viewer-close img {
+  width: 22px;
+  height: 22px;
+}
+
+.viewer-close:hover:not(:disabled) {
+  rotate: 90deg;
+}
+
+.viewer-stage {
+  position: relative;
+  animation: viewer-rise 560ms var(--meng-slide-ease) 150ms backwards;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(300px, calc(100dvh - 300px), 540px);
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  background-color: var(--meng-bg);
+  background-image: radial-gradient(var(--meng-tint) 1.5px, transparent 1.5px);
+  background-size: 18px 18px;
+  box-shadow:
+    0 0 0 2px var(--meng-tint),
+    0 6px 0 2px var(--meng-card-base);
+  overflow: hidden;
+}
+
+.viewer-img {
+  max-width: calc(100% - 160px);
+  max-height: calc(100% - 32px);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px var(--meng-decor-shadow);
+  object-fit: contain;
+  user-select: none;
+  transition:
+    scale 250ms ease,
+    rotate 300ms ease;
+}
+
+.viewer-img.zoom-0 {
+  scale: 0.5;
+}
+
+.viewer-img.zoom-1 {
+  scale: 0.75;
+}
+
+.viewer-img.zoom-3 {
+  scale: 1.5;
+}
+
+.viewer-img.zoom-4 {
+  scale: 2;
+}
+
+.viewer-img.zoom-5 {
+  scale: 3;
+}
+
+.viewer-img.rotate-1 {
+  rotate: 90deg;
+}
+
+.viewer-img.rotate-2 {
+  rotate: 180deg;
+}
+
+.viewer-img.rotate-3 {
+  rotate: 270deg;
+}
+
+// 换图：按切换方向滑进滑出，旧图淡出后新图再滑入
+.viewer-img.slide-next-enter-active,
+.viewer-img.slide-next-leave-active,
+.viewer-img.slide-prev-enter-active,
+.viewer-img.slide-prev-leave-active,
+.viewer-failed.slide-next-enter-active,
+.viewer-failed.slide-next-leave-active,
+.viewer-failed.slide-prev-enter-active,
+.viewer-failed.slide-prev-leave-active {
+  transition:
+    translate 260ms var(--meng-slide-ease),
+    opacity 200ms ease,
+    scale 250ms ease,
+    rotate 300ms ease;
+}
+
+.slide-next-enter-from,
+.slide-prev-leave-to {
+  translate: 90px 0;
+  opacity: 0;
+}
+
+.slide-next-leave-to,
+.slide-prev-enter-from {
+  translate: -90px 0;
+  opacity: 0;
+}
+
+.viewer-loading {
+  position: absolute;
+  display: flex;
+  gap: 8px;
+}
+
+.viewer-loading i {
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  animation: viewer-dot 900ms ease-in-out infinite;
+}
+
+.viewer-loading i:nth-child(2) {
+  background: var(--meng-category-creation);
+  animation-delay: 120ms;
+}
+
+.viewer-loading i:nth-child(3) {
+  background: var(--meng-category-daily);
+  animation-delay: 240ms;
+}
+
+.viewer-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--meng-muted);
+  font-weight: 700;
+}
+
+.viewer-failed img {
+  height: 130px;
+}
+
+.viewer-arrow {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 5px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+  font-size: 24px;
+  cursor: pointer;
+  transition:
+    translate 150ms ease,
+    box-shadow 150ms ease,
+    opacity 150ms ease;
+}
+
+.viewer-arrow:hover:not(:disabled) {
+  box-shadow: 0 7px 0 var(--meng-category-anime);
+}
+
+.viewer-prev {
+  left: 16px;
+}
+
+.viewer-next {
+  right: 16px;
+}
+
+.viewer-prev:hover:not(:disabled) {
+  translate: -3px -2px;
+}
+
+.viewer-next:hover:not(:disabled) {
+  translate: 3px -2px;
+}
+
+.viewer-foot {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.viewer-strip {
+  animation: viewer-rise 520ms var(--meng-slide-ease) 280ms backwards;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.viewer-strip-step {
+  --edge: var(--meng-border);
+  --fill: var(--meng-bg);
+  --ink: var(--meng-primary);
+
+  width: 36px;
+  height: 36px;
+}
+
+// 一次露出五张缩略图，其余靠两头的按钮滚动
+.viewer-strip-window {
+  box-sizing: content-box;
+  width: 428px;
+  padding: 12px 6px;
+  overflow: hidden;
+}
+
+.viewer-strip-track {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: transform 300ms ease;
+}
+
+.viewer-thumb {
+  animation: viewer-thumb-in 480ms var(--meng-slide-ease) calc(320ms + var(--i, 0) * 50ms) backwards;
+  flex: none;
+  box-sizing: border-box;
+  width: 76px;
+  height: 76px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-border);
+  opacity: 0.7;
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    translate 180ms ease,
+    rotate 200ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
+}
+
+.viewer-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.viewer-thumb.tilt-0 {
+  rotate: -2deg;
+}
+
+.viewer-thumb.tilt-1 {
+  rotate: 2deg;
+}
+
+.viewer-thumb.tilt-2 {
+  rotate: -1deg;
+}
+
+.viewer-thumb.tilt-3 {
+  rotate: 3deg;
+}
+
+.viewer-thumb.tilt-4 {
+  rotate: -3deg;
+}
+
+.viewer-thumb:hover {
+  translate: 0 -4px;
+  rotate: 0deg;
+  opacity: 1;
+}
+
+.viewer-thumb.current {
+  animation: viewer-thumb-bounce 460ms var(--meng-slide-ease);
+  translate: 0 -6px;
+  rotate: -3deg;
+  border-color: var(--meng-category-daily);
+  box-shadow: 0 5px 0 var(--meng-growth-gold-edge);
+  opacity: 1;
+}
+
+.viewer-thumb:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+.viewer-tools {
+  animation: viewer-rise 520ms var(--meng-slide-ease) 340ms backwards;
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  height: 52px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 28px;
+  background: var(--meng-bg);
+  box-shadow: 0 5px 0 var(--meng-card-base);
+}
+
+.viewer-zoom {
+  min-width: 54px;
+  font-size: 14px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--meng-text);
+}
+
+.viewer-divider {
+  width: 0;
+  height: 22px;
+  margin: 0 6px;
+  border-left: 2px dashed var(--meng-border);
+}
+
+.viewer-fit {
+  --edge: var(--meng-growth-mint-edge);
+  --fill: var(--meng-success);
+  --ink: var(--meng-success-shadow);
+
+  gap: 6px;
+  width: auto;
+  padding: 0 14px 0 8px;
+  border-radius: 19px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.viewer-fit span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  font-size: 14px;
+}
+
+.viewer-download {
+  animation: viewer-rise 520ms var(--meng-slide-ease) 400ms backwards;
+
+  --edge: var(--meng-category-daily);
+  --fill: var(--meng-warning);
+  --ink: var(--meng-favorite-text);
+
+  width: 52px;
+  height: 52px;
+  border-width: 3px;
+  box-shadow: 0 5px 0 var(--edge);
+  font-size: 22px;
+}
+
+@keyframes viewer-pop {
+  0% {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.9;
+  }
+
+  60% {
+    opacity: 1;
+    scale: 1.02;
+  }
+}
+
+@keyframes viewer-drop {
+  from {
+    opacity: 0;
+    translate: 0 -16px;
+    scale: 0.85;
+  }
+}
+
+@keyframes viewer-rise {
+  from {
+    opacity: 0;
+    translate: 0 22px;
+  }
+}
+
+@keyframes viewer-thumb-in {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+    scale: 0.6;
+  }
+}
+
+@keyframes viewer-thumb-bounce {
+  40% {
+    translate: 0 -16px;
+  }
+}
+
+@keyframes viewer-tick {
+  0% {
+    scale: 0.8;
+    opacity: 0.4;
+  }
+
+  60% {
+    scale: 1.1;
+  }
+}
+
+@keyframes viewer-dot {
+  50% {
+    translate: 0 -12px;
+  }
+}
+
+@media (width <= 900px) {
+  .viewer-foot {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .viewer-tools {
+    margin-left: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .image-viewer,
+  .viewer-head > *,
+  .viewer-counter,
+  .viewer-size,
+  .viewer-zoom,
+  .viewer-stage,
+  .viewer-strip,
+  .viewer-tools,
+  .viewer-download,
+  .viewer-thumb,
+  .viewer-thumb.current,
+  .viewer-loading i,
+  .viewer-head::before {
+    animation: none;
+  }
+
+  .viewer-img.slide-next-enter-active,
+  .viewer-img.slide-next-leave-active,
+  .viewer-img.slide-prev-enter-active,
+  .viewer-img.slide-prev-leave-active {
+    transition: opacity 120ms ease;
+  }
+
+  .slide-next-enter-from,
+  .slide-next-leave-to,
+  .slide-prev-enter-from,
+  .slide-prev-leave-to {
+    translate: none;
+  }
+
+  .viewer-btn,
+  .viewer-arrow,
+  .viewer-thumb,
+  .viewer-img,
+  .viewer-strip-track {
+    transition: none;
+  }
+}

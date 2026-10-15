@@ -1,3 +1,5 @@
+@use '@/styles/folder-tone';
+
 .account-dialog {
   --dialog-tint: var(--meng-warning);
   --dialog-edge: var(--meng-creator-yellow);
@@ -12,6 +14,37 @@
   background: var(--meng-surface);
   color: var(--meng-text);
   box-shadow: var(--meng-account-dialog-shadow);
+}
+
+// 新建收藏夹：主题色跟着选中的颜色走，变量由 .folder-* 给出
+.account-dialog-folder {
+  --dialog-tint: var(--folder-bg);
+  --dialog-edge: var(--folder-fill);
+  --dialog-icon: var(--folder-fill);
+  --dialog-icon-edge: var(--folder-edge);
+}
+
+.account-dialog-folder .account-dialog-title > .el-icon,
+.account-dialog-folder .account-dialog-actions .el-button--primary {
+  transition:
+    background-color 300ms ease,
+    color 300ms ease,
+    box-shadow 300ms ease,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.account-dialog-folder .account-dialog-title > span {
+  transition:
+    background-color 300ms ease,
+    box-shadow 300ms ease,
+    transform 180ms var(--meng-motion-ease);
+}
+
+.account-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
 .account-dialog-password {
@@ -295,6 +328,16 @@
   content: '✦';
 }
 
+.account-dialog-folder .account-dialog-face {
+  background: var(--folder-bg);
+  color: var(--folder-ink);
+  transition: background-color 300ms ease;
+}
+
+.account-dialog-folder .account-dialog-sparkle {
+  color: var(--folder-fill);
+}
+
 .account-dialog-form {
   display: grid;
   gap: 14px;
@@ -372,12 +415,6 @@
   margin: 0;
 }
 
-.account-dialog-error {
-  font-size: 13px;
-  color: var(--meng-danger-text);
-  margin: 0;
-}
-
 .account-code-row {
   display: flex;
   gap: 10px;
@@ -399,6 +436,12 @@
   font-weight: 800;
 }
 
+// 设备、屏蔽名单没有内容、加载中、出错时，状态图在内容区正中
+.account-dialog-state {
+  min-height: 260px;
+  align-content: center;
+}
+
 .account-dialog-actions {
   display: flex;
   justify-content: flex-end;
@@ -406,6 +449,59 @@
   border-top: 2px dashed var(--meng-tint);
   padding-top: 16px;
   margin: 2px 0 4px;
+}
+
+// 新建收藏夹：取消按钮左边的公开 / 私密开关，默认私密
+.account-visibility-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  margin: 0 auto 4px 0;
+  padding: 0 12px 0 14px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 24px;
+  background: var(--meng-bg);
+  box-shadow: 0 4px 0 var(--meng-border);
+  color: var(--meng-shadow-hard);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.account-visibility-switch.is-public {
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-growth-mint-edge);
+  color: var(--meng-success-shadow);
+}
+
+.account-visibility-switch .switch-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--meng-border);
+}
+
+.account-visibility-switch.is-public .switch-track {
+  background: var(--meng-growth-mint-badge);
+}
+
+.account-visibility-switch .switch-track i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--meng-surface);
+  box-shadow: 0 1px 2px var(--meng-decor-shadow);
+  transition: left 180ms var(--meng-motion-ease);
+}
+
+.account-visibility-switch.is-public .switch-track i {
+  left: 18px;
 }
 
 .account-dialog-actions .el-button {
@@ -435,9 +531,9 @@
 }
 
 .account-dialog-folder .account-dialog-actions .el-button--primary {
-  background: var(--meng-warning);
-  color: var(--meng-favorite-text);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
+  background: var(--folder-bg);
+  color: var(--folder-ink);
+  box-shadow: 0 4px 0 var(--folder-fill);
 }
 
 .account-cover-choice {
@@ -458,8 +554,8 @@
   overflow: hidden;
   border: 2px dashed var(--meng-border);
   border-radius: 18px;
-  background: var(--meng-account-folder);
-  color: var(--meng-favorite-text);
+  background: var(--folder-soft, var(--meng-account-folder));
+  color: var(--folder-ink, var(--meng-favorite-text));
   font: inherit;
   font-size: 14px;
   font-weight: 800;
@@ -498,8 +594,9 @@
   color: var(--meng-success-text);
 }
 
-.account-dialog-folder .account-confirm-symbol {
-  color: var(--meng-favorite-stroke);
+.account-dialog-folder .account-confirm-symbol,
+.account-dialog-folder .account-cover-symbol {
+  color: var(--folder-edge);
 }
 
 .account-cover-picker:has(img) .account-cover-caption {
@@ -526,7 +623,7 @@
 }
 
 .account-cover-picker:hover:not(:disabled) {
-  border-color: var(--meng-category-daily);
+  border-color: var(--folder-fill, var(--meng-category-daily));
   transform: translateY(-2px);
 }
 

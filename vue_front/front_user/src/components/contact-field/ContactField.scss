@@ -1,7 +1,8 @@
 @use '@/styles/mixins' as *;
+@use '@/styles/field-name';
 
 .contact-label {
-  display: block;
+  display: flex;
   margin-bottom: var(--meng-space-2);
   font-size: 14px;
   font-weight: 700;
@@ -15,14 +16,25 @@
   border: 1px solid var(--meng-border);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+
+  &:hover {
+    border-color: var(--meng-primary-light-5);
+  }
 
   &:focus-within {
     border-color: var(--meng-primary);
-    box-shadow: 0 0 0 3px var(--meng-tint);
+    box-shadow: 0 3px 0 var(--meng-primary-light-5);
   }
 
+  // 外层已经画了描边，里面的输入框和地区选择在任何状态下都不再画自己的线
   :deep(.contact-input .el-input__wrapper),
   :deep(.contact-region .el-select__wrapper),
+  :deep(.contact-input .el-input__wrapper:hover),
+  :deep(.contact-region .el-select__wrapper:hover),
   :deep(.contact-input .el-input__wrapper.is-focus),
   :deep(.contact-region .el-select__wrapper.is-focused) {
     padding-inline: var(--meng-space-2);
@@ -45,18 +57,31 @@
   min-width: 0;
 }
 
+// 切换邮箱和手机的小圆贴纸，悬停时转半圈
 .contact-switch {
   flex: none;
   height: 30px;
   width: 30px;
   margin-right: var(--meng-space-2);
   padding: 0 var(--meng-space-2);
-  border: 0;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   color: var(--meng-primary);
   font-size: 12px;
   gap: var(--meng-space-1);
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 320ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+}
+
+.contact-switch:not(:disabled):hover {
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: 180deg;
+  translate: 0 -1px;
 }
 
 .is-switching :deep(.switch-line-upper) {

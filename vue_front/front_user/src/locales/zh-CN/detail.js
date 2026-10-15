@@ -37,11 +37,17 @@ export default {
     OTHER: '其他',
   },
   error: {
-    content: '正文最多 {max} 字',
     attachments: '表情和图片合计最多 {max} 个',
     upload: '请等待上传完成，并重试或移除失败图片',
   },
   sticker: { top: '慢慢看呀～', left: '好耶！', right: '(≧▽≦)', bottom: '说说你的想法吧～' },
   tag: '# {name}',
   replyTo: "{'@'}{name}",
+  pin: '置顶',
+  unpin: '取消置顶',
+  pinnedBadge: '置顶',
+  pinDone: '已置顶',
+  unpinDone: '已取消置顶',
+  mentionTitle: '提到的人',
+  mentionEmpty: '还没有可以提到的人',
 }

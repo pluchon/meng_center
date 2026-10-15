@@ -20,6 +20,22 @@
   box-shadow: var(--meng-shadow-card);
 }
 
+// 外围一圈静态的粉彩渐变描边，只描边不遮内容
+.detail-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  padding: 3px;
+  border-radius: inherit;
+  background: linear-gradient(100deg, var(--meng-card-ring));
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
 .detail-scroll-content {
   position: relative;
   z-index: 0;
@@ -41,29 +57,41 @@
   flex-wrap: wrap;
   gap: var(--meng-space-3);
   margin-bottom: var(--meng-space-6);
+  padding-bottom: var(--meng-space-5);
+  border-bottom: 2px dashed var(--meng-tint);
 }
 
 .detail-back {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-card-base);
-  transition: transform 0.2s ease;
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+  transition:
+    translate 0.2s var(--meng-slide-ease),
+    box-shadow 0.2s ease;
   margin-right: var(--meng-space-3);
 }
 
 .detail-back:hover {
-  transform: translateX(-3px);
+  translate: -4px -2px;
+  box-shadow: 0 6px 0 var(--meng-category-anime);
+}
+
+.detail-back:active {
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--meng-category-anime);
 }
 
 .detail-author .el-avatar {
   flex: none;
   border: 3px solid var(--meng-surface);
-  outline: 2px solid var(--meng-border);
+  outline: 3px solid var(--meng-category-anime);
 }
 
 .detail-author strong {
@@ -71,17 +99,27 @@
 }
 
 .author-level {
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
   padding: var(--meng-space-1) var(--meng-space-3);
   font-size: 12px;
   font-weight: 800;
+  rotate: -3deg;
 }
 
 .detail-author time {
   margin-left: auto;
+  padding: var(--meng-space-1) var(--meng-space-3);
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
   color: var(--meng-muted);
   font-size: 13px;
+  font-weight: 700;
 }
 
 .detail-region {
@@ -89,15 +127,18 @@
   align-items: center;
   gap: var(--meng-space-1);
   padding: var(--meng-space-1) var(--meng-space-3);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
-  color: var(--meng-muted);
+  background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-growth-mint-edge);
+  color: var(--meng-success-text);
   font-size: 13px;
   font-weight: 700;
+  rotate: 2deg;
 }
 
 .detail-region .el-icon {
-  color: var(--meng-primary);
+  color: var(--meng-success-text);
 }
 
 .detail-card h1 {
@@ -129,22 +170,41 @@
 }
 
 .detail-tags span {
+  --tag-edge: var(--meng-category-anime);
+
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   padding: var(--meng-space-1) var(--meng-space-3);
   background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--tag-edge);
   color: var(--meng-primary);
   font-size: 13px;
   font-weight: 800;
+  rotate: -2deg;
+  transition:
+    rotate 0.25s var(--meng-slide-ease),
+    translate 0.25s var(--meng-slide-ease);
 }
 
 .detail-tags span:nth-child(3n + 2) {
+  --tag-edge: var(--meng-category-creation);
+
   background: var(--meng-danger);
   color: var(--meng-danger-text);
+  rotate: 2deg;
 }
 
 .detail-tags span:nth-child(3n) {
+  --tag-edge: var(--meng-growth-mint-edge);
+
   background: var(--meng-success);
   color: var(--meng-success-text);
+  rotate: -1deg;
+}
+
+.detail-tags span:hover {
+  rotate: 0deg;
+  translate: 0 -2px;
 }
 
 .detail-actions {
@@ -160,31 +220,67 @@
 .detail-actions button,
 .detail-actions a,
 .view-count {
+  --action-fill: var(--meng-tint);
+  --action-edge: var(--meng-category-anime);
+
   display: inline-flex;
   align-items: center;
   gap: var(--meng-space-2);
   min-height: 44px;
   padding: 0 var(--meng-space-4);
-  border: 0;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: transparent;
-  color: var(--meng-muted);
+  background: var(--action-fill);
+  box-shadow: 0 3px 0 var(--action-edge);
+  color: var(--meng-text);
   font-size: 14px;
   font-weight: 700;
   transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+    translate 0.2s var(--meng-slide-ease),
+    rotate 0.25s var(--meng-slide-ease),
+    box-shadow 0.2s ease;
 }
 
-.detail-actions button:hover,
+.view-count {
+  --action-fill: var(--meng-category-game);
+  --action-edge: var(--meng-category-game-dot);
+
+  rotate: -2deg;
+}
+
+.detail-actions > button:nth-of-type(1) {
+  --action-fill: var(--meng-danger);
+  --action-edge: var(--meng-category-creation);
+
+  rotate: 1.5deg;
+}
+
+.detail-actions > button:nth-of-type(2) {
+  rotate: -1deg;
+}
+
+.detail-actions > button:nth-of-type(3) {
+  --action-fill: var(--meng-warning);
+  --action-edge: var(--meng-category-daily);
+
+  rotate: 2deg;
+}
+
+.detail-actions button:hover:not(:disabled),
 .detail-actions a:hover {
-  background: var(--meng-bg);
-  transform: translateY(-2px);
+  translate: 0 -3px;
+  rotate: 0deg;
+  box-shadow: 0 6px 0 var(--action-edge);
 }
 
 .detail-actions button.liked {
-  background: var(--meng-danger);
   color: var(--meng-like-text);
+}
+
+.detail-actions button.liked,
+.detail-actions button.favorited {
+  outline: 2px solid var(--action-edge);
+  outline-offset: 2px;
 }
 
 .detail-actions button.liked svg {
@@ -194,7 +290,6 @@
 }
 
 .detail-actions button.favorited {
-  background: var(--meng-warning);
   color: var(--meng-favorite-text);
 }
 
@@ -208,20 +303,41 @@
   font-size: 20px;
 }
 
-.detail-actions button:active,
+.detail-actions button:active:not(:disabled),
 .detail-actions a:active {
-  transform: translateY(1px) scale(0.96);
+  translate: 0 2px;
+  box-shadow: 0 1px 0 var(--action-edge);
 }
 
-.detail-moderation button:hover {
-  background: var(--meng-danger);
+.detail-actions button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.detail-moderation {
+  --action-fill: var(--meng-bg);
+  --action-edge: var(--meng-border);
+}
+
+.detail-moderation a,
+.detail-moderation button {
+  --action-fill: var(--meng-bg);
+  --action-edge: var(--meng-border);
+
+  rotate: 0deg;
 }
 
 .detail-moderation a {
+  --action-fill: var(--meng-tint);
+  --action-edge: var(--meng-category-anime);
+
   color: var(--meng-primary);
 }
 
 .detail-moderation .delete-action {
+  --action-fill: var(--meng-danger);
+  --action-edge: var(--meng-category-creation);
+
   color: var(--meng-danger-text);
 }
 
@@ -233,26 +349,39 @@
 }
 
 .detail-category {
-  padding: var(--meng-space-1) var(--meng-space-3);
+  --category-edge: var(--meng-category-daily);
+
+  padding: var(--meng-space-1) var(--meng-space-4);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--category-edge);
   font-size: 12px;
   font-weight: 800;
+  rotate: 3deg;
 }
 
 .category-anime {
+  --category-edge: var(--meng-category-anime);
+
   background: var(--meng-tint);
 }
 
 .category-creation {
+  --category-edge: var(--meng-category-creation);
+
   background: var(--meng-danger);
 }
 
 .category-game {
+  --category-edge: var(--meng-category-game-dot);
+
   background: var(--meng-category-game);
 }
 
 .category-tech {
+  --category-edge: var(--meng-growth-mint-edge);
+
   background: var(--meng-success);
 }
 
@@ -319,9 +448,15 @@
   background: var(--meng-danger);
 }
 
+// 帖子不存在或加载失败：白色卡片压在背景图上，保证文字看得清
 .detail-state {
+  width: min(460px, 100%);
+  margin: var(--meng-space-12) auto;
+  padding: var(--meng-space-6) var(--meng-space-8) var(--meng-space-8);
+  border-radius: var(--meng-radius-card);
+  background: var(--meng-surface);
+  box-shadow: var(--meng-shadow-card);
   text-align: center;
-  padding: var(--meng-space-8);
 }
 
 .detail-state > a {
@@ -370,7 +505,8 @@
 
   .detail-back,
   .detail-actions button,
-  .detail-actions a {
+  .detail-actions a,
+  .detail-tags span {
     transition: none;
   }
 }

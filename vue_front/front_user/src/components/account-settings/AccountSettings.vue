@@ -14,8 +14,6 @@
         /></label>
         <label class="account-setting gold"><span><el-icon><EditPen /></el-icon>{{ t('account.bio') }}</span><el-input
           v-model="form.bio"
-          type="textarea"
-          :rows="2"
           :maxlength="Account.BIO_MAX"
           show-word-limit
           :aria-label="t('account.bio')"
@@ -70,13 +68,6 @@
         </section>
       </div>
     </div>
-    <p
-      v-if="failure"
-      class="account-settings-error"
-      role="alert"
-    >
-      {{ failure }}
-    </p>
     <footer class="account-settings-footer">
       <el-button
         class="account-logout"

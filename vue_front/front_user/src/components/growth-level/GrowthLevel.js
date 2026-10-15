@@ -1,7 +1,8 @@
-import { computed, defineComponent, nextTick, ref, watch } from 'vue'
+import { computed, defineComponent, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { userAvatar, communitySparkle } from '@/assets/images'
 import { GrowthTones } from '@/constants/growth'
+import { useCountUp } from '@/composables/useCountUp'
 import PageState from '@/components/page-state/PageState.vue'
 export default defineComponent({
   name: 'GrowthLevel',
@@ -17,7 +18,11 @@ export default defineComponent({
   emits: ['retry'],
   setup(props) {
     const { t, tm, rt } = useI18n()
-    const road = ref(null)
+    const road = ref(null),
+      revealed = ref(false)
+    // 经验数字滚到当前值；进度条和等级之路在进场后才从 0 长出来
+    const shown = useCountUp(() => ({ exp: props.account.exp }), { duration: 1100 })
+    onMounted(() => requestAnimationFrame(() => requestAnimationFrame(() => (revealed.value = true))))
     watch(
       [() => props.account.level, () => props.levels.length],
       async () => {
@@ -58,6 +63,7 @@ export default defineComponent({
         .join(' '),
     )
     const width = computed(() => Math.max(1, props.levels.length) * 100)
+    const shownProgress = computed(() => (revealed.value ? progress.value : 0))
     const roadProgress = computed(() =>
       props.account.nextLevelExp == null
         ? 100
@@ -70,10 +76,13 @@ export default defineComponent({
     return {
       t,
       road,
+      revealed,
       userAvatar,
       communitySparkle,
       levelName,
       progress,
+      shown,
+      shownProgress,
       path,
       width,
       roadProgress,

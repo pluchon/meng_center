@@ -2,8 +2,9 @@
   position: relative;
   padding: var(--meng-space-4);
   background: var(--meng-bg);
-  border: 1px solid var(--meng-border);
-  border-radius: var(--meng-radius-note);
+  border: 2px dashed var(--meng-border);
+  border-radius: 24px;
+  box-shadow: 0 4px 0 var(--meng-tint);
   margin-block: var(--meng-space-6);
   transition:
     border-color 0.2s ease,
@@ -21,19 +22,94 @@
 
 .composer-field,
 .composer-images,
-.emotion-panel,
+.composer-emotions,
 .composer-target {
   margin-left: 58px;
 }
 
 .comment-composer:focus-within {
-  border-color: var(--meng-primary);
+  border-style: solid;
+  border-color: var(--meng-category-anime);
   background: var(--meng-surface);
-  box-shadow: 0 0 0 3px var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
 }
 
 .composer-field {
   position: relative;
+}
+
+// 输入 @ 后跟在输入框下面弹出的候选
+.mention-list {
+  position: absolute;
+  z-index: 5;
+  left: var(--meng-space-2);
+  top: calc(100% - var(--meng-space-2));
+  display: grid;
+  gap: var(--meng-space-1);
+  min-width: 200px;
+  max-width: calc(100% - var(--meng-space-4));
+  margin: 0;
+  padding: var(--meng-space-2);
+  list-style: none;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-surface);
+  box-shadow:
+    0 4px 0 var(--meng-tint),
+    0 12px 28px var(--meng-account-gray-shadow);
+}
+
+.mention-list li {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+  padding: var(--meng-space-1) var(--meng-space-2);
+  border-radius: var(--meng-radius-pill);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  transition: background 0.15s ease;
+}
+
+.mention-list li.active {
+  background: var(--meng-tint);
+  color: var(--meng-primary);
+}
+
+.mention-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mention-list em {
+  margin-left: auto;
+  padding: 0 var(--meng-space-2);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.mention-list .mention-empty {
+  color: var(--meng-muted);
+  cursor: default;
+}
+
+.mention-pop-enter-active,
+.mention-pop-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s var(--meng-motion-ease);
+}
+
+.mention-pop-enter-from,
+.mention-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
 }
 
 .composer-field textarea {
@@ -68,10 +144,13 @@
 }
 
 .comment-composer footer > button:not(.el-button) {
-  border: 0;
+  --edge: var(--meng-tint);
+
+  border: 2px solid var(--meng-surface);
   height: 40px;
   padding: 0 var(--meng-space-4);
   background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--edge);
   color: var(--meng-tool-text);
   display: inline-flex;
   align-items: center;
@@ -81,7 +160,15 @@
   font-weight: 800;
   transition:
     transform 0.2s ease,
-    background 0.2s ease;
+    box-shadow 0.2s ease;
+}
+
+.comment-composer footer > button:first-child {
+  --edge: var(--meng-category-daily);
+}
+
+.comment-composer footer > button:nth-child(2) {
+  --edge: var(--meng-category-creation);
 }
 
 .comment-composer footer > button:first-child .el-icon {
@@ -94,16 +181,28 @@
 
 .comment-composer footer > button:not(.el-button):hover {
   transform: translateY(-2px);
-  background: var(--meng-tint);
+  box-shadow: 0 5px 0 var(--edge);
 }
 
+// 发送按钮：薄荷色贴纸，不用实心青蓝
 .comment-composer footer > .el-button {
+  --el-button-bg-color: var(--meng-success);
+  --el-button-hover-bg-color: var(--meng-success);
+  --el-button-active-bg-color: var(--meng-success);
+  --el-button-border-color: var(--meng-surface);
+  --el-button-hover-border-color: var(--meng-surface);
+  --el-button-active-border-color: var(--meng-surface);
+  --el-button-text-color: var(--meng-success-shadow);
+  --el-button-hover-text-color: var(--meng-success-shadow);
+  --el-button-active-text-color: var(--meng-success-shadow);
+
   margin-left: auto;
   height: 44px;
   padding-inline: var(--meng-space-6);
+  border-width: 2px;
   font-size: 15px;
   font-weight: 800;
-  box-shadow: 0 5px 0 var(--meng-shadow-hard);
+  box-shadow: 0 5px 0 var(--meng-growth-mint-edge);
   transition:
     transform 0.15s ease,
     box-shadow 0.15s ease;
@@ -111,16 +210,74 @@
 
 .comment-composer footer > .el-button:not(:disabled):hover {
   transform: translateY(-2px);
-  box-shadow: 0 7px 0 var(--meng-shadow-hard);
+  box-shadow: 0 7px 0 var(--meng-growth-mint-edge);
 }
 
 .comment-composer footer > .el-button:not(:disabled):active {
   transform: translateY(3px);
-  box-shadow: 0 2px 0 var(--meng-shadow-hard);
+  box-shadow: 0 2px 0 var(--meng-growth-mint-edge);
 }
 
 .comment-composer footer > .el-button:disabled {
   box-shadow: none;
+}
+
+// 发送按钮的装饰：薄荷到浅水蓝的渐变、微微歪着、纸飞机会跟着悬停起飞，右上角有一颗闪烁的星光
+.comment-composer footer > .send-button {
+  position: relative;
+  gap: var(--meng-space-2);
+  background-image: linear-gradient(135deg, var(--meng-success), var(--meng-tint));
+  rotate: -2deg;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    rotate 0.3s var(--meng-motion-ease);
+}
+
+.comment-composer footer > .send-button:not(:disabled):hover {
+  rotate: 0deg;
+}
+
+.send-icon {
+  margin-right: var(--meng-space-2);
+  transition:
+    translate 0.3s var(--meng-motion-ease),
+    rotate 0.3s var(--meng-motion-ease),
+    opacity 0.2s ease;
+}
+
+.send-button:not(:disabled):hover .send-icon {
+  translate: 2px -2px;
+  rotate: 10deg;
+}
+
+.send-button:not(:disabled):active .send-icon {
+  translate: 14px -14px;
+  opacity: 0;
+}
+
+.send-spark {
+  position: absolute;
+  top: -9px;
+  right: -7px;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+  animation: send-twinkle 2.6s ease-in-out infinite;
+}
+
+.send-button:disabled .send-spark {
+  display: none;
+}
+
+@keyframes send-twinkle {
+  50% {
+    opacity: 0.35;
+    scale: 0.6;
+  }
 }
 
 .comment-composer .selected {
@@ -129,6 +286,7 @@
 
 .comment-composer footer > button.selected {
   background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
 }
 
 .composer-images {
@@ -203,14 +361,43 @@
 }
 
 .composer-target {
+  position: relative;
   display: inline-flex;
   gap: var(--meng-space-2);
   align-items: center;
-  padding: var(--meng-space-1) var(--meng-space-3);
+  padding: 2px var(--meng-space-2) 2px 22px;
+  border: 2px solid var(--meng-surface);
   background: var(--meng-tint);
-  color: var(--meng-primary);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
   border-radius: var(--meng-radius-pill);
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  rotate: -2deg;
+}
+
+.composer-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  translate: 0 -50%;
+}
+
+.composer-target::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
 }
 
 .reply-target-enter-active,
@@ -227,17 +414,23 @@
 }
 
 .composer-target button {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
   border: 0;
-  background: transparent;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
   color: inherit;
-  display: flex;
   padding: 0;
+  transition: rotate 0.25s var(--meng-slide-ease);
 }
 
-.emotion-panel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--meng-space-2);
+.composer-target button:hover:not(:disabled) {
+  rotate: 90deg;
+}
+
+.composer-emotions {
   margin-top: var(--meng-space-3);
   padding: var(--meng-space-3);
   border-radius: var(--meng-radius-note);
@@ -245,53 +438,25 @@
   box-shadow: inset 0 0 0 2px var(--meng-tint);
 }
 
-.emotion-panel button {
-  border: 0;
-  border-radius: var(--meng-space-2);
-  background: var(--meng-surface);
-  padding: var(--meng-space-1);
-  transition: transform 0.2s ease;
-}
-
-.emotion-panel button:hover {
-  transform: translateY(-3px);
-}
-
-.emotion-panel button:nth-child(5n + 1) {
-  background: var(--meng-tint);
-}
-
-.emotion-panel button:nth-child(5n + 2) {
-  background: var(--meng-danger);
-}
-
-.emotion-panel button:nth-child(5n + 3) {
-  background: var(--meng-warning);
-}
-
-.emotion-panel button:nth-child(5n + 4) {
-  background: var(--meng-success);
-}
-
-.emotion-panel button:nth-child(5n) {
-  background: var(--meng-category-game);
-}
-
-.emotion-panel img {
-  display: block;
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-}
-
-.composer-error {
-  color: var(--meng-danger-text);
-  font-size: 12px;
-  margin-top: var(--meng-space-2);
+// 评论区的表情最多露两行，多的在里面滚动，不占太多地方
+.composer-emotions :deep(.emotion-grid) {
+  height: auto;
+  max-height: 132px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .emotion-panel button,
+  .send-spark {
+    animation: none;
+  }
+
+  .send-icon,
+  .comment-composer footer > .send-button {
+    transition: none;
+  }
+
+  .mention-pop-enter-active,
+  .mention-pop-leave-active,
+  .mention-list li,
   .comment-composer,
   .comment-composer footer > button {
     transition: none;
@@ -317,7 +482,7 @@
   }
 
   .comment-composer footer,
-  .emotion-panel {
+  .composer-emotions {
     margin-left: 0;
   }
 

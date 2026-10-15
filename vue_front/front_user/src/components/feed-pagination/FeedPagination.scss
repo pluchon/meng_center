@@ -8,11 +8,71 @@
 }
 
 .feed-pagination:not(.compact) nav {
+  position: relative;
   padding: var(--meng-space-1);
-  border: 1px solid var(--meng-tint);
+  border: 2px solid var(--meng-tint);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-bg);
+  background: var(--meng-surface);
   box-shadow: 0 2px 0 var(--meng-tint);
+}
+
+.pagination-sparkle {
+  position: absolute;
+  left: -7px;
+  top: -8px;
+  width: 14px;
+  height: 14px;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+}
+
+// 选中页的金色贴纸由 .page-slider 画，会滑到新页码上；按钮本身只负责文字
+// 换色：在外层设置 --pager-fill / --pager-edge / --pager-ink
+.feed-pagination:not(.compact) button.selected,
+.feed-pagination:not(.compact) button.selected:hover {
+  background: transparent;
+  color: var(--pager-ink, var(--meng-favorite-text));
+  box-shadow: none;
+}
+
+.feed-pagination:not(.compact) nav {
+  isolation: isolate;
+}
+
+.page-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 420ms var(--meng-slide-ease),
+    width 420ms var(--meng-slide-ease),
+    height 420ms var(--meng-slide-ease),
+    opacity 200ms ease;
+}
+
+.page-slider::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--pager-fill, var(--meng-warning));
+  box-shadow: 0 2px 0 var(--pager-edge, var(--meng-category-daily));
+  rotate: 4deg;
+}
+
+.page-slider.visible {
+  opacity: 1;
+}
+
+.page-slider.instant {
+  transition: opacity 200ms ease;
 }
 
 nav {
@@ -22,6 +82,7 @@ nav {
 }
 
 button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -54,8 +115,81 @@ button:hover {
 }
 
 .feed-pagination:not(.compact) nav button:not(.selected):hover {
-  background: var(--meng-tint);
+  background: transparent;
   color: var(--meng-primary);
+}
+
+// 悬停时不填色，只在页码外转出一圈虚线
+.feed-pagination:not(.compact) nav button:not(.selected)::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border: 2px dashed var(--meng-primary-light-5);
+  border-radius: var(--meng-radius-pill);
+  opacity: 0;
+  scale: 0.7;
+  transition:
+    opacity 200ms ease,
+    scale 320ms var(--meng-slide-ease);
+  pointer-events: none;
+}
+
+.feed-pagination:not(.compact) nav button:not(.selected):hover::after {
+  opacity: 1;
+  scale: 1;
+  animation: pager-ring 6s linear infinite;
+}
+
+.feed-pagination:not(.compact) nav button:not(.selected):hover {
+  rotate: -6deg;
+}
+
+// 两端的前后翻页按钮：圆形贴纸，悬停时箭头朝各自方向挪一点，不带虚线圈
+.feed-pagination:not(.compact) nav button.step,
+.feed-pagination:not(.compact) nav button.step:not(.selected) {
+  flex: none;
+  width: 38px;
+  min-width: 38px;
+  padding: 0;
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
+  color: var(--meng-primary);
+  rotate: 0deg;
+}
+
+.feed-pagination:not(.compact) nav button.step:not(.selected):hover {
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: 0deg;
+}
+
+.feed-pagination:not(.compact) nav button.step::after,
+.feed-pagination:not(.compact) nav button.step:not(.selected):hover::after {
+  content: none;
+}
+
+.feed-pagination:not(.compact) nav button.step .el-icon {
+  font-size: 16px;
+  transition: translate 240ms var(--meng-slide-ease);
+}
+
+.feed-pagination:not(.compact) nav button.step:first-of-type:hover .el-icon {
+  translate: -2px 0;
+}
+
+.feed-pagination:not(.compact) nav button.step:last-of-type:hover .el-icon {
+  translate: 2px 0;
+}
+
+.feed-pagination:not(.compact) nav button.step:disabled {
+  box-shadow: none;
+}
+
+@keyframes pager-ring {
+  to {
+    rotate: 360deg;
+  }
 }
 
 button:active {
@@ -78,22 +212,36 @@ button:disabled {
 }
 
 .back-top {
-  height: 48px;
-  padding-inline: var(--meng-space-5);
+  height: 42px;
+  padding-inline: 10px 16px;
   margin-left: auto;
-  border: 1px solid var(--meng-tint);
-  background: var(--meng-bg);
-  color: var(--meng-primary);
-  box-shadow: 0 2px 0 var(--meng-tint);
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-success);
+  color: var(--meng-success-text);
+  box-shadow: 0 3px 0 var(--meng-growth-mint-edge);
   font-weight: 700;
 }
 
+.back-top .el-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+}
+
 .back-top:hover {
-  box-shadow: 0 4px 0 var(--meng-border);
+  background: var(--meng-success);
+  box-shadow: 0 4px 0 var(--meng-growth-mint-edge);
 }
 
 .back-top:active {
-  box-shadow: 0 1px 0 var(--meng-border);
+  box-shadow: 0 1px 0 var(--meng-growth-mint-edge);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed-pagination:not(.compact) nav button:not(.selected):hover::after {
+    animation: none;
+  }
 }
 
 nav > span {
@@ -124,8 +272,42 @@ nav > span {
 }
 
 .compact button.selected {
-  background: var(--meng-primary);
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
   animation: meng-feedback-pop 320ms var(--meng-motion-ease);
+}
+
+// 紧凑翻页器两端也有前后翻页按钮：小号圆形贴纸，到头禁用
+.compact button.step {
+  padding: 0;
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
+  color: var(--meng-primary);
+}
+
+.compact button.step:hover:not(:disabled) {
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+}
+
+.compact button.step:disabled {
+  box-shadow: none;
+}
+
+.compact button.step .el-icon {
+  font-size: 14px;
+}
+
+.compact button.selected:hover {
+  background: var(--meng-warning);
+}
+
+.compact button:hover:not(.selected, :disabled) {
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
 }
 
 @media (width <= 480px) {
@@ -141,6 +323,10 @@ nav > span {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .page-slider {
+    transition: none;
+  }
+
   .compact button.selected {
     animation: none;
   }

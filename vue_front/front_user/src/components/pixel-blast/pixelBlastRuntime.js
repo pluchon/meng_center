@@ -18,6 +18,7 @@ const maxClicks = 10
 export function createPixelBlast(host, onFailure) {
   let renderer, geometry, material, scene, camera, resizeObserver, motion, visibilityObserver
   let frame = 0,
+    holdUntil = 0,
     disposed = false,
     visible = true,
     previous = null,
@@ -33,8 +34,16 @@ export function createPixelBlast(host, onFailure) {
     })
     renderer.render(scene, camera)
   }
+  // 页面在滚动时暂停绘制背景，避免 WebGL 和滚动抢 GPU 造成掉帧
+  function hold(duration = 200) {
+    holdUntil = performance.now() + duration
+  }
   function animate(time) {
     frame = 0
+    if (time < holdUntil) {
+      frame = requestAnimationFrame(animate)
+      return
+    }
     if (previous === null || time - previous >= frameInterval - 1) {
       const delta = previous === null ? 0 : Math.min((time - previous) / 1000, 0.1)
       previous = time
@@ -186,7 +195,7 @@ export function createPixelBlast(host, onFailure) {
     visibilityObserver.observe(host)
     resize()
     playback()
-    return { dispose }
+    return { dispose, hold }
   } catch (error) {
     dispose()
     throw error

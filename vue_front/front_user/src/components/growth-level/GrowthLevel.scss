@@ -4,13 +4,28 @@
   gap: 16px;
 }
 
+// 头像：白边外加一圈蓝色圆环和底影，轻轻浮动，悬停时歪一下
 .level-avatar {
-  width: 76px;
-  height: 76px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  padding: 4px;
-  border: 3px solid var(--meng-category-anime);
+  border: 3px solid var(--meng-surface);
+  box-shadow:
+    0 0 0 3px var(--meng-category-anime),
+    0 7px 0 3px var(--meng-border);
   object-fit: cover;
+  animation: avatar-float 4.2s ease-in-out infinite;
+  transition: rotate 250ms var(--meng-slide-ease);
+}
+
+.level-avatar:hover {
+  rotate: -8deg;
+}
+
+@keyframes avatar-float {
+  50% {
+    translate: 0 -4px;
+  }
 }
 
 .level-info {
@@ -27,6 +42,8 @@
 
 h1 {
   margin: 0;
+  padding: 0 10px;
+  border-radius: 10px;
   font-size: 24px;
   font-weight: 800;
   background: var(--meng-creator-highlight);
@@ -43,16 +60,20 @@ h1 {
 
 .level-name {
   padding: 3px 14px;
+  border: 3px solid var(--meng-surface);
   background: var(--meng-tint);
   border-radius: 16px;
-  color: var(--meng-primary);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
   font-weight: 800;
+  rotate: -3deg;
 }
 
 .experience-total {
   margin-left: auto;
-  font-size: 22px;
-  font-weight: 800;
+  font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+  font-size: 30px;
+  font-weight: 400;
 }
 
 .experience-total small {
@@ -70,25 +91,35 @@ h1 {
 .level-badge,
 .next-level {
   flex: none;
-  padding: 4px 10px;
+  padding: 3px 10px;
+  border: 3px solid var(--meng-surface);
   border-radius: 15px;
   background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-category-daily);
   color: var(--meng-nav-gold);
   font-weight: 800;
+}
+
+.level-badge {
+  rotate: -4deg;
 }
 
 .next-level {
   border: 2px dashed var(--meng-border);
   background: var(--meng-surface);
+  box-shadow: none;
   color: var(--meng-muted);
 }
 
 .experience-track {
   flex: 1;
-  height: 18px;
+  height: 20px;
+  border: 2px solid var(--meng-surface);
   background: var(--meng-success);
   border-radius: 12px;
-  box-shadow: inset 0 2px 0 var(--meng-check-shadow);
+  box-shadow:
+    0 0 0 1.5px var(--meng-check-shadow),
+    0 3px 0 var(--meng-check-shadow);
 }
 
 .experience-track > span {
@@ -98,7 +129,15 @@ h1 {
   border: 3px solid var(--meng-success);
   border-radius: inherit;
   background: var(--meng-growth-stripes), var(--meng-growth-green);
-  transition: width 500ms var(--meng-motion-ease);
+  background-size: 24px 24px, auto;
+  animation: track-slide 1.6s linear infinite;
+  transition: width 1100ms var(--meng-slide-ease);
+}
+
+@keyframes track-slide {
+  to {
+    background-position: 24px 0, 0 0;
+  }
 }
 
 .progress-star {
@@ -114,6 +153,14 @@ h1 {
   box-shadow: 0 2px 0 var(--meng-category-daily);
   display: grid;
   place-items: center;
+  animation: star-pulse 2.2s ease-in-out infinite;
+}
+
+@keyframes star-pulse {
+  50% {
+    scale: 1.18;
+    rotate: 20deg;
+  }
 }
 
 .progress-star .level-star {
@@ -123,7 +170,7 @@ h1 {
 
 .road-scroll {
   margin-top: 4px;
-  padding-top: 34px;
+  padding-top: 50px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -166,6 +213,10 @@ h1 {
   stroke: url('#growth-road-gradient');
 }
 
+.road-clip {
+  transition: width 1400ms var(--meng-slide-ease);
+}
+
 ol {
   position: relative;
   display: grid;
@@ -182,6 +233,20 @@ li {
   align-items: center;
   gap: 6px;
   font-size: 12px;
+  animation: node-pop 480ms var(--meng-slide-ease) backwards;
+  animation-delay: calc(var(--i, 0) * 70ms);
+}
+
+@keyframes node-pop {
+  0% {
+    opacity: 0;
+    scale: 0.4;
+  }
+
+  100% {
+    opacity: 1;
+    scale: 1;
+  }
 }
 
 li:nth-child(even) {
@@ -200,11 +265,14 @@ li:nth-child(even) {
   border: 2px dashed var(--growth-fill);
   font-size: 16px;
   font-weight: 800;
-  transition: transform 220ms var(--meng-motion-ease);
+  transition:
+    translate 220ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease);
 }
 
-li:hover .road-number {
-  transform: translateY(-3px);
+li:not(.current):hover .road-number {
+  rotate: -10deg;
+  translate: 0 -4px;
 }
 
 .passed .road-number {
@@ -223,16 +291,20 @@ li:hover .road-number {
   left: 55%;
   bottom: calc(100% + 8px);
   padding: 4px 10px;
-  border: 2px solid var(--growth-fill);
+  border: 3px solid var(--meng-surface);
   border-radius: 18px;
-  background: var(--meng-surface);
+  background: var(--growth-bg);
+  box-shadow: 0 3px 0 var(--growth-fill);
   white-space: nowrap;
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  rotate: 4deg;
 }
 
 li small {
   background: var(--meng-bg);
   padding: 2px 8px;
+  border: 2px solid var(--meng-surface);
   border-radius: 12px;
   font-size: 11px;
   font-weight: 800;
@@ -286,7 +358,17 @@ li small {
 
 @media (prefers-reduced-motion: reduce) {
   .experience-track > span,
-  .road-number {
+  .road-number,
+  .road-clip,
+  .level-avatar {
     transition: none;
+  }
+
+  .level-avatar,
+  .experience-track > span,
+  .progress-star,
+  .current .road-number,
+  li {
+    animation: none;
   }
 }

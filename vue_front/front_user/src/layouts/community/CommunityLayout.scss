@@ -7,7 +7,14 @@
 }
 
 .community-layout.home-layout {
-  --meng-community-width: var(--meng-home-width);
+  overflow-anchor: none;
+}
+
+// 首页背景是固定的几何线条层，正文和页脚要盖在它上面
+.home-layout .community-main,
+.home-layout .community-footer {
+  position: relative;
+  z-index: 1;
 }
 
 .community-layout.detail-layout {
@@ -45,18 +52,55 @@
   gap: var(--meng-space-7);
   min-height: 68px;
   padding: 10px 12px;
-  border: 1.5px solid var(--meng-glass-border);
   border-radius: 34px;
   background: var(--meng-nav-glass);
   backdrop-filter: blur(12px);
-  box-shadow: var(--meng-shadow);
+  box-shadow: var(--meng-shadow-card);
+}
+
+// 一圈静态的粉彩渐变描边，只描边不遮内容
+.community-nav::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 2px;
+  border-radius: inherit;
+  background: linear-gradient(100deg, var(--meng-card-ring));
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+// 右上角一颗闪烁的小星星
+.community-nav::after {
+  content: '';
+  position: absolute;
+  top: -9px;
+  right: 34px;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  pointer-events: none;
+  animation: nav-twinkle 3s ease-in-out infinite;
+}
+
+@keyframes nav-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.65;
+    rotate: 20deg;
+  }
 }
 
 .community-brand {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding-right: 6px;
+  padding-right: 22px;
+  border-right: 2px dashed var(--meng-border);
   white-space: nowrap;
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 25px;
@@ -75,25 +119,20 @@
   display: grid;
   place-items: center;
   flex: none;
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-primary);
 }
 
 .brand-bubble {
   position: relative;
   width: 44px;
   height: 44px;
-  border: 2px solid var(--meng-surface);
-  box-shadow: 0 3px 0 var(--meng-shadow-hard);
 }
 
-.brand-drop,
-.footer-brand-icon > span {
-  width: 24px;
-  height: 24px;
-  background: var(--meng-surface);
-  mask-size: contain;
-  mask-repeat: no-repeat;
+.brand-logo,
+.footer-brand-icon > img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .brand-sparkle,
@@ -118,8 +157,40 @@ nav,
   gap: 6px;
 }
 
+nav {
+  position: relative;
+}
+
+// 导航滑块：带一点回弹，跟着悬停项走
+.nav-slider {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 44px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-border);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    transform 420ms cubic-bezier(0.34, 1.45, 0.64, 1),
+    width 420ms cubic-bezier(0.34, 1.45, 0.64, 1),
+    opacity 180ms ease;
+}
+
+.nav-slider.visible {
+  opacity: 1;
+}
+
+.nav-slider.instant {
+  transition: opacity 180ms ease;
+}
+
 nav a,
 nav button {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -132,61 +203,33 @@ nav button {
   font-size: 16px;
   font-weight: 800;
   white-space: nowrap;
-  transition:
-    background 180ms ease,
-    transform 180ms ease;
 }
 
-nav a:hover,
-nav button:hover {
-  background: var(--meng-tint);
-  transform: translateY(-2px);
-}
-
-nav a.selected {
-  background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-border);
+nav [data-nav]:hover .nav-icon {
+  transform: rotate(-8deg) scale(1.14);
 }
 
 .nav-icon {
+  transition: transform 320ms cubic-bezier(0.34, 1.8, 0.64, 1);
   display: grid;
   place-items: center;
   flex: none;
   width: 32px;
   height: 32px;
-  border-radius: var(--meng-radius-pill);
 }
 
-.nav-icon .el-icon {
-  font-size: 18px;
+.nav-icon img,
+.nav-tool-icon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
-.home-icon {
-  background: var(--meng-surface);
-  color: var(--meng-primary);
-}
-
-.creator-icon {
-  background: var(--meng-category-game);
-  color: var(--meng-creator-purple-text);
-}
-
-.growth-icon {
-  background: var(--meng-success);
-  color: var(--meng-success-shadow);
-}
-
-.ai-icon {
-  background: var(--meng-warning);
-  color: var(--meng-nav-gold);
-}
-
-.nav-mask {
-  width: 18px;
-  height: 18px;
-  mask-size: contain;
-  mask-repeat: no-repeat;
-  background: currentcolor;
+.nav-tool-icon {
+  width: 28px;
+  height: 28px;
+  flex: none;
 }
 
 .nav-tools {
@@ -208,25 +251,69 @@ nav a.selected {
   font-size: 22px;
 }
 
-.nav-tools button:hover,
-.nav-tools .nav-messages:hover {
+// 右侧三个入口都是贴纸：搜索蓝、私信粉、成长金，悬停上浮并加厚底影，不铺底色
+.nav-search,
+.nav-messages {
+  --edge: var(--meng-category-anime);
+
+  border: 2px solid var(--meng-surface);
   background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--edge);
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    width 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+.nav-messages {
+  --edge: var(--meng-category-creation);
+
+  background: var(--meng-danger);
+}
+
+.nav-search:hover,
+.nav-messages:hover {
+  box-shadow: 0 5px 0 var(--edge);
+  translate: 0 -2px;
+}
+
+.nav-messages:hover .nav-tool-icon {
+  animation: nav-wiggle 480ms ease-in-out;
+}
+
+@keyframes nav-wiggle {
+  25% {
+    rotate: -14deg;
+  }
+
+  75% {
+    rotate: 14deg;
+  }
+}
+
+// 等级和经验条放进同一个小胶囊里：金色等级贴纸加一根带斜纹的经验条
 .nav-growth {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-inline: 4px 6px;
+  padding: 4px 14px 4px 4px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
 }
 
 .nav-growth > span {
   padding: 4px 12px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
   color: var(--meng-nav-gold);
   font-size: 13px;
   font-weight: 800;
+  rotate: -3deg;
 }
 
 .nav-experience {
@@ -247,14 +334,32 @@ nav a.selected {
 }
 
 .nav-growth :deep(.el-progress-bar__outer) {
-  background: var(--meng-success);
+  background: var(--meng-surface);
+  box-shadow: inset 0 0 0 2px var(--meng-success);
 }
 
+.nav-growth :deep(.el-progress-bar__inner) {
+  background-image: var(--meng-growth-stripes);
+}
+
+// 头像外面一圈蓝色圆环，悬停时上浮
 .nav-avatar {
   display: flex;
-  border: 2px solid var(--meng-surface);
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  box-shadow: 0 0 0 2px var(--meng-border);
+  box-shadow:
+    0 0 0 3px var(--meng-category-anime),
+    0 5px 0 3px var(--meng-border);
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+}
+
+.nav-avatar:hover {
+  box-shadow:
+    0 0 0 3px var(--meng-category-creation),
+    0 7px 0 3px var(--meng-border);
+  translate: 0 -2px;
 }
 
 .community-main {
@@ -263,8 +368,41 @@ nav a.selected {
 }
 
 .community-footer {
-  margin-top: 44px;
-  background: var(--meng-tint);
+  position: relative;
+  margin-top: 72px;
+  padding-bottom: 8px;
+  background: linear-gradient(180deg, var(--meng-tint), var(--meng-success) 160%);
+}
+
+// 顶边是一排云朵似的圆弧
+.community-footer::before {
+  content: '';
+  position: absolute;
+  top: -22px;
+  right: 0;
+  left: 0;
+  height: 24px;
+  background: radial-gradient(circle at 24px 24px, var(--meng-tint) 22px, transparent 23px) 0 0 /
+    48px 24px repeat-x;
+  pointer-events: none;
+}
+
+// 最底下一条糖果色斜纹
+.community-footer::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-warning) 0 14px,
+    var(--meng-danger) 14px 28px,
+    var(--meng-success) 28px 42px,
+    var(--meng-category-game) 42px 56px
+  );
+  pointer-events: none;
 }
 
 .footer-inner {
@@ -289,24 +427,95 @@ nav a.selected {
 }
 
 .footer-brand strong {
+  padding: 2px 12px;
+  border-radius: 16px;
+  background: var(--meng-warning);
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 24px;
   font-weight: 400;
+  rotate: -3deg;
 }
 
+// 对话气泡：小尾巴指向左边的品牌
 .footer-note {
-  margin: 0;
+  position: relative;
+  margin: 0 0 0 10px;
+  padding: 8px 18px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--meng-border);
   font-family: 'ZCOOL KuaiLe', sans-serif;
   font-size: 17px;
   color: var(--meng-muted);
+  rotate: 1.5deg;
+  transition: rotate 360ms var(--meng-slide-ease);
+}
+
+.footer-note::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -7px;
+  width: 12px;
+  height: 12px;
+  border-radius: 0 0 0 4px;
+  background: var(--meng-surface);
+  translate: 0 -50%;
+  rotate: 45deg;
+}
+
+.footer-note:hover {
+  rotate: 0deg;
+}
+
+// 两颗会闪的小星星，和中间的云朵插画呼应
+.footer-inner::before,
+.footer-inner::after {
+  content: '';
+  position: absolute;
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  pointer-events: none;
+  animation: footer-twinkle 3.2s ease-in-out infinite;
+}
+
+.footer-inner::before {
+  top: 24px;
+  left: 30%;
+  width: 18px;
+  height: 18px;
+  background: var(--meng-decor-sparkle);
+}
+
+.footer-inner::after {
+  right: 34%;
+  bottom: 30px;
+  width: 14px;
+  height: 14px;
+  background: var(--meng-decor-sakura);
+  animation-delay: -1.6s;
+}
+
+@keyframes footer-twinkle {
+  50% {
+    opacity: 0.35;
+    scale: 0.6;
+    rotate: 20deg;
+  }
 }
 
 .footer-links {
   position: relative;
   z-index: 1;
   display: flex;
-  gap: 64px;
+  gap: 40px;
   margin-left: auto;
+}
+
+// 两栏之间一条竖虚线
+.footer-links > div + div {
+  padding-left: 40px;
+  border-left: 2px dashed var(--meng-border);
 }
 
 .footer-links > div {
@@ -315,16 +524,34 @@ nav a.selected {
   gap: 4px;
 }
 
+// 栏目标题做成斜贴的小标签，两栏各一种颜色
 .footer-links h2 {
+  width: fit-content;
+  margin-bottom: 6px;
+  padding: 2px 12px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.1em;
   color: var(--meng-shadow-hard);
+  rotate: -3deg;
+}
+
+.footer-links > div + div h2 {
+  background: var(--meng-danger);
+  box-shadow: 0 2px 0 var(--meng-category-creation);
+  color: var(--meng-like-text);
+  rotate: 2deg;
 }
 
 .footer-links a,
 .footer-links button {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   text-align: left;
   padding: 6px 0;
   border: 0;
@@ -332,11 +559,33 @@ nav a.selected {
   color: var(--meng-text);
   font-size: 15px;
   font-weight: 700;
+  transition:
+    color 200ms ease,
+    translate 260ms var(--meng-slide-ease);
+}
+
+// 链接前的小菱形，悬停时变成金色并带着文字右移
+.footer-links a::before,
+.footer-links button::before {
+  content: '';
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--meng-border);
+  rotate: 45deg;
+  transition: background 200ms ease;
 }
 
 .footer-links a:hover,
 .footer-links button:hover {
   color: var(--meng-primary);
+  translate: 4px 0;
+}
+
+.footer-links a:hover::before,
+.footer-links button:hover::before {
+  background: var(--meng-decor-sparkle);
 }
 
 .footer-art {
@@ -345,11 +594,19 @@ nav a.selected {
   left: 34%;
   width: min(520px, 40%);
   height: 150px;
-  background: var(--meng-border);
+  background: var(--meng-primary-light-5);
   mask-size: contain;
   mask-repeat: no-repeat;
   mask-position: center;
+  opacity: 0.7;
   pointer-events: none;
+  animation: footer-float 7s ease-in-out infinite;
+}
+
+@keyframes footer-float {
+  50% {
+    translate: 0 -6px;
+  }
 }
 
 @media (width <= 1150px) {
@@ -449,8 +706,15 @@ nav a.selected {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  nav a,
-  nav button {
+  .footer-inner::before,
+  .footer-inner::after,
+  .footer-art,
+  .community-nav::after {
+    animation: none;
+  }
+
+  .nav-slider,
+  .nav-icon {
     transition: none;
   }
 }
@@ -469,27 +733,22 @@ nav a.selected {
   z-index: 2;
   display: flex;
   align-items: center;
+  box-sizing: border-box;
   flex: none;
   width: 44px;
   height: 44px;
   overflow: hidden;
   border-radius: var(--meng-radius-pill);
-  background: transparent;
-  box-shadow: inset 0 0 0 1px transparent;
-  transition:
-    width 360ms cubic-bezier(0.22, 1, 0.36, 1),
-    background 240ms ease,
-    box-shadow 240ms ease;
 }
 
 .nav-search.expanded {
   width: 250px;
-  background: var(--meng-tint);
-  box-shadow: inset 0 0 0 1px var(--meng-border);
 }
 
 .nav-search button {
   flex: none;
+  width: 40px;
+  height: 40px;
   transition: transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -538,8 +797,14 @@ nav a.selected {
 @media (prefers-reduced-motion: reduce) {
   .nav-search,
   .nav-search button,
-  .nav-search input {
+  .nav-search input,
+  .nav-avatar,
+  .nav-messages {
     transition: none;
+  }
+
+  .nav-messages:hover .nav-tool-icon {
+    animation: none;
   }
 }
 
@@ -554,11 +819,13 @@ nav a.selected {
 
 .nav-unread {
   position: absolute;
-  top: 0;
-  right: -2px;
+  top: -6px;
+  right: -6px;
   min-width: 18px;
   padding: 1px 5px;
+  border: 2px solid var(--meng-surface);
   border-radius: 12px;
+  box-shadow: 0 2px 0 var(--meng-growth-pink-edge);
   background: var(--meng-like-icon);
   color: var(--meng-surface);
   font-size: 11px;

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="萌萌">
+<g stroke="#1854A0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22 13 26l3 11-9-4Z" fill="#9DDBFA" stroke="#1854A0" stroke-width="2.4" stroke-linejoin="round"/><path d="m5 24 8 3-5 5Z" fill="#EEF9FF" stroke="none"/>
+<path d="m60 22-9 4-3 11 9-4Z" fill="#9DDBFA" stroke="#1854A0" stroke-width="2.4" stroke-linejoin="round"/><path d="m59 24-8 3 5 5Z" fill="#EEF9FF" stroke="none"/>
+<path d="m4 49 12-7-3 12Z" fill="#9DDBFA" stroke="#1854A0" stroke-width="2.4" stroke-linejoin="round"/><path d="m6 49 7-4-1 7Z" fill="#EEF9FF" stroke="none"/>
+<path d="m60 49-12-7 3 12Z" fill="#9DDBFA" stroke="#1854A0" stroke-width="2.4" stroke-linejoin="round"/><path d="m58 49-7-4 1 7Z" fill="#EEF9FF" stroke="none"/>
+<path d="M29 18q3-6 6 0l5 10 12 2q6 1 2 6l-8 8 1 12q1 6-5 3l-10-5-10 5q-6 3-5-3l1-12-8-8q-4-5 2-6l12-2Z" fill="#9DDBFA"/>
+<path d="M27 30q1-4 4-5" fill="none" stroke="#FFFFFF" stroke-width="3.5"/>
+<g transform="translate(32 13) scale(0.75)" stroke="#1854A0" stroke-width="2.5" stroke-linejoin="round">
+<path d="M-2-1C-5-6-11-9-12-5c-1 3-1 7 1 9 3 2 7 0 10-3M2-1C5-6 11-9 12-5c1 3 1 7-1 9-3 2-7 0-10-3" fill="#449AF4"/>
+<rect x="-3" y="-3" width="6" height="6" rx="2" fill="#77C8F6"/></g></g>
+</svg>
+

@@ -1,0 +1,430 @@
+// 公共对话框和消息条的统一样式，对照画布上的「公共对话框」画板。
+// 三种用法共用同一套样子：el-dialog（加 meng-dialog）、确认框（ElMessageBox 加 meng-confirm）、消息条（ElMessage）。
+
+.meng-dialog,
+.meng-confirm {
+  // 语义色：默认金色，tone-pink / tone-blue / tone-mint / tone-violet 换色
+  --tone-chip: var(--meng-category-daily);
+  --tone-edge: var(--meng-growth-gold-edge);
+  --tone-ink: var(--meng-favorite-text);
+  --tone-tag: var(--meng-warning);
+  --tone-tape-a: var(--meng-warning);
+  --tone-tape-b: var(--meng-category-daily);
+}
+
+.meng-dialog.tone-pink,
+.meng-confirm.meng-confirm-danger {
+  --tone-chip: var(--meng-category-creation);
+  --tone-edge: var(--meng-growth-pink-edge);
+  --tone-ink: var(--meng-like-text);
+  --tone-tag: var(--meng-danger);
+  --tone-tape-a: var(--meng-danger);
+  --tone-tape-b: var(--meng-category-creation);
+}
+
+.meng-dialog.tone-blue {
+  --tone-chip: var(--meng-category-anime);
+  --tone-edge: var(--meng-growth-blue-edge);
+  --tone-ink: var(--meng-shadow-hard);
+  --tone-tag: var(--meng-tint);
+  --tone-tape-a: var(--meng-tint);
+  --tone-tape-b: var(--meng-category-anime);
+}
+
+.meng-dialog.tone-mint {
+  --tone-chip: var(--meng-creator-green);
+  --tone-edge: var(--meng-growth-mint-edge);
+  --tone-ink: var(--meng-success-shadow);
+  --tone-tag: var(--meng-success);
+  --tone-tape-a: var(--meng-success);
+  --tone-tape-b: var(--meng-growth-mint-edge);
+}
+
+.meng-dialog.tone-violet {
+  --tone-chip: var(--meng-category-game-dot);
+  --tone-edge: var(--meng-growth-violet-edge);
+  --tone-ink: var(--meng-creator-purple-text);
+  --tone-tag: var(--meng-category-game);
+  --tone-tape-a: var(--meng-category-game);
+  --tone-tape-b: var(--meng-category-game-dot);
+}
+
+// 面板整体放得进窗口，遮罩层不出现滚动条
+.meng-dialog-overlay .el-overlay-dialog {
+  overflow: hidden;
+}
+
+.meng-dialog.el-dialog,
+.el-message-box.meng-confirm {
+  position: relative;
+  padding: 22px 26px 24px;
+  border: 4px solid transparent;
+  border-radius: 34px;
+  background:
+    linear-gradient(var(--meng-surface), var(--meng-surface)) padding-box,
+    linear-gradient(100deg, var(--meng-card-ring)) border-box;
+  box-shadow: var(--meng-account-dialog-shadow);
+  animation: meng-dialog-pop 520ms var(--meng-slide-ease) backwards;
+}
+
+.meng-dialog.el-dialog {
+  max-width: calc(100vw - 32px);
+}
+
+// 确认框固定 440 宽；Element 默认裁掉溢出，这里放开，胶带才露得出来
+.el-message-box.meng-confirm {
+  --el-messagebox-width: min(440px, calc(100vw - 32px));
+
+  overflow: visible;
+}
+
+@keyframes meng-dialog-pop {
+  0% {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.9;
+  }
+
+  60% {
+    opacity: 1;
+    scale: 1.02;
+  }
+}
+
+// 左上贴一条纸胶带
+.meng-dialog.el-dialog::before,
+.el-message-box.meng-confirm::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  left: 120px;
+  width: 100px;
+  height: 24px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--tone-tape-a) 0 10px,
+    var(--tone-tape-b) 10px 20px
+  );
+  opacity: 0.95;
+  rotate: -4deg;
+  pointer-events: none;
+}
+
+// ---------- 标题行（el-dialog 用 DialogShell 的自定义标题，确认框用 EP 自带的标题）
+.meng-dialog .el-dialog__header,
+.meng-confirm .el-message-box__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 0 0 14px;
+  border-bottom: 2px dashed var(--meng-tint);
+}
+
+.shell-head {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+}
+
+.shell-icon,
+.meng-confirm .el-message-box__title::before {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background-color: var(--tone-chip);
+  box-shadow: 0 4px 0 var(--tone-edge);
+  color: var(--tone-ink);
+  font-size: 24px;
+  rotate: -8deg;
+}
+
+.shell-head h2,
+.meng-confirm .el-message-box__title {
+  margin: 0;
+  font-family: var(--meng-font-display);
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.3;
+  color: var(--meng-text);
+}
+
+.shell-head h2 span,
+.meng-confirm .el-message-box__title span {
+  display: inline-block;
+  padding: 2px 16px;
+  border-radius: 20px;
+  background: var(--tone-tag);
+  rotate: -3deg;
+  transition: rotate 200ms ease;
+}
+
+.shell-head h2 span:hover,
+.meng-confirm .el-message-box__title span:hover {
+  rotate: 0deg;
+}
+
+// 确认框的标题前面是一个带图标的圆形贴纸：金色问号，危险确认是粉色垃圾桶
+.meng-confirm .el-message-box__title {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+}
+
+.meng-confirm .el-message-box__title::before {
+  content: '';
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F5310' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5M12 17h.01'/%3E%3C/svg%3E");
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 26px;
+}
+
+.meng-confirm.meng-confirm-danger .el-message-box__title::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E3355' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6'/%3E%3C/svg%3E");
+}
+
+// ---------- 关闭按钮：蓝色圆形贴纸，悬停转 90 度
+.shell-close,
+.meng-confirm .el-message-box__headerbtn {
+  position: static;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-left: auto;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint) url('../assets/message-close.svg') center / 22px no-repeat;
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  cursor: pointer;
+  transition:
+    rotate 320ms var(--meng-slide-ease),
+    translate 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.shell-close:hover:not(:disabled),
+.meng-confirm .el-message-box__headerbtn:hover {
+  box-shadow: 0 6px 0 var(--meng-category-anime);
+  rotate: 90deg;
+  translate: 0 -2px;
+}
+
+.shell-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.meng-confirm .el-message-box__headerbtn .el-message-box__close {
+  display: none;
+}
+
+// ---------- 内容和按钮
+.meng-dialog .el-dialog__body {
+  padding: 16px 0 0;
+}
+
+.meng-confirm .el-message-box__content {
+  padding: 16px 0;
+}
+
+.meng-confirm .el-message-box__message {
+  color: var(--meng-muted);
+  font-size: 15px;
+  line-height: 1.8;
+}
+
+.meng-dialog .el-dialog__footer,
+.meng-confirm .el-message-box__btns {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px 0 0;
+  border-top: 2px dashed var(--meng-tint);
+}
+
+// 按钮：白边加底影的贴纸，悬停上浮并加厚底影，不铺底色；取消浅灰，确认薄荷，危险粉色
+.meng-dialog .el-dialog__footer .el-button,
+.meng-confirm .el-message-box__btns .el-button {
+  --el-button-bg-color: var(--meng-bg);
+  --el-button-hover-bg-color: var(--meng-bg);
+  --el-button-active-bg-color: var(--meng-bg);
+  --el-button-border-color: var(--meng-surface);
+  --el-button-hover-border-color: var(--meng-surface);
+  --el-button-active-border-color: var(--meng-surface);
+  --el-button-text-color: var(--meng-muted);
+  --el-button-hover-text-color: var(--meng-muted);
+  --el-button-active-text-color: var(--meng-muted);
+  --edge: var(--meng-border);
+
+  height: 46px;
+  margin: 0;
+  padding: 0 22px;
+  border-width: 3px;
+  border-radius: 23px;
+  box-shadow: 0 4px 0 var(--edge);
+  font-size: 15px;
+  font-weight: 800;
+  transition:
+    translate 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.meng-dialog .el-dialog__footer .el-button--primary,
+.meng-confirm .el-message-box__btns .el-button--primary {
+  --el-button-bg-color: var(--meng-success);
+  --el-button-hover-bg-color: var(--meng-success);
+  --el-button-active-bg-color: var(--meng-success);
+  --el-button-text-color: var(--meng-success-shadow);
+  --el-button-hover-text-color: var(--meng-success-shadow);
+  --el-button-active-text-color: var(--meng-success-shadow);
+  --edge: var(--meng-growth-mint-edge);
+}
+
+.meng-dialog .el-dialog__footer .el-button--danger,
+.meng-confirm.meng-confirm-danger .el-message-box__btns .el-button--primary {
+  --el-button-bg-color: var(--meng-danger);
+  --el-button-hover-bg-color: var(--meng-danger);
+  --el-button-active-bg-color: var(--meng-danger);
+  --el-button-text-color: var(--meng-like-text);
+  --el-button-hover-text-color: var(--meng-like-text);
+  --el-button-active-text-color: var(--meng-like-text);
+  --edge: var(--meng-category-creation);
+}
+
+.meng-dialog .el-dialog__footer .el-button:not(:disabled):hover,
+.meng-confirm .el-message-box__btns .el-button:hover {
+  box-shadow: 0 6px 0 var(--edge);
+  translate: 0 -3px;
+}
+
+.meng-dialog .el-dialog__footer .el-button:not(:disabled):active,
+.meng-confirm .el-message-box__btns .el-button:active {
+  box-shadow: 0 1px 0 var(--edge);
+  translate: 0 2px;
+}
+
+.meng-dialog .el-dialog__footer .el-button:disabled {
+  box-shadow: none;
+  opacity: 0.55;
+}
+
+// 确认按钮左边一个白色小圆里的对勾，危险确认是垃圾桶
+.meng-confirm .el-message-box__btns .el-button--primary > span::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  margin: 0 8px 0 -13px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface)
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232C6A4E' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E")
+    center / 14px no-repeat;
+  vertical-align: middle;
+}
+
+.meng-confirm.meng-confirm-danger .el-message-box__btns .el-button--primary > span::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238E3355' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6'/%3E%3C/svg%3E");
+}
+
+// ---------- 消息条：白边加底影的药丸，左边一个白色圆形图标
+.el-message {
+  --toast-edge: var(--meng-category-anime);
+
+  min-height: 52px;
+  padding: 8px 22px 8px 8px;
+  gap: 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 26px;
+  box-shadow:
+    0 5px 0 var(--toast-edge),
+    0 14px 30px var(--meng-decor-shadow);
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.el-message .el-message__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  color: inherit;
+  font-size: 18px;
+}
+
+.el-message--success {
+  --el-message-bg-color: var(--meng-success);
+  --el-message-border-color: transparent;
+  --el-message-text-color: var(--meng-success-shadow);
+  --toast-edge: var(--meng-growth-mint-edge);
+}
+
+.el-message--info {
+  --el-message-bg-color: var(--meng-tint);
+  --el-message-border-color: transparent;
+  --el-message-text-color: var(--meng-shadow-hard);
+  --toast-edge: var(--meng-category-anime);
+}
+
+.el-message--warning {
+  --el-message-bg-color: var(--meng-warning);
+  --el-message-border-color: transparent;
+  --el-message-text-color: var(--meng-favorite-text);
+  --toast-edge: var(--meng-category-daily);
+}
+
+.el-message--error {
+  --el-message-bg-color: var(--meng-danger);
+  --el-message-border-color: transparent;
+  --el-message-text-color: var(--meng-like-text);
+  --toast-edge: var(--meng-category-creation);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .meng-dialog.el-dialog,
+  .el-message-box.meng-confirm {
+    animation: none;
+  }
+
+  .shell-close,
+  .meng-confirm .el-message-box__headerbtn,
+  .shell-head h2 span,
+  .meng-confirm .el-message-box__title span {
+    transition: none;
+  }
+}
+
+// 对话框右上角探出来的颜文字小气泡
+.shell-face {
+  position: absolute;
+  top: -20px;
+  right: 74px;
+  height: 36px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border: 3px solid var(--meng-surface);
+  border-radius: 21px;
+  background: var(--tone-chip);
+  box-shadow: 0 4px 0 var(--meng-decor-shadow);
+  color: var(--meng-text);
+  font-size: 14px;
+  font-weight: 800;
+  white-space: nowrap;
+  rotate: 4deg;
+  pointer-events: none;
+}

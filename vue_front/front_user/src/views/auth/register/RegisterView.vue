@@ -2,17 +2,36 @@
   <AuthLayout registration>
     <template v-if="success">
       <h1 class="auth-heading">
+        <span
+          class="heading-badge"
+          aria-hidden="true"
+        ><img
+          :src="icons.heart"
+          alt=""
+        ></span>
         {{ t('auth.register.success') }}
       </h1>
       <p class="auth-description">
         {{ t('auth.register.successDescription') }}
       </p>
-      <router-link :to="{ name: RouteName.LOGIN }">
-        {{ t('auth.register.backLogin') }}
-      </router-link>
+      <p class="register-return">
+        <router-link
+          class="auth-return"
+          :to="{ name: RouteName.LOGIN }"
+        >
+          {{ t('auth.register.backLogin') }}
+        </router-link>
+      </p>
     </template>
     <template v-else>
       <h1 class="auth-heading">
+        <span
+          class="heading-badge"
+          aria-hidden="true"
+        ><img
+          :src="icons.heart"
+          alt=""
+        ></span>
         {{ t('auth.register.join') }}
         <span class="auth-brand">{{ t('common.brand') }}</span>
       </h1>
@@ -21,8 +40,11 @@
         novalidate
         @submit.prevent="submit"
       >
-        <label>{{ t('auth.login.username')
-        }}<el-input
+        <label><span class="field-name"><img
+          :src="icons.user"
+          alt=""
+          aria-hidden="true"
+        >{{ t('auth.login.username') }}</span><el-input
           v-model="form.username"
           :class="{ 'has-error': Boolean(errors.username) }"
           :aria-invalid="Boolean(errors.username)"
@@ -34,8 +56,11 @@
           :message-id="fieldId('username')"
         /></label>
         <div class="auth-pair">
-          <label>{{ t('auth.login.password')
-          }}<el-input
+          <label><span class="field-name"><img
+            :src="icons.lock"
+            alt=""
+            aria-hidden="true"
+          >{{ t('auth.login.password') }}</span><el-input
             v-model="form.password"
             :class="{ 'has-error': Boolean(errors.password) }"
             :aria-invalid="Boolean(errors.password)"
@@ -50,8 +75,11 @@
             :message="errors.password"
             :message-id="fieldId('password')"
           /></label>
-          <label>{{ t('auth.register.confirmPassword')
-          }}<el-input
+          <label><span class="field-name"><img
+            :src="icons.lock"
+            alt=""
+            aria-hidden="true"
+          >{{ t('auth.register.confirmPassword') }}</span><el-input
             v-model="form.confirmPassword"
             :class="{ 'has-error': Boolean(errors.confirmPassword) }"
             :aria-invalid="Boolean(errors.confirmPassword)"

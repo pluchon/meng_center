@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="首页">
+<g stroke="#1854A0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M14 26v25q0 6 7 6h24q7 0 7-6V26" fill="#EEF9FF"/>
+<path d="M11 28 28 14q4-3 8 0l17 14q4 4 1 7-2 2-6 0L32 23 16 35q-4 2-6-1-2-3 1-6Z" fill="#9DDBFA"/>
+<path d="M27 57V45a5 5 0 0 1 10 0v12" fill="#449AF4"/>
+<path d="M32 43c-1.8 2.4-2.5 3.4-2.5 4.6a2.5 2.5 0 0 0 5 0c0-1.2-.7-2.2-2.5-4.6" fill="#FFFFFF" stroke="none"/>
+<path d="M18 42h4v5h-4zm24 0h4v5h-4z" fill="#77C8F6" stroke="none"/>
+<g transform="translate(32 11) scale(0.75)" stroke="#1854A0" stroke-width="2.5" stroke-linejoin="round">
+<path d="M-2-1C-5-6-11-9-12-5c-1 3-1 7 1 9 3 2 7 0 10-3M2-1C5-6 11-9 12-5c1 3 1 7-1 9-3 2-7 0-10-3" fill="#449AF4"/>
+<rect x="-3" y="-3" width="6" height="6" rx="2" fill="#77C8F6"/></g></g>
+</svg>
+

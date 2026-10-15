@@ -3,14 +3,22 @@
     class="legal-consent"
     :class="{ 'is-invalid': invalid }"
   >
-    <input
-      type="checkbox"
-      class="consent-checkbox"
-      :checked="modelValue"
-      :aria-invalid="invalid"
-      :aria-label="t('auth.register.consent')"
-      @change="$emit('update:modelValue', $event.target.checked)"
-    >
+    <span class="consent-mark">
+      <input
+        type="checkbox"
+        class="consent-checkbox"
+        :checked="modelValue"
+        :aria-invalid="invalid"
+        :aria-label="t('auth.register.consent')"
+        @change="$emit('update:modelValue', $event.target.checked)"
+      >
+      <img
+        class="consent-tick"
+        :src="checkIcon"
+        alt=""
+        aria-hidden="true"
+      >
+    </span>
     <span class="consent-copy">
       <button
         type="button"

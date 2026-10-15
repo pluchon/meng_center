@@ -34,11 +34,12 @@ export default defineComponent({
       const token = (name) => css.getPropertyValue('--meng-' + name).trim()
       return {
         text: token('muted'),
+        ink: token('text'),
+        card: token('creator-plot'),
         grid: token('tint'),
         base: token('bg'),
-        primary: token('primary'),
         lines: ['creator-green', 'creator-pink', 'creator-purple', 'creator-yellow'].map(token),
-        bars: ['creator-yellow', 'creator-pink', 'category-anime', 'border', 'border'].map(token),
+        bars: ['creator-yellow', 'creator-pink', 'category-anime', 'creator-green', 'creator-purple'].map(token),
         sources: ['category-anime', 'category-daily', 'category-game-dot'].map(token),
       }
     }
@@ -53,22 +54,51 @@ export default defineComponent({
       }
       if (props.type === CreatorChartType.EXP_SOURCES) {
         const compact = host.value.clientWidth < 340
+        const rows = ExpSources.map((source, index) => ({
+          name: t('growth.source.' + source),
+          value: props.data.find((row) => row.source === source)?.amount ?? 0,
+          // 颜色跟来源绑定：某个来源为 0 时，其他来源的颜色不会跟着错位
+          itemStyle: { color: palette.sources[index] },
+        })).filter((row) => row.value > 0)
+        const total = rows.reduce((sum, row) => sum + row.value, 0)
         chart.setOption(
           {
             ...common,
-            color: palette.sources,
+            animationDuration: 900,
+            animationEasing: 'cubicOut',
             tooltip: {
               trigger: 'item',
               renderMode: 'richText',
               confine: true,
               formatter: '{b}: {c} ({d}%)',
             },
-            legend: { bottom: 0, textStyle: { color: palette.text } },
+            legend: {
+              bottom: 0,
+              icon: 'circle',
+              itemWidth: 12,
+              itemHeight: 12,
+              itemGap: 18,
+              textStyle: { color: palette.text, fontWeight: 700 },
+            },
+            // 圆环正中间：总经验
+            title: {
+              text: String(total),
+              subtext: t('growth.totalExp'),
+              left: 'center',
+              top: compact ? '35%' : '37%',
+              itemGap: 2,
+              textStyle: { color: palette.ink, fontSize: 24, fontWeight: 400, fontFamily: 'ZCOOL KuaiLe, sans-serif' },
+              subtextStyle: { color: palette.text, fontSize: 11, fontWeight: 700 },
+            },
             series: [
               {
                 type: 'pie',
-                radius: compact ? ['26%', '48%'] : ['30%', '54%'],
+                radius: compact ? ['34%', '52%'] : ['38%', '58%'],
                 center: ['50%', '44%'],
+                padAngle: 3,
+                itemStyle: { borderColor: palette.card, borderWidth: 4, borderRadius: 12 },
+                emphasis: { scaleSize: 6 },
+                animationType: 'expansion',
                 avoidLabelOverlap: true,
                 label: {
                   show: true,
@@ -83,10 +113,7 @@ export default defineComponent({
                   formatter: '{b} +{c}\n{d}%',
                 },
                 labelLine: { show: true, length: 10, length2: 8 },
-                data: ExpSources.map((source) => ({
-                  name: t('growth.source.' + source),
-                  value: props.data.find((row) => row.source === source)?.amount ?? 0,
-                })).filter((row) => row.value > 0),
+                data: rows,
               },
             ],
           },
@@ -99,9 +126,9 @@ export default defineComponent({
         chart.setOption(
           {
             ...common,
-            animationDuration: 1000,
-            animationEasing: 'cubicInOut',
-            grid: { left: 38, right: 14, top: 22, bottom: 34 },
+            animationDuration: 1100,
+            animationEasing: 'cubicOut',
+            grid: { left: 38, right: 18, top: 24, bottom: 34 },
             tooltip: { trigger: 'axis', renderMode: 'richText', confine: true },
             xAxis: {
               type: 'category',
@@ -123,10 +150,28 @@ export default defineComponent({
                 name: t('growth.chartTrend'),
                 type: 'line',
                 clip: true,
-                showSymbol: false,
+                smooth: 0.35,
+                showSymbol: true,
+                symbol: 'circle',
+                symbolSize: props.data.length > 10 ? 7 : 11,
                 data: props.data.map((row) => row.amount),
-                lineStyle: { width: 3, color: palette.lines[0] },
-                itemStyle: { color: palette.lines[0] },
+                lineStyle: { width: 4, color: palette.lines[0], cap: 'round', join: 'round' },
+                // 圆点带白边，线下面一层由深到浅的薄荷渐变
+                itemStyle: { color: palette.lines[0], borderColor: palette.card, borderWidth: 3 },
+                emphasis: { scale: 1.5 },
+                areaStyle: {
+                  color: {
+                    type: 'linear',
+                    x: 0,
+                    y: 0,
+                    x2: 0,
+                    y2: 1,
+                    colorStops: [
+                      { offset: 0, color: palette.lines[0] + '8c' },
+                      { offset: 1, color: palette.lines[0] + '00' },
+                    ],
+                  },
+                },
               },
             ],
           },
@@ -135,15 +180,15 @@ export default defineComponent({
         return
       }
       if (props.type === CreatorChartType.TREND) {
-        // 重新进入折线系列时让 ECharts 的裁剪矩形从左向右展开，坐标轴保持静止。
-        if (reveal) chart.clear()
+        // 折线进场由 CSS 从左向右展开，每次换数据都重播；ECharts 只负责图例开关时的过渡。
+        if (reveal) replay()
         chart.setOption(
           {
             ...common,
-            animationDuration: 1150,
-            animationDurationUpdate: 420,
+            animationDuration: 0,
+            animationDurationUpdate: 360,
             animationEasing: 'cubicInOut',
-            grid: { left: 8, right: 8, top: 12, bottom: 48 },
+            grid: { left: 8, right: 8, top: 12, bottom: 34 },
             tooltip: {
               trigger: 'axis',
               renderMode: 'richText',
@@ -171,11 +216,7 @@ export default defineComponent({
                 fontWeight: 700,
                 hideOverlap: true,
                 margin: 14,
-                formatter: (value, i) =>
-                  value.slice(5).replace('-', '/') +
-                  '\n' +
-                  (props.data[i].postCount ? '{posted|' + t('creator.posted') + '}' : ''),
-                rich: { posted: { color: palette.primary, lineHeight: 16 } },
+                formatter: (value) => value.slice(5).replace('-', '/'),
               },
             },
             yAxis: {
@@ -203,6 +244,8 @@ export default defineComponent({
         chart.setOption(
           {
             ...common,
+            animationDuration: 900,
+            animationEasing: 'cubicOut',
             grid: { left: 40, right: 0, top: 0, bottom: (5 - props.data.length) * 70 },
             xAxis: {
               type: 'value',
@@ -218,6 +261,7 @@ export default defineComponent({
             series: [
               {
                 type: 'bar',
+                animationDelay: (index) => index * 90,
                 barWidth: 10,
                 showBackground: true,
                 backgroundStyle: { color: palette.base, borderRadius: 5 },
@@ -231,6 +275,14 @@ export default defineComponent({
           { notMerge: true },
         )
       }
+    }
+    // 重新触发进场动画：先摘掉类、强制回流，再加回去
+    function replay() {
+      const el = host.value
+      if (!el) return
+      el.classList.remove('reveal')
+      void el.offsetWidth
+      el.classList.add('reveal')
     }
     function toggle(field) {
       const next = new Set(enabled.value)

@@ -5,34 +5,179 @@
   height: 100%;
 }
 
+// 顶栏：粉色渐变底，名字是歪着的贴纸，右边是屏蔽勾选、在线状态和删除按钮
 .chat-header {
+  position: relative;
   display: flex;
   flex: none;
   align-items: center;
   gap: 16px;
-  min-height: 96px;
+  min-height: 100px;
   padding: 20px 28px;
   border-bottom: 3px dashed var(--meng-card-base);
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--meng-danger) 55%, var(--meng-surface)),
+    var(--meng-surface) 62%
+  );
+}
+
+.chat-header::before,
+.chat-header::after {
+  position: absolute;
+  content: '✦';
+  pointer-events: none;
+  animation: header-twinkle 2.6s ease-in-out infinite;
+}
+
+.chat-header::before {
+  top: 12px;
+  left: 124px;
+  color: var(--meng-category-daily);
+  font-size: 20px;
+}
+
+.chat-header::after {
+  right: 36%;
+  bottom: 10px;
+  color: var(--meng-category-anime);
+  font-size: 14px;
+  animation-delay: -1.2s;
+}
+
+.chat-header :deep(.el-avatar) {
+  border: 3px solid var(--meng-surface);
+  box-shadow:
+    0 0 0 3px var(--meng-category-anime),
+    0 5px 0 3px var(--meng-category-anime);
+  transition: rotate 260ms var(--meng-slide-ease);
+}
+
+.chat-header :deep(.el-avatar:hover) {
+  rotate: -8deg;
 }
 
 .chat-header h2 {
   margin: 0;
-  padding: 2px 16px;
-  border-radius: 22px;
+  padding: 2px 18px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 24px;
   background: var(--meng-danger);
   box-shadow: 0 4px 0 var(--meng-category-creation);
-  font: 26px var(--meng-font-display);
-  transform: rotate(-3deg);
+  font: 28px var(--meng-font-display);
+  rotate: -3deg;
+  transition: rotate 260ms var(--meng-slide-ease);
+}
+
+.chat-header h2:hover {
+  rotate: 0deg;
+}
+
+.chat-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+
+// 屏蔽对方：一个贴纸式的勾选框，勾上整条变粉色
+.block-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 14px 4px 6px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
+  color: var(--meng-muted);
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    background-color 240ms ease,
+    color 240ms ease;
+}
+
+.block-toggle input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.block-box {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--meng-primary-light-5);
+  border-radius: 9px;
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-tint);
+  transition:
+    background-color 240ms ease,
+    border-color 240ms ease;
+}
+
+.block-box img {
+  width: 15px;
+  height: 15px;
+  opacity: 0;
+  scale: 0.3;
+  rotate: -25deg;
+  transition:
+    opacity 140ms ease,
+    scale 300ms var(--meng-slide-ease),
+    rotate 300ms var(--meng-slide-ease);
+}
+
+.block-toggle:hover {
+  box-shadow: 0 5px 0 var(--meng-tint);
+  translate: 0 -2px;
+}
+
+.block-toggle.checked {
+  background: var(--meng-danger);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+  color: var(--meng-like-text);
+}
+
+.block-toggle.checked .block-box {
+  border-color: var(--meng-category-creation);
+  background: var(--meng-danger);
+}
+
+.block-toggle.checked .block-box img {
+  opacity: 1;
+  scale: 1;
+  rotate: 0deg;
+}
+
+.block-toggle.changing {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.block-toggle:has(input:focus-visible) {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 3px;
 }
 
 .presence-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin-left: auto;
-  padding: 6px 12px;
-  border-radius: 20px;
+  padding: 5px 14px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
   color: var(--meng-muted);
   font-size: 13px;
   font-weight: 800;
@@ -47,11 +192,56 @@
 
 .presence-pill.online {
   background: var(--meng-success);
+  box-shadow: 0 3px 0 var(--meng-creator-green);
   color: var(--meng-success-text);
 }
 
 .presence-pill.online i {
   background: var(--meng-success-text);
+  animation: presence-pulse 2s ease-in-out infinite;
+}
+
+// 删除会话：一枚粉色的小圆章，悬停时歪一下
+.delete-chat {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-danger);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 260ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+}
+
+.delete-chat:hover:enabled {
+  box-shadow: 0 5px 0 var(--meng-category-creation);
+  rotate: -12deg;
+  translate: 0 -2px;
+}
+
+.delete-chat:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+@keyframes header-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.7;
+  }
+}
+
+@keyframes presence-pulse {
+  50% {
+    opacity: 0.45;
+    scale: 0.75;
+  }
 }
 
 .chat-history {
@@ -62,6 +252,9 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
   overflow-anchor: none;
+
+  // 淡淡的圆点底纹
+  background: radial-gradient(circle, var(--meng-tint) 1.6px, transparent 1.8px) 0 0 / 26px 26px;
 }
 
 .history-more,
@@ -80,18 +273,11 @@
   color: var(--meng-danger-text);
 }
 
-.chat-empty {
-  margin-top: 60px;
-  text-align: center;
-  color: var(--meng-muted);
-}
-
 .message-row {
   margin-bottom: 22px;
 }
 
 .chat-history::-webkit-scrollbar,
-.composer-images::-webkit-scrollbar,
 .composer-field textarea::-webkit-scrollbar {
   display: none;
 }
@@ -110,11 +296,14 @@
 .message-time {
   display: table;
   margin: 0 auto 20px;
-  padding: 3px 10px;
+  padding: 2px 12px;
+  border: 2px solid var(--meng-surface);
   border-radius: 20px;
   background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
   color: var(--meng-muted);
   font-size: 12px;
+  font-weight: 700;
 }
 
 .message-content {
@@ -123,10 +312,25 @@
   gap: 12px;
 }
 
-.message-bubble {
+// 气泡和它下面的图集竖着排在一起
+.message-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
   min-width: 0;
   max-width: 80%;
-  padding: 10px 16px;
+}
+
+.self .message-stack {
+  align-items: flex-end;
+}
+
+.message-bubble {
+  min-width: 0;
+  max-width: 100%;
+  padding: 8px 15px;
+  border: 3px solid var(--meng-surface);
   border-radius: 22px 22px 22px 6px;
   background: var(--meng-bg);
   box-shadow: 0 3px 0 var(--meng-card-base);
@@ -141,8 +345,116 @@
 }
 
 .message-bubble :deep(.comment-body img) {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  vertical-align: middle;
+}
+
+// 只有一个表情或图片时放在文字的下一行
+.message-bubble .bubble-attachment {
+  margin-top: 6px;
+  padding: 0;
+}
+
+.message-bubble .bubble-attachment:first-child {
+  margin-top: 0;
+}
+
+// 已读未读和它上面的撤回按钮竖着排在气泡旁边
+.message-meta {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.self .message-meta {
+  align-items: flex-end;
+}
+
+.message-revoke {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 10px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--meng-motion-ease),
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.message-revoke:hover:not(:disabled) {
+  box-shadow: 0 4px 0 var(--meng-tint);
+  color: var(--meng-primary);
+  transform: translateY(-2px);
+}
+
+.message-revoke:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+.revoke-btn-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms var(--meng-motion-ease);
+}
+
+.revoke-btn-leave-to {
+  opacity: 0;
+  transform: translateY(6px) scale(0.85);
+}
+
+// 撤回后的占位：居中的一行小字，自己撤回的末尾有一个换色的「重新编辑」
+.message-revoked {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.revoke-edit {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--meng-primary);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.revoke-edit:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.revoke-edit:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.revoked-swap-enter-active,
+.revoked-swap-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms var(--meng-motion-ease);
+}
+
+.revoked-swap-enter-from,
+.revoked-swap-leave-to {
+  opacity: 0;
+  transform: scale(0.94);
 }
 
 .message-receipt {
@@ -160,11 +472,12 @@
   flex-direction: row-reverse;
 }
 
+// 自己的气泡是浅蓝贴纸，不用实心青蓝块
 .self .message-bubble {
   border-radius: 22px 22px 6px;
-  background: var(--meng-primary);
-  box-shadow: 0 3px 0 var(--meng-shadow-hard);
-  color: var(--meng-surface);
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-text);
 }
 
 .pending .message-bubble {
@@ -205,11 +518,22 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
-  border: 0;
+  padding: 6px 12px;
+  border: 2px solid var(--meng-surface);
   border-radius: 20px;
   font-weight: 800;
   cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+}
+
+.composer-tools button:hover:enabled {
+  translate: 0 -2px;
+}
+
+.composer-tools button:active:enabled {
+  translate: 0 2px;
 }
 
 .emotion-button {
@@ -224,13 +548,95 @@
   box-shadow: 0 3px 0 var(--meng-category-creation);
 }
 
-.composer-tools small {
+// 已选的表情和上传的图片，显示在工具栏右侧
+.composer-chips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
   margin-left: auto;
-  color: var(--meng-muted);
+  padding: 8px 8px 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
 
-.composer-tools small.over {
-  color: var(--meng-danger-text);
+.chip {
+  position: relative;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 15px;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
+}
+
+.chip-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+.emotion-chip .chip-image {
+  padding: 2px;
+  object-fit: contain;
+}
+
+.composer-tools .chip button {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 2px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-danger);
+  box-shadow: 0 2px 0 var(--meng-category-creation);
+}
+
+.composer-tools .chip .chip-retry {
+  inset: auto auto -8px -8px;
+  background: var(--meng-warning);
+  box-shadow: 0 2px 0 var(--meng-creator-yellow);
+}
+
+.chip small {
+  position: absolute;
+  inset: auto 0 0;
+  border-radius: 0 0 12px 12px;
+  background: color-mix(in srgb, var(--meng-surface) 85%, transparent);
+  color: var(--meng-muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.image-chip.failed {
+  box-shadow: 0 3px 0 var(--meng-danger-text);
+}
+
+.chip-enter-active,
+.chip-leave-active,
+.chip-move {
+  transition:
+    opacity 240ms ease,
+    scale 320ms var(--meng-slide-ease),
+    translate 320ms var(--meng-slide-ease);
+}
+
+.chip-enter-from,
+.chip-leave-to {
+  opacity: 0;
+  scale: 0.5;
+}
+
+.chip-leave-active {
+  position: absolute;
 }
 
 .composer-field {
@@ -239,20 +645,53 @@
   gap: 14px;
 }
 
+// 字数放在输入框内部右下角；只有一行时正好落在最右侧
+.composer-box {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.composer-count {
+  position: absolute;
+  right: 20px;
+  bottom: 16px;
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  pointer-events: none;
+}
+
+.composer-count.over {
+  color: var(--meng-danger-text);
+}
+
 .composer-field textarea {
   flex: 1;
   min-width: 0;
   max-height: 100px;
   min-height: 50px;
-  padding: 12px 18px;
+  padding: 12px 96px 12px 18px;
   border: 2px solid var(--meng-tint);
   border-radius: 24px;
   resize: none;
   background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
   color: var(--meng-text);
   font: inherit;
   line-height: 24px;
   scrollbar-width: none;
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.composer-field textarea:focus {
+  border-color: var(--meng-primary-light-5);
+  box-shadow: 0 3px 0 var(--meng-primary-light-5);
+  outline: none;
 }
 
 .send-button {
@@ -262,19 +701,24 @@
   width: 54px;
   border: 3px solid var(--meng-surface);
   border-radius: 28px;
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 4px 0 var(--meng-shadow-hard);
+  background: var(--meng-warning);
+  box-shadow: 0 4px 0 var(--meng-creator-yellow);
   cursor: pointer;
-  transition: transform 160ms var(--meng-motion-ease);
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 240ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 }
 
 .send-button:hover:enabled {
-  transform: translateY(-2px);
+  box-shadow: 0 6px 0 var(--meng-creator-yellow);
+  rotate: -4deg;
+  translate: 0 -2px;
 }
 
 .send-button:active:enabled {
-  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--meng-creator-yellow);
+  translate: 0 3px;
 }
 
 .send-button:disabled {
@@ -295,74 +739,6 @@
 
 .upload-input {
   display: none;
-}
-
-.composer-images {
-  display: flex;
-  gap: 10px;
-  max-height: 100px;
-  margin-bottom: 12px;
-  overflow: auto;
-  scrollbar-width: none;
-}
-
-.composer-image {
-  position: relative;
-  flex: none;
-}
-
-.composer-image img {
-  width: 64px;
-  height: 64px;
-  border-radius: 12px;
-  object-fit: cover;
-}
-
-.composer-image button {
-  position: absolute;
-  top: 0;
-  right: 0;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: 12px;
-  background: var(--meng-surface);
-  color: var(--meng-danger-text);
-  cursor: pointer;
-}
-
-.composer-image small {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  background: var(--meng-surface);
-}
-
-.composer-image .upload-retry {
-  top: auto;
-  bottom: 0;
-}
-
-.message-emotions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.message-emotions button {
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  border: 0;
-  border-radius: 10px;
-  background: var(--meng-bg);
-  cursor: pointer;
-}
-
-.message-emotions img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
 }
 
 @media (width <= 760px) {
@@ -389,9 +765,23 @@
     gap: 8px;
   }
 
-  .message-bubble {
+  .message-stack {
     max-width: 75%;
+  }
+
+  .message-bubble {
     padding: 10px 12px;
+  }
+
+  .chat-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .chat-header::before,
+  .chat-header::after {
+    display: none;
   }
 }
 
@@ -401,7 +791,26 @@
   }
 
   .message-appear-enter-active,
-  .message-bubble {
+  .message-bubble,
+  .message-revoke,
+  .revoke-btn-leave-active,
+  .revoked-swap-enter-active,
+  .revoked-swap-leave-active,
+  .composer-tools button,
+  .composer-field textarea,
+  .block-toggle,
+  .block-box img,
+  .delete-chat,
+  .chip-enter-active,
+  .chip-leave-active,
+  .chip-move {
     transition: none;
+    animation: none;
   }
+}
+
+.message-art-icon {
+  display: block;
+  flex: none;
+  object-fit: contain;
 }

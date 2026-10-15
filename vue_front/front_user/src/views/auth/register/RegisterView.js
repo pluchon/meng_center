@@ -16,6 +16,7 @@ import {
   LegalDocument,
 } from '@/constants/app'
 import { RouteName } from '@/router/names'
+import { authHeartIcon, authLockIcon, authUserIcon } from '@/assets/images'
 import AuthLayout from '@/layouts/auth/AuthLayout.vue'
 import ContactField from '@/components/contact-field/ContactField.vue'
 import VerificationCodeField from '@/components/verification-code-field/VerificationCodeField.vue'
@@ -35,6 +36,7 @@ export default defineComponent({
     VerificationCodeField,
   },
   setup() {
+    const icons = { heart: authHeartIcon, lock: authLockIcon, user: authUserIcon }
     const { t } = useI18n(),
       channel = ref(ContactChannel.SMS),
       agreed = ref(false),
@@ -108,6 +110,7 @@ export default defineComponent({
       }
     }
     return {
+      icons,
       errors,
       fieldId,
       t,

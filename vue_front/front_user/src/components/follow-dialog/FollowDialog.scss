@@ -1,0 +1,254 @@
+.follow-tabs {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 4px;
+}
+
+// 当前页签是歪着的彩色贴纸，另一个是安静的文字
+.follow-tab {
+  --tab-fill: var(--meng-tint);
+  --tab-edge: var(--meng-growth-blue-edge);
+
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 2px 12px;
+  border: 0;
+  border-radius: 20px;
+  background: transparent;
+  color: var(--meng-muted);
+  font-family: var(--meng-font-display);
+  font-size: 22px;
+  line-height: 1.3;
+  cursor: pointer;
+  transition:
+    rotate 200ms ease,
+    translate 150ms ease;
+}
+
+.follow-tab.pink {
+  --tab-fill: var(--meng-danger);
+  --tab-edge: var(--meng-growth-pink-edge);
+}
+
+.follow-tab b {
+  font-family: Nunito, 'Noto Sans SC', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.follow-tab.active {
+  padding: 2px 16px;
+  background: var(--tab-fill);
+  box-shadow: 0 4px 0 var(--tab-edge);
+  color: var(--meng-text);
+  font-size: 26px;
+  rotate: -3deg;
+}
+
+.follow-tab.active b {
+  font-size: 16px;
+  color: var(--meng-text);
+}
+
+.follow-tab:not(.active):hover {
+  translate: 0 -2px;
+}
+
+.follow-tab:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+// 列表区固定为六行的高度：没有数据、加载中、出错时状态图在这块区域正中，弹窗不会变小
+.follow-state,
+.follow-list {
+  min-height: 446px;
+}
+
+.follow-state {
+  align-content: center;
+}
+
+.follow-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.follow-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 14px 10px 10px;
+  border-radius: 22px;
+  background: var(--meng-bg);
+  transition: translate 150ms ease;
+}
+
+.follow-row:hover {
+  translate: 0 -2px;
+}
+
+.follow-person {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.follow-person:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+  border-radius: 14px;
+}
+
+.follow-person .message-avatar {
+  flex: none;
+  border: 3px solid var(--meng-surface);
+  box-shadow: 0 0 0 2px var(--meng-tint);
+}
+
+.follow-info {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.follow-name-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.follow-name-line strong {
+  overflow: hidden;
+  color: var(--meng-text);
+  font-size: 15px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-name-line em {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.follow-info small {
+  overflow: hidden;
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.follow-info small.is-empty {
+  color: var(--meng-border);
+}
+
+// 行尾按钮：白边加底影的贴纸，三种关系三种颜色
+.follow-action {
+  --action-fill: var(--meng-bg);
+  --action-edge: var(--meng-border);
+  --action-ink: var(--meng-muted);
+
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  margin-bottom: 3px;
+  padding: 0 16px 0 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--action-fill);
+  box-shadow: 0 3px 0 var(--action-edge);
+  color: var(--action-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    translate 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.follow-action.primary {
+  --action-fill: var(--meng-primary);
+  --action-edge: var(--meng-shadow-hard);
+  --action-ink: var(--meng-surface);
+}
+
+.follow-action.mutual {
+  --action-fill: var(--meng-success);
+  --action-edge: var(--meng-growth-mint-edge);
+  --action-ink: var(--meng-success-shadow);
+}
+
+.follow-action .el-icon {
+  font-size: 16px;
+}
+
+.follow-action:not(:disabled):hover {
+  box-shadow: 0 5px 0 var(--action-edge);
+  translate: 0 -2px;
+}
+
+.follow-action:not(:disabled):active {
+  box-shadow: 0 1px 0 var(--action-edge);
+  translate: 0 2px;
+}
+
+.follow-action:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.follow-action:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+// 翻页器的位置一直留着，只有一页时不显示也不会让弹窗变矮
+.follow-pager-slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 14px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .follow-tab,
+  .follow-row,
+  .follow-action {
+    transition: none;
+  }
+}

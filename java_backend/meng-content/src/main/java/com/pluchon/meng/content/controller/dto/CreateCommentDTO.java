@@ -15,10 +15,13 @@ public record CreateCommentDTO(
         // 配图编号集合
         @Size(max = 10) List<@NotNull @Positive Long> imageIds,
         // 回复目标评论编号
-        @Positive Long replyToCommentId) {
+        @Positive Long replyToCommentId,
+        // @ 到的用户编号集合
+        @Size(max = 5) List<@NotNull @Positive Long> mentionUserIds) {
 
     public CreateCommentDTO {
         content = content == null ? "" : content;
         imageIds = imageIds == null ? List.of() : imageIds;
+        mentionUserIds = mentionUserIds == null ? List.of() : mentionUserIds;
     }
 }

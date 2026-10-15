@@ -2,7 +2,7 @@ import { defineComponent, onMounted, onUnmounted, ref } from 'vue'
 
 export default defineComponent({
   name: 'PixelBlast',
-  setup() {
+  setup(props, { expose }) {
     const host = ref(null),
       ready = ref(false)
     let runtime,
@@ -24,6 +24,8 @@ export default defineComponent({
       disposed = true
       runtime?.dispose()
     })
+    const hold = (duration) => runtime?.hold(duration)
+    expose({ hold })
     return { host, ready }
   },
 })

@@ -23,7 +23,11 @@ public final class ImVO {
         String content,
         String clientMsgId,
         OffsetDateTime createTime,
-        List<Image> images
+        List<Image> images,
+        // 已撤回；对方看到的撤回消息没有文字和图片
+        boolean revoked,
+        // 还能撤回的毫秒数，零表示不能撤回
+        long revokeMillis
     ) {}
 
     public record Conversation(

@@ -1,7 +1,8 @@
 import { computed, defineComponent, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import {
   IconPhoto as PictureIcon,
   IconX as Close,
@@ -12,6 +13,7 @@ import {
   IconDeviceDesktop as Monitor,
   IconDeviceLaptop as Laptop,
   IconBan as CircleClose,
+  IconWorld,
 } from '@tabler/icons-vue'
 import { userApi } from '@/api/user'
 import { contentApi } from '@/api/content'
@@ -21,14 +23,25 @@ import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { Auth, Regions } from '@/constants/app'
 import { RouteName } from '@/router/names'
-import { Account } from '@/constants/account'
+import { Account, FolderVisibility } from '@/constants/account'
 import { accountDate } from '@/utils/accountDate'
 import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
 import PageState from '@/components/page-state/PageState.vue'
+import FolderColorPicker from '@/components/folder-color-picker/FolderColorPicker.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 export default defineComponent({
   name: 'AccountDialogs',
-  components: { PictureIcon, Close, Check, CaptchaDialog, PageState, MessageAvatar },
+  components: {
+    PictureIcon,
+    Close,
+    Check,
+    IconLock: Lock,
+    IconWorld,
+    CaptchaDialog,
+    PageState,
+    MessageAvatar,
+    FolderColorPicker,
+  },
   props: {
     type: { type: String, required: true },
     profile: { type: Object, required: true },
@@ -41,6 +54,8 @@ export default defineComponent({
     const form = reactive({
       name: '',
       description: '',
+      color: 'GOLD',
+      visibility: FolderVisibility.PRIVATE,
       oldPassword: '',
       password: '',
       confirmPassword: '',
@@ -52,7 +67,6 @@ export default defineComponent({
     const busy = ref(false),
       sending = ref(false),
       seconds = ref(0),
-      failure = ref(''),
       captcha = ref(null),
       cover = ref(null),
       coverPreview = ref(''),
@@ -123,7 +137,7 @@ export default defineComponent({
         !['image/jpeg', 'image/png', 'image/webp'].includes(file.type) ||
         file.size > 5 * 1024 * 1024
       ) {
-        failure.value = t('account.coverInvalid')
+        ElMessage.warning(t('account.coverInvalid'))
         return
       }
       clearCover()
@@ -141,8 +155,8 @@ export default defineComponent({
           ? !Auth.EMAIL_PATTERN.test(form.email.trim())
           : !/^\d{5,15}$/.test(form.phone.trim())
       ) {
-        failure.value = t(
-          props.type === 'email' ? 'auth.validation.email' : 'auth.validation.phone',
+        ElMessage.warning(
+          t(props.type === 'email' ? 'auth.validation.email' : 'auth.validation.phone'),
         )
         return false
       }
@@ -151,7 +165,6 @@ export default defineComponent({
     async function sendCode() {
       if (sending.value || seconds.value || !validContact()) return
       sending.value = true
-      failure.value = ''
       const target = contact()
       try {
         const ticket = await captcha.value.solve()
@@ -164,35 +177,34 @@ export default defineComponent({
         }, 1000)
         ElMessage.success(t('account.sent'))
       } catch (error) {
-        failure.value = error.message
+        notifyFailure(error)
       } finally {
         sending.value = false
       }
     }
     async function submit() {
       if (busy.value) return
-      failure.value = ''
       if (
         props.type === 'folder' &&
         (!form.name.trim() || Array.from(form.name.trim()).length > Account.NAME_MAX)
       ) {
-        failure.value = t('account.invalidName')
+        ElMessage.warning(t('account.invalidName'))
         return
       }
       if (props.type === 'password' && !Auth.PASSWORD_PATTERN.test(form.password)) {
-        failure.value = t('account.passwordRule')
+        ElMessage.warning(t('account.passwordRule'))
         return
       }
       if (props.type === 'password' && form.password !== form.confirmPassword) {
-        failure.value = t('account.passwordMismatch')
+        ElMessage.warning(t('account.passwordMismatch'))
         return
       }
-      if (
-        (props.type === 'email' || props.type === 'phone') &&
-        (!validContact() || !Auth.CODE_PATTERN.test(form.code) || !form.password)
-      ) {
-        failure.value ||= t('account.invalidCode')
-        return
+      if (props.type === 'email' || props.type === 'phone') {
+        if (!validContact()) return
+        if (!Auth.CODE_PATTERN.test(form.code) || !form.password) {
+          ElMessage.warning(t('account.invalidCode'))
+          return
+        }
       }
       busy.value = true
       try {
@@ -200,6 +212,8 @@ export default defineComponent({
           const body = new FormData()
           body.append('name', form.name.trim())
           body.append('description', form.description.trim())
+          body.append('color', form.color)
+          body.append('visibility', form.visibility)
           if (cover.value) body.append('cover', cover.value)
           await contentApi.createFolder(body)
           ElMessage.success(t('account.folderCreated'))
@@ -220,21 +234,18 @@ export default defineComponent({
           ElMessage.success(t('account.saved'))
         }
       } catch (error) {
-        failure.value = error.message
+        notifyFailure(error)
       } finally {
         busy.value = false
       }
     }
-    async function confirm(key) {
-      try {
-        await ElMessageBox.confirm(t(key), t('account.confirm'), {
-          confirmButtonText: t('account.confirm'),
-          cancelButtonText: t('account.cancel'),
-        })
-        return true
-      } catch {
-        return false
-      }
+    function confirm(key) {
+      return confirmDialog({
+        message: t(key),
+        title: t('account.confirm'),
+        confirmText: t('account.confirm'),
+        cancelText: t('account.cancel'),
+      })
     }
     async function remove(item) {
       if (pending.value) return
@@ -292,7 +303,6 @@ export default defineComponent({
       busy,
       sending,
       seconds,
-      failure,
       captcha,
       cover,
       coverPreview,
@@ -310,6 +320,7 @@ export default defineComponent({
       removeOthers,
       Regions,
       Account,
+      FolderVisibility,
       date: (value) => accountDate(value, t),
     }
   },

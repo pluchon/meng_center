@@ -9,6 +9,14 @@ import { useUserStore } from '@/stores/user'
 import { userApi } from '@/api/user'
 import { RouteName } from '@/router/names'
 import { Auth } from '@/constants/app'
+import {
+  authKeyIcon,
+  authLockIcon,
+  authUnlockIcon,
+  authUserIcon,
+  stateFailRejectedArt,
+  stateFailReviewArt,
+} from '@/assets/images'
 import AuthLayout from '@/layouts/auth/AuthLayout.vue'
 import LegalConsent from '@/components/legal-consent/LegalConsent.vue'
 import ReasonEditor from '@/components/reason-editor/ReasonEditor.vue'
@@ -35,6 +43,7 @@ export default defineComponent({
       pending = ref(false),
       rejected = ref(false),
       rejectionReason = ref('')
+    const icons = { key: authKeyIcon, lock: authLockIcon, unlock: authUnlockIcon, user: authUserIcon }
     const { errors, fieldId, validate, serverError } = useAuthValidation(form, { agreed })
     async function submit() {
       if (submitting.value) return
@@ -81,6 +90,9 @@ export default defineComponent({
       }
     }
     return {
+      icons,
+      stateFailRejectedArt,
+      stateFailReviewArt,
       errors,
       fieldId,
       t,

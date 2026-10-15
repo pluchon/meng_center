@@ -1,19 +1,18 @@
 <template>
-  <el-dialog
+  <DialogShell
     :model-value="Boolean(target)"
     :title="t('detail.reportTitle')"
-    width="min(480px,calc(100% - 32px))"
-    :close-on-click-modal="!busy"
-    :close-on-press-escape="!busy"
-    :show-close="!busy"
+    :icon="Flag"
+    tone="mint"
+    :busy="busy"
     @close="$emit('close')"
   >
     <div class="report-reasons">
       <button
-        v-for="value in ReportReasons"
+        v-for="(value,index) in ReportReasons"
         :key="value"
         type="button"
-        :class="{selected:reason===value}"
+        :class="['reason-'+index%5,{selected:reason===value}]"
         :aria-pressed="reason===value"
         :disabled="busy"
         @click="reason=value"
@@ -23,6 +22,9 @@
     </div>
     <el-input
       v-model="note"
+      type="textarea"
+      :rows="3"
+      resize="none"
       maxlength="200"
       show-word-limit
       :placeholder="t('detail.reportNote')"
@@ -43,7 +45,7 @@
         {{ t('detail.reportSubmit') }}
       </el-button>
     </template>
-  </el-dialog>
+  </DialogShell>
 </template>
 <script src="./ReportDialog.js"></script>
 <style lang="scss" scoped src="./ReportDialog.scss"></style>

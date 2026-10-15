@@ -55,6 +55,22 @@ public interface GrowthMapper {
             @Param("amount") int amount,
             @Param("date") LocalDate date);
 
+    @Insert(
+            "INSERT INTO point_record(user_id,source,source_id,amount,record_date)"
+                + " VALUES(#{user},#{source},#{id},#{amount},#{date})")
+    int insertPointRecord(
+            @Param("user") long user,
+            @Param("source") String source,
+            @Param("id") String id,
+            @Param("amount") int amount,
+            @Param("date") LocalDate date);
+
+    // 积分账户按需创建并累加余额，调用方已经锁着成长账户，同一用户的加减是串行的
+    @Insert(
+            "INSERT INTO point_account(user_id,balance) VALUES(#{user},#{amount}) ON DUPLICATE KEY"
+                + " UPDATE balance=balance+#{amount}")
+    int addPointBalance(@Param("user") long user, @Param("amount") int amount);
+
     @Insert("INSERT IGNORE INTO check_in(user_id,check_date) VALUES(#{user},#{date})")
     int insertCheckInIfAbsent(@Param("user") long user, @Param("date") LocalDate date);
 

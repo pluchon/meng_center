@@ -85,6 +85,8 @@ export default {
     metadata: '版本 {version} · 正式内容待发布',
     overview: '阅读提示',
     takeTime: '慢慢看，不着急～',
+    progress: '阅读进度',
+    percent: '{value}%',
     finished: '我看完啦',
   },
   decor: {

@@ -2,73 +2,109 @@
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  min-width: 0;
   max-width: 450px;
+  padding: 4px 4px 8px;
+}
 
-  button {
-    position: relative;
-    padding: 0;
-    border: 0;
-    border-radius: 22px;
-    background: var(--meng-surface);
-    color: var(--meng-primary);
-    cursor: pointer;
-  }
+.message-images button {
+  position: relative;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 22px;
+  background: var(--meng-surface);
+  color: var(--meng-primary);
+  cursor: pointer;
+}
 
-  img {
-    display: block;
-    width: 110px;
-    height: 110px;
-    border: 3px solid var(--meng-surface);
-    border-radius: 22px;
-    box-shadow: 0 3px 0 var(--meng-card-base);
-    object-fit: cover;
-    transition: transform 180ms var(--meng-motion-ease);
-  }
+.message-images img {
+  display: block;
+  width: 110px;
+  height: 110px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
+  box-shadow: 0 3px 0 var(--meng-card-base);
+  object-fit: cover;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+}
 
-  button:hover img {
-    transform: translateY(-2px);
-  }
+.message-images button:hover img {
+  box-shadow: 0 6px 0 var(--meng-card-base);
+  translate: 0 -3px;
+}
 
-  .album-cover {
-    isolation: isolate;
-    margin: 6px 12px 8px 0;
-  }
+.message-images.large img {
+  width: 160px;
+  height: 160px;
+}
 
-  .album-cover::before,
-  .album-cover::after {
-    position: absolute;
-    z-index: -1;
-    inset: 0;
-    border-radius: 22px;
-    background: var(--meng-danger);
-    content: '';
-    transform: translate(8px, 3px) rotate(9deg);
-  }
+// 表情是带透明底的贴纸，完整显示不裁切，也不让人拖出去
+.message-images .emotion img,
+.album-cover.emotion img {
+  padding: 6px;
+  background: var(--meng-bg);
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
 
-  .album-cover::after {
-    background: var(--meng-tint);
-    transform: translate(3px, 5px) rotate(-4deg);
-  }
+.message-images.large.emotion img {
+  width: 120px;
+  height: 120px;
+}
 
-  .album-cover span {
-    position: absolute;
-    right: -10px;
-    bottom: -4px;
-    padding: 1px 10px;
-    border-radius: 20px;
-    background: var(--meng-primary);
-    color: var(--meng-surface);
-    font-weight: 800;
-  }
+// 图集：第一张当封面，后面叠两张相片，角标写还有几张；点一下用图片查看器看全部
+.album-cover {
+  isolation: isolate;
+  margin: 6px 12px 8px 0;
+}
 
-  .album-collapse {
-    flex-basis: 100%;
-    text-align: start;
-  }
+.album-cover::before,
+.album-cover::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: 22px;
+  background: var(--meng-danger);
+  content: '';
+  transform: translate(8px, 3px) rotate(9deg);
+  transition: transform 260ms var(--meng-slide-ease);
+}
+
+.album-cover::after {
+  background: var(--meng-tint);
+  transform: translate(3px, 5px) rotate(-4deg);
+}
+
+// 悬停时叠着的相片稍微散开，提示点开能看到更多
+.album-cover:hover::before {
+  transform: translate(16px, 4px) rotate(13deg);
+}
+
+.album-cover:hover::after {
+  transform: translate(7px, 6px) rotate(-8deg);
+}
+
+.album-cover span {
+  position: absolute;
+  right: -10px;
+  bottom: -4px;
+  padding: 1px 10px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+  font-weight: 800;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .message-images img {
+  .message-images img,
+  .album-cover::before,
+  .album-cover::after {
     transition: none;
   }
 }

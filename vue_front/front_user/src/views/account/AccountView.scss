@@ -4,13 +4,13 @@
 }
 
 .account-layout {
-  padding: 24px var(--meng-community-gutter) 30px;
+  padding: 24px 0 30px;
   position: relative;
 }
 
 .account-card {
   max-width: var(--meng-account-width);
-  width: min(100%, 77.778vw);
+  width: 100%;
   height: min(850px, calc(100dvh - 148px));
   min-height: 0;
   margin: auto;
@@ -46,6 +46,18 @@
   inset: auto 300px -11px auto;
   background: var(--meng-creator-tape);
   transform: rotate(3deg);
+}
+
+// 水印放在右下角，垫在内容底下：收藏夹、喜欢列表没排满时右下角不空
+.account-mascot {
+  position: absolute;
+  z-index: -1;
+  right: 22px;
+  bottom: 56px;
+  width: clamp(150px, 22%, 240px);
+  opacity: 0.14;
+  pointer-events: none;
+  user-select: none;
 }
 
 .account-face,
@@ -87,7 +99,7 @@
   flex: 0 0 112px;
 }
 
-.account-portrait img {
+.account-portrait > img {
   border: 4px solid var(--meng-surface);
   box-shadow: 0 0 0 3px var(--meng-category-anime);
   border-radius: 50%;
@@ -95,21 +107,46 @@
   display: block;
 }
 
+// 相机：浅蓝贴纸，白边加底影，悬停时上浮并歪一下
 .account-camera {
   position: absolute;
   bottom: -2px;
   right: -6px;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
   border-radius: 50%;
   border: 3px solid var(--meng-surface);
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 3px 0 var(--meng-shadow-hard);
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
   display: grid;
   place-items: center;
   cursor: pointer;
-  font-size: 20px;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 260ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+
+  img {
+    width: 26px;
+    height: 26px;
+  }
+}
+
+.account-camera:not(:disabled):hover {
+  box-shadow: 0 5px 0 var(--meng-category-anime);
+  rotate: -10deg;
+  translate: 0 -2px;
+}
+
+.account-camera:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.account-camera:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
 }
 
 .account-identity {
@@ -166,12 +203,65 @@
   transition: transform 180ms var(--meng-motion-ease);
 }
 
-.account-identity p {
-  color: var(--meng-tool-text);
-  font-size: 15px;
-  margin: 8px 0 0;
-  max-width: 520px;
+// 签名：奶油色的对话气泡，左上角有一个小尾巴，前面是闪闪的小星星
+.account-bio {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: min(520px, 100%);
+  margin: 12px 0 0;
+  padding: 4px 18px 4px 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 18px;
+  background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-creator-yellow);
+  color: var(--meng-favorite-text);
+  font-size: 14px;
+  font-weight: 700;
   overflow-wrap: anywhere;
+  rotate: -1.5deg;
+  transition: rotate 260ms var(--meng-slide-ease);
+}
+
+.account-bio::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 24px;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px 0 0;
+  background: var(--meng-warning);
+  rotate: 45deg;
+}
+
+.account-bio:hover {
+  rotate: 0deg;
+}
+
+.account-bio.is-empty {
+  color: var(--meng-muted);
+  font-weight: 500;
+}
+
+.account-bio-mark {
+  flex: none;
+  color: var(--meng-category-daily);
+  font-size: 16px;
+  font-style: normal;
+  animation: bio-twinkle 3s ease-in-out infinite;
+}
+
+.account-bio-mark::before {
+  content: '✦';
+}
+
+@keyframes bio-twinkle {
+  50% {
+    scale: 0.7;
+    opacity: 0.6;
+  }
 }
 
 .account-stats {
@@ -204,20 +294,6 @@
   line-height: 1.2;
 }
 
-.account-sticker.gold {
-  background: var(--meng-warning);
-  box-shadow: 0 4px 0 var(--meng-creator-yellow);
-  color: var(--meng-favorite-text);
-  transform: rotate(3deg);
-}
-
-.account-sticker.pink {
-  background: var(--meng-danger);
-  box-shadow: 0 4px 0 var(--meng-category-creation);
-  color: var(--meng-like-text);
-  transform: rotate(-2deg);
-}
-
 .account-sticker.violet {
   background: var(--meng-category-game);
   box-shadow: 0 4px 0 var(--meng-creator-purple);
@@ -233,6 +309,183 @@
 .account-sticker:hover,
 .account-level:hover {
   transform: rotate(0deg) translateY(-2px);
+}
+
+// 签名下面一排小贴纸：关注、粉丝，自己的页面再多一个积分
+.account-social {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-top: 8px;
+}
+
+.account-social-sticker {
+  --social-fill: var(--meng-tint);
+  --social-edge: var(--meng-category-anime);
+  --social-ink: var(--meng-shadow-hard);
+
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 15px 5px 11px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 22px;
+  background: var(--social-fill);
+  box-shadow: 0 4px 0 var(--social-edge);
+  color: var(--social-ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: pointer;
+  rotate: -3deg;
+  transition:
+    rotate 180ms var(--meng-motion-ease),
+    translate 180ms var(--meng-motion-ease);
+}
+
+.account-social-sticker.pink {
+  --social-fill: var(--meng-danger);
+  --social-edge: var(--meng-category-creation);
+  --social-ink: var(--meng-like-text);
+
+  rotate: 2deg;
+}
+
+.account-social-sticker.gold {
+  --social-fill: var(--meng-warning);
+  --social-edge: var(--meng-creator-yellow);
+  --social-ink: var(--meng-favorite-text);
+
+  rotate: -2deg;
+}
+
+.account-social-sticker b {
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.account-social-sticker .el-icon {
+  font-size: 17px;
+}
+
+.account-social-sticker:hover {
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.account-social-sticker:active {
+  translate: 0 3px;
+}
+
+.account-social-sticker:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
+}
+
+// 别人的主页右侧：关注和私信两个大按钮
+.account-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  padding: 0 6px 4px 0;
+}
+
+.account-action {
+  --action-fill: var(--meng-primary);
+  --action-edge: var(--meng-shadow-hard);
+  --action-ink: var(--meng-surface);
+  --action-chip: var(--meng-surface);
+  --action-chip-ink: var(--meng-primary);
+
+  position: relative;
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 9px;
+  height: 48px;
+  margin-bottom: 4px;
+  padding: 0 22px 0 9px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 27px;
+  background: var(--action-fill);
+  box-shadow: 0 4px 0 var(--action-edge);
+  color: var(--action-ink);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  rotate: -2deg;
+  transition:
+    translate 120ms ease,
+    rotate 200ms ease,
+    box-shadow 150ms ease;
+}
+
+.account-action.is-followed {
+  --action-fill: var(--meng-bg);
+  --action-edge: var(--meng-border);
+  --action-ink: var(--meng-muted);
+  --action-chip: var(--meng-success);
+  --action-chip-ink: var(--meng-success-shadow);
+}
+
+.account-action.is-message {
+  --action-fill: var(--meng-danger);
+  --action-edge: var(--meng-category-creation);
+  --action-ink: var(--meng-like-text);
+  --action-chip: var(--meng-surface);
+  --action-chip-ink: var(--meng-like-icon);
+
+  rotate: 2deg;
+}
+
+.account-action-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--action-chip);
+  color: var(--action-chip-ink);
+  font-size: 18px;
+}
+
+.account-action-sparkle {
+  position: absolute;
+  top: -9px;
+  right: -8px;
+  color: var(--meng-category-daily);
+  font-size: 18px;
+  font-style: normal;
+  animation: bio-twinkle 3s ease-in-out infinite;
+}
+
+.account-action-sparkle::before {
+  content: '✦';
+}
+
+.account-action:not(:disabled):hover {
+  box-shadow: 0 6px 0 var(--meng-decor-shadow);
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.account-action:not(:disabled):active {
+  translate: 0 3px;
+}
+
+.account-action:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.account-action:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
 }
 
 .account-settings-button {
@@ -261,8 +514,7 @@
   top: -2px;
 }
 
-.account-settings-button:active,
-.account-camera:active {
+.account-settings-button:active {
   transform: translateY(3px) scale(0.97);
 }
 
@@ -336,6 +588,8 @@
   position: absolute;
   inset: 4px auto 4px 4px;
   width: calc((100% - 8px) / 2);
+  box-sizing: border-box;
+  border: 2px solid var(--meng-surface);
   border-radius: 20px;
   background: var(--meng-warning);
   box-shadow: 0 4px 0 var(--meng-creator-yellow);
@@ -433,7 +687,6 @@
 }
 
 .account-community :deep(.community-nav) {
-  width: min(1680px, 88.889vw, calc(100% - clamp(16px, 3vw, 40px) * 2));
   min-height: 70px;
 }
 
@@ -518,7 +771,8 @@
     min-height: 0;
   }
 
-  .account-stats {
+  .account-stats,
+  .account-actions {
     width: 100%;
     padding-left: 138px;
   }
@@ -545,7 +799,7 @@
     flex-basis: 82px;
   }
 
-  .account-portrait img {
+  .account-portrait > img {
     width: 82px;
     height: 82px;
   }
@@ -554,7 +808,8 @@
     flex: 1 1 160px;
   }
 
-  .account-stats {
+  .account-stats,
+  .account-actions {
     padding-left: 0;
     gap: 9px;
   }
@@ -586,6 +841,10 @@
 
   .account-face {
     right: 24px;
+  }
+
+  .account-mascot {
+    display: none;
   }
 
   .account-bottom-face {
@@ -620,7 +879,7 @@
     flex-basis: 90px;
   }
 
-  .account-portrait img {
+  .account-portrait > img {
     width: 90px;
     height: 90px;
   }
@@ -679,7 +938,7 @@
     flex-basis: 72px;
   }
 
-  .account-portrait img {
+  .account-portrait > img {
     width: 72px;
     height: 72px;
   }
@@ -712,7 +971,14 @@
     animation: none;
   }
 
+  .account-bio-mark {
+    animation: none;
+  }
+
   .account-sticker,
+  .account-social-sticker,
+  .account-action,
+  .account-action-sparkle,
   .account-level,
   .account-section-title > span,
   .account-tab-indicator,

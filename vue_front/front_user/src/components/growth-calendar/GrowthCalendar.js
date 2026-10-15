@@ -1,10 +1,9 @@
 import { computed, defineComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconCalendarCheck, IconChevronLeft, IconChevronRight, IconCheck } from '@tabler/icons-vue'
+import { messageChevronIcon, growthCalendarIcon, growthCheckIcon } from '@/assets/images'
 import { WeekTones } from '@/constants/growth'
 export default defineComponent({
   name: 'GrowthCalendar',
-  components: { IconCalendarCheck, IconChevronLeft, IconChevronRight, IconCheck },
   props: {
     data: { type: Object, required: true },
     checked: Boolean,
@@ -46,6 +45,13 @@ export default defineComponent({
       const date = new Date(Date.UTC(year, month - 1 + delta, 1))
       emit('month', date.toISOString().slice(0, 7))
     }
-    return { t, weekdays, cells, monthLabel, move }
+    return {
+      t,
+      weekdays,
+      cells,
+      monthLabel,
+      move,
+      icons: { chevron: messageChevronIcon, calendar: growthCalendarIcon, check: growthCheckIcon },
+    }
   },
 })

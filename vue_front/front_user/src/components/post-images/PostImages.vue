@@ -22,10 +22,10 @@
         </template>
       </el-image>
     </button>
-    <el-image-viewer
+    <ImageViewer
       v-if="previewIndex!==null"
-      teleported
-      :url-list="images.map(image=>contentImage(image.url))"
+      :urls="viewerUrls"
+      :thumbs="viewerThumbs"
       :initial-index="previewIndex"
       @close="previewIndex=null"
     />

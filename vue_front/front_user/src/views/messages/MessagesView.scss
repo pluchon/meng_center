@@ -2,7 +2,7 @@
   position: relative;
   min-height: 100dvh;
   height: 100dvh;
-  padding: 32px 24px 36px;
+  padding: 32px var(--meng-community-gutter) 36px;
   overflow: clip;
 }
 
@@ -51,9 +51,8 @@
   height: 48px;
   border: 3px solid var(--meng-surface);
   border-radius: 26px;
-  background: var(--meng-primary);
-  color: var(--meng-surface);
-  box-shadow: 0 4px 0 var(--meng-shadow-hard);
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-border);
 }
 
 .messages-title h1 {
@@ -90,62 +89,109 @@
   transform: translateX(-3px);
 }
 
+// 四个页签是四张带图标的贴纸，选中的那张上浮、歪一下，图标轻轻晃动
 .message-tabs {
-  display: flex;
+  display: grid;
   flex: none;
-  gap: 3px;
-  margin: 0 20px 20px;
-  padding: 4px;
-  border-radius: 26px;
-  background: var(--meng-bg);
-  overflow-x: auto;
-  scrollbar-width: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 4px 20px 22px;
 }
 
 .message-tabs button {
+  --tab-bg: var(--meng-tint);
+  --tab-edge: var(--meng-category-anime);
+
+  position: relative;
   display: flex;
-  flex: 1 0 auto;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  min-height: 40px;
-  padding: 0 10px;
-  border: 0;
+  gap: 3px;
+  padding: 8px 4px 6px;
+  border: 3px solid var(--meng-surface);
   border-radius: 22px;
-  background: transparent;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
   color: var(--meng-muted);
   font: inherit;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
   cursor: pointer;
   transition:
-    transform 150ms var(--meng-motion-ease),
-    background 150ms ease;
+    translate 220ms var(--meng-slide-ease),
+    rotate 260ms var(--meng-slide-ease),
+    box-shadow 220ms ease,
+    background-color 260ms ease,
+    color 220ms ease;
+}
+
+.message-tabs .comment {
+  --tab-bg: var(--meng-category-game);
+  --tab-edge: var(--meng-category-game-dot);
+}
+
+.message-tabs .like {
+  --tab-bg: var(--meng-danger);
+  --tab-edge: var(--meng-category-creation);
+}
+
+.message-tabs .system {
+  --tab-bg: var(--meng-success);
+  --tab-edge: var(--meng-creator-green);
+}
+
+.tab-icon {
+  opacity: 0.7;
+  transition:
+    opacity 220ms ease,
+    scale 260ms var(--meng-slide-ease);
 }
 
 .message-tabs button:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--tab-edge);
+  translate: 0 -2px;
+}
+
+.message-tabs button:hover .tab-icon {
+  opacity: 1;
 }
 
 .message-tabs .selected {
-  background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-category-anime);
+  background: var(--tab-bg);
+  box-shadow: 0 5px 0 var(--tab-edge);
   color: var(--meng-text);
+  rotate: -2deg;
+  translate: 0 -3px;
 }
 
-.message-tabs .comment.selected {
-  background: var(--meng-category-game);
-  box-shadow: 0 3px 0 var(--meng-category-game-dot);
+.message-tabs .selected .tab-icon {
+  opacity: 1;
+  scale: 1.12;
+  animation: tab-bob 3.4s ease-in-out infinite;
 }
 
-.message-tabs .like.selected {
-  background: var(--meng-danger);
-  box-shadow: 0 3px 0 var(--meng-category-creation);
+.message-tabs .unread-badge {
+  position: absolute;
+  top: -9px;
+  right: -7px;
+  border: 2px solid var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-category-creation);
+  rotate: 8deg;
+  animation: badge-pop 420ms var(--meng-slide-ease) both;
 }
 
-.message-tabs .system.selected {
-  background: var(--meng-success);
-  box-shadow: 0 3px 0 var(--meng-creator-green);
+@keyframes tab-bob {
+  50% {
+    translate: 0 -2px;
+    rotate: 6deg;
+  }
+}
+
+@keyframes badge-pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
 }
 
 .unread-badge {
@@ -177,23 +223,56 @@
 }
 
 .conversation-row {
+  --row-bg: var(--meng-tint);
+  --row-edge: var(--meng-category-anime);
+
   position: relative;
-  margin-bottom: 10px;
-  border-radius: 22px;
-  transition: background 150ms ease;
+  margin-bottom: 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 24px;
+  background: color-mix(in srgb, var(--row-bg) 45%, var(--meng-surface));
+  box-shadow: 0 4px 0 var(--row-edge);
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+  animation: row-in 420ms var(--meng-slide-ease) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
 }
 
-.conversation-row.selected {
-  background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-category-anime);
+.conversation-row.tone-1 {
+  --row-bg: var(--meng-success);
+  --row-edge: var(--meng-creator-green);
+}
+
+.conversation-row.tone-2 {
+  --row-bg: var(--meng-category-game);
+  --row-edge: var(--meng-category-game-dot);
+}
+
+.conversation-row.tone-3 {
+  --row-bg: var(--meng-warning);
+  --row-edge: var(--meng-creator-yellow);
+}
+
+.conversation-row.tone-4 {
+  --row-bg: var(--meng-danger);
+  --row-edge: var(--meng-category-creation);
 }
 
 .conversation-row:hover {
-  background: var(--meng-bg);
+  box-shadow: 0 7px 0 var(--row-edge);
+  translate: 0 -3px;
+}
+
+// 选中的会话：底色实一点，往右探出一点，像被抽出来的卡片
+.conversation-row.selected {
+  background: var(--row-bg);
+  box-shadow: 0 6px 0 var(--row-edge);
+  translate: 6px -2px;
 }
 
 .conversation-row.selected:hover {
-  background: var(--meng-tint);
+  box-shadow: 0 8px 0 var(--row-edge);
 }
 
 .conversation-select,
@@ -210,10 +289,6 @@
   font: inherit;
   text-align: start;
   cursor: pointer;
-}
-
-.conversation-select {
-  padding-right: 40px;
 }
 
 .conversation-info,
@@ -250,66 +325,46 @@
   color: var(--meng-muted);
 }
 
-.conversation-row :deep(.el-dropdown) {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.conversation-menu {
-  display: grid;
-  place-items: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--meng-surface);
-  color: var(--meng-primary);
-  cursor: pointer;
-  opacity: 0;
-}
-
-.conversation-row:hover .conversation-menu,
-.conversation-row:focus-within .conversation-menu {
-  opacity: 1;
-}
-
 .notification-group {
   margin-bottom: 14px;
+  border: 3px solid var(--meng-surface);
+  background: var(--meng-bg);
+  box-shadow: 0 4px 0 var(--meng-tint);
   transition:
-    background 180ms ease,
-    transform 180ms var(--meng-motion-ease);
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+  animation: row-in 420ms var(--meng-slide-ease) both;
 }
 
 .notification-group:hover {
-  transform: translateY(-1px);
+  box-shadow: 0 6px 0 var(--meng-tint);
+  translate: 0 -3px;
 }
 
 .notification-group.selected {
   background: var(--meng-category-game);
-  box-shadow: 0 3px 0 var(--meng-category-game-dot);
+  box-shadow: 0 6px 0 var(--meng-category-game-dot);
+  translate: 6px -2px;
 }
 
 .notification-group.like.selected {
   background: var(--meng-danger);
-  box-shadow: 0 3px 0 var(--meng-category-creation);
+  box-shadow: 0 6px 0 var(--meng-category-creation);
 }
 
 .notification-group.system.selected {
   background: var(--meng-success);
-  box-shadow: 0 3px 0 var(--meng-creator-green);
+  box-shadow: 0 6px 0 var(--meng-creator-green);
 }
 
 .notification-group.report.selected {
   background: var(--meng-danger);
-  box-shadow: 0 3px 0 var(--meng-category-creation);
+  box-shadow: 0 6px 0 var(--meng-category-creation);
 }
 
 .notification-group.approval.selected {
   background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-category-anime);
+  box-shadow: 0 6px 0 var(--meng-category-anime);
 }
 
 .group-icon {
@@ -320,21 +375,7 @@
   height: 48px;
   border: 3px solid var(--meng-surface);
   border-radius: 24px;
-  background: var(--meng-category-game-dot);
-  color: var(--meng-surface);
-}
-
-.system .group-icon {
-  background: var(--meng-success-text);
-}
-
-.report .group-icon,
-.like .group-icon {
-  background: var(--meng-like-icon);
-}
-
-.approval .group-icon {
-  background: var(--meng-primary);
+  background: var(--meng-tint);
 }
 
 .summary-name {
@@ -345,10 +386,10 @@
   color: var(--meng-text);
 }
 
-.sidebar-state,
-.messages-state {
-  padding: 40px 12px;
+.sidebar-state {
+  padding: 12px;
   color: var(--meng-muted);
+  font-size: 13px;
   text-align: center;
 }
 
@@ -359,8 +400,6 @@
   height: 100%;
 }
 
-.sidebar-state button,
-.messages-state button,
 .sidebar-more {
   padding: 7px 16px;
   border: 0;
@@ -455,26 +494,78 @@
   min-height: 0;
 }
 
+// 切换页签：旧内容淡出并轻轻缩小，新内容淡入并从下面浮上来，两段都带缓动
 .message-pane-enter-active {
   transition:
-    opacity 180ms ease,
-    transform 180ms var(--meng-motion-ease);
+    opacity 360ms ease,
+    translate 460ms var(--meng-slide-ease),
+    scale 460ms var(--meng-slide-ease);
 }
 
 .message-pane-leave-active {
   transition:
-    opacity 100ms ease,
-    transform 100ms ease;
+    opacity 180ms ease,
+    scale 180ms ease;
 }
 
 .message-pane-enter-from {
   opacity: 0;
-  transform: translateY(6px);
+  scale: 0.985;
+  translate: 0 14px;
 }
 
 .message-pane-leave-to {
   opacity: 0;
-  transform: translateY(-3px);
+  scale: 0.99;
+}
+
+// 左侧列表和右侧聊天区换内容时同样淡出淡入
+.sidebar-swap-enter-active,
+.chat-swap-enter-active {
+  transition:
+    opacity 300ms ease,
+    translate 380ms var(--meng-slide-ease);
+}
+
+.sidebar-swap-leave-active,
+.chat-swap-leave-active {
+  transition: opacity 150ms ease;
+}
+
+.sidebar-swap-enter-from {
+  opacity: 0;
+  translate: -10px 0;
+}
+
+.chat-swap-enter-from {
+  opacity: 0;
+  translate: 0 10px;
+}
+
+.sidebar-swap-leave-to,
+.chat-swap-leave-to {
+  opacity: 0;
+}
+
+.sidebar-pane {
+  min-height: 100%;
+}
+
+.messages-main {
+  position: relative;
+  isolation: isolate;
+}
+
+// 水印放在右下角、垫在内容底下
+.messages-mascot {
+  position: absolute;
+  z-index: -1;
+  right: 24px;
+  bottom: 150px;
+  width: clamp(140px, 20%, 230px);
+  opacity: 0.12;
+  pointer-events: none;
+  user-select: none;
 }
 
 .messages-tape {
@@ -546,6 +637,14 @@
   color: var(--meng-success-text);
 }
 
+@keyframes row-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+    translate: -10px 0;
+  }
+}
+
 @keyframes messages-arrive {
   from {
     opacity: 0;
@@ -581,7 +680,7 @@
 @media (width <= 760px) {
   .messages-view {
     height: auto;
-    padding: 24px 12px 28px;
+    padding: 24px var(--meng-community-gutter) 28px;
   }
 
   .messages-card {
@@ -627,15 +726,15 @@
     font-size: 18px;
   }
 
-  .conversation-menu {
-    opacity: 1;
-  }
-
   .messages-tape {
     left: 25%;
   }
 
   .messages-sticker {
+    display: none;
+  }
+
+  .messages-mascot {
     display: none;
   }
 }
@@ -650,11 +749,23 @@
     transition: none;
   }
 
+  .tab-icon,
+  .message-tabs .unread-badge {
+    animation: none;
+  }
+
   .message-tabs button,
   .messages-title a,
   .conversation-row,
   .messages-title h1,
   .notification-group {
     transition: none;
+    animation: none;
   }
+}
+
+.message-art-icon {
+  display: block;
+  flex: none;
+  object-fit: contain;
 }

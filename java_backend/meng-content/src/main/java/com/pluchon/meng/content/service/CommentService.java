@@ -13,19 +13,24 @@ import com.pluchon.meng.content.config.ContentProperties;
 import com.pluchon.meng.content.controller.dto.CreateCommentDTO;
 import com.pluchon.meng.content.controller.vo.CommentLocationVO;
 import com.pluchon.meng.content.controller.vo.CommentVO;
+import com.pluchon.meng.content.controller.vo.MentionCandidateVO;
 import com.pluchon.meng.content.converter.CommentConverter;
 import com.pluchon.meng.content.entity.CommentEntity;
 import com.pluchon.meng.content.entity.CommentImageEntity;
+import com.pluchon.meng.content.entity.CommentMentionEntity;
 import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.CommentImageMapper;
+import com.pluchon.meng.content.mapper.CommentMentionMapper;
 import com.pluchon.meng.content.mapper.CommentMapper;
 import com.pluchon.meng.content.mapper.PostMapper;
 import com.pluchon.meng.content.validation.CommentRules;
 import com.pluchon.meng.content.validation.ContentErrorCode;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -44,10 +49,17 @@ public class CommentService {
         var comment = require(id);
         long root =
             comment.getRootId() == 0 ? comment.getId() : comment.getRootId();
+        var rootComment =
+            comment.getRootId() == 0 ? comment : comments.selectById(root);
+        // 置顶的一级评论永远在第一页
+        long before =
+            rootComment.getPinnedTime() != null
+                ? 0
+                : comments.countBeforeRoot(comment.getPostId(), root);
         return new CommentLocationVO(
             comment.getPostId(),
             root,
-            comments.countBeforeRoot(comment.getPostId(), root) / size + 1,
+            before / size + 1,
             comment.getRootId() == 0
                 ? 0
                 : comments.countBeforeReply(root, id) / size + 1
@@ -77,6 +89,10 @@ public class CommentService {
     // 展示数据和实体转换
     @Autowired
     private CommentConverter converter;
+
+    // 评论里 @ 到的用户数据存取
+    @Autowired
+    private CommentMentionMapper mentions;
 
     // 内容操作频率和配额校验
     @Autowired
@@ -114,6 +130,8 @@ public class CommentService {
             Wrappers.<CommentEntity>lambdaQuery()
                 .eq(CommentEntity::getPostId, post)
                 .eq(CommentEntity::getRootId, 0)
+                // 置顶的排最前，没有置顶时间的（空值）排在后面
+                .orderByDesc(CommentEntity::getPinnedTime)
                 .orderByDesc(CommentEntity::getId)
         );
         return new PageResult<>(
@@ -169,12 +187,22 @@ public class CommentService {
             grouped
                 .computeIfAbsent(i.getCommentId(), key -> new ArrayList<>())
                 .add(i);
+        var mentioned = new HashMap<Long, List<CommentMentionEntity>>();
+        for (var m : mentions.selectList(
+            Wrappers.<CommentMentionEntity>lambdaQuery()
+                .in(CommentMentionEntity::getCommentId, ids)
+                .orderByAsc(CommentMentionEntity::getId)
+        ))
+            mentioned
+                .computeIfAbsent(m.getCommentId(), key -> new ArrayList<>())
+                .add(m);
         return list
             .stream()
             .map(c ->
                 converter.comment(
                     c,
                     grouped.getOrDefault(c.getId(), List.of()),
+                    mentioned.getOrDefault(c.getId(), List.of()),
                     users,
                     liked.contains(c.getId()),
                     author
@@ -198,6 +226,13 @@ public class CommentService {
             target != null && target.getPostId() != post
         ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         limits.comment(user);
+        var mentioned = resolveMentions(
+            post,
+            p.getAuthorId(),
+            user,
+            dto.content(),
+            dto.mentionUserIds()
+        );
         var c = converter.create(dto);
         c.setPostId(post);
         c.setAuthorId(user);
@@ -217,6 +252,10 @@ public class CommentService {
             images.attachToComment(dto.imageIds().get(i), c.getId(), user, i) !=
             1
         ) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        for (var m : mentioned) {
+            m.setCommentId(c.getId());
+            mentions.insert(m);
+        }
         if (c.getRootId() != 0) comments.incrementReplyCount(c.getRootId(), 1);
         posts.incrementCommentCount(post, 1, properties.commentWeight());
         statistics.record(p.getAuthorId(), CreatorMetric.COMMENT);
@@ -237,13 +276,100 @@ public class CommentService {
                 target == null ? p.getAuthorId() : target.getAuthorId(),
                 target == null ? null : target.getId(),
                 excerpt(c.getContent()),
-                target == null ? null : excerpt(target.getContent())
+                target == null ? null : excerpt(target.getContent()),
+                mentioned.stream().map(CommentMentionEntity::getUserId).toList()
             )
         );
         return convert(
             List.of(comments.selectById(c.getId())),
             p.getAuthorId()
         ).get(0);
+    }
+
+    // 只保留本帖作者和评论过本帖的人，而且正文里确实写了 @昵称；昵称以服务端查到的为准
+    private List<CommentMentionEntity> resolveMentions(
+        long post,
+        long postAuthor,
+        long user,
+        String content,
+        List<Long> requested
+    ) {
+        var wanted = new LinkedHashSet<>(requested);
+        wanted.remove(user);
+        if (wanted.isEmpty()) return List.of();
+        var allowed = new HashSet<>(
+            comments.selectCommenterAmong(post, new ArrayList<>(wanted))
+        );
+        if (wanted.contains(postAuthor)) allowed.add(postAuthor);
+        var users = authors.batch(new ArrayList<>(allowed));
+        var result = new ArrayList<CommentMentionEntity>();
+        for (var id : wanted) {
+            var target = users.get(id);
+            if (
+                !allowed.contains(id) ||
+                target == null ||
+                target.nickname() == null ||
+                target.nickname().isBlank() ||
+                !content.contains("@" + target.nickname())
+            ) continue;
+            var row = new CommentMentionEntity();
+            row.setUserId(id);
+            row.setNickname(target.nickname());
+            result.add(row);
+        }
+        return result;
+    }
+
+    // 输入 @ 时的候选：本帖作者和最近评论过的人，按昵称过滤由前端做
+    public List<MentionCandidateVO> mentionCandidates(long post) {
+        var p = posts.selectById(post);
+        if (p == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        long user = UserContext.require().userId();
+        var ids = new LinkedHashSet<Long>();
+        ids.add(p.getAuthorId());
+        ids.addAll(comments.selectRecentCommenters(post, 50));
+        ids.remove(user);
+        var users = authors.batch(new ArrayList<>(ids));
+        return ids
+            .stream()
+            .map(users::get)
+            .filter(u ->
+                u != null &&
+                u.nickname() != null &&
+                !u.nickname().isBlank()
+            )
+            .limit(30)
+            .map(u ->
+                new MentionCandidateVO(
+                    u.id(),
+                    u.nickname(),
+                    u.avatar(),
+                    u.level(),
+                    u.id() == p.getAuthorId()
+                )
+            )
+            .toList();
+    }
+
+    // 帖子作者置顶或取消置顶一级评论；一篇帖子同时只置顶一条，幂等
+    @Transactional(rollbackFor = Exception.class)
+    public void pin(long id, boolean on) {
+        var initial = require(id);
+        var post = posts.selectByIdForUpdate(initial.getPostId());
+        var c = require(id);
+        if (
+            post == null ||
+            post.getAuthorId() != UserContext.require().userId()
+        ) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        if (c.getRootId() != 0) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
+        if (on && c.getPinnedTime() == null) {
+            comments.clearPinsExcept(post.getId(), id);
+            comments.updatePinnedTime(id, LocalDateTime.now());
+        } else if (!on && c.getPinnedTime() != null) {
+            comments.updatePinnedTime(id, null);
+        }
     }
 
     // 校验权限并删除评论及相关回复

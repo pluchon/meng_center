@@ -9,7 +9,8 @@ import {
   watch,
 } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
 import {
   ArrowLeft,
   Location,
@@ -82,13 +83,16 @@ export default defineComponent({
     )
     const homeLink = computed(() => ({
       name:
-        route.query.from === 'account'
-          ? RouteName.ACCOUNT
-          : route.query.from === 'creator'
-            ? RouteName.CREATOR
-            : route.query.from === 'search'
-              ? RouteName.SEARCH
-              : RouteName.HOME,
+        route.query.from === 'user'
+          ? RouteName.USER
+          : route.query.from === 'account'
+            ? RouteName.ACCOUNT
+            : route.query.from === 'creator'
+              ? RouteName.CREATOR
+              : route.query.from === 'search'
+                ? RouteName.SEARCH
+                : RouteName.HOME,
+      params: route.query.from === 'user' ? { id: route.query.user } : undefined,
       query: Object.fromEntries(
         ['q', 'category', 'sort', 'page', 'tab', 'pane', 'folder']
           .filter((key) => route.query[key])
@@ -125,22 +129,23 @@ export default defineComponent({
         count = kind === 'like' ? 'likeCount' : 'favoriteCount',
         old = item[field]
       pending[kind] = true
-      let folderId
-      if (kind === 'favorite' && !old) {
+      if (kind === 'favorite') {
         try {
-          folderId = await useFavoriteStore().choose()
+          await useFavoriteStore().manage(item, ({ favorited, favoriteCount }) => {
+            item.favorited = favorited
+            item.favoriteCount = favoriteCount
+          })
         } catch (error) {
           notifyFailure(error)
-        }
-        if (!folderId) {
+        } finally {
           pending[kind] = false
-          return
         }
+        return
       }
       item[field] = !old
       item[count] += old ? -1 : 1
       try {
-        await contentApi[kind](item.id, !old, folderId)
+        await contentApi[kind](item.id, !old)
       } catch (e) {
         item[field] = old
         item[count] += old ? 1 : -1
@@ -151,15 +156,14 @@ export default defineComponent({
     }
     async function remove() {
       if (pending.delete) return
-      try {
-        await ElMessageBox.confirm(t('detail.deletePost'), t('detail.delete'), {
-          confirmButtonText: t('detail.confirm'),
-          cancelButtonText: t('detail.cancel'),
-          type: 'warning',
-        })
-      } catch {
-        return
-      }
+      const confirmed = await confirmDialog({
+        message: t('detail.deletePost'),
+        title: t('detail.delete'),
+        confirmText: t('detail.confirm'),
+        cancelText: t('detail.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
       pending.delete = true
       try {
         await contentApi.delete(post.value.id)

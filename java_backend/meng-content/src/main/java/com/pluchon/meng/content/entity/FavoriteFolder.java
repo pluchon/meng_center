@@ -1,6 +1,8 @@
 package com.pluchon.meng.content.entity;
 
 import com.baomidou.mybatisplus.annotation.*;
+import com.pluchon.meng.content.entity.enums.FolderColor;
+import com.pluchon.meng.content.entity.enums.FolderVisibility;
 import java.time.LocalDateTime;
 import lombok.Data;
 
@@ -15,6 +17,8 @@ public class FavoriteFolder {
     private String name;
     private String description;
     private String coverName;
+    private FolderColor color;
+    private FolderVisibility visibility;
     private Long defaultOwnerId;
 
     @TableField(

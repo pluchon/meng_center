@@ -1,6 +1,7 @@
 import { defineComponent, computed } from 'vue'
 import FieldMessage from '@/components/field-message/FieldMessage.vue'
 import { useI18n } from 'vue-i18n'
+import { authCodeIcon } from '@/assets/images'
 export default defineComponent({
   name: 'VerificationCodeField',
   components: { FieldMessage },
@@ -19,6 +20,6 @@ export default defineComponent({
       get: () => props.modelValue,
       set: (value) => emit('update:modelValue', value),
     })
-    return { t, code }
+    return { t, code, codeIcon: authCodeIcon }
   },
 })

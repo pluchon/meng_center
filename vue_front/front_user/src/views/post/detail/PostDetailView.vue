@@ -20,6 +20,7 @@
       </picture>
       <PageState
         v-if="loading"
+        class="detail-state"
         state="loading"
       />
       <div
@@ -28,10 +29,12 @@
       >
         <PageState
           :state="error.status===404?'empty':'error'"
+          :art="error.status===404?'postMissing':''"
+          :error="error"
+          size="page"
+          :text="error.status===404?t('detail.missing'):''"
           @retry="load"
-        /><p v-if="error.status===404">
-          {{ t('detail.missing') }}
-        </p><router-link :to="homeLink">
+        /><router-link :to="homeLink">
           {{ t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back') }}
         </router-link>
       </div>
@@ -153,6 +156,7 @@
                 :post-id="post.id"
                 :initial-page="initialComments"
                 :count="post.commentCount"
+                :can-pin="own"
                 @count="post.commentCount=$event"
                 @report="reportTarget=$event"
               /><span

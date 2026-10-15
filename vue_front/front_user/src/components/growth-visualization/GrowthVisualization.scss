@@ -1,6 +1,6 @@
 // 弹窗传送到 body，所有样式限定在成长可视化命名空间内。
 .el-dialog.growth-visual-dialog {
-  border: 1px solid var(--meng-tint);
+  border: 3px solid var(--meng-growth-violet-bg);
   border-radius: 32px;
   padding: 26px;
   background: var(--meng-surface);
@@ -24,10 +24,24 @@
   flex: none;
   width: 48px;
   height: 48px;
+  border: 3px solid var(--meng-surface);
   border-radius: 50%;
   color: var(--meng-growth-violet-text);
   background: var(--meng-growth-violet-bg);
   box-shadow: 0 4px 0 var(--meng-growth-violet);
+  rotate: -6deg;
+}
+
+.growth-visual-dialog .visual-emblem img {
+  display: block;
+  width: 30px;
+  height: 30px;
+}
+
+.growth-visual-dialog .chart-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
 }
 
 .growth-visual-dialog h2 {
@@ -44,16 +58,19 @@
   height: 36px;
   border: 0;
   border-radius: 50%;
-  background: var(--meng-bg);
+  background: transparent;
   color: var(--meng-muted);
-  transition:
-    rotate 180ms var(--meng-motion-ease),
-    background 180ms ease;
+  transition: rotate 220ms var(--meng-slide-ease);
+}
+
+.growth-visual-dialog .visual-close img {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
 .growth-visual-dialog .visual-close:hover {
   rotate: 90deg;
-  background: var(--meng-growth-violet-bg);
 }
 
 .growth-visual-dialog .growth-visualization {
@@ -67,19 +84,26 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   width: 196px;
   padding: 4px;
+  border: 2px solid var(--meng-surface);
   border-radius: 22px;
-  background: var(--meng-bg);
+  background: var(--meng-surface);
+  box-shadow:
+    0 0 0 1.5px var(--meng-border),
+    0 3px 0 var(--meng-border);
 }
 
 .growth-visual-dialog .visual-range::before {
   content: '';
   position: absolute;
+  box-sizing: border-box;
   inset: 4px auto 4px 4px;
   width: calc((100% - 8px) / 2);
+  border: 2px solid var(--meng-surface);
   border-radius: 20px;
   background: var(--meng-growth-violet-bg);
+  box-shadow: 0 2px 0 var(--meng-growth-violet);
   transform: translateX(calc(var(--range-index) * 100%));
-  transition: transform 260ms var(--meng-motion-ease);
+  transition: transform 320ms var(--meng-slide-ease);
 }
 
 .growth-visual-dialog .visual-range button {
@@ -98,15 +122,65 @@
 }
 
 .growth-visual-dialog .experience-charts {
+  position: relative;
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
   gap: 20px;
+}
+
+// 切换天数时：旧图淡一点，中间三个小圆点轮流弹跳，新数据一到就换成新图
+.growth-visual-dialog .experience-charts > section {
+  transition: opacity 240ms ease;
+}
+
+.growth-visual-dialog .experience-charts.switching > section {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
+.growth-visual-dialog .visual-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 24px;
+  background: var(--meng-growth-violet-bg);
+  box-shadow: 0 4px 0 var(--meng-growth-violet);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+.growth-visual-dialog .visual-spinner i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--meng-growth-violet-text);
+  animation: visual-dot 900ms ease-in-out infinite;
+}
+
+.growth-visual-dialog .visual-spinner i:nth-child(2) {
+  animation-delay: 140ms;
+}
+
+.growth-visual-dialog .visual-spinner i:nth-child(3) {
+  animation-delay: 280ms;
+}
+
+@keyframes visual-dot {
+  40% {
+    translate: 0 -7px;
+  }
 }
 
 .growth-visual-dialog .experience-charts > section {
   position: relative;
   min-width: 0;
   padding: 16px;
+  border: 3px solid var(--meng-surface);
   border-radius: 24px;
 }
 
@@ -133,7 +207,8 @@
   font-size: 12px;
   border-radius: 18px;
   background: var(--meng-surface);
-  padding: 4px 9px;
+  padding: 4px 10px;
+  box-shadow: 0 2px 0 var(--meng-border);
   rotate: -4deg;
 }
 
@@ -152,9 +227,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border: 1px dashed var(--meng-growth-violet);
-  border-radius: 12px;
+  padding: 6px 14px 6px 10px;
+  border: 2px dashed var(--meng-growth-violet);
+  border-radius: 18px;
   background: var(--meng-growth-violet-bg);
   color: var(--meng-growth-violet-text);
   box-shadow: 0 3px 0 var(--meng-growth-violet);
@@ -163,9 +238,11 @@
 
 .growth-visual-dialog .visual-face {
   padding: 5px 12px;
+  border: 3px solid var(--meng-surface);
   border-radius: 18px;
   color: var(--meng-growth-gold-text);
   background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-category-daily);
   rotate: 3deg;
 }
 
@@ -277,7 +354,12 @@
 
 @media (prefers-reduced-motion: reduce) {
   .growth-visual-dialog .visual-range::before,
-  .growth-visual-dialog .visual-close {
+  .growth-visual-dialog .visual-close,
+  .growth-visual-dialog .experience-charts > section {
     transition: none;
+  }
+
+  .growth-visual-dialog .visual-spinner i {
+    animation: none;
   }
 }

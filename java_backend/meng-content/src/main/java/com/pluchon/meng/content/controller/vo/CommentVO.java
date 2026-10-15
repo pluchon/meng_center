@@ -30,4 +30,8 @@ public record CommentVO(
         // 回复目标用户编号
         Long replyToUserId,
         // 回复目标昵称
-        String replyToNickname) {}
+        String replyToNickname,
+        // 是否被作者置顶
+        boolean pinned,
+        // 正文里 @ 到的用户
+        List<MentionVO> mentions) {}

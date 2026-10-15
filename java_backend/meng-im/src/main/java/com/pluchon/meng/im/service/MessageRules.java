@@ -13,6 +13,9 @@ public final class MessageRules {
         "\\[表情:[^\\s\\[\\]]{1,12}\\]"
     );
 
+    // 发出后多少秒内可以撤回
+    public static final int REVOKE_SECONDS = 300;
+
     private MessageRules() {}
 
     public static void validate(ImDTO.Send dto) {
@@ -29,7 +32,7 @@ public final class MessageRules {
                 .stream()
                 .anyMatch(id -> id == null || id < 1) ||
             new HashSet<>(dto.imageIds()).size() != dto.imageIds().size() ||
-            text.isEmpty() == dto.imageIds().isEmpty() ||
+            (text.isEmpty() && dto.imageIds().isEmpty()) ||
             text.codePointCount(0, text.length()) > 500 ||
             EMOTION.matcher(text).results().count() > 10 ||
             EMOTION.matcher(text).replaceAll("").contains("[表情:")

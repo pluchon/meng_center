@@ -3,17 +3,18 @@ import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
-  IconCalendarCheck,
-  IconCalendarMonth,
-  IconFlag,
-  IconReceipt,
-  IconChartPie,
-  IconSparkles,
-  IconPencil,
-  IconMessage,
-  IconClock,
-  IconCheck,
-} from '@tabler/icons-vue'
+  growthCalendarIcon,
+  growthFlameIcon,
+  growthFlagIcon,
+  growthReceiptIcon,
+  growthChartIcon,
+  growthCheckIcon,
+  growthClockIcon,
+  editorMagicIcon,
+  editorPencilIcon,
+  creatorCommentsIcon,
+} from '@/assets/images'
+import { useCountUp } from '@/composables/useCountUp'
 import { growthApi } from '@/api/growth'
 import { useGrowthStore } from '@/stores/growth'
 import { useUserStore } from '@/stores/user'
@@ -43,12 +44,6 @@ export default defineComponent({
     FeedPagination,
     GrowthVisualization,
     GradientWaves,
-    IconCalendarCheck,
-    IconCalendarMonth,
-    IconChartPie,
-    IconSparkles,
-    IconClock,
-    IconCheck,
   },
   setup() {
     const { t } = useI18n(),
@@ -100,6 +95,12 @@ export default defineComponent({
       if (!signal.aborted && owner === user.current?.id) months.set(result.month, result)
       return result
     }, null)
+    // 连续签到和本月签到的数字，每次换月或签到后从旧值滚到新值
+    const calendarCounts = useCountUp(() =>
+      calendar.state.data
+        ? { streak: calendar.state.data.streak ?? 0, count: calendar.state.data.count ?? 0 }
+        : null,
+    )
     async function loadCalendar() {
       if (await calendar.load()) month.value = calendar.state.data.month
     }
@@ -261,10 +262,22 @@ export default defineComponent({
       ExpSources,
       SourceTones,
       GrowthCenter,
-      sourceIcons: { CHECK_IN: IconCalendarCheck, POST: IconPencil, COMMENT: IconMessage },
-      IconCalendarCheck,
-      IconFlag,
-      IconReceipt,
+      icons: {
+        calendar: growthCalendarIcon,
+        flame: growthFlameIcon,
+        flag: growthFlagIcon,
+        receipt: growthReceiptIcon,
+        chart: growthChartIcon,
+        check: growthCheckIcon,
+        clock: growthClockIcon,
+        magic: editorMagicIcon,
+      },
+      sourceIcons: {
+        CHECK_IN: growthCalendarIcon,
+        POST: editorPencilIcon,
+        COMMENT: creatorCommentsIcon,
+      },
+      calendarCounts,
       overview: overview.state,
       calendar: calendar.state,
       seven: seven.state,

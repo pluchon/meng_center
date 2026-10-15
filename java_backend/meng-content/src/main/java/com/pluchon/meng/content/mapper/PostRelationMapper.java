@@ -16,7 +16,7 @@ import org.apache.ibatis.annotations.Select;
 public interface PostRelationMapper {
     // 只统计当前作者现存帖子的收藏关系
     @Select(
-        "SELECT COUNT(*) FROM post_favorite f JOIN post p ON p.id=f.post_id " +
+        "SELECT COUNT(DISTINCT f.post_id, f.user_id) FROM post_favorite f JOIN post p ON p.id=f.post_id " +
             "WHERE p.author_id=#{author} AND p.delete_state=0"
     )
     long selectCreatorFavoriteCount(long author);
@@ -30,17 +30,36 @@ public interface PostRelationMapper {
         @Param("user") long user
     );
 
-    // 在帖子锁内读取收藏关系的原始时间
+    // 读取帖子放进某个收藏夹的原始时间
     @Select(
-        "SELECT create_time FROM post_favorite WHERE post_id=#{post} AND user_id=#{user}"
+        "SELECT create_time FROM post_favorite WHERE post_id=#{post} AND user_id=#{user} AND folder_id=#{folder}"
     )
     LocalDateTime selectFavoriteCreateTime(
+        @Param("post") long post,
+        @Param("user") long user,
+        @Param("folder") long folder
+    );
+
+    // 某人把这篇帖子放进了哪些收藏夹
+    @Select(
+        "SELECT folder_id FROM post_favorite WHERE post_id=#{post} AND user_id=#{user} ORDER BY id"
+    )
+    List<Long> selectFavoriteFolderIds(
+        @Param("post") long post,
+        @Param("user") long user
+    );
+
+    // 某人把这篇帖子放进了几个收藏夹
+    @Select(
+        "SELECT COUNT(*) FROM post_favorite WHERE post_id=#{post} AND user_id=#{user}"
+    )
+    long countFavoriteFolders(
         @Param("post") long post,
         @Param("user") long user
     );
 
     @Select(
-        "<script>SELECT post_id,COUNT(*) AS count FROM post_favorite WHERE post_id IN <foreach" +
+        "<script>SELECT post_id,COUNT(DISTINCT user_id) AS count FROM post_favorite WHERE post_id IN <foreach" +
             " collection='ids' item='id' open='(' separator=',' close=')'>#{id}</foreach>" +
             " GROUP BY post_id</script>"
     )
@@ -68,9 +87,13 @@ public interface PostRelationMapper {
     );
 
     @Delete(
-        "DELETE FROM post_favorite WHERE post_id=#{post} AND user_id=#{user}"
+        "DELETE FROM post_favorite WHERE post_id=#{post} AND user_id=#{user} AND folder_id=#{folder}"
     )
-    int deleteFavorite(@Param("post") long post, @Param("user") long user);
+    int deleteFavorite(
+        @Param("post") long post,
+        @Param("user") long user,
+        @Param("folder") long folder
+    );
 
     @Select(
         "<script>SELECT post_id FROM post_like WHERE user_id=#{user} AND post_id IN <foreach" +
@@ -83,7 +106,7 @@ public interface PostRelationMapper {
     );
 
     @Select(
-        "<script>SELECT post_id FROM post_favorite WHERE user_id=#{user} AND post_id IN" +
+        "<script>SELECT DISTINCT post_id FROM post_favorite WHERE user_id=#{user} AND post_id IN" +
             " <foreach collection='ids' item='id' open='(' separator=','" +
             " close=')'>#{id}</foreach></script>"
     )

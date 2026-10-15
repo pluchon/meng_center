@@ -1,6 +1,7 @@
 <template>
   <article
     class="post-card"
+    :class="'card-'+post.category.toLowerCase()"
     @click="openCard"
     @pointerenter="preloadDetail"
     @focusin="preloadDetail"
@@ -9,10 +10,17 @@
       <el-avatar
         :src="avatarUrl(post.author.avatar) || userAvatar"
         :alt="post.author.nickname || t('home.authorFallback')"
-      /><strong>{{ post.author.nickname || t('home.authorFallback') }}</strong><span class="author-level">{{ t('home.level',{level:Math.max(1,post.author.level)}) }}</span><time :datetime="post.createTime">{{ relativeTime(post.createTime) }}</time><span
-        v-if="post.ipRegion"
-        class="post-region"
-      ><el-icon><Location /></el-icon>{{ post.ipRegion }}</span>
+      /><strong>{{ post.author.nickname || t('home.authorFallback') }}</strong><span class="author-level">{{ t('home.level',{level:Math.max(1,post.author.level)}) }}</span><div class="post-meta">
+        <time :datetime="post.createTime"><el-icon aria-hidden="true"><Clock /></el-icon>{{ relativeTime(post.createTime) }}</time><span
+          v-if="region.label"
+          class="post-region"
+        ><svg
+          v-if="region.shape"
+          class="region-silhouette"
+          aria-hidden="true"
+          viewBox="0 0 48 48"
+        ><use :href="regionSilhouettes+'#'+region.shape" /></svg>{{ region.label }}</span>
+      </div>
     </div>
     <div class="post-title">
       <router-link
@@ -35,7 +43,7 @@
       class="post-images"
     >
       <button
-        v-for="(image,index) in post.images"
+        v-for="(image,index) in shownImages"
         :key="image.id"
         type="button"
         @click="preview(index)"
@@ -51,19 +59,23 @@
               <PictureIcon />
             </el-icon>
           </template>
-        </el-image><span v-if="index===4&&post.imageCount>5">{{ t('home.extraImages',{count:post.imageCount-5}) }}</span>
+        </el-image><span v-if="index===SHOWN_IMAGES-1&&post.imageCount>SHOWN_IMAGES">{{ t('home.extraImages',{count:post.imageCount-SHOWN_IMAGES}) }}</span>
       </button>
     </div>
-    <el-image-viewer
+    <ImageViewer
       v-if="previewIndex!==null"
-      teleported
-      :url-list="post.images.map(image=>contentImage(image.url))"
+      :urls="viewerUrls"
+      :thumbs="viewerThumbs"
       :initial-index="previewIndex"
       @close="previewIndex=null"
     />
     <div class="post-actions">
-      <span :aria-label="t('home.views')"><el-icon><ViewIcon /></el-icon>{{ post.viewCount }}</span><button
+      <span
+        class="views-action"
+        :aria-label="t('home.views')"
+      ><el-icon><ViewIcon /></el-icon>{{ post.viewCount }}</span><button
         type="button"
+        class="like-action"
         :class="{active:post.liked}"
         :aria-label="t(post.liked?'home.unlike':'home.like')"
         :aria-pressed="post.liked"
@@ -73,6 +85,7 @@
         <el-icon><Star /></el-icon>{{ post.likeCount }}
       </button><button
         type="button"
+        class="comment-action"
         :aria-label="t('home.comment')"
         @click="openDetail"
       >

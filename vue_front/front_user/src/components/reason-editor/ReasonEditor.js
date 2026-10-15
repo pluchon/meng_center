@@ -1,6 +1,7 @@
 import { defineComponent, ref, watch, onMounted, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Auth } from '@/constants/app'
+import { editorPencilIcon } from '@/assets/images'
 export default defineComponent({
   name: 'ReasonEditor',
   props: { modelValue: { type: String, default: '' } },
@@ -59,6 +60,7 @@ export default defineComponent({
     watch(() => props.modelValue, sync)
     return {
       t: useI18n().t,
+      pencilIcon: editorPencilIcon,
       editor,
       composing,
       update,

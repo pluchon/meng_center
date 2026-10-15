@@ -1,7 +1,7 @@
 <template>
   <div
     class="account-posts"
-    :class="{ 'is-likes': !folderId }"
+    :class="[{ 'is-likes': !folderId }, 'folder-' + tone]"
   >
     <div
       v-if="folderId"
@@ -27,7 +27,7 @@
             @keydown="editKey('name', $event)"
           ><template v-else>{{ folder?.isDefault ? t('account.defaultFolder') : folder?.name }}</template></span>
         </h2><button
-          v-if="folder && !folder.isDefault"
+          v-if="own && folder && !folder.isDefault"
           ref="nameEdit"
           class="account-folder-edit"
           :aria-label="t('account.editName')"
@@ -46,11 +46,53 @@
         >
           <el-icon><Check /></el-icon>
         </button>
+      </div><div
+        v-if="own && folder && !folder.isDefault"
+        ref="colorBox"
+        class="account-folder-color"
+      >
+        <button
+          class="account-color-trigger"
+          :aria-label="t('account.changeColor')"
+          :title="t('account.changeColor')"
+          :aria-expanded="colorOpen"
+          :disabled="Boolean(saving)"
+          @click="colorOpen = !colorOpen"
+        >
+          <img
+            :src="paletteIcon"
+            alt=""
+            aria-hidden="true"
+          >
+        </button>
+        <Transition name="color-pop">
+          <div
+            v-if="colorOpen"
+            class="account-color-menu"
+          >
+            <FolderColorPicker
+              :model-value="folder.color"
+              :disabled="Boolean(saving)"
+              @update:model-value="saveColor"
+            />
+          </div>
+        </Transition>
       </div><span
         class="account-folder-sparkle"
         aria-hidden="true"
       /><div class="account-folder-summary">
-        <template v-if="folder && !folder.isDefault">
+        <button
+          v-if="own && folder"
+          class="account-visibility"
+          :class="folder.visibility === FolderVisibility.PUBLIC ? 'is-public' : 'is-private'"
+          :aria-label="t(folder.visibility === FolderVisibility.PUBLIC ? 'account.makePrivate' : 'account.makePublic')"
+          :title="t('account.visibilityHint')"
+          :disabled="Boolean(saving)"
+          @click="toggleVisibility"
+        >
+          <el-icon><IconWorld v-if="folder.visibility === FolderVisibility.PUBLIC" /><IconLock v-else /></el-icon>{{ t(folder.visibility === FolderVisibility.PUBLIC ? 'account.visibilityPublic' : 'account.visibilityPrivate') }}
+        </button>
+        <template v-if="own && folder && !folder.isDefault">
           <el-button
             class="account-delete"
             :loading="deleting"
@@ -74,16 +116,21 @@
     </div>
     <PageState
       v-if="resource.loading"
+      class="account-post-state"
       state="loading"
     />
     <PageState
       v-else-if="resource.error"
+      class="account-post-state"
       state="error"
       @retry="load"
     />
     <PageState
       v-else-if="!resource.data.records.length"
+      class="account-post-state"
       state="empty"
+      art="collection"
+      size="tall"
     />
     <div
       v-else
@@ -97,7 +144,7 @@
       >
         <RouterLink
           class="account-post-link"
-          :to="{ name: RouteName.POST_DETAIL, params: { id: post.id }, query: { from: 'account', pane: folderId ? 'folders' : 'likes', folder: folderId || undefined, page } }"
+          :to="{ name: RouteName.POST_DETAIL, params: { id: post.id }, query: { from: userId ? 'user' : 'account', user: userId || undefined, pane: folderId ? 'folders' : pane, folder: folderId || undefined, page } }"
         >
           <div
             class="account-post-cover"
@@ -121,11 +168,15 @@
               <span
                 class="account-category"
                 :class="'category-' + post.category.toLowerCase()"
-              >{{ t('home.categories.' + post.category) }}</span><span class="account-post-author"><i aria-hidden="true">{{ (post.author?.nickname || t('home.authorFallback')).slice(0, 1) }}</i><span>{{ post.author?.nickname || t('home.authorFallback') }}</span></span><time>{{ t(folderId ? 'account.savedAt' : 'account.likedAt', { time: date(post.savedAt) }) }}</time>
+              >{{ t('home.categories.' + post.category) }}</span><span
+                v-if="!userId"
+                class="account-post-author"
+              ><i aria-hidden="true">{{ (post.author?.nickname || t('home.authorFallback')).slice(0, 1) }}</i><span>{{ post.author?.nickname || t('home.authorFallback') }}</span></span><time>{{ t(timeKey, { time: date(post.savedAt) }) }}</time>
             </div>
           </div>
         </RouterLink>
         <button
+          v-if="!userId"
           class="account-post-action"
           :class="{ selected: post.active, pink: !folderId }"
           :disabled="post.pending"
@@ -163,7 +214,7 @@
         ><p v-else>
           {{ folder.isDefault ? t('account.defaultDescription') : folder.description || t('account.noDescription') }}
         </p><button
-          v-if="!folder.isDefault"
+          v-if="own && !folder.isDefault"
           ref="descriptionEdit"
           :aria-label="t('account.editDescription')"
           :aria-expanded="editing.description"
@@ -181,13 +232,13 @@
         >
           <el-icon><Check /></el-icon>
         </button>
-      </div><el-pagination
+      </div><FeedPagination
         v-if="resource.data.total > pageSize"
-        :current-page="page"
-        :page-size="pageSize"
-        :total="resource.data.total"
-        :layout="page > 1 ? 'prev, pager, next' : 'pager, next'"
-        @current-change="$emit('page', $event)"
+        class="account-pager"
+        :page="page"
+        :total-pages="Math.ceil(resource.data.total / pageSize)"
+        :show-top="false"
+        @page="$emit('page', $event)"
       />
     </footer>
   </div>

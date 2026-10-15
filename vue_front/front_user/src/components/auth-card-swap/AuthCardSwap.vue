@@ -14,7 +14,7 @@
       >
         <component
           :is="Component"
-          :key="route.name"
+          :key="pageKey(route)"
         />
       </Transition>
     </router-view>

@@ -15,9 +15,12 @@ import com.pluchon.meng.common.web.context.RequestIdentity;
 import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.growth.config.GrowthProperties;
 import com.pluchon.meng.growth.entity.DailyExperience;
+import com.pluchon.meng.growth.entity.DailyPoints;
 import com.pluchon.meng.growth.entity.ExperienceRecordRow;
 import com.pluchon.meng.growth.entity.SourceExperience;
+import com.pluchon.meng.growth.entity.SourcePoints;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
+import com.pluchon.meng.growth.entity.enums.PointSource;
 import com.pluchon.meng.growth.mapper.GrowthMapper;
 import com.pluchon.meng.growth.mapper.GrowthPageMapper;
 import com.pluchon.meng.growth.service.GrowthPageService;
@@ -44,7 +47,7 @@ class GrowthPageServiceTest {
         UserContext.bind(new RequestIdentity(7L, "USER", "growth-test"));
         ReflectionTestUtils.setField(service, "pageMapper", page);
         ReflectionTestUtils.setField(service, "mapper", mapper);
-        ReflectionTestUtils.setField(service, "properties", new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L)));
+        ReflectionTestUtils.setField(service, "properties", new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L), 5, 10, 2));
         ReflectionTestUtils.setField(service, "clock", Clock.fixed(Instant.parse("2026-10-11T16:00:01Z"), ZoneOffset.UTC));
     }
 
@@ -110,6 +113,23 @@ class GrowthPageServiceTest {
         assertEquals(0, result.days().get(0).amount());
         assertEquals(result.days().stream().mapToLong(day -> day.amount()).sum(), result.sources().stream().mapToLong(source -> source.amount()).sum());
         assertThrows(BusinessException.class, () -> service.stats(8));
+    }
+
+    @Test
+    void pointStatsFillAllDatesAndKeepSourceTotalsOnTheSameRange() {
+        var start = today.minusDays(29);
+        when(page.selectDailyPoints(7, start, today.plusDays(1))).thenReturn(List.of(new DailyPoints(today, 17)));
+        when(page.selectSourcePoints(7, start, today.plusDays(1))).thenReturn(List.of(
+                new SourcePoints(PointSource.POST, 10), new SourcePoints(PointSource.COMMENT, 7)));
+        var result = service.pointStats(30);
+        assertEquals(30, result.days().size());
+        assertEquals(start, result.days().get(0).date());
+        assertEquals(17, result.days().get(29).amount());
+        assertEquals(0, result.days().get(0).amount());
+        assertEquals(3, result.sources().size());
+        assertEquals(0, result.sources().get(0).amount());
+        assertEquals(17, result.sources().stream().mapToLong(source -> source.amount()).sum());
+        assertThrows(BusinessException.class, () -> service.pointStats(8));
     }
 
     @Test

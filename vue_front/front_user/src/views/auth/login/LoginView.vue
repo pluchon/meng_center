@@ -1,6 +1,13 @@
 <template>
   <AuthLayout>
     <h1 class="auth-heading">
+      <span
+        class="heading-badge"
+        aria-hidden="true"
+      ><img
+        :src="icons.key"
+        alt=""
+      ></span>
       {{ t('auth.login.title') }}
       <span class="auth-brand">{{ t('common.brand') }}</span>
     </h1>
@@ -9,8 +16,11 @@
       novalidate
       @submit.prevent="submit"
     >
-      <label>{{ t('auth.login.username')
-      }}<el-input
+      <label><span class="field-name"><img
+        :src="icons.user"
+        alt=""
+        aria-hidden="true"
+      >{{ t('auth.login.username') }}</span><el-input
         v-model="form.username"
         :class="{ 'has-error': Boolean(errors.username) }"
         :aria-invalid="Boolean(errors.username)"
@@ -21,8 +31,11 @@
         :message="errors.username"
         :message-id="fieldId('username')"
       /></label>
-      <label>{{ t('auth.login.password')
-      }}<el-input
+      <label><span class="field-name"><img
+        :src="icons.lock"
+        alt=""
+        aria-hidden="true"
+      >{{ t('auth.login.password') }}</span><el-input
         v-model="form.password"
         :class="{ 'has-error': Boolean(errors.password) }"
         :aria-invalid="Boolean(errors.password)"
@@ -39,12 +52,22 @@
         v-if="pending"
         class="auth-notice"
       >
+        <img
+          class="auth-notice-art"
+          :src="stateFailReviewArt"
+          alt=""
+        >
         {{ t('auth.login.pending') }}
       </div>
       <div
         v-if="rejected"
         class="auth-notice"
       >
+        <img
+          class="auth-notice-art"
+          :src="stateFailRejectedArt"
+          alt=""
+        >
         <p>{{ t('auth.login.rejected') }}</p>
         <p>{{ t('auth.login.reason') }}{{ rejectionReason }}</p>
         <ReasonEditor v-model="form.applyReason" />
@@ -67,7 +90,11 @@
           class="forgot-password"
           :to="{ name: RouteName.RESET_PASSWORD }"
         >
-          {{ t('auth.login.forgotPassword') }}
+          <img
+            :src="icons.unlock"
+            alt=""
+            aria-hidden="true"
+          >{{ t('auth.login.forgotPassword') }}
         </router-link>
       </div>
       <el-button

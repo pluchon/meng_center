@@ -1,21 +1,37 @@
 import { defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconPlus as Plus } from '@tabler/icons-vue'
+import { ElMessage } from 'element-plus'
+import {
+  IconCamera as CoverCamera,
+  IconLock,
+  IconPlus as Plus,
+  IconWorld,
+} from '@tabler/icons-vue'
 import { contentApi, contentImage } from '@/api/content'
-import { Account } from '@/constants/account'
+import { Account, FolderVisibility } from '@/constants/account'
 import { accountFolderCover } from '@/assets/images'
 import { accountDate } from '@/utils/accountDate'
 import PageState from '@/components/page-state/PageState.vue'
+import { notifyFailure } from '@/composables/useFailureNotice'
+// 封面的大小和类型上限，和后端一致
+const COVER_BYTES = 5 * 1024 * 1024
+const COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export default defineComponent({
   name: 'AccountFolders',
-  components: { Plus, PageState },
-  props: { revision: { type: Number, default: 0 } },
+  components: { CoverCamera, IconLock, IconWorld, Plus, PageState },
+  props: {
+    revision: { type: Number, default: 0 },
+    // 别人的主页传他的编号，只列他公开的收藏夹
+    userId: { type: String, default: null },
+  },
   emits: ['open', 'create', 'loaded', 'total'],
   setup(props, { emit }) {
     const { t } = useI18n(),
       rows = ref([]),
       total = ref(0),
       sentinel = ref(null),
+      coverInput = ref(null),
+      changing = ref(0),
       resource = reactive({ loading: false, error: null })
     let observer,
       controller,
@@ -35,10 +51,10 @@ export default defineComponent({
       resource.loading = true
       resource.error = null
       try {
-        const value = await contentApi.folders(
-          { page: Math.floor(rows.value.length / Account.SIZE) + 1, size: Account.SIZE },
-          { signal: controller.signal },
-        )
+        const params = { page: Math.floor(rows.value.length / Account.SIZE) + 1, size: Account.SIZE }
+        const value = await (props.userId
+          ? contentApi.userFolders(props.userId, params, { signal: controller.signal })
+          : contentApi.folders(params, { signal: controller.signal }))
         if (current !== generation) return
         rows.value.push(...value.records)
         total.value = value.total
@@ -48,6 +64,46 @@ export default defineComponent({
         if (current === generation && !error.cancelled) resource.error = error
       } finally {
         if (current === generation) resource.loading = false
+      }
+    }
+    let target = null
+    function pickCover(folder) {
+      if (changing.value) return
+      target = folder
+      coverInput.value?.click()
+    }
+    // 换完只重取这一个收藏夹所在的那一页，把新封面地址换进原来的行里，列表不整体重载
+    async function refreshRow(folder) {
+      const index = rows.value.findIndex((row) => row.id === folder.id)
+      if (index < 0) return
+      const value = await contentApi.folders({
+        page: Math.floor(index / Account.SIZE) + 1,
+        size: Account.SIZE,
+      })
+      const fresh = value.records.find((row) => row.id === folder.id)
+      if (fresh) rows.value[index] = fresh
+    }
+    async function coverSelected(event) {
+      const file = event.target.files[0]
+      event.target.value = ''
+      const folder = target
+      target = null
+      if (!file || !folder) return
+      if (!COVER_TYPES.includes(file.type) || file.size > COVER_BYTES) {
+        ElMessage.warning(t('account.coverInvalid'))
+        return
+      }
+      changing.value = folder.id
+      try {
+        const body = new FormData()
+        body.append('cover', file)
+        await contentApi.changeFolderCover(folder.id, body)
+        await refreshRow(folder)
+        ElMessage.success(t('account.coverChanged'))
+      } catch (error) {
+        notifyFailure(error)
+      } finally {
+        changing.value = 0
       }
     }
     onMounted(async () => {
@@ -77,8 +133,13 @@ export default defineComponent({
       total,
       resource,
       sentinel,
+      coverInput,
+      changing,
+      pickCover,
+      coverSelected,
       loadMore: () => loadMore(),
       Account,
+      FolderVisibility,
       contentImage,
       accountFolderCover,
       date: (value) => accountDate(value, t),

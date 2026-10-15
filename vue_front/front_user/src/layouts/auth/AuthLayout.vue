@@ -1,5 +1,8 @@
 <template>
-  <main class="auth-layout">
+  <main
+    class="auth-layout"
+    :class="registration ? 'tone-pink' : 'tone-gold'"
+  >
     <section class="auth-card">
       <CardEdge />
       <BorderGlow />

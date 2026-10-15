@@ -1,15 +1,69 @@
 .task {
   padding: 12px 14px;
+  border: 3px solid var(--meng-surface);
   border-radius: 22px;
   background: var(--growth-bg);
   color: var(--growth-ink);
   box-shadow: 0 4px 0 var(--growth-fill);
-  margin-bottom: 12px;
-  transition: transform 200ms var(--meng-motion-ease);
+  margin-bottom: 14px;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+  animation: task-in 460ms var(--meng-slide-ease) backwards;
+}
+
+.task:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.task:nth-child(3) {
+  animation-delay: 160ms;
+}
+
+@keyframes task-in {
+  0% {
+    opacity: 0;
+    translate: 18px 0;
+  }
+
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 .task:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 7px 0 var(--growth-fill);
+  translate: 0 -3px;
+}
+
+.task-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--growth-fill);
+  rotate: -8deg;
+  transition: rotate 250ms var(--meng-slide-ease);
+}
+
+.task-icon img {
+  display: block;
+  width: 24px;
+  height: 24px;
+}
+
+.task:hover .task-icon {
+  rotate: 0deg;
+}
+
+.done-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .task-title {
@@ -20,15 +74,16 @@
   font-size: 14px;
 }
 
-.task-title > span {
+.task-title > span:not(.task-icon) {
   margin-left: auto;
   font-size: 12px;
   font-weight: 800;
 }
 
 .task-title b {
-  font-size: 18px;
-  font-weight: 600;
+  font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+  font-size: 22px;
+  font-weight: 400;
 }
 
 .task-status {
@@ -45,26 +100,36 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 9px;
+  padding: 3px 10px;
   background: var(--meng-surface);
   border-radius: 16px;
 }
 
 .task-status > span.done {
-  background: var(--growth-badge);
-  color: var(--meng-surface);
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  box-shadow: 0 2px 0 var(--meng-creator-green-shadow);
 }
 
 .task-status > a {
   margin-left: auto;
-  color: var(--growth-ink);
-  box-shadow: 0 3px 0 var(--growth-fill);
+  padding: 3px 12px;
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  box-shadow: 0 3px 0 var(--meng-creator-yellow);
   text-decoration: none;
-  transition: transform 180ms var(--meng-motion-ease);
+  rotate: 2deg;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 }
 
 .task-status > a:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 5px 0 var(--meng-creator-yellow);
+  rotate: 0deg;
+  translate: 0 -2px;
 }
 
 .weekly-heading {
@@ -102,7 +167,8 @@
 }
 
 .weekly-heading > span {
-  font-size: 22px;
+  font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+  font-size: 24px;
 }
 
 .weekly-bars {
@@ -127,15 +193,26 @@
   display: block;
   width: 30px;
   max-width: 100%;
-  border-radius: 10px 10px 4px 4px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 12px 12px 5px 5px;
   background: var(--growth-fill);
-  animation: bar-grow 500ms var(--meng-motion-ease) both;
+  box-shadow: 0 0 0 1.5px var(--growth-edge);
+  animation: bar-grow 700ms var(--meng-slide-ease) both;
+  animation-delay: calc(var(--i, 0) * 70ms);
   transform-origin: bottom;
-  transition: height 300ms var(--meng-motion-ease), opacity 180ms ease;
+  transition:
+    height 300ms var(--meng-slide-ease),
+    translate 200ms var(--meng-slide-ease);
 }
 
 .weekly-day:hover > span {
-  opacity: 0.75;
+  translate: 0 -4px;
+}
+
+.weekly-day strong {
+  font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .weekly-day small {
@@ -156,11 +233,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .task,
+  .task-icon,
   .task-status > a,
   .weekly-day > span {
     transition: none;
   }
 
+  .task,
   .weekly-day > span {
     animation: none;
   }

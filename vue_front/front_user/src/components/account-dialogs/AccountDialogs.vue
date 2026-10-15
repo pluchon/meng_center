@@ -3,7 +3,7 @@
     :model-value="true"
     width="440px"
     class="account-dialog"
-    :class="'account-dialog-' + type"
+    :class="['account-dialog-' + type, type === 'folder' ? 'folder-' + form.color.toLowerCase() : '']"
     append-to-body
     align-center
     destroy-on-close
@@ -87,7 +87,10 @@
             <el-icon><Close /></el-icon>
           </button>
         </div>
-        <label>{{ t('account.name') }}<el-input
+        <label><span class="account-field-head"><span>{{ t('account.name') }}</span><FolderColorPicker
+          v-model="form.color"
+          :disabled="busy"
+        /></span><el-input
           v-model="form.name"
           :maxlength="Account.NAME_MAX"
           :aria-label="t('account.name')"
@@ -193,14 +196,23 @@
           :aria-label="t('account.currentPassword')"
         /></label>
       </template>
-      <p
-        v-if="failure"
-        class="account-dialog-error"
-        role="alert"
-      >
-        {{ failure }}
-      </p>
       <div class="account-dialog-actions">
+        <button
+          v-if="type === 'folder'"
+          type="button"
+          class="account-visibility-switch"
+          :class="{ 'is-public': form.visibility === FolderVisibility.PUBLIC }"
+          role="switch"
+          :aria-checked="form.visibility === FolderVisibility.PUBLIC"
+          :aria-label="t('account.publicSwitch')"
+          :disabled="busy"
+          @click="form.visibility = form.visibility === FolderVisibility.PUBLIC ? FolderVisibility.PRIVATE : FolderVisibility.PUBLIC"
+        >
+          <el-icon><IconWorld v-if="form.visibility === FolderVisibility.PUBLIC" /><IconLock v-else /></el-icon>{{ t(form.visibility === FolderVisibility.PUBLIC ? 'account.visibilityPublic' : 'account.visibilityPrivate') }}<span
+            class="switch-track"
+            aria-hidden="true"
+          ><i /></span>
+        </button>
         <el-button
           :disabled="busy"
           @click="close"
@@ -223,15 +235,20 @@
     <template v-else>
       <PageState
         v-if="resource.loading"
+        class="account-dialog-state"
         state="loading"
       /><PageState
         v-else-if="resource.error"
+        class="account-dialog-state"
         state="error"
         @retry="load"
       /><template v-else>
         <PageState
           v-if="!list.length"
+          class="account-dialog-state"
           state="empty"
+          art="security"
+          size="large"
         />
         <div class="account-dialog-list">
           <article
@@ -283,26 +300,16 @@
           {{ t('account.blockHint') }}
         </p>
         <div
-          v-else
+          v-else-if="list.some(item => !item.current)"
           class="account-dialog-actions account-device-actions"
         >
           <el-button
-            v-if="list.some(item => !item.current)"
             class="account-offline-others"
             :disabled="!!pending"
             :loading="pending === 'others'"
             @click="removeOthers"
           >
             {{ t('account.offlineOthers') }}
-          </el-button><el-button
-            type="primary"
-            :disabled="!!pending"
-            @click="close"
-          >
-            <span
-              class="account-confirm-symbol"
-              aria-hidden="true"
-            ><el-icon><Check /></el-icon></span>{{ t('account.done') }}
           </el-button>
         </div>
       </template>

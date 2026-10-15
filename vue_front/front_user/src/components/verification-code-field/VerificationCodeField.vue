@@ -1,5 +1,12 @@
 <template>
-  <label class="code-field">{{ t('auth.register.code') }}
+  <label class="code-field">
+    <span class="field-name">
+      <img
+        :src="codeIcon"
+        alt=""
+        aria-hidden="true"
+      >{{ t('auth.register.code') }}
+    </span>
     <el-input
       v-model="code"
       :class="{ 'has-error': Boolean(error) }"

@@ -20,8 +20,18 @@
         class="search-bubble bubble-right"
       >
     </div>
-    <main class="search-page">
+    <main
+      ref="pageRoot"
+      class="search-page"
+    >
       <header class="search-summary">
+        <span
+          class="search-icon"
+          aria-hidden="true"
+        ><img
+          :src="navSearchIcon"
+          alt=""
+        ></span>
         <h1>{{ query.q || t('search.title') }}</h1><span
           class="search-sparkle"
           aria-hidden="true"
@@ -50,13 +60,14 @@
           state="error"
           @retry="load"
         />
-        <p
+        <PageState
           v-else-if="!records.length"
           class="search-empty"
-          role="status"
-        >
-          {{ t(query.q?'search.empty':'search.prompt') }}
-        </p>
+          state="empty"
+          art="search"
+          size="tall"
+          :text="t(query.q?'search.empty':'search.prompt')"
+        />
         <div
           v-else
           class="post-list"

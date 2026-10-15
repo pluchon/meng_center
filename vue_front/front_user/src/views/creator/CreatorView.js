@@ -1,12 +1,22 @@
 import { computed, defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { IconPencil, IconEye, IconHeart, IconMessage, IconStar } from '@tabler/icons-vue'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
+import { IconPencil } from '@tabler/icons-vue'
 import { contentApi } from '@/api/content'
 import { Creator, CreatorTab, CreatorChartType } from '@/constants/content'
 import { RouteName } from '@/router/names'
-import { communitySparkle, detailBubble, detailFlower } from '@/assets/images'
+import {
+  communitySparkle,
+  detailBubble,
+  detailFlower,
+  creatorPostsIcon,
+  creatorViewsIcon,
+  creatorLikesIcon,
+  creatorCommentsIcon,
+  creatorFavoritesIcon,
+} from '@/assets/images'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import PageState from '@/components/page-state/PageState.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
@@ -14,6 +24,7 @@ import CreatorEntry from '@/components/creator-entry/CreatorEntry.vue'
 import CreatorChart from '@/components/creator-chart/CreatorChart.vue'
 import ShapeWaves from '@/components/shape-waves/ShapeWaves.vue'
 import { useRequestResource } from '@/composables/useRequestResource'
+import { useCountUp } from '@/composables/useCountUp'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { scrollToTop } from '@/composables/scrollToTop'
 export default defineComponent({
@@ -71,14 +82,15 @@ export default defineComponent({
         }
       },
     )
+    const counts = useCountUp(() => overview.state.data)
     const deleting = reactive(new Set())
     const panels = { overview, trend, top, published, drafts }
     const metrics = [
-      { field: 'postCount', key: 'posts', icon: IconPencil },
-      { field: 'viewCount', key: 'views', icon: IconEye },
-      { field: 'likeCount', key: 'likes', icon: IconHeart },
-      { field: 'commentCount', key: 'comments', icon: IconMessage },
-      { field: 'favoriteCount', key: 'favorites', icon: IconStar },
+      { field: 'postCount', key: 'posts', icon: creatorPostsIcon },
+      { field: 'viewCount', key: 'views', icon: creatorViewsIcon },
+      { field: 'likeCount', key: 'likes', icon: creatorLikesIcon },
+      { field: 'commentCount', key: 'comments', icon: creatorCommentsIcon },
+      { field: 'favoriteCount', key: 'favorites', icon: creatorFavoritesIcon },
     ]
     function change(next) {
       return router.push({
@@ -107,19 +119,14 @@ export default defineComponent({
     async function remove(id, isDraft) {
       const key = (isDraft ? CreatorTab.DRAFTS : CreatorTab.PUBLISHED) + id
       if (deleting.has(key)) return
-      try {
-        await ElMessageBox.confirm(
-          t(isDraft ? 'creator.deleteDraft' : 'creator.deletePost'),
-          t('creator.confirmTitle'),
-          {
-            confirmButtonText: t('creator.confirm'),
-            cancelButtonText: t('creator.cancel'),
-            type: 'warning',
-          },
-        )
-      } catch {
-        return
-      }
+      const confirmed = await confirmDialog({
+        message: t(isDraft ? 'creator.deleteDraft' : 'creator.deletePost'),
+        title: t('creator.confirmTitle'),
+        confirmText: t('creator.confirm'),
+        cancelText: t('creator.cancel'),
+        danger: true,
+      })
+      if (!confirmed) return
       deleting.add(key)
       try {
         if (isDraft) {
@@ -163,6 +170,8 @@ export default defineComponent({
       days,
       deleting,
       metrics,
+      counts,
+      draftRatio: computed(() => Math.min(1, drafts.state.data.length / Creator.DRAFT_MAX)),
       change,
       remove,
       openPost,

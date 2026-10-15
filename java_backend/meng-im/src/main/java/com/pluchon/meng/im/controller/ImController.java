@@ -73,6 +73,12 @@ public class ImController {
         return ApiResponse.success(im.send(body));
     }
 
+    /** 撤回自己 5 分钟内发出的消息。 */
+    @PutMapping("/messages/{id}/revocation")
+    public ApiResponse<ImVO.Message> revoke(@PathVariable long id) {
+        return ApiResponse.success(im.revoke(id));
+    }
+
     /** 标记当前会话的已读游标。 */
     @PutMapping("/conversations/{id}/read")
     public ApiResponse<Void> read(

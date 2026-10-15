@@ -56,7 +56,7 @@ public class PostConverter {
                 p.getCategory(),
                 p.getTitle(),
                 p.getSummary(),
-                images.stream().limit(5).map(this::image).toList(),
+                images.stream().map(this::image).toList(),
                 p.getImageCount(),
                 p.getViewCount(),
                 p.getLikeCount(),

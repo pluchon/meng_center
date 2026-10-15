@@ -1,6 +1,6 @@
 import { defineComponent, ref, watch, onMounted, onUnmounted } from 'vue'
 import { EditorView, minimalSetup } from 'codemirror'
-import { EditorState, Compartment } from '@codemirror/state'
+import { EditorState, Compartment, Transaction } from '@codemirror/state'
 import { markdown } from '@codemirror/lang-markdown'
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
@@ -8,13 +8,32 @@ import { useI18n } from 'vue-i18n'
 import { MarkdownFormats } from '@/constants/content'
 export default defineComponent({
   name: 'MarkdownEditor',
-  props: { modelValue: { type: String, default: '' }, disabled: Boolean },
+  props: {
+    modelValue: { type: String, default: '' },
+    disabled: Boolean,
+    // 字数上限（按字符数，一个表情算一个）；超过的输入直接丢掉，0 表示不限
+    max: { type: Number, default: 0 },
+  },
   emits: ['update:modelValue'],
   setup(props, { emit, expose }) {
     const host = ref(null),
       { t } = useI18n(),
       editable = new Compartment()
     let view
+    // 超出上限时把这次新插入的文字裁掉多出的部分：打字就是不让输入，粘贴长文只留放得下的前半
+    const limit = EditorState.transactionFilter.of((tr) => {
+      if (!props.max || !tr.docChanged) return tr
+      let over = Array.from(tr.newDoc.toString()).length - props.max
+      if (over <= 0) return tr
+      const changes = []
+      tr.changes.iterChanges((fromA, toA, fromB, toB, inserted) => {
+        const chars = Array.from(inserted.toString())
+        const drop = Math.min(over, chars.length)
+        over -= drop
+        changes.push({ from: fromA, to: toA, insert: chars.slice(0, chars.length - drop).join('') })
+      })
+      return over > 0 ? [] : { changes, userEvent: tr.annotation(Transaction.userEvent) }
+    })
     onMounted(() => {
       view = new EditorView({
         parent: host.value,
@@ -22,6 +41,7 @@ export default defineComponent({
           doc: props.modelValue,
           extensions: [
             minimalSetup,
+            limit,
             markdown(),
             EditorView.lineWrapping,
             editable.of(EditorView.editable.of(!props.disabled)),

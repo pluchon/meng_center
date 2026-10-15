@@ -1,7 +1,144 @@
 .page-state {
+  --art-height: 100px;
+  --tone-bg: var(--meng-growth-gold-bg);
+  --tone-text: var(--meng-growth-gold-text);
+  --tone-edge: var(--meng-growth-gold-edge);
+
   display: grid;
-  gap: var(--meng-space-4);
+  gap: var(--meng-space-3);
   justify-items: center;
-  padding: var(--meng-space-10);
+  padding: var(--meng-space-8) var(--meng-space-4);
   color: var(--meng-muted);
+
+  p {
+    margin: 0;
+    text-align: center;
+  }
+}
+
+.size-small {
+  --art-height: 72px;
+
+  padding-block: var(--meng-space-4);
+}
+
+.size-large {
+  --art-height: 140px;
+}
+
+.size-tall {
+  --art-height: 170px;
+}
+
+.size-page {
+  --art-height: 210px;
+
+  padding-block: var(--meng-space-12);
+}
+
+.state-art {
+  display: block;
+  max-width: 100%;
+  height: var(--art-height);
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+// 加载动画：八帧横向拼成一张图，逐帧切换
+.state-loading {
+  aspect-ratio: 180 / 140;
+  background-repeat: no-repeat;
+  background-size: 800% 100%;
+  animation: state-frames 1.6s step-end infinite;
+}
+
+// 提示和按钮合成一条：失败了点重试、没登录点登录
+.state-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 var(--meng-space-5);
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--tone-bg);
+  box-shadow: 0 3px 0 var(--tone-edge);
+  color: var(--tone-text);
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    translate 0.2s var(--meng-motion-ease),
+    box-shadow 0.2s var(--meng-motion-ease);
+
+  &:hover {
+    translate: 0 -2px;
+    box-shadow: 0 5px 0 var(--tone-edge);
+    border-color: var(--meng-surface);
+    background: var(--tone-bg);
+    color: var(--tone-text);
+  }
+
+  &:active {
+    translate: 0 1px;
+    box-shadow: 0 2px 0 var(--tone-edge);
+  }
+}
+
+.tone-pink {
+  --tone-bg: var(--meng-growth-pink-bg);
+  --tone-text: var(--meng-growth-pink-text);
+  --tone-edge: var(--meng-growth-pink-edge);
+}
+
+.tone-violet {
+  --tone-bg: var(--meng-growth-violet-bg);
+  --tone-text: var(--meng-growth-violet-text);
+  --tone-edge: var(--meng-growth-violet-edge);
+}
+
+@keyframes state-frames {
+  0% {
+    background-position-x: 0%;
+  }
+
+  12.5% {
+    background-position-x: calc(100% / 7);
+  }
+
+  25% {
+    background-position-x: calc(200% / 7);
+  }
+
+  37.5% {
+    background-position-x: calc(300% / 7);
+  }
+
+  50% {
+    background-position-x: calc(400% / 7);
+  }
+
+  62.5% {
+    background-position-x: calc(500% / 7);
+  }
+
+  75% {
+    background-position-x: calc(600% / 7);
+  }
+
+  87.5% {
+    background-position-x: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-loading {
+    animation: none;
+  }
+
+  .state-action {
+    transition: none;
+  }
 }

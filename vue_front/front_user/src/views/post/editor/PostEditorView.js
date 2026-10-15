@@ -2,22 +2,9 @@ import { defineComponent, computed, ref, reactive, watch, onMounted, onUnmounted
 import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import {
-  ArrowLeft,
-  Plus,
-  Close,
-  Refresh,
-  Picture as PictureIcon,
-  VideoCamera,
-  MagicStick,
-  Upload,
-  EditPen,
-  Link,
-  List,
-  ChatLineSquare,
-  MoreFilled,
-} from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { confirmDialog } from '@/composables/useConfirm'
+import { Close, Refresh } from '@element-plus/icons-vue'
 import { RouteName } from '@/router/names'
 import { PostCategory, Categories, PostEditor, MarkdownFormats } from '@/constants/content'
 import { contentApi } from '@/api/content'
@@ -25,23 +12,37 @@ import { useEditorUploads } from '@/composables/useEditorUploads'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import MarkdownEditor from '@/components/markdown-editor/MarkdownEditor.vue'
 import MarkdownBody from '@/components/markdown-body/MarkdownBody.vue'
-import { articleEditAvatar } from '@/assets/images'
+import {
+  articleEditAvatar,
+  editorCirnoMascot,
+  communitySparkle,
+  messageBackIcon,
+  messagePhotoIcon,
+  editorVideoIcon,
+  editorMagicIcon,
+  editorQuoteIcon,
+  editorListIcon,
+  editorCodeIcon,
+  editorLinkIcon,
+  editorPublishIcon,
+  editorDraftIcon,
+  editorCoverIcon,
+  editorTagIcon,
+  editorPlusIcon,
+  editorPencilIcon,
+  creatorViewsIcon,
+} from '@/assets/images'
 import LiquidEther from '@/components/liquid-ether/LiquidEther.vue'
+import PageState from '@/components/page-state/PageState.vue'
 export default defineComponent({
   name: 'PostEditorView',
   components: {
+    PageState,
     LiquidEther,
     MarkdownEditor,
     MarkdownBody,
-    ArrowLeft,
-    Plus,
     Close,
     Refresh,
-    PictureIcon,
-    VideoCamera,
-    MagicStick,
-    Upload,
-    EditPen,
   },
   setup() {
     const { t } = useI18n(),
@@ -86,12 +87,20 @@ export default defineComponent({
       baseline = signature()
       saved.value = baseline
     }
+    // 标题超过上限的输入直接丢掉；输入法拼写中先不裁，等拼完（compositionend）再裁
+    function limitTitle(event) {
+      if (event.isComposing) return
+      const chars = Array.from(event.target.value)
+      if (chars.length <= PostEditor.TITLE_MAX) return
+      form.title = chars.slice(0, PostEditor.TITLE_MAX).join('')
+      event.target.value = form.title
+    }
     const unavailable = () => ElMessage.info(t('home.unavailable'))
     const formatIcons = {
-      quote: ChatLineSquare,
-      list: List,
-      code: MoreFilled,
-      link: Link,
+      quote: editorQuoteIcon,
+      list: editorListIcon,
+      code: editorCodeIcon,
+      link: editorLinkIcon,
     }
     const formats = MarkdownFormats.map((item) => ({ ...item, icon: formatIcons[item.key] }))
     function payload() {
@@ -237,16 +246,12 @@ export default defineComponent({
     async function confirmLeave() {
       if (busy.value && !allowLeave) return false
       if (allowLeave || !hasChanges.value) return true
-      try {
-        await ElMessageBox.confirm(t('editor.leaveMessage'), t('editor.leaveTitle'), {
-          confirmButtonText: t('editor.leave'),
-          cancelButtonText: t('editor.stay'),
-          type: 'warning',
-        })
-        return true
-      } catch {
-        return false
-      }
+      return confirmDialog({
+        message: t('editor.leaveMessage'),
+        title: t('editor.leaveTitle'),
+        confirmText: t('editor.leave'),
+        cancelText: t('editor.stay'),
+      })
     }
     onBeforeRouteLeave(confirmLeave)
     onBeforeRouteUpdate(async (to, from) =>
@@ -358,6 +363,21 @@ export default defineComponent({
       t,
       editing,
       articleEditAvatar,
+      editorCirnoMascot,
+      communitySparkle,
+      icons: {
+        back: messageBackIcon,
+        photo: messagePhotoIcon,
+        video: editorVideoIcon,
+        magic: editorMagicIcon,
+        publish: editorPublishIcon,
+        draft: editorDraftIcon,
+        cover: editorCoverIcon,
+        tag: editorTagIcon,
+        plus: editorPlusIcon,
+        pencil: editorPencilIcon,
+        eye: creatorViewsIcon,
+      },
       RouteName,
       PostEditor,
       Categories,
@@ -381,8 +401,10 @@ export default defineComponent({
       errors,
       titleCount,
       bodyCount,
+      bodyRatio: computed(() => Math.min(1, bodyCount.value / PostEditor.BODY_MAX)),
       formats,
       addTag,
+      limitTitle,
       unavailable,
       submit,
       loadDraft,

@@ -64,6 +64,11 @@ public class ImService {
     // 已提交的数据不因实时发送失败而返回失败
     private static final Logger LOG = LoggerFactory.getLogger(ImService.class);
 
+    // 最近一条消息被撤回时，会话列表里两边各自看到的摘要
+    private static final String SELF_REVOKED_PREVIEW = "你撤回了一条消息";
+
+    private static final String PEER_REVOKED_PREVIEW = "对方撤回了一条消息";
+
     @Autowired
     private ImMapper mapper;
 
@@ -155,7 +160,7 @@ public class ImService {
         boolean more = rows.size() > size;
         if (more) rows.remove(rows.size() - 1);
         Collections.reverse(rows);
-        return new ImVO.Messages(messageVOs(rows), more);
+        return new ImVO.Messages(messageVOs(rows, user()), more);
     }
 
     public ImVO.Message send(ImDTO.Send dto) {
@@ -163,7 +168,7 @@ public class ImService {
         long user = user();
         if (user == dto.peerId()) throw new BusinessException(ImError.SELF);
         var existing = mapper.duplicate(user, dto.clientMsgId());
-        if (existing != null) return messageVOs(List.of(existing)).get(0);
+        if (existing != null) return messageVOs(List.of(existing), user).get(0);
         peers.require(dto.peerId());
         limits.message(user);
         try {
@@ -173,7 +178,7 @@ public class ImService {
         } catch (DuplicateKeyException duplicate) {
             var first = mapper.duplicate(user, dto.clientMsgId());
             if (first == null) throw duplicate;
-            return messageVOs(List.of(first)).get(0);
+            return messageVOs(List.of(first), user).get(0);
         }
     }
 
@@ -185,7 +190,7 @@ public class ImService {
         mapper.createMember(id, user, peer);
         mapper.createMember(id, peer, user);
         var existing = mapper.duplicate(user, dto.clientMsgId());
-        if (existing != null) return messageVOs(List.of(existing)).get(0);
+        if (existing != null) return messageVOs(List.of(existing), user).get(0);
         if (mapper.blocked(peer, user) > 0) throw new BusinessException(
             ImError.BLOCKED
         );
@@ -200,9 +205,9 @@ public class ImService {
         message.setType(
             dto.imageIds().isEmpty() ? MessageType.TEXT : MessageType.IMAGE
         );
-        message.setContent(
-            dto.imageIds().isEmpty() ? dto.content().strip() : null
-        );
+        // 文字和图片可以同时发；只有图片时内容为空
+        String text = dto.content() == null ? "" : dto.content().strip();
+        message.setContent(text.isEmpty() ? null : text);
         message.setClientMsgId(dto.clientMsgId());
         mapper.insertMessage(message);
         for (int i = 0; i < dto.imageIds().size(); i++) {
@@ -220,7 +225,7 @@ public class ImService {
             message.getContent() == null ? "[图片]" : message.getContent();
         mapper.received(id, user, 0, 1, preview, message.getCreateTime());
         mapper.received(id, peer, 1, 0, preview, message.getCreateTime());
-        var result = messageVOs(List.of(message)).get(0);
+        var result = messageVOs(List.of(message), user).get(0);
         afterCommit(() -> {
             socket.push(user, "dm.message", result);
             socket.push(peer, "dm.message", result);
@@ -228,6 +233,49 @@ public class ImService {
             pushUnread(peer);
         });
         return result;
+    }
+
+    // 撤回自己 5 分钟内发出的消息：时间以数据库为准，重复撤回不报错；撤回后对方看不到内容，自己还能拿回文字重新编辑
+    @Transactional(rollbackFor = Exception.class)
+    public ImVO.Message revoke(long messageId) {
+        long user = user();
+        var found = mapper.message(messageId);
+        if (found == null || found.getSenderId() != user) throw new BusinessException(
+            CommonErrorCode.NOT_FOUND
+        );
+        long conversation = found.getConversationId();
+        mapper.lock(conversation);
+        var member = require(conversation, user);
+        var message = mapper.message(messageId);
+        if (
+            message == null || message.getId() <= member.getClearedMessageId()
+        ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        if (message.getRevokedTime() == null) {
+            if (
+                mapper.revoke(messageId, user, MessageRules.REVOKE_SECONDS) != 1
+            ) throw new BusinessException(ImError.REVOKE_EXPIRED);
+            long peer = member.getPeerId();
+            mapper.revokedUnread(conversation, peer, messageId);
+            if (mapper.lastMessage(conversation) == messageId) {
+                mapper.preview(conversation, user, SELF_REVOKED_PREVIEW);
+                mapper.preview(conversation, peer, PEER_REVOKED_PREVIEW);
+            }
+            message = mapper.message(messageId);
+            var event = Map.of(
+                "conversationId",
+                conversation,
+                "messageId",
+                messageId,
+                "senderId",
+                user
+            );
+            afterCommit(() -> {
+                socket.push(user, "dm.revoke", event);
+                socket.push(peer, "dm.revoke", event);
+                pushUnread(peer);
+            });
+        }
+        return messageVOs(List.of(message), user).get(0);
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -311,7 +359,7 @@ public class ImService {
     public List<ImVO.Group> groups(Channel channel) {
         var keys =
             channel == Channel.SYSTEM
-                ? List.of("GROWTH", "REPORT", "APPROVAL")
+                ? List.of("GROWTH", "REPORT", "APPROVAL", "FOLLOW")
                 : List.of("POST");
         long user = user();
         var groups = new ArrayList<ImVO.Group>();
@@ -388,10 +436,17 @@ public class ImService {
             .toList();
     }
 
-    public List<ImVO.Message> messageVOs(List<ImRows.Message> rows) {
-        var images = rows.isEmpty()
+    // 自己撤回的消息还给发送人看文字（用于重新编辑），对方看到的撤回消息没有内容和图片
+    public List<ImVO.Message> messageVOs(List<ImRows.Message> rows, long viewer) {
+        // 撤回的消息不带图片；全是撤回消息时没有可查的编号
+        var imageOwners = rows
+            .stream()
+            .filter(row -> row.getRevokedTime() == null)
+            .map(ImRows.Message::getId)
+            .toList();
+        var images = imageOwners.isEmpty()
             ? List.<ImRows.Image>of()
-            : mapper.images(rows.stream().map(ImRows.Message::getId).toList());
+            : mapper.images(imageOwners);
         var grouped = new HashMap<Long, List<ImVO.Image>>();
         for (var image : images)
             grouped
@@ -411,10 +466,16 @@ public class ImService {
                     row.getConversationId(),
                     row.getSenderId(),
                     row.getType(),
-                    row.getContent(),
+                    row.getRevokedTime() != null && row.getSenderId() != viewer
+                        ? null
+                        : row.getContent(),
                     row.getClientMsgId(),
                     time(row.getCreateTime()),
-                    grouped.getOrDefault(row.getId(), List.of())
+                    grouped.getOrDefault(row.getId(), List.of()),
+                    row.getRevokedTime() != null,
+                    row.getRevokedTime() != null || row.getRevokeMillis() == null
+                        ? 0
+                        : row.getRevokeMillis()
                 )
             )
             .toList();
@@ -477,7 +538,7 @@ public class ImService {
             channel == null ||
             (source != null && !source.equals("POST")) ||
             (category != null &&
-                !List.of("GROWTH", "REPORT", "APPROVAL").contains(category)) ||
+                !List.of("GROWTH", "REPORT", "APPROVAL", "FOLLOW").contains(category)) ||
             (channel == Channel.SYSTEM && source != null) ||
             (channel != Channel.SYSTEM && category != null) ||
             (required &&

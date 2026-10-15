@@ -1,13 +1,71 @@
+// 每张卡片一种颜色，按蓝、粉、金、绿、紫轮换，相邻的两张不会同色
 .creator-entry {
+  --entry-fill: var(--meng-tint);
+  --entry-edge: var(--meng-border);
+  --entry-mark: var(--meng-category-anime);
+  --entry-ink: var(--meng-shadow-hard);
+
+  position: relative;
   min-width: 0;
   padding: 26px 30px 14px;
-  border: 2px solid var(--meng-tint);
+  border: 3px solid var(--entry-fill);
   border-radius: var(--meng-creator-row-radius);
   background: var(--meng-creator-plot);
+  box-shadow: 0 5px 0 var(--entry-edge);
   display: flex;
   flex-direction: column;
   gap: 14px;
-  transition: border-color 180ms ease;
+  animation: entry-in 460ms var(--meng-slide-ease) backwards;
+  transition:
+    translate 220ms var(--meng-slide-ease),
+    box-shadow 220ms ease;
+}
+
+.creator-entry:nth-child(5n + 2) {
+  --entry-fill: var(--meng-danger);
+  --entry-edge: var(--meng-creator-pink);
+  --entry-mark: var(--meng-creator-pink);
+  --entry-ink: var(--meng-like-text);
+}
+
+.creator-entry:nth-child(5n + 3) {
+  --entry-fill: var(--meng-warning);
+  --entry-edge: var(--meng-creator-yellow);
+  --entry-mark: var(--meng-creator-yellow);
+  --entry-ink: var(--meng-favorite-text);
+}
+
+.creator-entry:nth-child(5n + 4) {
+  --entry-fill: var(--meng-success);
+  --entry-edge: var(--meng-creator-green-shadow);
+  --entry-mark: var(--meng-creator-green);
+  --entry-ink: var(--meng-success-shadow);
+}
+
+.creator-entry:nth-child(5n + 5) {
+  --entry-fill: var(--meng-category-game);
+  --entry-edge: var(--meng-creator-purple);
+  --entry-mark: var(--meng-creator-purple);
+  --entry-ink: var(--meng-creator-purple-text);
+}
+
+// 同一页的卡片依次浮现
+@for $i from 1 through 10 {
+  .creator-entry:nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 60}ms;
+  }
+}
+
+@keyframes entry-in {
+  0% {
+    opacity: 0;
+    translate: 0 14px;
+  }
+
+  100% {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 .published {
@@ -15,7 +73,8 @@
 }
 
 .published:hover {
-  border-color: var(--meng-border);
+  box-shadow: 0 8px 0 var(--entry-edge);
+  translate: 0 -3px;
 }
 
 .entry-main {
@@ -30,10 +89,18 @@
   height: 90px;
   display: grid;
   place-items: center;
+  border: 3px solid var(--meng-surface);
   border-radius: 18px;
   overflow: hidden;
-  background: var(--meng-tint);
-  color: var(--meng-primary);
+  background: var(--entry-fill);
+  box-shadow: 0 4px 0 var(--entry-edge);
+  color: var(--entry-ink);
+  rotate: -2deg;
+  transition: rotate 250ms var(--meng-slide-ease);
+}
+
+.published:hover .entry-cover {
+  rotate: 0deg;
 }
 
 .entry-cover .el-image {
@@ -63,17 +130,18 @@
   flex: none;
   margin-right: -4px;
   border-radius: 4px;
-  background: var(--meng-category-anime);
+  background: var(--entry-mark);
 }
 
 h3 {
   margin: 0;
-  padding: 0 6px;
+  padding: 0 8px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   border-radius: 8px;
-  background: var(--meng-creator-highlight);
+  background: var(--entry-fill);
+  color: var(--entry-ink);
   font-size: 20px;
   line-height: 1.4;
   font-weight: 800;
@@ -97,15 +165,17 @@ time {
   flex: none;
   min-height: 28px;
   padding: 0 12px 0 9px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--meng-bg);
+  box-shadow: 0 2px 0 var(--meng-tint);
   color: var(--meng-muted);
   font-size: 13px;
   font-weight: 700;
 }
 
 time svg {
-  color: var(--meng-primary);
+  color: var(--entry-mark);
 }
 
 p {
@@ -124,8 +194,8 @@ p {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  border-top: 2px dashed var(--meng-tint);
-  padding-top: 6px;
+  border-top: 2px dashed var(--entry-fill);
+  padding-top: 8px;
   gap: 4px;
 }
 
@@ -145,37 +215,79 @@ p {
   font-weight: 700;
 }
 
+// 四项统计各用各的颜色，和顶部的统计卡对应
+.entry-counts span:nth-child(1) svg {
+  color: var(--meng-creator-green);
+}
+
+.entry-counts span:nth-child(2) svg {
+  color: var(--meng-creator-pink);
+}
+
+.entry-counts span:nth-child(3) svg {
+  color: var(--meng-creator-purple);
+}
+
+.entry-counts span:nth-child(4) svg {
+  color: var(--meng-creator-yellow);
+}
+
 .entry-tools {
   display: flex;
-  gap: 6px;
+  gap: 10px;
 }
 
 .published .entry-tools {
   margin-left: auto;
 }
 
+// 编辑是薄荷色贴纸、删除是粉色贴纸，悬停上浮并加厚底影，不铺底色
 .entry-tools a,
 .entry-tools button {
+  --tool-fill: var(--meng-success);
+  --tool-edge: var(--meng-creator-green-shadow);
+  --tool-ink: var(--meng-success-shadow);
+
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 44px;
-  padding: 0 14px;
-  border: 0;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: transparent;
-  color: var(--meng-primary);
+  background: var(--tool-fill);
+  box-shadow: 0 3px 0 var(--tool-edge);
+  color: var(--tool-ink);
   font-size: 14px;
   font-weight: 800;
-}
-
-.entry-tools a:hover,
-.entry-tools button:hover {
-  background: var(--meng-bg);
+  cursor: pointer;
+  rotate: -2deg;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
 }
 
 .entry-tools .delete-entry {
-  color: var(--meng-danger-text);
+  --tool-fill: var(--meng-danger);
+  --tool-edge: var(--meng-creator-pink);
+  --tool-ink: var(--meng-like-text);
+
+  rotate: 2deg;
+}
+
+.entry-tools a:hover,
+.entry-tools button:hover:not(:disabled) {
+  box-shadow: 0 5px 0 var(--tool-edge);
+  color: var(--tool-ink);
+  rotate: 0deg;
+  translate: 0 -2px;
+}
+
+.entry-tools a:active,
+.entry-tools button:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--tool-edge);
+  translate: 0 2px;
 }
 
 .entry-tools button:disabled {
@@ -184,18 +296,34 @@ p {
 }
 
 .entry-category {
+  position: relative;
   margin-left: auto;
   flex: none;
   padding: 5px 14px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
+  box-shadow: 0 3px 0 var(--entry-edge);
   font-size: 14px;
   font-weight: 800;
   background: var(--meng-warning);
   color: var(--meng-nav-gold);
+  rotate: 2deg;
 }
 
+// 已发布的卡片里，编辑删除和分类之间隔一条竖虚线
 .published .entry-category {
-  margin-left: 6px;
+  margin-left: 26px;
+}
+
+.published .entry-category::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -16px;
+  height: 26px;
+  border-left: 2px dashed var(--entry-edge);
+  rotate: -2deg;
+  translate: 0 -50%;
 }
 
 .category-anime {
@@ -229,8 +357,10 @@ p {
   width: 112px;
   height: 84px;
   overflow: hidden;
+  border: 3px solid var(--meng-surface);
   border-radius: 16px;
-  background: var(--meng-tint);
+  background: var(--entry-fill);
+  box-shadow: 0 3px 0 var(--entry-edge);
 }
 
 .draft-images .el-image {
@@ -293,8 +423,25 @@ p {
     margin-left: auto;
   }
 
+  .published .entry-category::before {
+    display: none;
+  }
+
   .draft-images > div {
     width: 72px;
     height: 56px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .creator-entry {
+    animation: none;
+  }
+
+  .creator-entry,
+  .entry-cover,
+  .entry-tools a,
+  .entry-tools button {
+    transition: none;
   }
 }

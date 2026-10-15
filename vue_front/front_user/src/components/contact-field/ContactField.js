@@ -3,6 +3,7 @@ import FieldMessage from '@/components/field-message/FieldMessage.vue'
 import { useI18n } from 'vue-i18n'
 import { ContactChannel, Regions } from '@/constants/app'
 import ContactSwitchIcon from '@/components/contact-switch-icon/ContactSwitchIcon.vue'
+import { authMailIcon } from '@/assets/images'
 export default defineComponent({
   name: 'ContactField',
   components: { ContactSwitchIcon, FieldMessage },
@@ -32,6 +33,7 @@ export default defineComponent({
     }
     return {
       t,
+      mailIcon: authMailIcon,
       switching,
       switchChannel,
       ContactChannel,

@@ -4,7 +4,7 @@
     class="post-comments"
   >
     <header class="comments-heading">
-      <h2><span class="comments-title">{{ t('detail.comments') }}</span><span class="comments-count">{{ count }}</span><span class="comments-cheer">{{ t('detail.commentCheer') }}</span></h2><button
+      <h2><span class="comments-badge"><span class="comments-title">{{ t('detail.comments') }}</span><span class="comments-count">{{ count }}</span></span><span class="comments-cheer">{{ t('detail.commentCheer') }}</span></h2><button
         type="button"
         :aria-expanded="open"
         @click="toggleComposer"
@@ -30,12 +30,13 @@
       v-else-if="error"
       state="error"
       @retry="load"
-    /><p
+    /><PageState
       v-else-if="!records.length"
-      class="comments-empty"
-    >
-      {{ t('detail.empty') }}
-    </p>
+      state="empty"
+      art="chat"
+      size="large"
+      :text="t('detail.empty')"
+    />
     <div
       v-else
       class="comment-list"
@@ -49,11 +50,13 @@
           :comment="comment"
           :busy="pending[comment.id]||false"
           :expanded="replies[comment.id]?.open||false"
+          :can-pin="canPin"
           @like="like"
           @reply="reply"
           @delete="remove"
           @report="report"
           @expand="expand"
+          @pin="pin"
         />
         <CollapsePanel :open="replies[comment.id]?.open||false">
           <div

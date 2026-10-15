@@ -4,7 +4,7 @@ export default defineComponent({
   name: 'GrowthPanel',
   props: {
     title: { type: String, default: '' },
-    icon: { type: [Object, Function], default: null },
+    icon: { type: String, default: '' },
     tone: { type: String, default: 'blue' },
     sticker: { type: String, default: '' },
     tapeTone: { type: String, default: '' },

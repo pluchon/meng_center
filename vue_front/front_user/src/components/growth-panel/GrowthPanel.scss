@@ -2,10 +2,11 @@
   position: relative;
   min-width: 0;
   padding: 20px 24px 22px;
+  border: 3px solid var(--growth-bg, var(--meng-tint));
   border-radius: 32px;
   background: var(--meng-surface);
   box-shadow: var(--meng-creator-shadow);
-  animation: panel-enter 450ms var(--meng-motion-ease) both;
+  animation: panel-enter 520ms var(--meng-slide-ease) both;
 }
 
 .panel-heading {
@@ -39,15 +40,34 @@ h2 {
 }
 
 .heading-icon {
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   display: grid;
   place-items: center;
   border: 3px solid var(--meng-surface);
   border-radius: 50%;
-  background: var(--growth-badge);
-  color: var(--meng-surface);
-  box-shadow: 0 4px 0 var(--growth-edge);
+  background: var(--growth-bg);
+  box-shadow: 0 4px 0 var(--growth-fill);
+  rotate: -6deg;
+  transition: rotate 250ms var(--meng-slide-ease);
+}
+
+.heading-icon img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  animation: heading-bob 3.6s ease-in-out infinite;
+}
+
+.growth-panel:hover .heading-icon {
+  rotate: 0deg;
+}
+
+@keyframes heading-bob {
+  50% {
+    translate: 0 -2px;
+    rotate: 6deg;
+  }
 }
 
 .heading-title {
@@ -145,7 +165,8 @@ h2 {
 @keyframes panel-enter {
   from {
     opacity: 0;
-    transform: translateY(12px);
+    translate: 0 18px;
+    scale: 0.985;
   }
 }
 
@@ -179,6 +200,7 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .growth-panel,
+  .heading-icon img,
   .panel-sticker,
   .panel-flower {
     animation: none;

@@ -42,9 +42,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PostService {
 
-    @Autowired
-    private FavoriteFolderService folders;
-
     // 作者的每日互动统计
     @Autowired
     private AuthorStatisticsService statistics;
@@ -209,6 +206,23 @@ public class PostService {
         );
     }
 
+    // 某个作者发布的帖子，新的在前，别人主页的「发布」页用
+    public PageResult<PostFeedVO> byAuthor(long author, long page, long size) {
+        var result = posts.selectPage(
+            new Page<>(page, size),
+            Wrappers.<PostEntity>lambdaQuery()
+                .eq(PostEntity::getAuthorId, author)
+                .orderByDesc(PostEntity::getCreateTime)
+                .orderByDesc(PostEntity::getId)
+        );
+        return new PageResult<>(
+            hydrate(result.getRecords()),
+            result.getTotal(),
+            page,
+            size
+        );
+    }
+
     // 批量组装作者、配图和互动状态
     public List<PostFeedVO> hydrate(List<PostEntity> list) {
         long user = UserContext.require().userId();
@@ -273,57 +287,6 @@ public class PostService {
             if (enabled) events.publishEvent(
                 new ContentInteractionEvent(
                     "post.liked",
-                    id,
-                    post.getTitle(),
-                    null,
-                    null,
-                    user,
-                    post.getAuthorId()
-                )
-            );
-            events.publishEvent(
-                new PostReadModelEvent(
-                    id,
-                    null,
-                    PostReadModelEvent.Kind.SCORE,
-                    delta
-                )
-            );
-        }
-    }
-
-    // 幂等更新收藏关系和帖子热度
-    @Transactional(rollbackFor = Exception.class)
-    public void favorite(long id, boolean enabled) {
-        favorite(id, enabled, null);
-    }
-
-    @Transactional(rollbackFor = Exception.class)
-    public void favorite(long id, boolean enabled, Long folderId) {
-        long user = UserContext.require().userId();
-        var folder = folders.lockSelection(enabled ? folderId : null);
-        var post = requirePost(id);
-        var created = enabled
-            ? null
-            : relations.selectFavoriteCreateTime(id, user);
-        int changed = enabled
-            ? relations.insertFavorite(id, user, folder.getId())
-            : relations.deleteFavorite(id, user);
-        if (changed == 1) {
-            if (enabled) statistics.record(
-                post.getAuthorId(),
-                CreatorMetric.FAVORITE
-            );
-            else statistics.cancel(
-                post.getAuthorId(),
-                CreatorMetric.FAVORITE,
-                created
-            );
-            long delta = (enabled ? 1L : -1L) * properties.favoriteWeight();
-            posts.incrementHotScore(id, delta);
-            if (enabled) events.publishEvent(
-                new ContentInteractionEvent(
-                    "post.favorited",
                     id,
                     post.getTitle(),
                     null,

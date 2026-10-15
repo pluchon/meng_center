@@ -1,7 +1,7 @@
-import { computed, defineComponent, reactive, ref } from 'vue'
+import { computed, defineAsyncComponent, defineComponent, reactive, ref } from 'vue'
 import {
   Picture as PictureIcon,
-  Location,
+  Clock,
   View as ViewIcon,
   Star,
   ChatDotRound,
@@ -12,17 +12,30 @@ import { useRoute, useRouter } from 'vue-router'
 import { useCommunity } from '@/composables/useCommunity'
 import { usePostTime } from '@/composables/usePostTime'
 import { notifyFailure } from '@/composables/useFailureNotice'
-import { userAvatar } from '@/assets/images'
+import { userAvatar, regionSilhouettes } from '@/assets/images'
+import { postRegion } from '@/utils/postRegion'
 import HighlightText from '@/components/highlight-text/HighlightText.vue'
 import { RouteName } from '@/router/names'
 import { useFavoriteStore } from '@/stores/favorites'
 import { avatarUrl } from '@/api/user'
+// 卡片上最多摆几张缩略图，其余的从大图查看里翻
+const SHOWN_IMAGES = 5
 export default defineComponent({
   name: 'PostCard',
-  components: { HighlightText, PictureIcon, Location, ViewIcon, Star, ChatDotRound, CollectionTag },
+  components: {
+    ImageViewer: defineAsyncComponent(() => import('@/components/image-viewer/ImageViewer.vue')),
+    HighlightText,
+    PictureIcon,
+    Clock,
+    ViewIcon,
+    Star,
+    ChatDotRound,
+    CollectionTag,
+  },
   props: { post: { type: Object, required: true } },
   emits: ['change'],
   setup(props, { emit }) {
+    const region = computed(() => postRegion(props.post.ipRegion))
     const route = useRoute()
     const router = useRouter()
     const homeQuery = computed(() =>
@@ -62,17 +75,22 @@ export default defineComponent({
       const field = kind === 'like' ? 'liked' : 'favorited',
         on = !props.post[field]
       pending[kind] = true
-      let folderId
-      if (kind === 'favorite' && on) {
+      if (kind === 'favorite') {
         try {
-          folderId = await useFavoriteStore().choose()
+          await useFavoriteStore().manage(props.post, ({ favorited, favoriteCount }) =>
+            emit('change', {
+              id: props.post.id,
+              field: 'favorited',
+              value: favorited,
+              delta: favoriteCount - props.post.favoriteCount,
+            }),
+          )
         } catch (error) {
           notifyFailure(error)
-        }
-        if (!folderId) {
+        } finally {
           pending[kind] = false
-          return
         }
+        return
       }
       emit('change', {
         id: props.post.id,
@@ -81,7 +99,7 @@ export default defineComponent({
         delta: on ? 1 : -1,
       })
       try {
-        await contentApi[kind](props.post.id, on, folderId)
+        await contentApi[kind](props.post.id, on)
       } catch (e) {
         emit('change', {
           id: props.post.id,
@@ -99,6 +117,10 @@ export default defineComponent({
       pending,
       previewIndex,
       preview,
+      SHOWN_IMAGES,
+      shownImages: computed(() => props.post.images.slice(0, SHOWN_IMAGES)),
+      viewerUrls: computed(() => props.post.images.map((image) => contentImage(image.url))),
+      viewerThumbs: computed(() => props.post.images.map((image) => contentImage(image.thumbUrl))),
       toggle,
       openCard,
       preloadDetail,
@@ -107,6 +129,8 @@ export default defineComponent({
       relativeTime: usePostTime(),
       contentImage,
       userAvatar,
+      region,
+      regionSilhouettes,
       avatarUrl,
     }
   },

@@ -6,7 +6,11 @@ import com.pluchon.meng.growth.controller.vo.CheckInMonthVO;
 import com.pluchon.meng.growth.controller.vo.ExperienceRecordVO;
 import com.pluchon.meng.growth.controller.vo.ExperienceStatsVO;
 import com.pluchon.meng.growth.controller.vo.GrowthOverviewVO;
+import com.pluchon.meng.growth.controller.vo.PointRecordVO;
+import com.pluchon.meng.growth.controller.vo.PointStatsVO;
+import com.pluchon.meng.growth.controller.vo.PointsVO;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
+import com.pluchon.meng.growth.entity.enums.PointSource;
 import com.pluchon.meng.growth.service.GrowthPageService;
 import com.pluchon.meng.growth.controller.vo.GrowthVO;
 import com.pluchon.meng.growth.service.GrowthService;
@@ -56,6 +60,27 @@ public class GrowthController {
             @RequestParam(defaultValue = "1") long page,
             @RequestParam(defaultValue = "12") long size) {
         return ApiResponse.success(this.page.records(source, page, size));
+    }
+
+    /** 查询积分余额和各来源的获得规则。 */
+    @GetMapping("/points")
+    public ApiResponse<PointsVO> points() {
+        return ApiResponse.success(page.points());
+    }
+
+    /** 查询连续七天或三十天获得的积分统计。 */
+    @GetMapping("/point-stats")
+    public ApiResponse<PointStatsVO> pointStats(@RequestParam(defaultValue = "7") int days) {
+        return ApiResponse.success(page.pointStats(days));
+    }
+
+    /** 分页查询自己的积分明细并可按来源筛选。 */
+    @GetMapping("/point-records")
+    public ApiResponse<PageResult<PointRecordVO>> pointRecords(
+            @RequestParam(required = false) PointSource source,
+            @RequestParam(defaultValue = "1") long page,
+            @RequestParam(defaultValue = "12") long size) {
+        return ApiResponse.success(this.page.pointRecords(source, page, size));
     }
 
     /** 查询当前用户成长概况。 */

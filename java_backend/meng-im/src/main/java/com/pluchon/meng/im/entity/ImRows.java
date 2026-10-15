@@ -59,6 +59,10 @@ public final class ImRows {
         private String content;
         // 发送人的幂等标识
         private String clientMsgId;
+        // 撤回时间，空表示没有撤回
+        private LocalDateTime revokedTime;
+        // 距离撤回截止还剩的毫秒数，由查询计算
+        private Long revokeMillis;
         // 数据库 UTC 创建时间
         private LocalDateTime createTime;
     }

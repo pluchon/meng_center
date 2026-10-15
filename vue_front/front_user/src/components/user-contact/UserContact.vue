@@ -18,6 +18,11 @@
     </template>
     <div class="user-contact-card">
       <strong>{{ author.nickname||t('home.authorFallback') }}</strong><small>{{ t('home.level',{level:author.level}) }}</small><button
+        type="button"
+        @click="profile"
+      >
+        {{ t('im.viewProfile') }}
+      </button><button
         v-if="author.id!==user.current?.id"
         type="button"
         @click="message"

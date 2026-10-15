@@ -1,6 +1,6 @@
 import { defineComponent, onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
-import { House, EditPen, Search as SearchIcon, ChatDotRound } from '@element-plus/icons-vue'
 import { useCommunity } from '@/composables/useCommunity'
+import { useSlider } from '@/composables/useSlider'
 import { useUserStore } from '@/stores/user'
 import { useGrowthStore } from '@/stores/growth'
 import { useImStore } from '@/stores/im'
@@ -12,14 +12,18 @@ import { ElMessage } from 'element-plus'
 import { Growth } from '@/constants/content'
 import {
   userAvatar,
-  communityDrop,
+  brandIcon,
   communitySparkle,
-  communitySprout,
+  navHomeIcon,
+  navCreateIcon,
+  navGrowthIcon,
+  navMengIcon,
+  navSearchIcon,
+  navMessageIcon,
   communityFooterArt,
 } from '@/assets/images'
 export default defineComponent({
   name: 'CommunityLayout',
-  components: { House, EditPen, ChatDotRound, SearchIcon },
   setup() {
     const { t, unavailable } = useCommunity()
     const user = useUserStore(),
@@ -69,6 +73,9 @@ export default defineComponent({
       await nextTick()
       searchInput.value?.focus()
     }
+    // 导航滑块：跟随悬停项，移开后回到当前页
+    const navRoot = ref(null)
+    const navSlider = useSlider(navRoot, { item: '[data-slide]', deps: () => route.name })
     let timer
     const refresh = () => {
       if (user.loggedIn && !document.hidden) growth.load()
@@ -99,6 +106,8 @@ export default defineComponent({
       route,
       t,
       unavailable,
+      navRoot,
+      navSlider,
       searchOpen,
       searchText,
       submitSearch,
@@ -114,9 +123,14 @@ export default defineComponent({
       RouteName,
       LegalDocument,
       userAvatar,
-      communityDrop,
+      brandIcon,
       communitySparkle,
-      communitySprout,
+      navHomeIcon,
+      navCreateIcon,
+      navGrowthIcon,
+      navMengIcon,
+      navSearchIcon,
+      navMessageIcon,
       communityFooterArt,
     }
   },

@@ -13,6 +13,15 @@
         class="editor-decorations"
         aria-hidden="true"
       >
+        <span class="editor-tape" />
+        <span
+          class="editor-glint glint-1"
+          :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
+        />
+        <span
+          class="editor-glint glint-2"
+          :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
+        />
         <span class="editor-sticker sticker-writing">{{ t('editor.stickers.writing') }}</span>
         <span class="editor-sticker sticker-cheer">{{ t('editor.stickers.cheer') }}</span>
         <span class="editor-sticker sticker-smile">{{ t('editor.stickers.smile') }}</span>
@@ -70,26 +79,39 @@
         <span>{{ t('editor.greeting') }}</span>
       </div>
       <header class="editor-header">
-        <h1>{{ t(editing?'editor.editLead':'editor.titleLead') }} <span>{{ t(editing?'editor.editAccent':'editor.titleAccent') }}</span><el-icon><MagicStick /></el-icon></h1><router-link :to="{name:RouteName.HOME}">
-          <el-icon><ArrowLeft /></el-icon>{{ t('editor.home') }}
+        <h1>
+          {{ t(editing?'editor.editLead':'editor.titleLead') }} <span>{{ t(editing?'editor.editAccent':'editor.titleAccent') }}</span><img
+            :src="icons.magic"
+            class="title-icon"
+            alt=""
+            aria-hidden="true"
+          >
+        </h1><router-link :to="{name:RouteName.HOME}">
+          <img
+            :src="icons.back"
+            class="tool-icon"
+            alt=""
+            aria-hidden="true"
+          >{{ t('editor.home') }}
         </router-link>
       </header>
-      <div
+      <PageState
         v-if="loading||loadError"
         class="draft-state"
-        role="status"
-      >
-        <p>{{ t(loading?'editor.loading':'editor.error.draftLoad') }}</p><el-button
-          v-if="loadError"
-          @click="loadDraft"
-        >
-          {{ t('home.retry') }}
-        </el-button>
-      </div>
+        :state="loading?'loading':'error'"
+        art="draftFailed"
+        size="large"
+        :text="t(loading?'editor.loading':'editor.error.draftLoad')"
+        @retry="loadDraft"
+      />
       <fieldset :disabled="busy||loading||loadError">
         <div class="editor-top-row">
           <div class="category-field">
-            <strong>{{ t('editor.category') }}</strong><div class="editor-categories">
+            <div
+              class="editor-categories"
+              role="group"
+              :aria-label="t('editor.category')"
+            >
               <button
                 v-for="category in Categories"
                 :key="category"
@@ -103,16 +125,18 @@
             </div>
           </div>
           <div class="title-field">
-            <label for="post-title">{{ t('editor.title') }}</label><div
+            <div
               class="input-shell"
               :class="{invalid:errors.title}"
             >
               <input
                 id="post-title"
                 v-model="form.title"
+                :aria-label="t('editor.title')"
                 :placeholder="t('editor.titlePlaceholder')"
                 :aria-invalid="Boolean(errors.title)"
-                @input="errors.title=''"
+                @input="errors.title='';limitTitle($event)"
+                @compositionend="limitTitle($event)"
               ><small class="title-counter">{{ t('editor.counters',{count:titleCount,max:PostEditor.TITLE_MAX}) }}</small><span
                 v-if="errors.title"
                 class="field-error"
@@ -124,12 +148,28 @@
         <div class="editor-columns">
           <section class="body-panel">
             <div class="panel-heading">
-              <h2>{{ t('editor.body') }}</h2><div class="body-count">
-                <el-progress
-                  :percentage="Math.min(100,bodyCount/PostEditor.BODY_MAX*100)"
-                  :show-text="false"
-                  color="var(--meng-primary)"
-                /><small>{{ t('editor.counters',{count:bodyCount,max:PostEditor.BODY_MAX}) }}</small>
+              <h2>
+                <img
+                  :src="icons.pencil"
+                  class="heading-icon"
+                  alt=""
+                  aria-hidden="true"
+                >{{ t('editor.body') }}
+              </h2><div class="body-count">
+                <div
+                  class="body-meter"
+                  :class="{near:bodyRatio>=0.9}"
+                  role="progressbar"
+                  :aria-label="t('editor.body')"
+                  aria-valuemin="0"
+                  :aria-valuemax="PostEditor.BODY_MAX"
+                  :aria-valuenow="bodyCount"
+                >
+                  <span
+                    class="meter-fill"
+                    :style="{width:bodyRatio*100+'%'}"
+                  />
+                </div><small class="meter-count"><b>{{ bodyCount }}</b>{{ t('editor.counterMax',{max:PostEditor.BODY_MAX}) }}</small>
               </div>
             </div>
             <div
@@ -147,9 +187,13 @@
                     :title="t('editor.formats.'+format.key)"
                     @click="editor?.format(format.key)"
                   >
-                    <el-icon v-if="format.icon">
-                      <component :is="format.icon" />
-                    </el-icon>
+                    <img
+                      v-if="format.icon"
+                      :src="format.icon"
+                      class="format-icon"
+                      alt=""
+                      aria-hidden="true"
+                    >
                     <span
                       v-else
                       :class="'format-'+format.key"
@@ -160,7 +204,12 @@
                   class="ai-tool"
                   @click="unavailable"
                 >
-                  <el-icon><MagicStick /></el-icon>{{ t('editor.inspiration') }}
+                  <img
+                    :src="icons.magic"
+                    class="ai-icon"
+                    alt=""
+                    aria-hidden="true"
+                  >{{ t('editor.inspiration') }}
                 </button><div
                   class="editor-modes"
                   :class="{preview}"
@@ -170,21 +219,39 @@
                     :aria-pressed="!preview"
                     @click="preview=false"
                   >
-                    {{ t('editor.edit') }}
+                    <img
+                      :src="icons.pencil"
+                      class="mode-icon"
+                      alt=""
+                      aria-hidden="true"
+                    >{{ t('editor.edit') }}
                   </button><button
                     type="button"
                     :aria-pressed="preview"
                     @click="preview=true"
                   >
-                    {{ t('editor.preview') }}
+                    <img
+                      :src="icons.eye"
+                      class="mode-icon"
+                      alt=""
+                      aria-hidden="true"
+                    >{{ t('editor.preview') }}
                   </button>
                 </div>
               </div>
               <div class="body-content">
+                <img
+                  :src="editorCirnoMascot"
+                  class="editor-mascot"
+                  alt=""
+                  aria-hidden="true"
+                  draggable="false"
+                >
                 <MarkdownEditor
                   v-show="!preview"
                   ref="editor"
                   v-model="form.content"
+                  :max="PostEditor.BODY_MAX"
                   :disabled="busy||loading||loadError"
                 /><div
                   v-if="preview"
@@ -227,14 +294,24 @@
                     :aria-pressed="!video"
                     @click="video=false"
                   >
-                    <el-icon><PictureIcon /></el-icon>{{ t('editor.images') }}
+                    <img
+                      :src="icons.photo"
+                      class="tool-icon"
+                      alt=""
+                      aria-hidden="true"
+                    >{{ t('editor.images') }}
                   </button><button
                     type="button"
                     :class="{selected:video}"
                     :aria-pressed="video"
                     @click="video=true"
                   >
-                    <el-icon><VideoCamera /></el-icon>{{ t('editor.video') }}
+                    <img
+                      :src="icons.video"
+                      class="tool-icon"
+                      alt=""
+                      aria-hidden="true"
+                    >{{ t('editor.video') }}
                   </button>
                 </div><small>{{ t('editor.counters',{count:images.length,max:PostEditor.IMAGE_MAX}) }}</small>
               </div>
@@ -246,7 +323,12 @@
                     type="button"
                     @click="unavailable"
                   >
-                    <el-icon><VideoCamera /></el-icon><span>{{ t('editor.videoPlaceholder') }}</span>
+                    <img
+                      :src="icons.video"
+                      class="empty-icon"
+                      alt=""
+                      aria-hidden="true"
+                    ><span>{{ t('editor.videoPlaceholder') }}</span>
                   </button>
                   <div
                     v-else
@@ -293,13 +375,21 @@
                         :aria-label="t('editor.addImage')"
                         @click="imageInput.click()"
                       >
-                        <el-icon><Plus /></el-icon>
+                        <img
+                          :src="icons.plus"
+                          alt=""
+                          aria-hidden="true"
+                        >
                       </button><div
                         v-else
                         class="image-slot empty-image"
                         aria-hidden="true"
                       >
-                        <el-icon><PictureIcon /></el-icon>
+                        <img
+                          :src="icons.photo"
+                          alt=""
+                          aria-hidden="true"
+                        >
                       </div>
                     </template>
                   </div>
@@ -326,12 +416,24 @@
               @drop="drop($event,true)"
             >
               <div class="panel-heading">
-                <h2>{{ t('editor.cover') }}</h2><button
+                <h2>
+                  <img
+                    :src="icons.cover"
+                    class="heading-icon"
+                    alt=""
+                    aria-hidden="true"
+                  >{{ t('editor.cover') }}
+                </h2><button
                   type="button"
                   class="ai-tool"
                   @click="unavailable"
                 >
-                  <el-icon><MagicStick /></el-icon>{{ t('editor.generateCover') }}
+                  <img
+                    :src="icons.magic"
+                    class="ai-icon"
+                    alt=""
+                    aria-hidden="true"
+                  >{{ t('editor.generateCover') }}
                 </button>
               </div><div class="cover-box">
                 <button
@@ -342,14 +444,22 @@
                 >
                   <img
                     v-if="coverPreview"
+                    class="cover-preview"
                     :src="coverPreview.preview"
                     :alt="t('editor.coverAlt')"
                   ><template v-else>
-                    <el-icon><Plus /></el-icon><span>{{ t('editor.coverPlaceholder') }}</span>
-                  </template><small
-                    v-if="!cover&&coverPreview"
-                    class="default-cover"
-                  >{{ t('editor.defaultCover') }}</small>
+                    <img
+                      :src="icons.cover"
+                      class="cover-art"
+                      alt=""
+                      aria-hidden="true"
+                    ><span class="cover-hint"><img
+                      :src="icons.plus"
+                      class="cover-plus"
+                      alt=""
+                      aria-hidden="true"
+                    >{{ t('editor.coverPlaceholder') }}</span>
+                  </template>
                 </button><button
                   v-if="cover"
                   type="button"
@@ -383,12 +493,24 @@
             </section>
             <section class="tags-panel editor-panel">
               <div class="panel-heading">
-                <h2>{{ t('editor.tags') }} <small>{{ t('editor.counters',{count:form.tags.length,max:PostEditor.TAG_MAX}) }}</small></h2><button
+                <h2>
+                  <img
+                    :src="icons.tag"
+                    class="heading-icon"
+                    alt=""
+                    aria-hidden="true"
+                  >{{ t('editor.tags') }} <small>{{ t('editor.counters',{count:form.tags.length,max:PostEditor.TAG_MAX}) }}</small>
+                </h2><button
                   type="button"
                   class="ai-tool"
                   @click="unavailable"
                 >
-                  <el-icon><MagicStick /></el-icon>{{ t('editor.pickTags') }}
+                  <img
+                    :src="icons.magic"
+                    class="ai-icon"
+                    alt=""
+                    aria-hidden="true"
+                  >{{ t('editor.pickTags') }}
                 </button>
               </div><TransitionGroup
                 name="tag-chip"
@@ -467,7 +589,12 @@
                 <span
                   v-for="slot in 3"
                   :key="slot"
-                ><el-icon><MagicStick /></el-icon>{{ t('editor.recommendedTagPlaceholder') }}</span>
+                ><img
+                  :src="icons.magic"
+                  class="ai-icon"
+                  alt=""
+                  aria-hidden="true"
+                >{{ t('editor.recommendedTagPlaceholder') }}</span>
               </div>
             </section>
           </aside>
@@ -479,14 +606,24 @@
             :loading="busy"
             @click="submit(false)"
           >
-            <el-icon><EditPen /></el-icon>{{ t('editor.save') }}
+            <img
+              :src="icons.draft"
+              class="action-icon"
+              alt=""
+              aria-hidden="true"
+            >{{ t('editor.save') }}
           </el-button><el-button
             type="primary"
             round
             native-type="submit"
             :loading="busy"
           >
-            <el-icon><Upload /></el-icon>{{ t(editing?'editor.update':'editor.publish') }}
+            <img
+              :src="icons.publish"
+              class="action-icon"
+              alt=""
+              aria-hidden="true"
+            >{{ t(editing?'editor.update':'editor.publish') }}
           </el-button>
         </footer>
       </fieldset>

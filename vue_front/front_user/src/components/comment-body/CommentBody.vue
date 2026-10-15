@@ -1,19 +1,28 @@
 <template>
   <p class="comment-body">
-    <template
-      v-for="(segment,index) in segments"
+    <span
+      v-if="texts.length"
+      class="body-text"
+    ><template
+      v-for="(part,index) in parts"
       :key="index"
+    ><b
+      v-if="part.mention"
+      class="body-mention"
+    >{{ part.text }}</b><template v-else>{{ part.text }}</template></template></span>
+    <span
+      v-if="images.length"
+      class="body-images"
     >
       <img
-        v-if="segment.image"
+        v-for="(segment,index) in images"
+        :key="index"
         :src="segment.image"
         :alt="segment.text"
         loading="lazy"
         decoding="async"
-      ><template v-else>
-        {{ segment.text }}
-      </template>
-    </template>
+      >
+    </span>
   </p>
 </template>
 <script src="./CommentBody.js"></script>

@@ -5,11 +5,53 @@
   margin: var(--meng-space-1) auto var(--meng-space-10);
 }
 
+// 分页器吸附在视口底部，列表高矮都能直接翻下一页（和主页一致）
+.search-page > :deep(.feed-pagination) {
+  position: sticky;
+  bottom: var(--meng-space-4);
+  z-index: 2;
+  margin-top: var(--meng-space-5);
+  padding: var(--meng-space-2) var(--meng-space-3);
+  border: 2px solid var(--meng-glass-border);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-glass-surface);
+  backdrop-filter: blur(12px);
+  box-shadow: var(--meng-shadow-card);
+}
+
 .search-summary {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--meng-space-3);
   margin-bottom: var(--meng-space-7);
+  padding-bottom: var(--meng-space-5);
+  border-bottom: 2px dashed var(--meng-tint);
+}
+
+.search-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  rotate: -8deg;
+  animation: search-bob 4s ease-in-out infinite;
+}
+
+.search-icon img {
+  width: 30px;
+  height: 30px;
+}
+
+@keyframes search-bob {
+  50% {
+    translate: 0 -5px;
+  }
 }
 
 .search-summary h1 {
@@ -18,10 +60,17 @@
     28px 'ZCOOL KuaiLe',
     sans-serif;
   background: var(--meng-warning);
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  padding: var(--meng-space-1) var(--meng-space-4);
+  box-shadow: 0 4px 0 var(--meng-category-daily);
+  padding: var(--meng-space-1) var(--meng-space-5);
   transform: rotate(-3deg);
+  transition: transform 0.25s var(--meng-slide-ease);
   overflow-wrap: anywhere;
+}
+
+.search-summary h1:hover {
+  transform: rotate(0deg);
 }
 
 .search-sparkle {
@@ -37,11 +86,14 @@
 .search-total {
   margin-left: auto;
   flex: none;
-  padding: var(--meng-space-1) var(--meng-space-4);
-  background: var(--meng-surface);
+  padding: var(--meng-space-2) var(--meng-space-5);
+  border: 2px solid var(--meng-surface);
+  background: var(--meng-tint);
   border-radius: var(--meng-radius-pill);
-  box-shadow: 0 3px 0 var(--meng-card-base);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
   font-weight: 800;
+  rotate: 2deg;
 }
 
 .post-list {
@@ -59,10 +111,49 @@
 }
 
 .search-empty {
-  padding: var(--meng-space-9);
+  position: relative;
+  padding: var(--meng-space-12) var(--meng-space-9);
+  border: 3px dashed var(--meng-border);
   background: var(--meng-surface);
   border-radius: var(--meng-radius-card);
-  text-align: center;
+  box-shadow: 0 6px 0 var(--meng-card-base);
+  font-weight: 700;
+}
+
+.search-empty::before {
+  content: '';
+  position: absolute;
+  top: -13px;
+  left: 120px;
+  width: 100px;
+  height: 24px;
+  border-radius: 4px;
+  background: repeating-linear-gradient(
+    135deg,
+    var(--meng-danger) 0 10px,
+    var(--meng-category-creation) 10px 20px
+  );
+  opacity: 0.92;
+  rotate: -4deg;
+}
+
+.search-empty::after {
+  content: '';
+  position: absolute;
+  top: 18px;
+  right: 36px;
+  width: 22px;
+  height: 22px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  animation: search-twinkle 2.6s ease-in-out infinite;
+}
+
+@keyframes search-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.6;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -129,15 +220,17 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .search-summary {
+  .search-summary,
+  .search-icon,
+  .search-empty::after {
     animation: none;
+  }
+
+  .search-summary h1 {
+    transition: none;
   }
 
   .post-list :deep(.post-card) {
     animation: none;
   }
-}
-
-.post-list :deep(.post-card) {
-  box-shadow: 0 6px 0 var(--meng-tint);
 }

@@ -162,6 +162,42 @@ try {
     assert.equal(ok(await api('GET','/content/posts/'+post+'/comments?page=2&size=10')).records.length,3);
     assert.equal(ok(await api('GET','/content/comments/'+rootComment.id+'/replies')).total,13);
   });
+  await check('Comment pinning and mentions',async()=>{
+    await redis.del('meng:content:limit:post-interval:'+users[0]);
+    const target=ok(await api('POST','/content/posts',{category:'DAILY',title:'置顶验证 '+nonce,content:'置顶和提到',imageIds:[],tags:[]}));
+    const mk=async(body,index=1)=>{await redis.del('meng:content:limit:comment-interval:'+users[index]);return ok(await api('POST','/content/posts/'+target+'/comments',body,index))};
+    const ids=async()=>ok(await api('GET','/content/posts/'+target+'/comments')).records.map(c=>c.id);
+    const c1=await mk({content:'第一条'}),c2=await mk({content:'第二条'}),c3=await mk({content:'第三条'});
+    const inner=await mk({content:'楼中楼',replyToCommentId:c1.id},0);
+    ok(await api('PUT','/content/comments/'+c1.id+'/pin',null,1),403);
+    ok(await api('PUT','/content/comments/'+inner.id+'/pin'),400);
+    ok(await api('PUT','/content/comments/'+c1.id+'/pin'));ok(await api('PUT','/content/comments/'+c1.id+'/pin'));
+    assert.deepEqual(await ids(),[c1.id,c3.id,c2.id]);
+    assert.equal(ok(await api('GET','/content/posts/'+target+'/comments')).records[0].pinned,true);
+    assert.equal(ok(await api('GET','/content/comments/'+c1.id+'/location?size=1')).page,1);
+    ok(await api('PUT','/content/comments/'+c2.id+'/pin'));
+    assert.deepEqual(await ids(),[c2.id,c3.id,c1.id]);
+    assert.equal(ok(await api('GET','/content/posts/'+target+'/comments')).records.at(-1).pinned,false);
+    assert.equal(ok(await api('GET','/content/comments/'+c1.id+'/location?size=1')).page,3);
+    ok(await api('DELETE','/content/comments/'+c2.id+'/pin',null,1),403);
+    ok(await api('DELETE','/content/comments/'+c2.id+'/pin'));ok(await api('DELETE','/content/comments/'+c2.id+'/pin'));
+    assert.deepEqual(await ids(),[c3.id,c2.id,c1.id]);
+    const candidates=ok(await api('GET','/content/posts/'+target+'/mention-candidates',null,1));
+    assert.deepEqual(candidates.map(c=>c.id),[users[0]]);assert.equal(candidates[0].postAuthor,true);assert.equal(candidates[0].nickname,'云朵收藏家');
+    const root=await mk({content:'@云朵收藏家 你看这个 @薄荷糖',mentionUserIds:[users[0],users[1],users[0],999999999]});
+    assert.deepEqual(root.mentions,[{userId:users[0],nickname:'云朵收藏家'}]);
+    assert.deepEqual((await mk({content:'没有写名字',mentionUserIds:[users[0]]})).mentions,[]);
+    await redis.del('meng:content:limit:comment-interval:'+users[1]);
+    ok(await api('POST','/content/posts/'+target+'/comments',{content:'太多了',mentionUserIds:[1,2,3,4,5,6]},1),400);
+    const reply=await mk({content:'@云朵收藏家 回复自己',replyToCommentId:c1.id,mentionUserIds:[users[0]]});
+    assert.equal(reply.mentions.length,1);
+    const [[stored]]=await contentDb.execute('SELECT COUNT(*) total FROM comment_mention WHERE comment_id IN (?,?)',[root.id,reply.id]);assert.equal(stored.total,2);
+    let notices;
+    for(let i=0;i<50;i++){notices=ok(await api('GET','/im/notifications?channel=COMMENT&source=POST&size=50',null,0)).records.map(r=>r.notice);if(notices.some(n=>n.type==='COMMENT_MENTION'&&n.commentId===reply.id))break;await wait(100)}
+    assert.ok(notices.some(n=>n.type==='COMMENT_MENTION'&&n.commentId===reply.id));
+    assert.equal(notices.some(n=>n.type==='COMMENT_MENTION'&&n.commentId===root.id),false);
+    ok(await api('DELETE','/content/posts/'+target));
+  });
   await check('Detail and comment reads withstand concurrent requests',async()=>{
     const samples=[];let completed=0;
     for(let i=0;i<16;i++) ok(await api('GET','/content/posts/'+post));
@@ -212,7 +248,7 @@ try {
     await page.route(commentsPattern,route=>route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({code:'UNAVAILABLE',message:'Unavailable'})}),{times:1});
     await page.goto(origin+'/posts/'+post);
     await page.locator('.detail-card h1').waitFor();
-    await page.locator('.post-comments .page-state').getByRole('button',{name:'重试',exact:true}).click();
+    await page.locator('.post-comments .page-state').getByRole('button',{name:/点击重试/}).click();
     await page.locator('.comment-list .comment-item').first().waitFor();
     assert.equal(await page.locator('.detail-state').count(),0);
   });
@@ -238,7 +274,7 @@ try {
     for(let i=0;i<8;i++) await page.getByRole('button',{name:'水滴',exact:true}).click();
     await page.getByRole('button',{name:'水滴',exact:true}).click();
     assert.equal(await page.locator('.composer-images img').count(),10);
-    assert.match(await page.locator('.composer-error').innerText(),/合计最多 10/);
+    assert.match(await page.locator('.el-message').last().innerText(),/合计最多 10/);
     assert.equal(await page.getByRole('button',{name:'图片',exact:true}).isDisabled(),true);
     await page.locator('.comment-composer').screenshot({path:path.join(out.pathname.replace(/^\/(\w:)/,'$1'),'composer-desktop.png')});
     await page.setViewportSize({width:390,height:844});
@@ -283,7 +319,7 @@ try {
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
     await page.locator('.post-image-grid:not(.compact) button').last().scrollIntoViewIfNeeded();await page.waitForTimeout(300);await page.locator('.detail-scroll-content').evaluate(el=>el.scrollTo(0,0));
     await page.screenshot({path:path.join(out.pathname.replace(/^\/(\w:)/,'$1'),'mobile.png'),fullPage:true});
-    await page.locator('.post-image-grid:not(.compact) button').first().click();await page.locator('.el-image-viewer__wrapper').waitFor();
+    await page.locator('.post-image-grid:not(.compact) button').first().click();await page.locator('.image-viewer').waitFor();
     assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.keyboard.press('Escape');
     assert.deepEqual(errors,[]);
   });

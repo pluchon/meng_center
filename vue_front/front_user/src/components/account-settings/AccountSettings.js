@@ -14,6 +14,7 @@ import {
   IconCheck,
 } from '@tabler/icons-vue'
 import { userApi } from '@/api/user'
+import { notifyFailure } from '@/composables/useFailureNotice'
 import { Auth } from '@/constants/app'
 import { imApi } from '@/api/im'
 import { useRequestResource } from '@/composables/useRequestResource'
@@ -37,7 +38,6 @@ export default defineComponent({
   setup(props, { emit, expose }) {
     const { t } = useI18n(),
       form = reactive({ nickname: '', bio: '', username: '' }),
-      failure = ref(''),
       saving = ref(false)
     const devices = useRequestResource((signal) => userApi.devices({ signal }), null)
     const blocks = useRequestResource(
@@ -63,7 +63,6 @@ export default defineComponent({
         const old = previous ? fields(previous) : null
         for (const [key, text] of Object.entries(fields(value)))
           if (!old || form[key] === old[key]) form[key] = text
-        failure.value = ''
       },
       { immediate: true },
     )
@@ -92,26 +91,25 @@ export default defineComponent({
         value.nickname &&
         (Array.from(value.nickname).length < 2 || Array.from(value.nickname).length > 16)
       ) {
-        failure.value = t('account.invalidNickname')
+        ElMessage.warning(t('account.invalidNickname'))
         return
       }
       if (Array.from(value.bio).length > Account.BIO_MAX || /[\r\n]/.test(form.bio)) {
-        failure.value = t('account.invalidBio')
+        ElMessage.warning(t('account.invalidBio'))
         return
       }
       if (!Auth.USERNAME_PATTERN.test(value.username)) {
-        failure.value = t('account.invalidUsername')
+        ElMessage.warning(t('account.invalidUsername'))
         return
       }
       saving.value = true
-      failure.value = ''
       try {
         await userApi.profile(value)
         Object.assign(form, value)
         emit('saved', await userApi.me())
         ElMessage.success(t('account.saved'))
       } catch (error) {
-        failure.value = error.message
+        notifyFailure(error)
       } finally {
         saving.value = false
       }
@@ -119,7 +117,6 @@ export default defineComponent({
     return {
       t,
       form,
-      failure,
       saving,
       changed,
       cooldown,

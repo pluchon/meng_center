@@ -40,23 +40,32 @@
 
 .comment-item time {
   margin-left: auto;
+  padding: 1px var(--meng-space-2);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-bg);
   color: var(--meng-muted);
   font-size: 12px;
 }
 
 .level,
-.author-badge {
+.author-badge,
+.pin-badge {
   padding: 2px var(--meng-space-2);
+  border: 2px solid var(--meng-surface);
   background: var(--meng-warning);
   border-radius: var(--meng-radius-pill);
+  box-shadow: 0 2px 0 var(--meng-category-daily);
   font-size: 11px;
   color: var(--meng-favorite-text);
   font-weight: 800;
+  rotate: -3deg;
 }
 
 .author-badge {
   background: var(--meng-tint);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   color: var(--meng-primary);
+  rotate: 3deg;
 }
 
 .region {
@@ -64,28 +73,87 @@
   align-items: center;
   gap: var(--meng-space-1);
   font-size: 12px;
-  color: var(--meng-muted);
+  color: var(--meng-success-text);
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  padding: var(--meng-space-1) var(--meng-space-2);
-  background: var(--meng-bg);
+  padding: 0 var(--meng-space-2);
+  background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-growth-mint-edge);
   font-weight: 700;
+  rotate: 2deg;
 }
 
 .region .el-icon {
-  color: var(--meng-primary);
+  color: var(--meng-success-text);
 }
 
+// 评论内容是一个对话气泡，小尾巴指向头像
 .comment-content {
+  position: relative;
+  margin-top: var(--meng-space-1);
+  padding: var(--meng-space-3) var(--meng-space-4);
+  border: 2px solid var(--meng-surface);
+  border-radius: 6px var(--meng-radius-note) var(--meng-radius-note) var(--meng-radius-note);
+  background: var(--comment-fill, var(--meng-bg));
+  box-shadow: 0 3px 0 var(--comment-edge, var(--meng-tint));
   line-height: 1.8;
 }
 
+.comment-content::before {
+  content: '';
+  position: absolute;
+  top: 12px;
+  left: -8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 0 0 0 4px;
+  background: var(--comment-fill, var(--meng-bg));
+  rotate: 45deg;
+}
+
+// 头像外圈和气泡同色，相邻的评论颜色不一样
+.comment-item :deep(.el-avatar) {
+  border: 2px solid var(--meng-surface);
+  outline: 3px solid var(--comment-edge, var(--meng-category-anime));
+}
+
+// 「回复 @某某」：蓝色贴纸，前面一个小圆点，右上角一颗小星星
 .reply-target {
+  position: relative;
+  display: inline-block;
   color: var(--meng-shadow-hard);
   font-weight: 800;
-  padding: 2px var(--meng-space-2);
+  padding: 0 var(--meng-space-3) 0 22px;
+  border: 2px solid var(--meng-surface);
   background: var(--meng-tint);
-  border-radius: var(--meng-space-2);
-  margin-right: var(--meng-space-2);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  border-radius: var(--meng-radius-pill);
+  margin-right: var(--meng-space-3);
+  rotate: -2deg;
+}
+
+.reply-target::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 5px;
+  width: 12px;
+  height: 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  translate: 0 -50%;
+}
+
+.reply-target::after {
+  content: '';
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  width: 12px;
+  height: 12px;
+  background: var(--meng-decor-sparkle);
+  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
 }
 
 .comment-item footer {
@@ -97,29 +165,34 @@
 }
 
 .comment-item button {
+  --edge: var(--meng-tint);
+
   display: inline-flex;
   align-items: center;
   gap: var(--meng-space-1);
-  border: 0;
-  min-height: 36px;
+  border: 2px solid var(--meng-surface);
+  min-height: 34px;
   padding: 0 var(--meng-space-3);
-  background: transparent;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--edge);
   color: var(--meng-muted);
   border-radius: var(--meng-radius-pill);
   cursor: pointer;
   font-size: 13px;
   font-weight: 800;
   transition:
-    background 0.2s ease,
-    transform 0.2s ease;
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.comment-item button:hover {
-  background: var(--meng-bg);
+.comment-item button:hover:not(:disabled) {
+  box-shadow: 0 5px 0 var(--edge);
   transform: translateY(-2px);
 }
 
 .comment-item button.liked {
+  --edge: var(--meng-category-creation);
+
   background: var(--meng-danger);
   color: var(--meng-like-text);
 }
@@ -131,28 +204,72 @@
 }
 
 .comment-item button.reply-action {
-  color: var(--meng-primary);
+  --edge: var(--comment-edge, var(--meng-category-anime));
+
+  background: var(--comment-fill, var(--meng-tint));
+  color: var(--comment-ink, var(--meng-primary));
 }
 
-.comment-item button.reply-action:hover,
 .comment-item button.reply-action[aria-expanded='true'] {
-  background: var(--meng-tint);
-}
+  --edge: var(--meng-category-game-dot);
 
-.comment-item button.moderate:hover {
-  background: var(--meng-danger);
+  background: var(--meng-category-game);
+  color: var(--meng-creator-purple-text);
 }
 
 .comment-item button.moderate.danger {
+  --edge: var(--meng-category-creation);
+
+  background: var(--meng-danger);
   color: var(--meng-danger-text);
 }
 
-.comment-item button:active {
-  transform: translateY(1px) scale(0.96);
+.comment-item button:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--edge);
+  transform: translateY(2px);
+}
+
+.pin-badge {
+  background: var(--meng-category-game);
+  box-shadow: 0 2px 0 var(--meng-category-game-dot);
+  color: var(--meng-creator-purple-text);
+  rotate: 3deg;
+  animation: meng-feedback-pop 320ms var(--meng-motion-ease);
+}
+
+.comment-item button.pin-action {
+  --edge: var(--meng-category-game-dot);
+
+  margin-left: auto;
+  background: var(--meng-category-game);
+  color: var(--meng-creator-purple-text);
+}
+
+.comment-item button.pin-action.pinned {
+  --edge: var(--meng-category-daily);
+
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+}
+
+.comment-item button.pin-action svg {
+  transition: rotate 0.25s var(--meng-motion-ease);
+}
+
+.comment-item button.pin-action:hover:not(:disabled) svg {
+  rotate: 25deg;
+}
+
+.comment-item button.pin-action.pinned svg {
+  rotate: 45deg;
 }
 
 .moderate {
   margin-left: auto;
+}
+
+.pin-action + .moderate {
+  margin-left: 0;
 }
 
 .comment-item .el-icon {
@@ -168,48 +285,28 @@
   border: 0;
 }
 
+.comment-item.compact + .comment-item.compact {
+  border-top: 2px dashed var(--meng-tint);
+}
+
+.comment-item.compact .comment-content {
+  border-color: var(--comment-fill, var(--meng-surface));
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--comment-edge, var(--meng-border));
+}
+
+.comment-item.compact .comment-content::before {
+  background: var(--meng-surface);
+}
+
 .comment-item.compact .el-avatar {
   width: 32px;
   height: 32px;
 }
 
-.comment-item.compact .comment-main {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: var(--meng-space-2);
-  align-items: start;
-}
-
-.comment-item.compact header {
-  grid-column: 1 / -1;
-}
-
-.comment-item.compact footer {
-  grid-column: 2;
-  grid-row: 2;
-  margin-top: 0;
-}
-
 .comment-item.compact button {
   min-height: 30px;
-  padding-inline: var(--meng-space-2);
-}
-
-.comment-item.compact .moderate {
-  margin-left: var(--meng-space-1);
-}
-
-.comment-item.compact .moderate::before {
-  content: '';
-  width: 2px;
-  height: 14px;
-  margin-right: var(--meng-space-2);
-  background: var(--meng-border);
-  border-radius: var(--meng-radius-pill);
-}
-
-.comment-item.compact :deep(.post-image-grid) {
-  grid-column: 1 / -1;
+  padding-inline: var(--meng-space-3);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -218,8 +315,18 @@
     transition: none;
   }
 
-  .comment-item button.liked svg {
+  .comment-item button:hover:not(:disabled),
+  .comment-item button:active:not(:disabled) {
+    transform: none;
+  }
+
+  .comment-item button.liked svg,
+  .pin-badge {
     animation: none;
+  }
+
+  .comment-item button.pin-action svg {
+    transition: none;
   }
 
   .comment-item {
@@ -234,10 +341,6 @@
 
   .comment-item time {
     margin-left: 0;
-  }
-
-  .comment-item.compact .comment-main {
-    display: block;
   }
 }
 

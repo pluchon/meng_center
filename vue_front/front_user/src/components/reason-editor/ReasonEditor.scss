@@ -1,5 +1,7 @@
+@use '@/styles/field-name';
+
 .reason-label {
-  display: block;
+  display: flex;
   margin-bottom: var(--meng-space-2);
   font-size: 14px;
   font-weight: 700;
@@ -11,10 +13,18 @@
   border: 1px solid var(--meng-border);
   border-radius: var(--meng-radius-note);
   background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-tint);
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+
+  &:hover {
+    border-color: var(--meng-primary-light-5);
+  }
 
   &:focus-within {
     border-color: var(--meng-primary);
-    box-shadow: 0 0 0 3px var(--meng-tint);
+    box-shadow: 0 3px 0 var(--meng-primary-light-5);
   }
 }
 
@@ -38,7 +48,11 @@
 .reason-counter {
   position: absolute;
   bottom: var(--meng-space-1);
-  right: var(--meng-space-4);
+  right: var(--meng-space-3);
+  padding: 0 var(--meng-space-2);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
   color: var(--meng-muted);
   font-size: 11px;
+  font-weight: 700;
 }

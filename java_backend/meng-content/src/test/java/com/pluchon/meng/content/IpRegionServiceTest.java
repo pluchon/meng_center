@@ -16,6 +16,9 @@ class IpRegionServiceTest {
             assertNull(region.service.resolve("192.168.1.1"));
             assertNull(region.service.resolve("host.invalid"));
             assertEquals("美国", region.service.resolve("8.8.8.8"));
+            assertEquals("浙江", region.service.resolve("223.5.5.5"));
+            assertEquals("北京", region.service.resolve("119.29.29.29"));
+            assertEquals("江苏", region.service.resolve("114.114.114.114"));
         }
     }
 
