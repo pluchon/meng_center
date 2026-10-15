@@ -8,6 +8,12 @@
   gap: 18px;
 }
 
+// 加载、出错、没有帖子时，状态图在标题和翻页之间的空地正中
+.account-post-state {
+  flex: 1;
+  align-content: center;
+}
+
 .account-folder-tools {
   display: flex;
   align-items: center;

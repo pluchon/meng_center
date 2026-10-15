@@ -71,6 +71,12 @@
   object-fit: cover;
 }
 
+// 一个收藏夹都没有时，状态图在这块区域正中
+.account-folder-state.is-bare {
+  min-height: 320px;
+  align-content: center;
+}
+
 .account-folder-file {
   display: none;
 }

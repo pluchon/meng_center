@@ -14,6 +14,7 @@ export default {
   articles: '篇',
   otherTitle: '他的主页',
   userMissing: '没有找到这个用户',
+  noPublicFolders: '他还没有公开的收藏夹',
   otherFolders: '他的收藏夹',
   publicFolders: '公开收藏夹',
   published: '发布',

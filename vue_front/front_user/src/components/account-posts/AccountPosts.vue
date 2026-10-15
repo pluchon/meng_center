@@ -116,15 +116,18 @@
     </div>
     <PageState
       v-if="resource.loading"
+      class="account-post-state"
       state="loading"
     />
     <PageState
       v-else-if="resource.error"
+      class="account-post-state"
       state="error"
       @retry="load"
     />
     <PageState
       v-else-if="!resource.data.records.length"
+      class="account-post-state"
       state="empty"
       art="collection"
       size="tall"

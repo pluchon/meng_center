@@ -436,6 +436,12 @@
   font-weight: 800;
 }
 
+// 设备、屏蔽名单没有内容、加载中、出错时，状态图在内容区正中
+.account-dialog-state {
+  min-height: 260px;
+  align-content: center;
+}
+
 .account-dialog-actions {
   display: flex;
   justify-content: flex-end;

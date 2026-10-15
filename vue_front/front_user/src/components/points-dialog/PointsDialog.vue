@@ -9,12 +9,14 @@
   >
     <PageState
       v-if="points.error"
+      class="points-state-full"
       state="error"
       size="large"
       @retry="reload"
     />
     <PageState
       v-else-if="!points.data"
+      class="points-state-full"
       state="loading"
       size="large"
     />
@@ -81,12 +83,14 @@
           </header>
           <PageState
             v-if="stats.error"
+            class="points-state-chart"
             state="error"
             size="small"
             @retry="loadStats"
           />
           <PageState
             v-else-if="!stats.data"
+            class="points-state-chart"
             state="loading"
             size="small"
           />
@@ -166,20 +170,23 @@
         </header>
         <PageState
           v-if="records.loading && !records.data.records.length"
+          class="ledger-state"
           state="loading"
-          size="small"
+          size="large"
         />
         <PageState
           v-else-if="records.error"
+          class="ledger-state"
           state="error"
-          size="small"
+          size="large"
           @retry="loadRecords"
         />
         <PageState
           v-else-if="!records.data.records.length"
+          class="ledger-state"
           state="empty"
           art="growth"
-          size="small"
+          size="large"
           :text="t('account.pointsEmpty')"
         />
         <ul
@@ -204,15 +211,16 @@
             <span class="ledger-amount"><b>{{ signed(row.amount) }}</b>{{ t('account.pointsPer') }}</span>
           </li>
         </ul>
-        <FeedPagination
-          v-if="totalPages > 1"
-          class="ledger-pager"
-          :page="page"
-          :total-pages="totalPages"
-          :show-top="false"
-          compact
-          @page="page = $event"
-        />
+        <div class="ledger-pager-slot">
+          <FeedPagination
+            v-if="totalPages > 1"
+            :page="page"
+            :total-pages="totalPages"
+            :show-top="false"
+            compact
+            @page="page = $event"
+          />
+        </div>
       </section>
     </div>
   </DialogShell>

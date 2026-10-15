@@ -235,14 +235,17 @@
     <template v-else>
       <PageState
         v-if="resource.loading"
+        class="account-dialog-state"
         state="loading"
       /><PageState
         v-else-if="resource.error"
+        class="account-dialog-state"
         state="error"
         @retry="load"
       /><template v-else>
         <PageState
           v-if="!list.length"
+          class="account-dialog-state"
           state="empty"
           art="security"
           size="large"

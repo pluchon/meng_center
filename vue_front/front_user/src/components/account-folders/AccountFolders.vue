@@ -71,12 +71,24 @@
     </div>
     <PageState
       v-if="resource.loading"
+      class="account-folder-state"
+      :class="{ 'is-bare': !rows.length }"
       state="loading"
     />
     <PageState
       v-else-if="resource.error"
+      class="account-folder-state"
+      :class="{ 'is-bare': !rows.length }"
       state="error"
       @retry="loadMore"
+    />
+    <PageState
+      v-else-if="userId && !rows.length"
+      class="account-folder-state is-bare"
+      state="empty"
+      art="collection"
+      size="tall"
+      :text="t('account.noPublicFolders')"
     />
     <div
       ref="sentinel"

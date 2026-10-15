@@ -29,20 +29,23 @@
     </template>
     <PageState
       v-if="resource.loading && !resource.data.records.length"
+      class="follow-state"
       state="loading"
-      size="small"
+      size="large"
     />
     <PageState
       v-else-if="resource.error"
+      class="follow-state"
       state="error"
-      size="small"
+      size="large"
       @retry="load"
     />
     <PageState
       v-else-if="!resource.data.records.length"
+      class="follow-state"
       state="empty"
       art="collection"
-      size="small"
+      size="large"
       :text="t(tab === 'following' ? 'account.noFollowing' : 'account.noFollowers')"
     />
     <ul
@@ -83,15 +86,16 @@
         </button>
       </li>
     </ul>
-    <FeedPagination
-      v-if="totalPages > 1"
-      class="follow-pager"
-      :page="page"
-      :total-pages="totalPages"
-      :show-top="false"
-      compact
-      @page="goPage"
-    />
+    <div class="follow-pager-slot">
+      <FeedPagination
+        v-if="totalPages > 1"
+        :page="page"
+        :total-pages="totalPages"
+        :show-top="false"
+        compact
+        @page="goPage"
+      />
+    </div>
   </DialogShell>
 </template>
 <script src="./FollowDialog.js"></script>

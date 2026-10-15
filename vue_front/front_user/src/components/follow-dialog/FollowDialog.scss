@@ -61,6 +61,16 @@
   outline-offset: 3px;
 }
 
+// 列表区固定为六行的高度：没有数据、加载中、出错时状态图在这块区域正中，弹窗不会变小
+.follow-state,
+.follow-list {
+  min-height: 446px;
+}
+
+.follow-state {
+  align-content: center;
+}
+
 .follow-list {
   display: flex;
   flex-direction: column;
@@ -226,9 +236,13 @@
   outline-offset: 3px;
 }
 
-.follow-pager {
-  margin-top: 14px;
+// 翻页器的位置一直留着，只有一页时不显示也不会让弹窗变矮
+.follow-pager-slot {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  min-height: 44px;
+  margin-top: 14px;
 }
 
 @media (prefers-reduced-motion: reduce) {
