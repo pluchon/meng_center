@@ -22,7 +22,6 @@ export default {
     creator: '创作',
     messages: '私信',
     growth: '成长',
-    game: '萌岛',
     ai: '萌萌',
     search: '搜索',
     account: '我的账号',

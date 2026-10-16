@@ -32,10 +32,6 @@ spring:
               uri: lb://meng-growth
               predicates:
                 - Path=/growth/**
-            - id: meng-game
-              uri: lb://meng-game
-              predicates:
-                - Path=/game/**
           discovery:
             locator:
               enabled: false

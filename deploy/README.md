@@ -93,9 +93,9 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 ./deploy/scripts/Publish-NacosConfiguration.ps1
 ```
 
-初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD`、`MENG_MYSQL_GAME_PASSWORD`、`MENG_CONTENT_IMAGE_ROOT` 与 `MENG_IM_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` / `meng_im` / `meng_game` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建这些域库。新生成的密码也应备份到仓库外配置清单。
+初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD`、`MENG_CONTENT_IMAGE_ROOT` 与 `MENG_IM_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` / `meng_im` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建这些域库。新生成的密码也应备份到仓库外配置清单。
 
-打包后启动 `Start-Backend.ps1 -Service meng-content` 、`-Service meng-growth` 、`-Service meng-im` 及 `-Service meng-game`，分别监听本机 8102、8103、8104、8105；网关继续用 8080，增加 `/content/**`、`/growth/**`、`/im/**`、`/game/**` 的 Nacos 路由及单独的 `/im/ws` WebSocket 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
+打包后启动 `Start-Backend.ps1 -Service meng-content` 、`-Service meng-growth` 及 `-Service meng-im`，分别监听本机 8102、8103、8104；网关继续用 8080，增加 `/content/**`、`/growth/**`、`/im/**` 的 Nacos 路由及单独的 `/im/ws` WebSocket 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
 
 `meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。四个域各自管理 Flyway 迁移。消息服务使用 `V20261012001__create_im_tables` 建表，`meng-im.yml` 配置连接 Origin 和用户查询超时；私信存储目录只从 `MENG_IM_IMAGE_ROOT` 读取。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
 

@@ -37,13 +37,6 @@ export default defineConfig(({ mode }) => {
                 priority: 40,
               },
               {
-                // 只有萌岛用，单独成块，别的页面不会下载
-                name: 'island-babylon',
-                test: /node_modules[\\/]@babylonjs[\\/]/,
-                maxSize: 400000,
-                priority: 40,
-              },
-              {
                 name: 'codemirror',
                 maxSize: 300000,
                 test: /node_modules[\\/](?:@codemirror|codemirror|@lezer)[\\/]/,

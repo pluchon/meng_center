@@ -85,12 +85,6 @@ export const routes = [
     meta: { titleKey: 'account.otherTitle', requiresAuth: true },
   },
   {
-    path: '/game',
-    name: RouteName.GAME,
-    component: () => import('@/views/game/GameView.vue'),
-    meta: { titleKey: 'game.title', requiresAuth: true },
-  },
-  {
     path: '/:pathMatch(.*)*',
     name: RouteName.NOT_FOUND,
     component: () => import('@/views/not-found/NotFoundView.vue'),

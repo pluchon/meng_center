@@ -11,8 +11,6 @@
     "format": "prettier --write \"src/**/*.{js,scss}\" && eslint . --fix"
   },
   "dependencies": {
-    "@babylonjs/core": "9.28.0",
-    "@babylonjs/materials": "9.28.0",
     "@codemirror/lang-markdown": "6.5.2",
     "@codemirror/language": "6.13.1",
     "@codemirror/state": "6.7.6",
