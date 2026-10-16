@@ -14,6 +14,7 @@ import com.pluchon.meng.content.controller.dto.CreatePostDTO;
 import com.pluchon.meng.content.controller.vo.PostFeedVO;
 import com.pluchon.meng.content.converter.PostConverter;
 import com.pluchon.meng.content.entity.PostEntity;
+import com.pluchon.meng.content.entity.PostDraftEntity;
 import com.pluchon.meng.content.entity.PostImageEntity;
 import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.enums.PostCategory;
@@ -269,6 +270,51 @@ public class PostService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(long id) {
         delete(id, false);
+    }
+
+    // AI 审核不通过：帖子原样退回作者的草稿箱，并摘掉标签、配图关系和各处索引；调用方已锁定帖子行
+    @Transactional(rollbackFor = Exception.class)
+    public long withdrawToDraft(PostEntity post) {
+        var rows = images.selectList(
+            Wrappers.<PostImageEntity>lambdaQuery()
+                .eq(PostImageEntity::getPostId, post.getId())
+                .orderByAsc(PostImageEntity::getSort)
+                .orderByAsc(PostImageEntity::getId)
+        );
+        var draft = new PostDraftEntity();
+        draft.setAuthorId(post.getAuthorId());
+        draft.setCategory(post.getCategory());
+        draft.setTitle(post.getTitle());
+        draft.setContent(post.getContent());
+        draft.setImageIds(
+            rows
+                .stream()
+                .filter(i -> !PostImageKind.COVER.name().equals(i.getKind()))
+                .map(PostImageEntity::getId)
+                .toList()
+        );
+        draft.setCoverImageId(
+            rows
+                .stream()
+                .filter(i -> PostImageKind.COVER.name().equals(i.getKind()))
+                .map(PostImageEntity::getId)
+                .findFirst()
+                .orElse(null)
+        );
+        draft.setTags(tags.forPost(post.getId()));
+        long draftId = drafts.addWithdrawn(draft);
+        tags.detach(post.getId());
+        images.detachFromPost(post.getId());
+        posts.deleteById(post.getId());
+        events.publishEvent(
+            new PostReadModelEvent(
+                post.getId(),
+                post.getCategory(),
+                PostReadModelEvent.Kind.DELETED,
+                0
+            )
+        );
+        return draftId;
     }
 
     @Transactional(rollbackFor = Exception.class)

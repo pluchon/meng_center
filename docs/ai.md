@@ -432,17 +432,22 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 |---|---|---|
 | `PASS` | 不动 | 不动 |
 | `SUSPECT` | 照常展示，推荐降权，进管理端待看列表 | 照常展示，进待看列表 |
-| `BLOCK` | 转「审核中」：只有作者能看到，别人看不到；通知作者 | 转「审核中」：只有作者看得到；通知作者 |
+| `BLOCK` | 自动退回作者的草稿箱，原帖从所有地方消失；在消息中心「审核」里用一句话说明理由 | 转「审核中」：只有作者看得到；通知作者 |
 
 - `post` 和 `comment` 各加一列 `review_state`：`NORMAL`（默认，存量不受影响）、`IN_REVIEW`。
-- 管理员复核：通过回到 `NORMAL`；不通过按举报成立的同一套规则删除（计数、标签、配图照常处理）。
-- 作者改了审核中的帖子会重新分析；新结论是 `PASS` 就自动恢复。
-- 审核中的帖子不进热榜、搜索、推荐和向量召回。
+- 帖子退回草稿箱：在同一个事务里完成。
+  - 标题、正文、分类、标签、配图和封面原样写进一条新草稿。
+  - 帖子按作者自己删除的同一套规则处理：标签使用次数减一，配图从帖子上摘下来（草稿能继续用），帖子逻辑删除，热榜、搜索、向量索引随删除事件清掉。
+  - 不受草稿数量上限限制；作者已有 20 份草稿时仍会多出一份，之后得先清出位置才能再新建草稿。
+  - 作者改完草稿再发布就是一篇新帖，重新走一遍分析。
+- 通知的 `post.review-changed` 带 `reviewState=WITHDRAWN`、`reason`（AI 给出的一句理由，最多 80 字）和 `draftId`。im 生成「未通过审核，已退回草稿箱：理由」，通知不挂帖子编号，点开跳到创作中心的草稿箱。
+- 评论仍是「审核中」：只有作者看得到，没有复核页之前不会恢复；之前被标为「审核中」的帖子，AI 重新判为通过时恢复展示。
+- 管理端的复核页暂不做；人工复核通过的帖子（`manual_review`）不会被 AI 再退回。
 - 通知走现有的系统频道「审核」分类，content 发 `post.review-changed` / `comment.review-changed` 事件，im 消费。
 
 ### 12.2 开关
 
-`meng.ai.moderation.enforce` 默认 `false`：只记录结论、不改 `review_state`。管理端的复核页做好之前保持关闭，先看一段时间的误判率再打开。
+`meng.ai.moderation.enforce`（Nacos `meng-content.yml`）现在是 `true`：帖子被判违规就退回草稿箱，评论转「审核中」。设成 `false` 就退回「只记录结论、不改任何状态」。AI 挂了或超时不会触发退回，帖子照常展示。昵称、签名、头像的开关是 user 自己的 `meng.user.profile-moderation.enforce`，也是 `true`，见第 12.5 节。
 
 ### 12.3 评论
 
@@ -457,12 +462,14 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 ### 12.5 昵称、签名、头像
 
 - user 在资料保存成功后发 `user.profile-updated`（userId、版本、昵称、签名，换了头像时带头像的小图）；ai 用资料审核图判，回 `user.profile-moderated`。
-- user 消费结论，存进 `profile_ai_review`。开关打开且 `BLOCK` 时：
-  - 昵称清空（展示名退回用户名），签名清空，头像换回默认；被清掉的原值留在 `profile_ai_review` 里给管理员看。
-  - user 发 `user.profile-review-changed`，im 在系统频道「审核」分类里通知本人并说明原因。
-  - 管理员复核认定是误判时，可以恢复原值。
+- user 消费结论，存进 `profile_ai_review`。开关打开且 `BLOCK` 时，昵称和签名（文字）、头像分开判断，哪一部分违规只清哪一部分：
+  - 文字违规：昵称清空（展示名退回用户名）、签名清空；头像不动。
+  - 头像违规：头像换回默认；昵称和签名不动。
+  - 被清掉的原值留在 `profile_ai_review` 里。
+  - user 发 `user.profile-review-changed`（带 `clearedFields` 和一句理由），im 在系统频道「审核」分类里通知本人：「昵称、签名未通过审核，已清除，改好后可以重新填写：理由」。
+  - 本人改好重新提交会重新审核；管理端暂不做，所以没有人工恢复的入口（`restore` 接口已有，仅管理员可调）。
 - `SUSPECT` 只记录，进管理端待看列表。
-- 开关是 user 自己的 `meng.user.profile-moderation.enforce`，默认 `false`，理由同第 12.2 节。
+- 开关是 user 自己的 `meng.user.profile-moderation.enforce`（Nacos `meng-user.yml`），现在是 `true`；设成 `false` 就只记录结论、不清除。AI 挂了或超时不会清除任何资料。
 - 用户名注册时已有格式校验，不送审。
 - 仅改文字时沿用同一头像的 `avatar_review`；头像尚无结果则补送小图。帖子同样保存逐图 `image_reviews`，`imagesChanged=false` 时沿用旧图结论。版本检查阻止旧结果覆盖新内容。管理员通过的同版本帖子不会被重投结果再次隐藏。
 

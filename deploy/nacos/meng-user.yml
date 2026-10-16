@@ -117,7 +117,7 @@ meng:
       rejected-text: '你的萌部落申请未通过，原因：{0}。'
       approval-notification-enabled: false
 spring.rabbitmq.publisher-confirm-type: simple
-meng.user.profile-moderation.enforce: false
+meng.user.profile-moderation.enforce: true
 meng.user.job:
   admin-address: http://127.0.0.1:${MENG_XXL_JOB_PORT}
   port: ${MENG_USER_JOB_PORT}

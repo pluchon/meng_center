@@ -102,4 +102,45 @@ class ProfileModerationTest {
         assertEquals("BLOCK", saved.get()[3]);
         verify(jdbc, never()).update(startsWith("UPDATE user SET nickname"), any(Object[].class));
     }
+
+    @Test
+    void enforcementClearsOnlyTheBlockedPart() {
+        ReflectionTestUtils.setField(service, "jdbc", jdbc);
+        ReflectionTestUtils.setField(service, "enforce", true);
+        ReflectionTestUtils.setField(service, "clock", java.time.Clock.systemUTC());
+        ReflectionTestUtils.setField(service, "events", mock(org.springframework.context.ApplicationEventPublisher.class));
+        when(jdbc.queryForList(contains("FOR UPDATE"), eq(9L))).thenReturn(
+            List.of(
+                Map.of(
+                    "profile_version",
+                    version,
+                    "nickname",
+                    "云朵",
+                    "bio",
+                    "普通签名",
+                    "avatar",
+                    "avatar.webp"
+                )
+            )
+        );
+        when(
+            jdbc.queryForList(contains("SELECT avatar_review"), eq(9L), eq("avatar.webp"))
+        ).thenReturn(
+            List.of(
+                Map.of(
+                    "avatar_review",
+                    "{\"verdict\":\"BLOCK\",\"labels\":[\"暴力\"],\"reason\":\"头像不合适\"}"
+                )
+            )
+        );
+        when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
+        service.result(result());
+        verify(jdbc).update(
+            startsWith("UPDATE user SET nickname=IF"),
+            eq(false),
+            eq(false),
+            eq(true),
+            eq(9L)
+        );
+    }
 }

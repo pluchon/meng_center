@@ -188,6 +188,9 @@ async function cleanup() {
           assert.ok(response.ok || response.status === 404);
         }
     }
+    await contentDb.query("DELETE FROM post_draft WHERE author_id IN (?)", [
+      users,
+    ]);
     await contentDb.query("DELETE FROM post_image WHERE uploader_id IN (?)", [
       users,
     ]);
@@ -418,11 +421,11 @@ try {
       );
       assert.equal(result.semantic, true);
       assert.ok(result.records.some((post) => post.id === realPost));
-      assert.ok(
-        Array.isArray(
-          ok(await api("GET", `/content/posts/${realPost}/related`)),
-        ),
+      const related = ok(
+        await api("GET", `/content/posts/${realPost}/related?page=1&size=5`),
       );
+      assert.ok(Array.isArray(related.records) && related.records.length <= 5);
+      assert.ok(related.total <= 50);
     },
   );
   await check(
@@ -562,7 +565,7 @@ try {
     },
   );
   await check(
-    "Profile events are audited without clearing public fields while enforcement is disabled",
+    "Profile events are audited and a clean profile is left untouched",
     async () => {
       ok(
         await api("PUT", "/user/me/profile", {
@@ -586,7 +589,50 @@ try {
     },
   );
   await check(
-    "Old analysis is ignored and duplicate BLOCK result stays public with enforcement disabled",
+    "A BLOCK profile result clears only the blocked text fields and notifies with a reason",
+    async () => {
+      // 先清掉真实模型对这个版本的结论，再用构造的违规结论走一遍落地流程
+      await userDb.execute("DELETE FROM profile_ai_review WHERE user_id=?", [
+        users[0],
+      ]);
+      const [[current]] = await userDb.execute(
+        "SELECT profile_version,avatar FROM user WHERE id=?",
+        [users[0]],
+      );
+      await publish("user.profile-moderated", {
+        userId: users[0],
+        version: current.profile_version.replace(" ", "T"),
+        verdict: "BLOCK",
+        labels: ["回归边界"],
+        reason: "仅验证资料清除",
+        modelVersion: "verification",
+        avatarChanged: false,
+        imageReviews: [],
+      });
+      await eventually(async () => {
+        const [[row]] = await userDb.execute(
+          "SELECT nickname,bio FROM user WHERE id=?",
+          [users[0]],
+        );
+        return row.nickname === null && row.bio === null;
+      }, "profile clearing");
+      const [[avatar]] = await userDb.execute(
+        "SELECT avatar FROM user WHERE id=?",
+        [users[0]],
+      );
+      assert.equal(avatar.avatar, current.avatar, "Avatar must stay untouched");
+      const [notices] = await userDb.execute(
+        "SELECT body FROM profile_ai_outbox WHERE JSON_EXTRACT(body,'$.eventType')='user.profile-review-changed' AND JSON_EXTRACT(body,'$.body.userId')=?",
+        [users[0]],
+      );
+      assert.equal(notices.length, 1);
+      assert.match(String(notices[0].body), /仅验证资料清除/);
+      assert.match(String(notices[0].body), /nickname/);
+      assert.doesNotMatch(String(notices[0].body), /"avatar"/);
+    },
+  );
+  await check(
+    "Old analysis is ignored and a BLOCK result withdraws the post into drafts once",
     async () => {
       const [[post]] = await contentDb.execute(
         "SELECT update_time FROM post WHERE id=?",
@@ -627,10 +673,22 @@ try {
         return row.model_version === "verification";
       }, "result consumption");
       const [[row]] = await contentDb.execute(
-        "SELECT review_state FROM post WHERE id=?",
+        "SELECT delete_state FROM post WHERE id=?",
         [realPost],
       );
-      assert.equal(row.review_state, "NORMAL");
+      assert.equal(row.delete_state, 1, "Post must be withdrawn");
+      const [drafts] = await contentDb.execute(
+        "SELECT title,tags FROM post_draft WHERE author_id=? AND delete_state=0",
+        [users[1]],
+      );
+      assert.equal(drafts.length, 1, "Exactly one draft must be created");
+      const [notices] = await contentDb.execute(
+        "SELECT body FROM ai_event_outbox WHERE event_type='post.review-changed' AND JSON_EXTRACT(body,'$.body.postId')=?",
+        [realPost],
+      );
+      assert.equal(notices.length, 1, "Exactly one notification");
+      assert.match(String(notices[0].body), /WITHDRAWN/);
+      assert.match(String(notices[0].body), /仅验证结果消费边界/);
       const [[count]] = await contentDb.execute(
         "SELECT COUNT(*) n FROM ai_result_inbox WHERE event_id=?",
         [id],

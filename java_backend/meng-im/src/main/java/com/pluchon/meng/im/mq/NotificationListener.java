@@ -36,14 +36,30 @@ public class NotificationListener {
         if ("user.profile-review-changed".equals(type)) {
             row.setReceiverId(body.path("userId").asLong());
             row.setType(NoticeType.PROFILE_REVIEW_CHANGED);
+            var fields = new java.util.ArrayList<String>();
+            for (var field : body.path("clearedFields"))
+                fields.add(
+                    switch (field.asString()) {
+                        case "nickname" -> "昵称";
+                        case "signature" -> "签名";
+                        case "avatar" -> "头像";
+                        default -> "";
+                    }
+                );
+            fields.removeIf(String::isEmpty);
+            String reason = body.path("reason").asString("").strip();
             row.setExcerpt(
-                body.path("clearedFields").isEmpty()
+                fields.isEmpty()
                     ? "资料已恢复"
-                    : "部分资料已清除，请查看个人中心"
+                    : String.join("、", fields) +
+                        "未通过审核，已清除，改好后可以重新填写" +
+                        (reason.isEmpty() ? "" : "：" + reason)
             );
         } else {
             row.setReceiverId(body.path("authorId").asLong());
-            row.setPostId(body.path("postId").asLong());
+            // 帖子被退回草稿箱后原帖已不存在，不挂帖子编号，点开通知去草稿箱
+            boolean withdrawn = "WITHDRAWN".equals(body.path("reviewState").asString());
+            if (!withdrawn) row.setPostId(body.path("postId").asLong());
             row.setPostTitle(body.path("postTitle").asString());
             row.setType(
                 "post.review-changed".equals(type)
@@ -51,10 +67,13 @@ public class NotificationListener {
                     : NoticeType.COMMENT_REVIEW_CHANGED
             );
             if (body.has("commentId")) row.setCommentId(body.path("commentId").asLong());
+            String reason = body.path("reason").asString("").strip();
             row.setExcerpt(
-                "IN_REVIEW".equals(body.path("reviewState").asString())
-                    ? "内容正在审核，仅自己可见"
-                    : "内容已恢复展示"
+                withdrawn
+                    ? "未通过审核，已退回草稿箱" + (reason.isEmpty() ? "" : "：" + reason)
+                    : "IN_REVIEW".equals(body.path("reviewState").asString())
+                        ? "内容正在审核，仅自己可见"
+                        : "内容已恢复展示"
             );
         }
         row.setDedupeKey("review:" + event.path("eventId").asString());

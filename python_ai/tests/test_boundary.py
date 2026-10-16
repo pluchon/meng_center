@@ -55,3 +55,11 @@ async def test_provider_failure_returns_sanitized_error_without_logging_payload(
     finally:
         app_log.removeHandler(caplog.handler)
         del app.state.assistant
+
+
+def test_only_the_offending_sentences_are_dropped() -> None:
+    narrative = "整体节奏很稳。收获了 3 篇浏览。继续保持这份分享的习惯。"
+    value = Summary(summary=narrative, suggestions=["继续分享"])
+    assert value.summary == "整体节奏很稳。继续保持这份分享的习惯。"
+    growth = GrowthSummary(summary="分享留下了足迹。等级往上走了。再接再厉。", suggestions=["继续分享"])
+    assert growth.summary == "分享留下了足迹。再接再厉。"

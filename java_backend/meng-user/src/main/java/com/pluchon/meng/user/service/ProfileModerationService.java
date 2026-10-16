@@ -265,15 +265,22 @@ public class ProfileModerationService {
         if (body.get("labels") instanceof List<?> values) for (var value : values)
             labels.add(value.toString());
         String reason = Objects.toString(body.get("reason"), "");
+        // 昵称和签名、头像分开判断：哪一部分违规只清哪一部分
+        boolean textBlocked = "BLOCK".equals(verdict);
+        String textReason = reason;
+        boolean avatarBlocked = false;
+        String avatarReason = "";
         var severity = Map.of("PASS", 0, "SUSPECT", 1, "BLOCK", 2);
         if (avatarReview != null) {
             String avatarVerdict = avatarReview.get("verdict").toString();
             if (!severity.containsKey(avatarVerdict)) throw new IllegalArgumentException(
                 "Invalid avatar verdict"
             );
+            avatarBlocked = "BLOCK".equals(avatarVerdict);
+            avatarReason = Objects.toString(avatarReview.get("reason"), "");
             if (severity.get(avatarVerdict) > severity.get(verdict)) {
                 verdict = avatarVerdict;
-                reason = Objects.toString(avatarReview.get("reason"), "");
+                reason = avatarReason;
             }
             if (avatarReview.get("labels") instanceof List<?> values) for (var value : values)
                 labels.add("image:" + user + ":" + value);
@@ -292,28 +299,55 @@ public class ProfileModerationService {
             avatarReview == null ? null : json.writeValueAsString(avatarReview)
         );
         if (inserted == 0) return;
-        if (enforce && "BLOCK".equals(verdict)) {
-            jdbc.update("UPDATE user SET nickname=NULL,bio=NULL,avatar=NULL WHERE id=?", user);
+        if (enforce && (textBlocked || avatarBlocked)) {
+            var cleared = new java.util.ArrayList<String>();
+            if (textBlocked) cleared.addAll(List.of("nickname", "signature"));
+            if (avatarBlocked) cleared.add("avatar");
+            jdbc.update(
+                "UPDATE user SET nickname=IF(?,NULL,nickname),bio=IF(?,NULL,bio),avatar=IF(?,NULL,avatar) WHERE id=?",
+                textBlocked,
+                textBlocked,
+                avatarBlocked,
+                user
+            );
             jdbc.update(
                 "UPDATE profile_ai_review SET review_state='CLEARED' WHERE user_id=? AND profile_version=?",
                 user,
                 version
             );
-            publish(user, List.of("nickname", "signature", "avatar"), labels);
+            publish(user, cleared, labels, shortReason(textBlocked ? textReason : avatarReason));
         }
+    }
+
+    // 通知里的理由只留一句话，最多 80 个字
+    private String shortReason(String reason) {
+        if (reason == null) return "";
+        String text = reason.strip().replaceAll("\s+", " ");
+        return text.codePointCount(0, text.length()) <= 80
+            ? text
+            : text.substring(0, text.offsetByCodePoints(0, 80)) + "…";
     }
 
     public record Notification(EventEnvelope<Map<String, Object>> envelope) {}
 
     // 将本人审核通知保存到事务发件箱
-    private void publish(long user, List<String> fields, Object labels) {
+    private void publish(long user, List<String> fields, Object labels, String reason) {
         String id = UUID.randomUUID().toString();
         var envelope = new EventEnvelope<>(
             id,
             "user.profile-review-changed",
             clock.instant(),
             id,
-            Map.<String, Object>of("userId", user, "clearedFields", fields, "labels", labels)
+            Map.<String, Object>of(
+                "userId",
+                user,
+                "clearedFields",
+                fields,
+                "labels",
+                labels,
+                "reason",
+                reason
+            )
         );
         jdbc.update(
             "INSERT INTO profile_ai_outbox(event_id,body) VALUES (?,?)",
@@ -364,6 +398,6 @@ public class ProfileModerationService {
             ),
             id
         );
-        publish(((Number) row.get("user_id")).longValue(), List.of(), List.of());
+        publish(((Number) row.get("user_id")).longValue(), List.of(), List.of(), "");
     }
 }

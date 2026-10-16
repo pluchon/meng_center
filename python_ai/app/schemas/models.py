@@ -82,6 +82,22 @@ class CreatorStats(Schema):
     posting_hours: list[dict[str, Any]] = Field(max_length=24)
 
 
+_SENTENCE_END = re.compile(r"(?<=[。！？!?；;\n])")
+_STATISTIC = re.compile(
+    r"(?<![A-Za-z每])(?:\d+(?:\.\d+)?|[零〇一二三四五六七八九十百千万两]+)"
+    r"\s*(?:天|级|%|％|点经验|次|篇|条|收藏|浏览|喜欢|评论)"
+)
+_LEVEL = re.compile(r"等级|升级|晋级|解锁")
+
+
+def _without(value: str, pattern: re.Pattern[str], message: str) -> str:
+    # 模型偶尔会在某一句里写出统计数字或等级：整句去掉，剩下的照用；一句不剩才算不合格并重试
+    kept = "".join(s for s in _SENTENCE_END.split(value) if s.strip() and not pattern.search(s)).strip()
+    if not kept:
+        raise ValueError(message)
+    return kept
+
+
 class Summary(Schema):
     summary: str = Field(
         min_length=1, max_length=600,
@@ -96,22 +112,14 @@ class Summary(Schema):
     @classmethod
     def numbers_belong_to_java(cls, value: str) -> str:
         # Topic names such as Vue3 remain valid; generated statistical claims do not.
-        if re.search(
-            r"(?<![A-Za-z每])(?:\d+(?:\.\d+)?|[零〇一二三四五六七八九十百千万两]+)"
-            r"\s*(?:天|级|%|％|点经验|次|篇|条|收藏|浏览|喜欢|评论)",
-            value,
-        ):
-            raise ValueError("Keep statistical numbers in the Java metrics, not the narrative")
-        return value
+        return _without(value, _STATISTIC, "Keep statistical numbers in the Java metrics, not the narrative")
 
 
 class GrowthSummary(Summary):
     @field_validator("summary")
     @classmethod
     def level_history_is_not_available(cls, value: str) -> str:
-        if re.search(r"等级|升级|晋级|解锁", value):
-            raise ValueError("Leave levels to the Java metrics; no level history was supplied")
-        return value
+        return _without(value, _LEVEL, "Leave levels to the Java metrics; no level history was supplied")
 
 
 class CoverRequest(Schema):

@@ -71,7 +71,7 @@ meng.content.rec:
     interest: 0.20
     follow: 0.15
     freshness: 0.10
-meng.ai.moderation.enforce: false
+meng.ai.moderation.enforce: true
 meng.content.job:
   admin-address: http://127.0.0.1:${MENG_XXL_JOB_PORT}
   port: ${MENG_CONTENT_JOB_PORT}

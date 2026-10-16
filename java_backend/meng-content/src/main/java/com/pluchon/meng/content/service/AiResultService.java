@@ -41,9 +41,13 @@ public class AiResultService {
     @Autowired
     private AiEventService outbox;
 
-    // 强制隐藏开关，默认仅记录结论
+    // 帖子审核结论落地的开关：关闭时只记录结论；开启时判违规的帖子退回草稿箱
     @Value("${meng.ai.moderation.enforce:false}")
     private boolean enforce;
+
+    // 退回草稿箱与帖子配图、标签的联动
+    @Autowired
+    private PostService postService;
 
     // 复用 JSON 编解码器
     private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();
@@ -117,7 +121,31 @@ public class AiResultService {
             manuallyApproved ? 1 : 0,
             post.getId()
         );
-        if (enforce && "BLOCK".equals(effectiveVerdict)) state = "IN_REVIEW";
+        if (enforce && "BLOCK".equals(effectiveVerdict)) {
+            long draftId = postService.withdrawToDraft(post);
+            notify(
+                "post.review-changed",
+                Map.<String, Object>of(
+                    "postId",
+                    post.getId(),
+                    "postTitle",
+                    post.getTitle(),
+                    "authorId",
+                    post.getAuthorId(),
+                    "reviewState",
+                    "WITHDRAWN",
+                    "reason",
+                    shortReason(reason),
+                    "draftId",
+                    draftId,
+                    "labels",
+                    labels
+                )
+            );
+            events.publishEvent(new Indexed(post.getId()));
+            return;
+        }
+        // 早先版本把违规帖子标为「审核中」，仍在审核中的帖子这次通过就恢复展示
         if ("PASS".equals(effectiveVerdict) && "IN_REVIEW".equals(state)) state = "NORMAL";
         if (!state.equals(post.getReviewState().name())) {
             jdbc.update(
@@ -223,6 +251,15 @@ public class AiResultService {
                 )
             );
         }
+    }
+
+    // 通知里的理由只留一句话，最多 80 个字
+    private String shortReason(String reason) {
+        if (reason == null) return "";
+        String text = reason.strip().replaceAll("\s+", " ");
+        return text.codePointCount(0, text.length()) <= 80
+            ? text
+            : text.substring(0, text.offsetByCodePoints(0, 80)) + "…";
     }
 
     // 将审核通知写入同域事务发件箱
