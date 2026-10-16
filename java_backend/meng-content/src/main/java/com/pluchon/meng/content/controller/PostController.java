@@ -35,6 +35,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class PostController {
 
+    @Autowired
+    private com.pluchon.meng.content.service.RecommendationService recommendations;
+
     // 自己发布的帖子查询
     @Autowired
     private CreatorService creator;
@@ -54,9 +57,19 @@ public class PostController {
 
     /** 读取帖子详情并记录浏览。 */
     @GetMapping("/{id}")
-    public ApiResponse<PostDetailVO> detail(@PathVariable @Positive long id) {
+    public ApiResponse<PostDetailVO> detail(
+        @PathVariable @Positive long id,
+        @RequestParam(required = false) String from
+    ) {
+        if ("rec".equals(from)) profiles.clicked(
+            com.pluchon.meng.common.web.context.UserContext.require().userId(),
+            id
+        );
         return ApiResponse.success(details.get(id));
     }
+
+    @Autowired
+    private com.pluchon.meng.content.service.RecommendationProfileService profiles;
 
     // 对应接口的业务操作
     @Autowired
@@ -66,10 +79,7 @@ public class PostController {
     @PostMapping
     public ApiResponse<Long> create(
         @Valid @RequestBody CreatePostDTO body,
-        @RequestHeader(
-            value = IdentityHeaders.CLIENT_IP,
-            required = false
-        ) String ip
+        @RequestHeader(value = IdentityHeaders.CLIENT_IP, required = false) String ip
     ) {
         return ApiResponse.success(service.create(body, ip));
     }
@@ -95,11 +105,20 @@ public class PostController {
     @GetMapping
     public ApiResponse<PageResult<PostFeedVO>> feed(
         @RequestParam(required = false) PostCategory category,
-        @RequestParam(defaultValue = "LATEST") PostSort sort,
+        @RequestParam(defaultValue = "RECOMMEND") PostSort sort,
         @RequestParam(defaultValue = "1") @Min(1) long page,
         @RequestParam(defaultValue = "10") @Min(1) @Max(50) long size
     ) {
-        return ApiResponse.success(service.feed(category, sort, page, size));
+        if (
+            sort == PostSort.RELEVANT
+        ) throw new com.pluchon.meng.common.core.error.BusinessException(
+            com.pluchon.meng.common.core.error.CommonErrorCode.INVALID_ARGUMENT
+        );
+        return ApiResponse.success(
+            sort == PostSort.RECOMMEND
+                ? recommendations.page(category, page, size)
+                : service.feed(category, sort, page, size)
+        );
     }
 
     /** 点赞帖子。 */

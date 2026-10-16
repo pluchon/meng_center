@@ -6,6 +6,10 @@
     <UserContact :author="comment.author" />
     <div class="comment-main">
       <header>
+        <span
+          v-if="comment.reviewState==='IN_REVIEW'"
+          class="author-badge"
+        >{{ t('ai.review') }}</span>
         <strong>{{ comment.author.nickname||t('home.authorFallback') }}</strong><span
           v-if="!compact"
           class="level"

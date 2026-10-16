@@ -11,7 +11,8 @@ import com.pluchon.meng.content.entity.CommentImageEntity;
 import com.pluchon.meng.content.entity.PostImageEntity;
 import com.pluchon.meng.content.mapper.CommentImageMapper;
 import com.pluchon.meng.content.mapper.PostImageMapper;
-
+import java.io.IOException;
+import java.nio.file.Files;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
@@ -21,12 +22,37 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.nio.file.Files;
-
 // 配图上传、归属记录和资源读取
 @Service
 public class ImageService {
+
+    @Autowired
+    private com.pluchon.meng.content.mapper.PostMapper posts;
+
+    @Transactional(rollbackFor = Exception.class)
+    public ImageVO uploadGenerated(byte[] bytes) {
+        long user = UserContext.require().userId();
+        var stored = storage.save(bytes);
+        TransactionSynchronizationManager.registerSynchronization(
+            new TransactionSynchronization() {
+                public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) storage.delete(
+                        stored.fileName(),
+                        stored.thumbName()
+                    );
+                }
+            }
+        );
+        var image = new PostImageEntity();
+        image.setUploaderId(user);
+        image.setFileName(stored.fileName());
+        image.setThumbName(stored.thumbName());
+        image.setWidth(stored.width());
+        image.setHeight(stored.height());
+        image.setAiGenerated(true);
+        images.insert(image);
+        return converter.image(image);
+    }
 
     // 评论配图数据存取
     @Autowired
@@ -71,20 +97,23 @@ public class ImageService {
     // 校验上传配额并保存帖子配图
     private ImageVO upload(MultipartFile file, boolean comment) throws IOException {
         long user = UserContext.require().userId();
-        if (file.isEmpty() || file.getSize() > ImageStorage.MAX_BYTES)
-            throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        if (file.isEmpty() || file.getSize() > ImageStorage.MAX_BYTES) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
         if (comment) limits.commentUpload(user);
         else limits.upload(user);
         var stored = storage.save(file.getBytes());
         TransactionSynchronizationManager.registerSynchronization(
-                new TransactionSynchronization() {
-
-                    // 事务回滚后清除已写入的磁盘文件
-                    public void afterCompletion(int status) {
-                        if (status != STATUS_COMMITTED)
-                            storage.delete(stored.fileName(), stored.thumbName());
-                    }
-                });
+            new TransactionSynchronization() {
+                // 事务回滚后清除已写入的磁盘文件
+                public void afterCompletion(int status) {
+                    if (status != STATUS_COMMITTED) storage.delete(
+                        stored.fileName(),
+                        stored.thumbName()
+                    );
+                }
+            }
+        );
         if (comment) {
             var image = new CommentImageEntity();
             image.setUploaderId(user);
@@ -109,28 +138,33 @@ public class ImageService {
     public Resource read(String name) {
         UserContext.require();
         var path = storage.path(name);
-        var image =
-                images.selectOne(
-                        Wrappers.<PostImageEntity>lambdaQuery()
-                                .and(
-                                        q ->
-                                                q.eq(PostImageEntity::getFileName, name)
-                                                        .or()
-                                                        .eq(PostImageEntity::getThumbName, name)));
+        var image = images.selectOne(
+            Wrappers.<PostImageEntity>lambdaQuery().and(q ->
+                q
+                    .eq(PostImageEntity::getFileName, name)
+                    .or()
+                    .eq(PostImageEntity::getThumbName, name)
+            )
+        );
         if (image == null) {
-            var commentImage =
-                    commentImages.selectOne(
-                            Wrappers.<CommentImageEntity>lambdaQuery()
-                                    .and(
-                                            q ->
-                                                    q.eq(CommentImageEntity::getFileName, name)
-                                                            .or()
-                                                            .eq(
-                                                                    CommentImageEntity
-                                                                            ::getThumbName,
-                                                                    name)));
+            var commentImage = commentImages.selectOne(
+                Wrappers.<CommentImageEntity>lambdaQuery().and(q ->
+                    q
+                        .eq(CommentImageEntity::getFileName, name)
+                        .or()
+                        .eq(CommentImageEntity::getThumbName, name)
+                )
+            );
             if (commentImage == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
             if (commentImage.getCommentId() != null) comments.require(commentImage.getCommentId());
+        } else if (image.getPostId() != null) {
+            var post = posts.selectById(image.getPostId());
+            if (
+                post == null ||
+                (!"NORMAL".equals(post.getReviewState().name()) &&
+                    post.getAuthorId() != UserContext.require().userId() &&
+                    !"ADMIN".equals(UserContext.require().role()))
+            ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         }
         if (!Files.isRegularFile(path)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         return new FileSystemResource(path);

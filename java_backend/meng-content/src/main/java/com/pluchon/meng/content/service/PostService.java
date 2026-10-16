@@ -42,6 +42,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PostService {
 
+    @Autowired
+    private AiEventService aiEvents;
+
     // 作者的每日互动统计
     @Autowired
     private AuthorStatisticsService statistics;
@@ -137,25 +140,16 @@ public class PostService {
         ) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         tags.attach(p.getId(), tagNames);
         drafts.published(dto.draftId());
+        aiEvents.post(p.getId(), "post.published", true);
         events.publishEvent(new PostPublishedEvent(p.getId(), user));
         events.publishEvent(
-            new PostReadModelEvent(
-                p.getId(),
-                p.getCategory(),
-                PostReadModelEvent.Kind.PUBLISHED,
-                0
-            )
+            new PostReadModelEvent(p.getId(), p.getCategory(), PostReadModelEvent.Kind.PUBLISHED, 0)
         );
         return p.getId();
     }
 
     // 按分类和排序分页查询帖子流
-    public PageResult<PostFeedVO> feed(
-        PostCategory category,
-        PostSort sort,
-        long page,
-        long size
-    ) {
+    public PageResult<PostFeedVO> feed(PostCategory category, PostSort sort, long page, long size) {
         long user = UserContext.require().userId();
         if (sort == PostSort.HOT) {
             var rank = hot.read(category, page, size);
@@ -165,14 +159,7 @@ public class PostService {
                     .selectByIds(rank.ids())
                     .forEach(p -> byId.put(p.getId(), p));
                 return new PageResult<>(
-                    hydrate(
-                        rank
-                            .ids()
-                            .stream()
-                            .map(byId::get)
-                            .filter(Objects::nonNull)
-                            .toList()
-                    ),
+                    hydrate(rank.ids().stream().map(byId::get).filter(Objects::nonNull).toList()),
                     rank.total(),
                     page,
                     size
@@ -184,26 +171,17 @@ public class PostService {
             PostEntity::getCategory,
             category
         );
+        query.eq(PostEntity::getReviewState, "NORMAL");
         if (sort == PostSort.HOT) query
             .ge(
                 PostEntity::getCreateTime,
-                LocalDateTime.ofInstant(
-                    clock.instant().minus(Duration.ofDays(7)),
-                    ZoneOffset.UTC
-                )
+                LocalDateTime.ofInstant(clock.instant().minus(Duration.ofDays(7)), ZoneOffset.UTC)
             )
             .orderByDesc(PostEntity::getHotScore);
-        if (sort == PostSort.LATEST) query.orderByDesc(
-            PostEntity::getCreateTime
-        );
+        if (sort == PostSort.LATEST) query.orderByDesc(PostEntity::getCreateTime);
         query.orderByDesc(PostEntity::getId);
         var result = posts.selectPage(new Page<>(page, size), query);
-        return new PageResult<>(
-            hydrate(result.getRecords()),
-            result.getTotal(),
-            page,
-            size
-        );
+        return new PageResult<>(hydrate(result.getRecords()), result.getTotal(), page, size);
     }
 
     // 某个作者发布的帖子，新的在前，别人主页的「发布」页用
@@ -215,23 +193,20 @@ public class PostService {
                 .orderByDesc(PostEntity::getCreateTime)
                 .orderByDesc(PostEntity::getId)
         );
-        return new PageResult<>(
-            hydrate(result.getRecords()),
-            result.getTotal(),
-            page,
-            size
-        );
+        return new PageResult<>(hydrate(result.getRecords()), result.getTotal(), page, size);
     }
 
     // 批量组装作者、配图和互动状态
     public List<PostFeedVO> hydrate(List<PostEntity> list) {
         long user = UserContext.require().userId();
+        list = list
+            .stream()
+            .filter(p -> "NORMAL".equals(p.getReviewState().name()) || p.getAuthorId() == user)
+            .toList();
         if (list.isEmpty()) return List.of();
         var ids = list.stream().map(PostEntity::getId).toList();
         var liked = new HashSet<>(relations.selectLikedPostIds(user, ids));
-        var favorites = new HashSet<>(
-            relations.selectFavoritedPostIds(user, ids)
-        );
+        var favorites = new HashSet<>(relations.selectFavoritedPostIds(user, ids));
         var favoriteCounts = new HashMap<Long, Long>();
         for (var count : relations.selectFavoriteCounts(ids))
             favoriteCounts.put(count.postId(), count.count());
@@ -245,9 +220,7 @@ public class PostService {
                 .eq(PostImageEntity::getKind, PostImageKind.ATTACHMENT.name())
                 .orderByAsc(PostImageEntity::getSort)
         ))
-            imageMap
-                .computeIfAbsent(image.getPostId(), x -> new ArrayList<>())
-                .add(image);
+            imageMap.computeIfAbsent(image.getPostId(), x -> new ArrayList<>()).add(image);
         return list
             .stream()
             .map(p ->
@@ -269,19 +242,10 @@ public class PostService {
         long user = UserContext.require().userId();
         var post = requirePost(id);
         var created = enabled ? null : relations.selectLikeCreateTime(id, user);
-        int changed = enabled
-            ? relations.insertLike(id, user)
-            : relations.deleteLike(id, user);
+        int changed = enabled ? relations.insertLike(id, user) : relations.deleteLike(id, user);
         if (changed == 1) {
-            if (enabled) statistics.record(
-                post.getAuthorId(),
-                CreatorMetric.LIKE
-            );
-            else statistics.cancel(
-                post.getAuthorId(),
-                CreatorMetric.LIKE,
-                created
-            );
+            if (enabled) statistics.record(post.getAuthorId(), CreatorMetric.LIKE);
+            else statistics.cancel(post.getAuthorId(), CreatorMetric.LIKE, created);
             long delta = (enabled ? 1L : -1L) * properties.likeWeight();
             posts.incrementLikeCount(id, enabled ? 1 : -1, delta);
             if (enabled) events.publishEvent(
@@ -296,12 +260,7 @@ public class PostService {
                 )
             );
             events.publishEvent(
-                new PostReadModelEvent(
-                    id,
-                    null,
-                    PostReadModelEvent.Kind.SCORE,
-                    delta
-                )
+                new PostReadModelEvent(id, null, PostReadModelEvent.Kind.SCORE, delta)
             );
         }
     }
@@ -309,28 +268,28 @@ public class PostService {
     // 校验权限后删除帖子及关联数据
     @Transactional(rollbackFor = Exception.class)
     public void delete(long id) {
-        var post = posts.selectByIdForUpdate(id);
-        if (post == null) throw new BusinessException(
-            CommonErrorCode.NOT_FOUND
+        delete(id, false);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteForReview(long id) {
+        if (!"ADMIN".equals(UserContext.require().role())) throw new BusinessException(
+            CommonErrorCode.FORBIDDEN
         );
+        delete(id, true);
+    }
+
+    private void delete(long id, boolean reviewed) {
+        var post = posts.selectByIdForUpdate(id);
+        if (post == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         if (
-            post.getAuthorId() != UserContext.require().userId()
+            !reviewed && post.getAuthorId() != UserContext.require().userId()
         ) throw new BusinessException(CommonErrorCode.FORBIDDEN);
         tags.detach(id);
-        images.delete(
-            Wrappers.<PostImageEntity>lambdaQuery().eq(
-                PostImageEntity::getPostId,
-                id
-            )
-        );
+        images.delete(Wrappers.<PostImageEntity>lambdaQuery().eq(PostImageEntity::getPostId, id));
         posts.deleteById(id);
         events.publishEvent(
-            new PostReadModelEvent(
-                id,
-                post.getCategory(),
-                PostReadModelEvent.Kind.DELETED,
-                0
-            )
+            new PostReadModelEvent(id, post.getCategory(), PostReadModelEvent.Kind.DELETED, 0)
         );
     }
 
@@ -339,29 +298,18 @@ public class PostService {
     public void update(long id, CreatePostDTO dto) {
         long user = UserContext.require().userId();
         var post = posts.selectByIdForUpdate(id);
-        if (post == null) throw new BusinessException(
-            CommonErrorCode.NOT_FOUND
-        );
-        if (post.getAuthorId() != user) throw new BusinessException(
-            CommonErrorCode.FORBIDDEN
-        );
-        if (dto.draftId() != null) throw new BusinessException(
-            CommonErrorCode.INVALID_ARGUMENT
-        );
+        if (post == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        if (post.getAuthorId() != user) throw new BusinessException(CommonErrorCode.FORBIDDEN);
+        if (dto.draftId() != null) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         PostRules.images(dto.imageIds(), dto.coverImageId());
         var names = PostRules.tags(dto.tags());
         var retained = new HashSet<>(dto.imageIds());
         if (dto.coverImageId() != null) retained.add(dto.coverImageId());
         var old = images.selectList(
-            Wrappers.<PostImageEntity>lambdaQuery().eq(
-                PostImageEntity::getPostId,
-                id
-            )
+            Wrappers.<PostImageEntity>lambdaQuery().eq(PostImageEntity::getPostId, id)
         );
         for (var image : old)
-            if (!retained.contains(image.getId())) images.deleteById(
-                image.getId()
-            );
+            if (!retained.contains(image.getId())) images.deleteById(image.getId());
         for (int i = 0; i < dto.imageIds().size(); i++) retainImage(
             dto.imageIds().get(i),
             id,
@@ -385,24 +333,15 @@ public class PostService {
         posts.updateById(post);
         posts.updateCoverImage(id, dto.coverImageId());
         tags.replace(id, names);
+        posts.touchContentVersion(id);
+        aiEvents.post(id, "post.updated", aiEvents.needsImageReview(id));
         events.publishEvent(
-            new PostReadModelEvent(
-                id,
-                previousCategory,
-                PostReadModelEvent.Kind.UPDATED,
-                0
-            )
+            new PostReadModelEvent(id, previousCategory, PostReadModelEvent.Kind.UPDATED, 0)
         );
     }
 
     // 保留已有配图或关联新上传配图
-    private void retainImage(
-        long imageId,
-        long post,
-        long user,
-        int sort,
-        PostImageKind kind
-    ) {
+    private void retainImage(long imageId, long post, long user, int sort, PostImageKind kind) {
         var image = images.selectById(imageId);
         if (
             image == null ||
@@ -423,9 +362,7 @@ public class PostService {
     // 查询帖子并校验当前用户操作权限
     private PostEntity requirePost(long id) {
         var post = posts.selectByIdForUpdate(id);
-        if (post == null) throw new BusinessException(
-            CommonErrorCode.NOT_FOUND
-        );
+        if (post == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         return post;
     }
 }

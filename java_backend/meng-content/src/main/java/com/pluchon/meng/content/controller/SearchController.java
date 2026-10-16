@@ -6,10 +6,8 @@ import com.pluchon.meng.content.controller.vo.SearchPostVO;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.entity.enums.PostSort;
 import com.pluchon.meng.content.service.PostSearchService;
-
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,18 +21,31 @@ import org.springframework.web.bind.annotation.RestController;
 @Validated
 public class SearchController {
 
+    @Autowired
+    private com.pluchon.meng.content.service.SemanticSearchService semantic;
+
     // 对应接口的业务操作
     @Autowired
     private PostSearchService service;
 
     /** 按关键词、分类和排序分页搜索帖子。 */
     @GetMapping("/posts")
-    public ApiResponse<PageResult<SearchPostVO>> posts(
-            @RequestParam String q,
-            @RequestParam(required = false) PostCategory category,
-            @RequestParam(defaultValue = "HOT") PostSort sort,
-            @RequestParam(defaultValue = "1") @Min(1) long page,
-            @RequestParam(defaultValue = "5") @Min(1) @Max(50) long size) {
-        return ApiResponse.success(service.search(q, category, sort, page, size));
+    public ApiResponse<?> posts(
+        @RequestParam String q,
+        @RequestParam(required = false) PostCategory category,
+        @RequestParam(defaultValue = "RELEVANT") PostSort sort,
+        @RequestParam(defaultValue = "1") @Min(1) long page,
+        @RequestParam(defaultValue = "5") @Min(1) @Max(50) long size
+    ) {
+        if (
+            sort == PostSort.RECOMMEND
+        ) throw new com.pluchon.meng.common.core.error.BusinessException(
+            com.pluchon.meng.common.core.error.CommonErrorCode.INVALID_ARGUMENT
+        );
+        return ApiResponse.success(
+            sort == PostSort.RELEVANT
+                ? semantic.search(q, category, page, size)
+                : service.search(q, category, sort, page, size)
+        );
     }
 }

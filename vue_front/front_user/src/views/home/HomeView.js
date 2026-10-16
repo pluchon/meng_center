@@ -3,7 +3,7 @@ import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'v
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
-import { Categories, PostSort, Feed, Hero } from '@/constants/content'
+import { Categories, PostSort, FeedSorts, Feed, Hero } from '@/constants/content'
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 import {
   homeArtwork,
@@ -96,7 +96,7 @@ export default defineComponent({
     let controller
     const query = computed(() => ({
       category: Categories.includes(route.query.category) ? route.query.category : undefined,
-      sort: Object.values(PostSort).includes(route.query.sort) ? route.query.sort : PostSort.LATEST,
+      sort: FeedSorts.includes(route.query.sort) ? route.query.sort : PostSort.RECOMMEND,
       page: Math.max(
         1,
         Number.isSafeInteger(Number(route.query.page)) ? Number(route.query.page) : 1,

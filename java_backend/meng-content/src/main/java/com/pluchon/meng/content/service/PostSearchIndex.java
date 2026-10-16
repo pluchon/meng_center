@@ -12,7 +12,6 @@ import co.elastic.clients.elasticsearch.core.bulk.BulkOperation;
 import co.elastic.clients.elasticsearch.core.search.Highlight;
 import co.elastic.clients.elasticsearch.core.search.HighlightField;
 import co.elastic.clients.util.NamedValue;
-
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.pluchon.meng.content.config.SearchProperties;
 import com.pluchon.meng.content.controller.vo.HighlightSegmentVO;
@@ -24,7 +23,17 @@ import com.pluchon.meng.content.entity.enums.PostSort;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.PostMapper;
 import com.pluchon.meng.content.mapper.TagMapper;
-
+import java.time.Duration;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,18 +46,6 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.time.Duration;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 
 // 帖子搜索索引维护、检索与蓝绿重建
 @Service
@@ -64,11 +61,11 @@ public class PostSearchIndex {
     private static final String ROOT = "meng:content:search:";
 
     // 仅允许锁持有者释放锁
-    private static final DefaultRedisScript<Long> UNLOCK =
-            new DefaultRedisScript<>(
-                    "if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1])"
-                            + " end return 0",
-                    Long.class);
+    private static final DefaultRedisScript<Long> UNLOCK = new DefaultRedisScript<>(
+        "if redis.call('GET',KEYS[1])==ARGV[1] then return redis.call('DEL',KEYS[1])" +
+            " end return 0",
+        Long.class
+    );
 
     // 帖子搜索客户端
     @Autowired
@@ -115,19 +112,21 @@ public class PostSearchIndex {
 
     // 单条搜索命中及高亮片段
     public record Hit(
-            // 记录主键
-            long id,
-            // 标题
-            List<HighlightSegmentVO> title,
-            // 正文
-            List<HighlightSegmentVO> content) {}
+        // 记录主键
+        long id,
+        // 标题
+        List<HighlightSegmentVO> title,
+        // 正文
+        List<HighlightSegmentVO> content
+    ) {}
 
     // 搜索命中集合与总数
     public record Matches(
-            // 搜索命中集合
-            List<Hit> hits,
-            // 命中记录总数
-            long total) {}
+        // 搜索命中集合
+        List<Hit> hits,
+        // 命中记录总数
+        long total
+    ) {}
 
     // 检索主键和安全高亮片段，失败时进入冷却
     public Matches search(String q, PostCategory category, PostSort sort, long page, long size) {
@@ -136,15 +135,14 @@ public class PostSearchIndex {
             String token = UUID.randomUUID().toString();
             String before = "\uE000" + token + ":";
             String after = "\uE001" + token + ":";
-            var request =
-                    new SearchRequest.Builder()
-                            .index(ALIAS)
-                            .size(sort == PostSort.HOT ? 1000 : (int) size)
-                            .from(sort == PostSort.HOT ? 0 : (int) ((page - 1) * size))
-                            .trackTotalHits(t -> t.enabled(true))
-                            .source(v -> v.fetch(false))
-                            .query(query(q, category))
-                            .highlight(highlight(before, after));
+            var request = new SearchRequest.Builder()
+                .index(ALIAS)
+                .size(sort == PostSort.HOT ? 1000 : (int) size)
+                .from(sort == PostSort.HOT ? 0 : (int) ((page - 1) * size))
+                .trackTotalHits(t -> t.enabled(true))
+                .source(v -> v.fetch(false))
+                .query(query(q, category))
+                .highlight(highlight(before, after));
             if (sort == PostSort.LATEST) {
                 request.sort(v -> v.field(f -> f.field("createTime").order(SortOrder.Desc)));
                 request.sort(v -> v.field(f -> f.field("id").order(SortOrder.Desc)));
@@ -155,22 +153,25 @@ public class PostSearchIndex {
                 List<String> title = hit.highlight().get("title");
                 List<String> content = hit.highlight().get("content");
                 hits.add(
-                        new Hit(
-                                Long.parseLong(hit.id()),
-                                title == null
-                                        ? List.of()
-                                        : SearchHighlight.marked(title.get(0), before, after),
-                                content == null
-                                        ? List.of()
-                                        : SearchHighlight.marked(content.get(0), before, after)));
+                    new Hit(
+                        Long.parseLong(hit.id()),
+                        title == null
+                            ? List.of()
+                            : SearchHighlight.marked(title.get(0), before, after),
+                        content == null
+                            ? List.of()
+                            : SearchHighlight.marked(content.get(0), before, after)
+                    )
+                );
             }
             return new Matches(
-                    List.copyOf(hits),
-                    sort == PostSort.HOT
-                            ? hits.size()
-                            : response.hits().total() == null
-                                    ? hits.size()
-                                    : response.hits().total().value());
+                List.copyOf(hits),
+                sort == PostSort.HOT
+                    ? hits.size()
+                    : response.hits().total() == null
+                      ? hits.size()
+                      : response.hits().total().value()
+            );
         } catch (Exception e) {
             retryAfter.set(System.nanoTime() + properties.failureCooldown().toNanos());
             LOG.warn("Search index unavailable; using title fallback");
@@ -208,24 +209,27 @@ public class PostSearchIndex {
 
     // 读取当前帖子状态并重试文档写入
     private void write(String index, PostEntity post, long id) throws Exception {
-        if (post == null) client.delete(d -> d.index(index).id(Long.toString(id)));
-        else
-            client.index(
-                    i ->
-                            i.index(index)
-                                    .id(Long.toString(id))
-                                    .document(document(post, tags.selectNamesByPostId(id))));
+        if (post == null || !"NORMAL".equals(post.getReviewState().name())) client.delete(d ->
+            d.index(index).id(Long.toString(id))
+        );
+        else client.index(i ->
+            i
+                .index(index)
+                .id(Long.toString(id))
+                .document(document(post, tags.selectNamesByPostId(id)))
+        );
     }
 
     // 从帖子与标签生成搜索文档
     private SearchDocument document(PostEntity post, List<String> names) {
         return new SearchDocument(
-                post.getId(),
-                post.getTitle(),
-                summary.plain(post.getContent()),
-                names,
-                post.getCategory().name(),
-                post.getCreateTime().toInstant(ZoneOffset.UTC).toString());
+            post.getId(),
+            post.getTitle(),
+            summary.plain(post.getContent()),
+            names,
+            post.getCategory().name(),
+            post.getCreateTime().toInstant(ZoneOffset.UTC).toString()
+        );
     }
 
     // 服务启动后异步检查搜索别名
@@ -238,18 +242,21 @@ public class PostSearchIndex {
     public void requestRebuild(boolean onlyMissing) {
         if (!rebuilding.compareAndSet(false, true)) return;
         try {
-            maintenance.execute(
-                    () -> {
-                        try {
-                            if (!onlyMissing
-                                    || !client.indices().existsAlias(a -> a.name(ALIAS)).value())
-                                rebuild();
-                        } catch (Exception e) {
-                            LOG.warn("Index initialization unavailable");
-                        } finally {
-                            rebuilding.set(false);
-                        }
-                    });
+            maintenance.execute(() -> {
+                try {
+                    if (
+                        !onlyMissing ||
+                        !client
+                            .indices()
+                            .existsAlias(a -> a.name(ALIAS))
+                            .value()
+                    ) rebuild();
+                } catch (Exception e) {
+                    LOG.warn("Index initialization unavailable");
+                } finally {
+                    rebuilding.set(false);
+                }
+            });
         } catch (RuntimeException e) {
             rebuilding.set(false);
             LOG.warn("Index maintenance queue full");
@@ -260,116 +267,103 @@ public class PostSearchIndex {
     private Query query(String word, PostCategory category) {
         var builder = new BoolQuery.Builder();
         builder.must(
-                Query.of(
-                        q ->
-                                q.multiMatch(
-                                        m ->
-                                                m.query(word)
-                                                        .fields("title^3", "tags^2", "content")
-                                                        .minimumShouldMatch("2<-25%"))));
+            Query.of(q ->
+                q.multiMatch(m ->
+                    m
+                        .query(word)
+                        .fields("title^3", "tags^2", "content")
+                        .minimumShouldMatch("2<-25%")
+                )
+            )
+        );
         builder.should(Query.of(q -> q.matchPhrase(p -> p.field("title").query(word).boost(3f))));
         builder.should(
-                Query.of(
-                        q ->
-                                q.term(
-                                        t ->
-                                                t.field("tags.raw")
-                                                        .value(word.toLowerCase(Locale.ROOT))
-                                                        .boost(2f))));
-        if (category != null)
-            builder.filter(Query.of(q -> q.term(t -> t.field("category").value(category.name()))));
+            Query.of(q ->
+                q.term(t -> t.field("tags.raw").value(word.toLowerCase(Locale.ROOT)).boost(2f))
+            )
+        );
+        if (category != null) builder.filter(
+            Query.of(q -> q.term(t -> t.field("category").value(category.name())))
+        );
         return Query.of(q -> q.bool(builder.build()));
     }
 
     // 配置标题和正文的高亮片段
     private Highlight highlight(String before, String after) {
         var title = new NamedValue<>("title", HighlightField.of(f -> f.numberOfFragments(0)));
-        var content =
-                new NamedValue<>(
-                        "content",
-                        HighlightField.of(f -> f.fragmentSize(120).numberOfFragments(1)));
+        var content = new NamedValue<>(
+            "content",
+            HighlightField.of(f -> f.fragmentSize(120).numberOfFragments(1))
+        );
         return Highlight.of(h -> h.preTags(before).postTags(after).fields(title, content));
     }
 
     // 配置正文与标题的分词字段
     private Property textProperty() {
-        return Property.of(
-                p ->
-                        p.text(
-                                t ->
-                                        t.analyzer(properties.analyzer())
-                                                .searchAnalyzer(properties.searchAnalyzer())));
+        return Property.of(p ->
+            p.text(t ->
+                t.analyzer(properties.analyzer()).searchAnalyzer(properties.searchAnalyzer())
+            )
+        );
     }
 
     // 创建待构建索引及字段映射
     private void create(String index) throws Exception {
-        if (client.indices().exists(e -> e.index(index)).value())
-            client.indices().delete(d -> d.index(index));
-        var tagProperty =
-                Property.of(
-                        p ->
-                                p.text(
-                                        t ->
-                                                t.analyzer(properties.analyzer())
-                                                        .searchAnalyzer(properties.searchAnalyzer())
-                                                        .fields(
-                                                                "raw",
-                                                                f ->
-                                                                        f.keyword(
-                                                                                k ->
-                                                                                        k
-                                                                                                .normalizer(
-                                                                                                        "lowercase")))));
-        var mapping =
-                TypeMapping.of(
-                        m ->
-                                m.dynamic(DynamicMapping.Strict)
-                                        .properties(
-                                                Map.of(
-                                                        "id",
-                                                        Property.of(p -> p.long_(l -> l)),
-                                                        "title",
-                                                        textProperty(),
-                                                        "content",
-                                                        textProperty(),
-                                                        "tags",
-                                                        tagProperty,
-                                                        "category",
-                                                        Property.of(p -> p.keyword(k -> k)),
-                                                        "createTime",
-                                                        Property.of(p -> p.date(d -> d)))));
-        client.indices()
-                .create(
-                        c ->
-                                c.index(index)
-                                        .mappings(mapping)
-                                        .settings(
-                                                s ->
-                                                        s.numberOfShards("1")
-                                                                .numberOfReplicas("0")
-                                                                .analysis(
-                                                                        a ->
-                                                                                a.normalizer(
-                                                                                        "lowercase",
-                                                                                        n ->
-                                                                                                n
-                                                                                                        .custom(
-                                                                                                                v ->
-                                                                                                                        v
-                                                                                                                                .filter(
-                                                                                                                                        "lowercase"))))));
+        if (
+            client
+                .indices()
+                .exists(e -> e.index(index))
+                .value()
+        ) client.indices().delete(d -> d.index(index));
+        var tagProperty = Property.of(p ->
+            p.text(t ->
+                t
+                    .analyzer(properties.analyzer())
+                    .searchAnalyzer(properties.searchAnalyzer())
+                    .fields("raw", f -> f.keyword(k -> k.normalizer("lowercase")))
+            )
+        );
+        var mapping = TypeMapping.of(m ->
+            m
+                .dynamic(DynamicMapping.Strict)
+                .properties(
+                    Map.of(
+                        "id",
+                        Property.of(p -> p.long_(l -> l)),
+                        "title",
+                        textProperty(),
+                        "content",
+                        textProperty(),
+                        "tags",
+                        tagProperty,
+                        "category",
+                        Property.of(p -> p.keyword(k -> k)),
+                        "createTime",
+                        Property.of(p -> p.date(d -> d))
+                    )
+                )
+        );
+        client.indices().create(c ->
+            c
+                .index(index)
+                .mappings(mapping)
+                .settings(s ->
+                    s
+                        .numberOfShards("1")
+                        .numberOfReplicas("0")
+                        .analysis(a ->
+                            a.normalizer("lowercase", n -> n.custom(v -> v.filter("lowercase")))
+                        )
+                )
+        );
     }
 
     // 组装批量写入的文档操作
     private BulkOperation operation(String index, PostEntity post, List<String> names) {
         var document = document(post, names);
-        return BulkOperation.of(
-                b ->
-                        b.index(
-                                i ->
-                                        i.index(index)
-                                                .id(Long.toString(post.getId()))
-                                                .document(document)));
+        return BulkOperation.of(b ->
+            b.index(i -> i.index(index).id(Long.toString(post.getId())).document(document))
+        );
     }
 
     // 分批构建、校验数量并原子切换索引别名
@@ -378,14 +372,20 @@ public class PostSearchIndex {
         String lock = ROOT + "lock";
         boolean locked = false;
         try {
-            locked =
-                    Boolean.TRUE.equals(
-                            redis.opsForValue().setIfAbsent(lock, token, Duration.ofMinutes(30)));
+            locked = Boolean.TRUE.equals(
+                redis.opsForValue().setIfAbsent(lock, token, Duration.ofMinutes(30))
+            );
             if (!locked) return true;
-            var aliases =
-                    client.indices().existsAlias(a -> a.name(ALIAS)).value()
-                            ? client.indices().getAlias(a -> a.name(ALIAS)).aliases().keySet()
-                            : Set.<String>of();
+            var aliases = client
+                .indices()
+                .existsAlias(a -> a.name(ALIAS))
+                .value()
+                ? client
+                      .indices()
+                      .getAlias(a -> a.name(ALIAS))
+                      .aliases()
+                      .keySet()
+                : Set.<String>of();
             String next = aliases.contains("meng_post_blue") ? "meng_post_green" : "meng_post_blue";
             create(next);
             redis.opsForValue().set(ROOT + "building", next, Duration.ofMinutes(30));
@@ -400,8 +400,9 @@ public class PostSearchIndex {
                         names.computeIfAbsent(tag.postId(), k -> new ArrayList<>()).add(tag.name());
                     var operations = new ArrayList<BulkOperation>();
                     for (var post : rows)
-                        operations.add(
-                                operation(next, post, names.getOrDefault(post.getId(), List.of())));
+                        if ("NORMAL".equals(post.getReviewState().name())) operations.add(
+                            operation(next, post, names.getOrDefault(post.getId(), List.of()))
+                        );
                     var result = client.bulk(b -> b.operations(operations));
                     if (result.errors()) throw new IllegalStateException("Index batch rejected");
                     cursor = rows.get(rows.size() - 1).getId();
@@ -410,22 +411,19 @@ public class PostSearchIndex {
             synchronized (indexWrites) {
                 client.indices().refresh(r -> r.index(next));
                 long indexed = client.count(c -> c.index(next)).count();
-                long database = posts.selectCount(Wrappers.<PostEntity>lambdaQuery());
+                long database = posts.selectCount(
+                    Wrappers.<PostEntity>lambdaQuery().eq(PostEntity::getReviewState, "NORMAL")
+                );
                 LOG.info("Index rebuild counts: documents={}, posts={}", indexed, database);
-                if (indexed != database || !token.equals(redis.opsForValue().get(lock)))
-                    throw new IllegalStateException("Index rebuild validation failed");
-                client.indices()
-                        .updateAliases(
-                                a -> {
-                                    for (String old : aliases)
-                                        a.actions(
-                                                action ->
-                                                        action.remove(
-                                                                r -> r.index(old).alias(ALIAS)));
-                                    a.actions(
-                                            action -> action.add(v -> v.index(next).alias(ALIAS)));
-                                    return a;
-                                });
+                if (
+                    indexed != database || !token.equals(redis.opsForValue().get(lock))
+                ) throw new IllegalStateException("Index rebuild validation failed");
+                client.indices().updateAliases(a -> {
+                    for (String old : aliases)
+                        a.actions(action -> action.remove(r -> r.index(old).alias(ALIAS)));
+                    a.actions(action -> action.add(v -> v.index(next).alias(ALIAS)));
+                    return a;
+                });
                 redis.delete(ROOT + "building");
                 for (var old : aliases)
                     if (!old.equals(next)) client.indices().delete(d -> d.index(old));
@@ -436,12 +434,11 @@ public class PostSearchIndex {
             LOG.warn("Index rebuild failed; current alias unchanged");
             return false;
         } finally {
-            if (locked)
-                try {
-                    redis.execute(UNLOCK, List.of(lock), token);
-                } catch (RuntimeException e) {
-                    LOG.warn("Index unlock failed");
-                }
+            if (locked) try {
+                redis.execute(UNLOCK, List.of(lock), token);
+            } catch (RuntimeException e) {
+                LOG.warn("Index unlock failed");
+            }
         }
     }
 }

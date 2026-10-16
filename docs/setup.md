@@ -42,7 +42,7 @@
 | `MYSQL_ROOT_PASSWORD` | 本地 MySQL 的 root，只给初始化脚本用，应用不用 root 连库 |
 | `MENG_REDIS_PASSWORD` | Redis |
 | `MENG_ES_ELASTIC_PASSWORD` | Elasticsearch 初始化管理员，仅部署脚本使用 |
-| `MENG_ES_CONTENT_PASSWORD` | Elasticsearch 的 `meng_content_app` 账号，仅授权帖子索引与别名 |
+| `MENG_ES_CONTENT_PASSWORD` | Elasticsearch 的 `meng_content_app` 账号，仅授权帖子关键词、向量索引与别名 |
 | `MENG_MYSQL_XXLJOB_PASSWORD` | 调度中心独立库 `xxl_job` 的应用账号密码 |
 | `MENG_XXL_JOB_ACCESS_TOKEN` | 执行器直接读取的环境变量；为空或官方默认值时拒绝启动 |
 | `MENG_XXL_JOB_ADMIN_PASSWORD` | 调度中心首次 `admin` 账号密码，初始化脚本不覆盖已修改密码 |
@@ -52,7 +52,9 @@
 | `MENG_ADMIN_USERNAME`、`MENG_ADMIN_PASSWORD` | 首个管理员账号，只在初始化时读取 |
 | `MAIL_USERNAME`、`MAIL_PASSWORD` | SMTP 发信账号 |
 | `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_ACCESS_KEY_SECRET` | 阿里云短信 |
-| `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen、embedding、通义万相），只给 ai 服务用 |
+| `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen 文本、向量和图像），只给 ai 服务用 |
+
+AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`：`CLASSIFIER_MODEL`、`WRITER_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`COVER_MODEL`、`BASE_URL`、`COVER_URL`、`STRUCTURED_METHOD`、`CONCURRENCY`、`DAILY_TOKEN_LIMIT`、`TIMEZONE`。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
 
 宿主机端口不是密钥，集中写在 `deploy/ports.env`。
 

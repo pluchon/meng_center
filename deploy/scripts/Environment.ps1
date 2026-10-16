@@ -4,7 +4,7 @@ function Import-MengEnvironment {
     # The Codex process may predate a change in user environment variables.
     $userVariables = [Environment]::GetEnvironmentVariables('User')
     foreach ($name in $userVariables.Keys) {
-        if ($name -like 'MENG_*' -or $name -in @('MYSQL_ROOT_PASSWORD', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'ALIYUN_ACCESS_KEY_ID', 'ALIYUN_ACCESS_KEY_SECRET')) {
+        if ($name -like 'MENG_*' -or $name -in @('MYSQL_ROOT_PASSWORD', 'MAIL_USERNAME', 'MAIL_PASSWORD', 'ALIYUN_ACCESS_KEY_ID', 'ALIYUN_ACCESS_KEY_SECRET', 'DASHSCOPE_API_KEY')) {
             [Environment]::SetEnvironmentVariable($name, $userVariables[$name], 'Process')
         }
     }

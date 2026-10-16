@@ -30,7 +30,7 @@ try {
         if (-not (Test-Path -LiteralPath $jar)) { throw 'Build the backend before verification.' }
         $arguments = @('-Dfile.encoding=UTF-8', '-jar', $jar, "--spring.application.name=verification-$service", "--spring.rabbitmq.virtual-host=$vhost")
         if ($service -eq 'meng-user') {
-            $arguments += @('--server.port=18101', '--meng.user.legal.published=true', '--spring.mail.host=127.0.0.1', '--spring.mail.port=25250', '--spring.mail.properties.mail.smtp.ssl.enable=false', '--spring.mail.properties.mail.smtp.auth=false')
+            $arguments += @('--server.port=18101', '--meng.user.profile-moderation.enabled=false', '--meng.user.legal.published=true', '--spring.mail.host=127.0.0.1', '--spring.mail.port=25250', '--spring.mail.properties.mail.smtp.ssl.enable=false', '--spring.mail.properties.mail.smtp.auth=false')
         } else {
             $arguments += @('--server.port=18081', '--spring.cloud.gateway.server.webflux.routes[0].id=verification-user', '--spring.cloud.gateway.server.webflux.routes[0].uri=lb://verification-meng-user', '--spring.cloud.gateway.server.webflux.routes[0].predicates[0]=Path=/user/**')
         }

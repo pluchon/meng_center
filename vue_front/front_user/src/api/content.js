@@ -1,6 +1,9 @@
 import request from './request'
 const Root = '/content'
 export const contentApi = {
+  feedback: (postId) => request.post(Root + '/recommendations/feedback', { postId }),
+  related: (id, params, config = {}) =>
+    request.get(Root + '/posts/' + id + '/related', { ...config, params }),
   folders: (params, config = {}) => request.get(Root + '/favorite-folders', { ...config, params }),
   createFolder: (data) => request.post(Root + '/favorite-folders', data),
   updateFolder: (id, data) => request.put(Root + '/favorite-folders/' + id, data),
@@ -54,7 +57,7 @@ export const contentApi = {
     return request.post(Root + '/comment-images', body, config)
   },
   publish: (body) => request.post(Root + '/posts', body),
-  detail: (id) => request.get(Root + '/posts/' + id),
+  detail: (id, config = {}) => request.get(Root + '/posts/' + id, config),
   tags: (params) => request.get(Root + '/tags', { params }),
   draft: (id) => request.get(Root + '/drafts/' + id),
   saveDraft: (id, body) =>

@@ -28,6 +28,9 @@ const typeIcons = {
   [NoticeType.LEVEL_CHANGED]: navGrowthIcon,
   [NoticeType.USER_APPROVED]: authHeartIcon,
   [NoticeType.FOLLOWED]: authHeartIcon,
+  [NoticeType.POST_REVIEW_CHANGED]: messageShieldIcon,
+  [NoticeType.COMMENT_REVIEW_CHANGED]: messageShieldIcon,
+  [NoticeType.PROFILE_REVIEW_CHANGED]: messageShieldIcon,
 }
 export default defineComponent({
   name: 'MessageNotices',
@@ -65,9 +68,9 @@ export default defineComponent({
             ? authHeartIcon
             : props.group === 'GROWTH'
               ? navGrowthIcon
-            : props.group === 'POST'
-              ? navMessageIcon
-              : messageShieldIcon,
+              : props.group === 'POST'
+                ? navMessageIcon
+                : messageShieldIcon,
     )
     function open(item) {
       const notice = item.notice

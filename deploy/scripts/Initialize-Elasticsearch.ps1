@@ -25,7 +25,7 @@ for ($attempt = 0; $attempt -lt 90; $attempt++) {
     try { $null = Invoke-RestMethod -Uri "$base/_cluster/health?wait_for_status=yellow" -Headers $headers -TimeoutSec 3; $ready = $true; break } catch { Start-Sleep -Seconds 1 }
 }
 if (-not $ready) { throw 'Elasticsearch readiness timeout.' }
-$role = @{ cluster = @(); indices = @(@{ names = @('meng_post_*', 'meng_post'); privileges = @('read', 'write', 'manage') }) } | ConvertTo-Json -Depth 6
+$role = @{ cluster = @(); indices = @(@{ names = @('meng_post_*', 'meng_post', 'meng_vector_post*'); privileges = @('read', 'write', 'manage') }) } | ConvertTo-Json -Depth 6
 $null = Invoke-RestMethod -Method Put -Uri "$base/_security/role/meng_content" -Headers $headers -ContentType 'application/json' -Body $role
 $account = @{ password = $env:MENG_ES_CONTENT_PASSWORD; roles = @('meng_content') } | ConvertTo-Json
 $null = Invoke-RestMethod -Method Put -Uri "$base/_security/user/meng_content_app" -Headers $headers -ContentType 'application/json' -Body $account

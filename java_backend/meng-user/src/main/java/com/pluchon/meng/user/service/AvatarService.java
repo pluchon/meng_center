@@ -27,6 +27,9 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class AvatarService {
 
+    @Autowired
+    private ProfileModerationService moderation;
+
     @Value("${meng.user.avatar-root}")
     private String directory;
 
@@ -45,18 +48,16 @@ public class AvatarService {
     }
 
     private Path path(String name) {
-        if (
-            name == null || !name.matches("[a-f0-9-]{36}\\.webp")
-        ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        if (name == null || !name.matches("[a-f0-9-]{36}\\.webp")) throw new BusinessException(
+            CommonErrorCode.NOT_FOUND
+        );
         return root.resolve(name);
     }
 
     public Resource read(String name) {
         UserContext.require();
         Path file = path(name);
-        if (!Files.isRegularFile(file)) throw new BusinessException(
-            CommonErrorCode.NOT_FOUND
-        );
+        if (!Files.isRegularFile(file)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         return new FileSystemResource(file);
     }
 
@@ -71,17 +72,14 @@ public class AvatarService {
 
     @Transactional(rollbackFor = Exception.class)
     public String upload(MultipartFile file) throws IOException {
-        if (
-            file.isEmpty() || file.getSize() > 2 * 1024 * 1024
-        ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        if (file.isEmpty() || file.getSize() > 2 * 1024 * 1024) throw new BusinessException(
+            CommonErrorCode.INVALID_ARGUMENT
+        );
         byte[] bytes = file.getBytes();
         boolean allowed =
             bytes.length >= 12 &&
             (((bytes[0] & 255) == 255 && (bytes[1] & 255) == 216) ||
-                (bytes[0] == (byte) 137 &&
-                    bytes[1] == 80 &&
-                    bytes[2] == 78 &&
-                    bytes[3] == 71) ||
+                (bytes[0] == (byte) 137 && bytes[1] == 80 && bytes[2] == 78 && bytes[3] == 71) ||
                 (bytes[0] == 82 &&
                     bytes[1] == 73 &&
                     bytes[2] == 70 &&
@@ -90,27 +88,19 @@ public class AvatarService {
                     bytes[9] == 69 &&
                     bytes[10] == 66 &&
                     bytes[11] == 80));
-        if (!allowed) throw new BusinessException(
-            CommonErrorCode.INVALID_ARGUMENT
-        );
+        if (!allowed) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         BufferedImage source;
-        try (
-            var input = ImageIO.createImageInputStream(
-                new ByteArrayInputStream(bytes)
-            )
-        ) {
+        try (var input = ImageIO.createImageInputStream(new ByteArrayInputStream(bytes))) {
             var readers = ImageIO.getImageReaders(input);
-            if (!readers.hasNext()) throw new BusinessException(
-                CommonErrorCode.INVALID_ARGUMENT
-            );
+            if (!readers.hasNext()) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
             var reader = readers.next();
             try {
                 reader.setInput(input);
                 int w = reader.getWidth(0),
                     h = reader.getHeight(0);
-                if (
-                    w <= 0 || h <= 0 || (long) w * h > 40_000_000
-                ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+                if (w <= 0 || h <= 0 || (long) w * h > 40_000_000) throw new BusinessException(
+                    CommonErrorCode.INVALID_ARGUMENT
+                );
                 var parameters = reader.getDefaultReadParam();
                 int sample = Math.max(1, Math.min(w, h) / 512);
                 parameters.setSourceSubsampling(sample, sample, 0, 0);
@@ -121,9 +111,7 @@ public class AvatarService {
         } catch (IOException | RuntimeException invalid) {
             throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         }
-        var user = authorization.requireActive(
-            users.lockById(UserContext.require().userId())
-        );
+        var user = authorization.requireActive(users.lockById(UserContext.require().userId()));
         var avatar = new BufferedImage(256, 256, BufferedImage.TYPE_INT_ARGB);
         var g = avatar.createGraphics();
         int edge = Math.min(source.getWidth(), source.getHeight()),
@@ -141,9 +129,9 @@ public class AvatarService {
         String name = UUID.randomUUID() + ".webp",
             old = user.getAvatar();
         try {
-            if (
-                !ImageIO.write(avatar, "webp", path(name).toFile())
-            ) throw new IOException("WebP encoder unavailable");
+            if (!ImageIO.write(avatar, "webp", path(name).toFile())) throw new IOException(
+                "WebP encoder unavailable"
+            );
         } catch (IOException | RuntimeException error) {
             remove(name);
             throw error;
@@ -152,13 +140,15 @@ public class AvatarService {
             new TransactionSynchronization() {
                 @Override
                 public void afterCompletion(int status) {
-                    if (status == STATUS_COMMITTED) remove(old);
-                    else remove(name);
+                    if (status == STATUS_COMMITTED) {
+                        if (!moderation.retainAvatar(old)) remove(old);
+                    } else remove(name);
                 }
             }
         );
         user.setAvatar(name);
         users.updateById(user);
+        moderation.updated(user, true);
         return "/user/avatars/" + name;
     }
 }

@@ -12,6 +12,13 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public final class InternalUserController implements UserQueryContract {
 
+    @org.springframework.web.bind.annotation.GetMapping("/user/internal/users/{id}/followees")
+    public ApiResponse<List<Long>> followees(
+        @org.springframework.web.bind.annotation.PathVariable long id
+    ) {
+        return ApiResponse.success(users.followees(id));
+    }
+
     @Autowired
     private UserQueryService users;
 

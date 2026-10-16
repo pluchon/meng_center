@@ -1,4 +1,13 @@
-import { computed, defineComponent, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  defineAsyncComponent,
+  computed,
+  defineComponent,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -35,6 +44,7 @@ import GradientWaves from '@/components/gradient-waves/GradientWaves.vue'
 export default defineComponent({
   name: 'GrowthView',
   components: {
+    AiAssistant: defineAsyncComponent(() => import('@/components/ai-assistant/AiAssistant.vue')),
     CommunityLayout,
     PageState,
     GrowthPanel,
@@ -46,6 +56,7 @@ export default defineComponent({
     GradientWaves,
   },
   setup() {
+    const aiOpen = ref(false)
     const { t } = useI18n(),
       growth = useGrowthStore(),
       user = useUserStore(),
@@ -248,6 +259,7 @@ export default defineComponent({
       )
     }
     return {
+      aiOpen,
       t,
       growth,
       user,
@@ -306,7 +318,6 @@ export default defineComponent({
       retryOverview: overview.load,
       retrySeven: seven.load,
       retryStats: () => visibleStats.value.load(),
-      unavailable: () => ElMessage.info(t('home.unavailable')),
     }
   },
 })

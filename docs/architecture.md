@@ -32,7 +32,7 @@
 | 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
-| 模型 | 阿里云 DashScope 的 Qwen 与 text-embedding-v4 | 走 OpenAI 兼容接口，型号靠配置切换，见 [ai.md](ai.md) |
+| 模型 | DashScope：Qwen3.8 Flash、Qwen3.7 Embedding Flash、Qwen Image 3.0 标准版 | 文本与向量走 OpenAI 兼容接口，千问同步生图；型号靠配置切换，见 [ai.md](ai.md) |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 

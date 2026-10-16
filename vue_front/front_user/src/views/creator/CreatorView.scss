@@ -496,6 +496,62 @@ h2 span:first-child {
   transition: width 420ms var(--meng-slide-ease);
 }
 
+// 右上角两枚贴纸并排：创作复盘是淡紫色，歪向另一边；写新帖是金黄色
+.content-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+// 创作复盘：魔杖悬停时晃一下，和写新帖是一对，颜色和倾斜方向都相反
+.creator-review {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 46px;
+  margin: 0 0 5px;
+  padding: 0 22px 0 16px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-game);
+  box-shadow: 0 5px 0 var(--meng-creator-purple);
+  color: var(--meng-creator-purple-text);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  rotate: -2deg;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+
+  img {
+    width: 22px;
+    height: 22px;
+  }
+
+  &:hover {
+    box-shadow: 0 7px 0 var(--meng-creator-purple);
+    rotate: 0deg;
+    translate: 0 -2px;
+
+    img {
+      animation: new-wiggle 480ms ease-in-out;
+    }
+  }
+
+  &:active {
+    box-shadow: 0 2px 0 var(--meng-creator-purple);
+    translate: 0 3px;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--meng-primary);
+    outline-offset: 3px;
+  }
+}
+
 // 写新帖是页面里最显眼的贴纸：金黄色，铅笔悬停时晃一下，角上一颗闪烁的星
 .creator-new {
   position: relative;
@@ -707,7 +763,7 @@ h2 span:first-child {
     padding: 0 14px;
   }
 
-  .creator-new {
+  .content-actions {
     margin-left: auto;
   }
 
@@ -725,7 +781,8 @@ h2 span:first-child {
   .metric-sparkle,
   .metric:hover .metric-icon,
   .creator-new::after,
-  .creator-new:hover svg {
+  .creator-new:hover svg,
+  .creator-review:hover img {
     animation: none;
   }
 
@@ -734,7 +791,8 @@ h2 span:first-child {
   .trend-range button,
   .trend-panel .creator-chart,
   .content-tabs button,
-  .creator-new {
+  .creator-new,
+  .creator-review {
     transition: none;
   }
 
@@ -743,3 +801,4 @@ h2 span:first-child {
     transform: none;
   }
 }
+

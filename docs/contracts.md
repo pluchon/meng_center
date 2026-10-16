@@ -29,13 +29,13 @@
 |---|---|---|---|
 | `user.approved` | user | userId | im：欢迎通知 |
 | `user.followed` | user | followerId、followeeId | im：通知被关注的人（系统频道的「关注」分类）；只在新增关注时发，取消不发 |
-| `user.profile-updated` | user | userId、version、nickname、signature、avatarThumb（换了头像时才有） | ai：资料审核 |
-| `user.profile-moderated` | ai | userId、version、modelVersion、verdict、labels、reason | user：记录结论，按开关处理 |
+| `user.profile-updated` | user | userId、version、nickname、signature、avatarChanged、avatarThumb（更换或尚无审核结果时才有） | ai：资料审核 |
+| `user.profile-moderated` | ai | userId、version、modelVersion、verdict、labels、reason、avatarChanged、imageReviews | user：记录结论，按开关处理；沿用未变化头像的逐图结论 |
 | `user.profile-review-changed` | user | userId、clearedFields、labels | im：通知本人（系统频道的「审核」分类） |
-| `post.published` | content | postId、authorId、version、category、title、plainText、tags、imageThumbs | growth：加经验；ai：分析帖子 |
+| `post.published` | content | postId、authorId、version、category、title、plainText、tags、imageThumbs、imagesChanged | growth：加经验；ai：分析帖子 |
 | `post.updated` | content | 同 `post.published` | ai：重新分析 |
 | `post.analysis-requested` | content | 同 `post.published` | ai：全量重建或换模型时重新分析，由管理员触发 |
-| `post.analyzed` | ai | postId、version、modelVersion、topics、keywords、quality、verdict、labels、reason、embedding、analyzeState | content：写特征、写向量索引、按审核结论处理 |
+| `post.analyzed` | ai | postId、version、modelVersion、topics、keywords、quality、verdict、labels、reason、embedding、analyzeState、imagesChanged、imageReviews | content：写特征、逐图结论和向量索引，按审核开关处理 |
 | `post.review-changed` | content | postId、postTitle、authorId、reviewState、labels | im：通知作者（系统频道的「审核」分类） |
 | `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId、parentCommentId、excerpt、originalExcerpt、mentionedUserIds、content、imageThumbs | im：通知被评论或被回复的人，以及被 @ 到的人；growth：加经验；ai：审核 |
 | `comment.moderated` | ai | commentId、modelVersion、verdict、labels、reason | content：记录结论，按审核开关处理 |
@@ -49,11 +49,12 @@
 
 说明：
 
-- 没有「用户资料变更」事件。昵称和头像走批量内部接口现查，没有消费者就不留事件。
+- 公开资料展示仍走批量内部接口现查；`user.profile-updated` 只供 AI 审核，不用它同步其他域的资料副本。
 - 签到不是事件，它是 growth 自己的写接口。
 - 取消喜欢、取消收藏不发事件，已经发出的通知不撤回。
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
 - growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
+- AI 请求、审核通知使用 content / user 本域的事务 outbox，broker confirm 后标记已发送；AI 结果持久发布成功后才确认输入。结果重复投递由 eventId 或用户资料版本去重，迟到的旧内容版本丢弃。重试、死信与每日 token 预算延迟见 [ai.md](ai.md) 第 4.3 节。
 - 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。举报处理和中奖事件仍等待对应业务落地。
 
 ## 2. 内部接口

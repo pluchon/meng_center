@@ -6,15 +6,15 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import lombok.Data;
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
 // 帖子配图持久化实体
 @Data
 @TableName("post_image")
 public class PostImageEntity {
+
+    private Boolean aiGenerated = false;
 
     // 记录主键
     @TableId(type = IdType.AUTO)
@@ -53,5 +53,6 @@ public class PostImageEntity {
     private LocalDateTime updateTime;
 
     // 逻辑删除标记
-    @TableLogic private Integer deleteState;
+    @TableLogic
+    private Integer deleteState;
 }

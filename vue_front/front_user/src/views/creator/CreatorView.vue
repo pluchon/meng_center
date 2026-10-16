@@ -186,12 +186,25 @@
               ><b>{{ drafts.data.length }}</b><i>{{ t('creator.draftMax',{max:Creator.DRAFT_MAX}) }}</i></span>
             </button>
           </div>
-          <router-link
-            class="creator-new"
-            :to="{name:RouteName.POST_NEW}"
-          >
-            <IconPencil :size="18" />{{ t('creator.newPost') }}
-          </router-link>
+          <div class="content-actions">
+            <button
+              type="button"
+              class="creator-review"
+              @click="aiOpen=true"
+            >
+              <img
+                :src="editorMagicIcon"
+                alt=""
+                aria-hidden="true"
+              >{{ t('ai.creator') }}
+            </button>
+            <router-link
+              class="creator-new"
+              :to="{name:RouteName.POST_NEW}"
+            >
+              <IconPencil :size="18" />{{ t('creator.newPost') }}
+            </router-link>
+          </div>
         </header>
         <div
           v-if="tab===CreatorTab.PUBLISHED"
@@ -272,6 +285,11 @@
         </div>
       </section>
     </section>
+    <AiAssistant
+      v-if="aiOpen"
+      v-model:open="aiOpen"
+      mode="creator"
+    />
   </CommunityLayout>
 </template>
 <script src="./CreatorView.js"></script>

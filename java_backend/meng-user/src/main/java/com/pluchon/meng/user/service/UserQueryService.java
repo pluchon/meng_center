@@ -20,6 +20,17 @@ import org.springframework.stereotype.Service;
 public final class UserQueryService {
 
     @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+
+    public List<Long> followees(long id) {
+        return jdbc.queryForList(
+            "SELECT f.followee_id FROM user_follow f JOIN user u ON u.id=f.followee_id WHERE f.follower_id=? AND f.delete_state=0 AND u.status='NORMAL' AND u.delete_state=0 ORDER BY f.id DESC LIMIT 500",
+            Long.class,
+            id
+        );
+    }
+
+    @Autowired
     private UserMapper mapper;
 
     @Autowired
@@ -34,11 +45,7 @@ public final class UserQueryService {
     }
 
     // 审核列表，只列普通用户，新申请在前；分页和排序都由数据库完成
-    public PageResult<UserVO> registrations(
-        long page,
-        long size,
-        UserStatus status
-    ) {
+    public PageResult<UserVO> registrations(long page, long size, UserStatus status) {
         authorization.requireAdmin();
         Page<UserEntity> result = mapper.selectPage(
             new Page<>(page, size),

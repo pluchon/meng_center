@@ -63,7 +63,7 @@
         aria-hidden="true"
       />
       <button
-        v-for="sort in PostSort"
+        v-for="sort in sorts"
         :key="sort"
         type="button"
         :class="['sort-'+sort.toLowerCase(),{selected:sortValue===sort}]"

@@ -1,6 +1,8 @@
 import request from './request'
 const Root = '/user'
 export const userApi = Object.freeze({
+  profileReview: (config = {}) =>
+    request.get(Root + '/me/profile-review', { silent: true, ...config }),
   me: (silent = false, config = {}) => request.get(Root + '/me', { ...config, silent }),
   login: (data) => request.post(Root + '/sessions', data, { loginRequest: true }),
   logout: () => request.delete(Root + '/sessions/current'),

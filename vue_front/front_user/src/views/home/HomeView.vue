@@ -125,8 +125,10 @@
                 size="tall"
                 :text="t('home.empty')"
               />
-              <div
+              <TransitionGroup
                 v-else
+                name="post-dismiss"
+                tag="div"
                 class="post-list"
               >
                 <PostCard
@@ -134,8 +136,9 @@
                   :key="post.id"
                   :post="post"
                   @change="change"
+                  @dismiss="id=>{records=records.filter(post=>post.id!==id);total=Math.max(0,total-1)}"
                 />
-              </div>
+              </TransitionGroup>
             </div>
           </Transition>
           <FeedPagination

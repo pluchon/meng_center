@@ -202,7 +202,7 @@
                 </div><button
                   type="button"
                   class="ai-tool"
-                  @click="unavailable"
+                  @click="openInspiration"
                 >
                   <img
                     :src="icons.magic"
@@ -426,14 +426,16 @@
                 </h2><button
                   type="button"
                   class="ai-tool"
-                  @click="unavailable"
+                  :disabled="aiPending.covers"
+                  :aria-busy="aiPending.covers"
+                  @click="generateAi('covers')"
                 >
                   <img
                     :src="icons.magic"
                     class="ai-icon"
                     alt=""
                     aria-hidden="true"
-                  >{{ t('editor.generateCover') }}
+                  >{{ t(aiPending.covers?'ai.coverLoading':'editor.generateCover') }}
                 </button>
               </div><div class="cover-box">
                 <button
@@ -460,7 +462,16 @@
                       aria-hidden="true"
                     >{{ t('editor.coverPlaceholder') }}</span>
                   </template>
-                </button><button
+                </button><Transition name="cover-making">
+                  <div
+                    v-if="aiPending.covers"
+                    class="cover-making"
+                    role="status"
+                    :aria-label="t('ai.coverLoading')"
+                  >
+                    <GlowRing />
+                  </div>
+                </Transition><button
                   v-if="cover"
                   type="button"
                   class="remove-image"
@@ -492,6 +503,7 @@
               >
             </section>
             <section class="tags-panel editor-panel">
+              <GlowRing v-if="aiPending.tags" />
               <div class="panel-heading">
                 <h2>
                   <img
@@ -503,14 +515,16 @@
                 </h2><button
                   type="button"
                   class="ai-tool"
-                  @click="unavailable"
+                  :disabled="aiPending.tags"
+                  :aria-busy="aiPending.tags"
+                  @click="generateAi('tags')"
                 >
                   <img
                     :src="icons.magic"
                     class="ai-icon"
                     alt=""
                     aria-hidden="true"
-                  >{{ t('editor.pickTags') }}
+                  >{{ t(aiPending.tags?'ai.tagsLoading':'editor.pickTags') }}
                 </button>
               </div><TransitionGroup
                 name="tag-chip"
@@ -584,17 +598,31 @@
                 </div>
               </el-popover><div
                 class="tag-recommendations"
-                aria-hidden="true"
+                :aria-busy="aiPending.tags"
               >
+                <button
+                  v-for="(tag,index) in visibleAiTags"
+                  :key="tag.name"
+                  type="button"
+                  :style="{'--tag-order':index}"
+                  :disabled="form.tags.includes(tag.name)||form.tags.length>=PostEditor.TAG_MAX"
+                  @click="addTag(tag.name)"
+                >
+                  <img
+                    :src="icons.magic"
+                    class="ai-icon"
+                    alt=""
+                  >{{ tag.name }}
+                </button>
                 <span
-                  v-for="slot in 3"
+                  v-for="slot in Math.max(0,3-visibleAiTags.length)"
                   :key="slot"
+                  :class="{pending:aiPending.tags}"
                 ><img
                   :src="icons.magic"
                   class="ai-icon"
                   alt=""
-                  aria-hidden="true"
-                >{{ t('editor.recommendedTagPlaceholder') }}</span>
+                >{{ t(aiPending.tags?'ai.tagsLoading':'editor.recommendedTagPlaceholder') }}</span>
               </div>
             </section>
           </aside>
@@ -627,7 +655,13 @@
           </el-button>
         </footer>
       </fieldset>
-    </form>
+    </form><AiAssistant
+      v-if="aiOpen"
+      v-model:open="aiOpen"
+      mode="inspirations"
+      :draft="aiDraft"
+      @insert="insertInspiration"
+    />
   </main>
 </template>
 <script src="./PostEditorView.js"></script>

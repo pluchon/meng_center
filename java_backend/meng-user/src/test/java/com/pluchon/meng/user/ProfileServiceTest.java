@@ -1,7 +1,13 @@
 package com.pluchon.meng.user;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.web.context.RequestIdentity;
@@ -15,33 +21,42 @@ import com.pluchon.meng.user.mapper.UserMapper;
 import com.pluchon.meng.user.service.ContactChangeNotification;
 import com.pluchon.meng.user.service.ProfileService;
 import com.pluchon.meng.user.service.error.UserErrorCode;
-import com.pluchon.meng.user.service.security.*;
-import java.time.*;
+import com.pluchon.meng.user.service.security.AuthorizationService;
+import com.pluchon.meng.user.service.security.ContactService;
+import com.pluchon.meng.user.service.security.PasswordService;
+import com.pluchon.meng.user.service.security.RateLimitService;
+import com.pluchon.meng.user.service.security.VerificationCodeService;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class ProfileServiceTest {
 
     private final UserMapper users = mock(UserMapper.class);
-    private final AuthorizationService authorization = mock(
-        AuthorizationService.class
-    );
+    private final AuthorizationService authorization = mock(AuthorizationService.class);
     private final PasswordService passwords = mock(PasswordService.class);
     private final RateLimitService limits = mock(RateLimitService.class);
     private final ContactService contacts = mock(ContactService.class);
-    private final VerificationCodeService codes = mock(
-        VerificationCodeService.class
-    );
-    private final ContactChangeNotification notifications = mock(
-        ContactChangeNotification.class
-    );
+    private final VerificationCodeService codes = mock(VerificationCodeService.class);
+    private final ContactChangeNotification notifications = mock(ContactChangeNotification.class);
     private final ProfileService service = new ProfileService();
+
+    {
+        ReflectionTestUtils.setField(
+            service,
+            "moderation",
+            mock(com.pluchon.meng.user.service.ProfileModerationService.class)
+        );
+    }
+
     private final UserEntity user = new UserEntity();
-    private final Clock clock = Clock.fixed(
-        Instant.parse("2026-10-13T04:00:00Z"),
-        ZoneOffset.UTC
-    );
+    private final Clock clock = Clock.fixed(Instant.parse("2026-10-13T04:00:00Z"), ZoneOffset.UTC);
     private final ContactChangeDTO change = new ContactChangeDTO(
         "new@example.invalid",
         null,
@@ -83,9 +98,7 @@ class ProfileServiceTest {
             clock,
             "notifications",
             notifications
-        ).forEach((name, value) ->
-            ReflectionTestUtils.setField(service, name, value)
-        );
+        ).forEach((name, value) -> ReflectionTestUtils.setField(service, name, value));
     }
 
     @AfterEach
@@ -126,14 +139,7 @@ class ProfileServiceTest {
     void wrongCurrentPasswordCountsAsLoginFailureAndDoesNotConsumeCode() {
         var error = assertThrows(BusinessException.class, () ->
             service.contact(
-                new ContactChangeDTO(
-                    change.email(),
-                    null,
-                    null,
-                    null,
-                    "123456",
-                    "wrong"
-                ),
+                new ContactChangeDTO(change.email(), null, null, null, "123456", "wrong"),
                 true
             )
         );
@@ -145,20 +151,10 @@ class ProfileServiceTest {
 
     @Test
     void contactChangeUsesDedicatedCodeAndPreservesOtherContact() {
-        var contact = new ContactService.Contact(
-            ContactChannel.EMAIL,
-            "new-hash",
-            "new-cipher"
-        );
-        when(contacts.normalize(change.email(), null, null)).thenReturn(
-            contact
-        );
+        var contact = new ContactService.Contact(ContactChannel.EMAIL, "new-hash", "new-cipher");
+        when(contacts.normalize(change.email(), null, null)).thenReturn(contact);
         service.contact(change, true);
-        verify(codes).consume(
-            contact,
-            "123456",
-            VerificationPurpose.CONTACT_CHANGE
-        );
+        verify(codes).consume(contact, "123456", VerificationPurpose.CONTACT_CHANGE);
         assertEquals("phone-cipher", user.getPhoneCipher());
         assertEquals("phone-hash", user.getPhoneHash());
         verify(notifications).changed("old-cipher");
@@ -172,9 +168,7 @@ class ProfileServiceTest {
             "old-hash",
             "new-random-cipher"
         );
-        when(contacts.normalize(change.email(), null, null)).thenReturn(
-            contact
-        );
+        when(contacts.normalize(change.email(), null, null)).thenReturn(contact);
         service.contact(change, true);
         verifyNoInteractions(notifications);
     }

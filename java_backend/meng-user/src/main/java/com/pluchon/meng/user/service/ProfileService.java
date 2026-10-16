@@ -11,7 +11,12 @@ import com.pluchon.meng.user.entity.enums.ContactChannel;
 import com.pluchon.meng.user.entity.enums.VerificationPurpose;
 import com.pluchon.meng.user.mapper.UserMapper;
 import com.pluchon.meng.user.service.error.UserErrorCode;
-import com.pluchon.meng.user.service.security.*;
+import com.pluchon.meng.user.service.security.AuthorizationService;
+import com.pluchon.meng.user.service.security.ContactService;
+import com.pluchon.meng.user.service.security.PasswordService;
+import com.pluchon.meng.user.service.security.RateLimitService;
+import com.pluchon.meng.user.service.security.UsernamePolicy;
+import com.pluchon.meng.user.service.security.VerificationCodeService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -22,6 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ProfileService {
+
+    @Autowired
+    private ProfileModerationService moderation;
 
     @Autowired
     private UserMapper users;
@@ -62,20 +70,14 @@ public class ProfileService {
             dto.bio().contains("\n") ||
             dto.bio().contains("\r")
         ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-        LocalDateTime now = LocalDateTime.ofInstant(
-            clock.instant(),
-            ZoneId.of("Asia/Taipei")
-        );
+        LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), ZoneId.of("Asia/Taipei"));
         if (!name.equals(user.getUsername())) {
             if (
                 user.getUsernameUpdateTime() != null &&
                 user.getUsernameUpdateTime().plusDays(30).isAfter(now)
             ) throw new BusinessException(
                 UserErrorCode.USERNAME_COOLDOWN,
-                java.util.Map.of(
-                    "availableAt",
-                    user.getUsernameUpdateTime().plusDays(30)
-                )
+                java.util.Map.of("availableAt", user.getUsernameUpdateTime().plusDays(30))
             );
             user.setUsername(name);
             user.setUsernameUpdateTime(now);
@@ -84,6 +86,7 @@ public class ProfileService {
         user.setBio(bio);
         try {
             users.updateById(user);
+            moderation.updated(user, false);
         } catch (DuplicateKeyException duplicate) {
             throw new BusinessException(UserErrorCode.USERNAME_TAKEN);
         }
@@ -116,9 +119,7 @@ public class ProfileService {
             .ne(UserEntity::getId, user.getId())
             .eq(email, UserEntity::getEmailHash, contact.hash())
             .eq(!email, UserEntity::getPhoneHash, contact.hash());
-        if (users.exists(query)) throw new BusinessException(
-            UserErrorCode.CONTACT_TAKEN
-        );
+        if (users.exists(query)) throw new BusinessException(UserErrorCode.CONTACT_TAKEN);
         String old = email ? user.getEmailCipher() : null;
         String oldHash = email ? user.getEmailHash() : null;
         if (email) {
@@ -133,8 +134,6 @@ public class ProfileService {
         } catch (DuplicateKeyException duplicate) {
             throw new BusinessException(UserErrorCode.CONTACT_TAKEN);
         }
-        if (
-            old != null && !contact.hash().equals(oldHash)
-        ) notifications.changed(old);
+        if (old != null && !contact.hash().equals(oldHash)) notifications.changed(old);
     }
 }

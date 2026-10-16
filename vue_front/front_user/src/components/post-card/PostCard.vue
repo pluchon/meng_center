@@ -23,6 +23,10 @@
       </div>
     </div>
     <div class="post-title">
+      <span
+        v-if="post.reviewState==='IN_REVIEW'"
+        class="recommend-reason"
+      >{{ t('ai.review') }}</span>
       <router-link
         :to="detailLink"
       >
@@ -101,6 +105,14 @@
       >
         <el-icon><CollectionTag /></el-icon>{{ post.favoriteCount }}
       </button><span
+        v-if="post.reason"
+        class="recommend-meta"
+      ><span class="recommend-reason">{{ t('ai.reasons.'+post.reason.type,post.reason) }}</span><button
+        type="button"
+        class="recommend-dismiss"
+        :disabled="pending.dismiss"
+        @click.stop="dismiss"
+      >{{ t('ai.feedback') }}</button></span><span
         class="post-type category-badge"
         :class="'category-'+post.category.toLowerCase()"
       >{{ t('home.categories.'+post.category) }}</span>

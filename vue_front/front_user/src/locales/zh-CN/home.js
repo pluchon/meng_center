@@ -30,7 +30,7 @@ export default {
   searchPlaceholder: '搜你想搜',
   all: '综合',
   categories: { ANIME: '追番', CREATION: '创作', GAME: '游戏', TECH: '技术', DAILY: '日常' },
-  sort: { LATEST: '最新', HOT: '热门' },
+  sort: { RECOMMEND: '推荐', LATEST: '最新', HOT: '热门', RELEVANT: '相关' },
   empty: '这里还空空的',
   authorFallback: '部落成员',
   level: 'Lv.{level}',

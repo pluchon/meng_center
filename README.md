@@ -9,6 +9,7 @@ meng_center/
 ├── docs/            文档
 ├── deploy/          Docker 中间件、Nacos 配置及启动脚本
 ├── java_backend/    Java 后端（Spring Boot 4 微服务）
+├── python_ai/       Python AI 计算服务（FastAPI、LangChain / LangGraph）
 ├── vue_front/       两个独立 Vue 3 前端
 └── verification/    隔离联调、压测和浏览器验证
 ```

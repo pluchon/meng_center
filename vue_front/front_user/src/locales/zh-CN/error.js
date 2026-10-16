@@ -1,4 +1,6 @@
 export default {
+  AI_UNAVAILABLE: 'AI 暂时没空，稍后再试试吧',
+  AI_CONTENT_REJECTED: '这份内容暂时无法生成封面，请调整描述',
   USER_USERNAME_COOLDOWN: '用户名每 30 天只能修改一次',
   USER_PASSWORD_WRONG: '当前密码不正确',
   CONTENT_FOLDER_LIMIT: '最多只能创建 20 个收藏夹',

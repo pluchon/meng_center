@@ -1,7 +1,7 @@
 import { computed, defineComponent, onUnmounted, ref } from 'vue'
 import { useSlider } from '@/composables/useSlider'
 import { useI18n } from 'vue-i18n'
-import { Categories, PostCategory, PostSort } from '@/constants/content'
+import { Categories, PostCategory, PostSort, FeedSorts } from '@/constants/content'
 import {
   categoryAllIcon,
   categoryAnimeIcon,
@@ -20,7 +20,11 @@ const categoryIcons = Object.freeze({
 })
 export default defineComponent({
   name: 'FeedFilters',
-  props: { category: { type: String, default: undefined }, sort: { type: String, required: true } },
+  props: {
+    category: { type: String, default: undefined },
+    sort: { type: String, required: true },
+    sorts: { type: Array, default: () => FeedSorts },
+  },
   emits: ['change'],
   setup(props, { emit }) {
     const categoryFilters = ref(null),

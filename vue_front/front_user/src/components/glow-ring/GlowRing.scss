@@ -1,0 +1,120 @@
+// 光弧的角度由动画驱动；要能继承，里面几层才读得到
+@property --ring-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
+$arc: conic-gradient(
+  from var(--ring-angle) at 50% 50%,
+  transparent 0deg,
+  var(--meng-creator-purple) 25deg,
+  var(--meng-category-anime) 65deg,
+  var(--meng-creator-pink) 100deg,
+  var(--meng-category-daily) 135deg,
+  transparent 175deg
+);
+
+.glow-ring {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  border-radius: inherit;
+  pointer-events: none;
+  animation:
+    ring-turn 3s linear infinite,
+    ring-in 0.4s ease both;
+}
+
+.ring-fog,
+.ring-halo,
+.ring-rim,
+.ring-band {
+  position: absolute;
+  border-radius: inherit;
+}
+
+// 模糊加在外层，内层先用遮罩切出沿边的一圈，再整体模糊，光带的边界才会化开
+.ring-fog,
+.ring-halo {
+  inset: 0;
+}
+
+// 远处的薄雾，范围大、很淡，缓慢呼吸
+.ring-fog {
+  filter: blur(12px);
+  animation: ring-breathe 2.4s ease-in-out infinite;
+}
+
+.ring-halo {
+  filter: blur(5px);
+}
+
+// 以卡片边缘为中线、向内外各伸出 --band 的一圈光带
+.ring-band {
+  --band: 5px;
+
+  inset: calc(var(--band) * -1);
+  padding: calc(var(--band) * 2);
+  border-radius: calc(var(--glow-radius, 20px) + var(--band));
+  background: $arc;
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+}
+
+.ring-band-wide {
+  --band: 9px;
+
+  opacity: 0.6;
+}
+
+// 边缘上一条细亮线，底下垫一圈淡淡的底边，光弧没转到的地方也看得见边框
+.ring-rim {
+  inset: 0;
+  padding: 2px;
+  background:
+    $arc,
+    linear-gradient(color-mix(in srgb, var(--meng-border) 70%, transparent) 0 0);
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+}
+
+@keyframes ring-turn {
+  to {
+    --ring-angle: 360deg;
+  }
+}
+
+@keyframes ring-breathe {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ring-in {
+  from {
+    opacity: 0;
+  }
+}
+
+// 减少动态效果时光弧停住，不转也不呼吸
+@media (prefers-reduced-motion: reduce) {
+  .glow-ring {
+    --ring-angle: 40deg;
+
+    animation: none;
+  }
+
+  .ring-fog {
+    animation: none;
+  }
+}

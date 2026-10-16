@@ -369,11 +369,15 @@ h1 span {
 }
 
 .feed-swap-enter-active {
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
 }
 
 .feed-swap-leave-active {
-  transition: opacity 140ms ease, transform 140ms ease;
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease;
   pointer-events: none;
 }
 
@@ -402,6 +406,23 @@ h1 span {
 .feed-empty {
   border-radius: var(--meng-radius-card);
   background: var(--meng-surface);
+}
+
+.post-dismiss-leave-active {
+  transition:
+    opacity 180ms ease,
+    transform 180ms ease;
+}
+
+.post-dismiss-leave-to {
+  opacity: 0;
+  transform: translateX(12px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .post-dismiss-leave-active {
+    transition: none;
+  }
 }
 
 @media (width <= 1100px) {

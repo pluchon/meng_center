@@ -6,7 +6,14 @@ export const PostCategory = Object.freeze({
   DAILY: 'DAILY',
 })
 export const Categories = Object.freeze(Object.values(PostCategory))
-export const PostSort = Object.freeze({ LATEST: 'LATEST', HOT: 'HOT' })
+export const PostSort = Object.freeze({
+  RECOMMEND: 'RECOMMEND',
+  LATEST: 'LATEST',
+  HOT: 'HOT',
+  RELEVANT: 'RELEVANT',
+})
+export const FeedSorts = Object.freeze([PostSort.RECOMMEND, PostSort.LATEST, PostSort.HOT])
+export const SearchSorts = Object.freeze([PostSort.RELEVANT, PostSort.LATEST, PostSort.HOT])
 export const Feed = Object.freeze({ SIZE: 10, PAGE_SLOTS: 7 })
 // 首页展示图自动翻页的间隔（毫秒）
 export const Hero = Object.freeze({ INTERVAL: 6500 })
@@ -36,7 +43,14 @@ export const RelativeTime = Object.freeze({ MINUTE_MS: 60000, HOUR_MINUTES: 60, 
 export const Search = Object.freeze({ SIZE: 5, QUERY_MAX: 50, WINDOW: 10000 })
 export const CreatorTab = Object.freeze({ PUBLISHED: 'published', DRAFTS: 'drafts' })
 export const Creator = Object.freeze({
-  SIZE: 10, DRAFT_MAX: 20, DAYS: [7, 30],
+  SIZE: 10,
+  DRAFT_MAX: 20,
+  DAYS: [7, 30],
   METRICS: ['viewCount', 'likeCount', 'commentCount', 'favoriteCount'],
 })
-export const CreatorChartType = Object.freeze({ TREND: 'trend', TOP: 'top', EXP_TREND: 'experience', EXP_SOURCES: 'sources' })
+export const CreatorChartType = Object.freeze({
+  TREND: 'trend',
+  TOP: 'top',
+  EXP_TREND: 'experience',
+  EXP_SOURCES: 'sources',
+})
