@@ -20,6 +20,7 @@ import PostCard from '@/components/post-card/PostCard.vue'
 import FeedFilters from '@/components/feed-filters/FeedFilters.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import PageState from '@/components/page-state/PageState.vue'
+import RecommendedAuthors from '@/components/recommended-authors/RecommendedAuthors.vue'
 const homeScrollbarClass = 'home-scrollbar-hidden'
 // 首页展示图，按这个顺序轮播，默认显示第一张。cover 的整幅铺满并带欢迎卡片、气泡和海浪；
 // 其余是自带文字的漫画海报，完整显示，上面不叠任何东西
@@ -43,6 +44,7 @@ export default defineComponent({
     FeedPagination,
     FeedFilters,
     PageState,
+    RecommendedAuthors,
   },
   setup() {
     const current = ref(0)

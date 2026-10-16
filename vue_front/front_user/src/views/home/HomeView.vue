@@ -97,6 +97,9 @@
           :sort="query.sort"
           @change="filter"
         />
+        <RecommendedAuthors
+          v-if="query.sort===PostSort.RECOMMEND&&query.page===1&&!query.category"
+        />
         <div
           class="feed-results-shell"
           :aria-busy="loading"

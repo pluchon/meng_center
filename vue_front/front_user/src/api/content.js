@@ -2,6 +2,8 @@ import request from './request'
 const Root = '/content'
 export const contentApi = {
   feedback: (postId) => request.post(Root + '/recommendations/feedback', { postId }),
+  authors: (params, config = {}) =>
+    request.get(Root + '/recommendations/authors', { ...config, params }),
   related: (id, params, config = {}) =>
     request.get(Root + '/posts/' + id + '/related', { ...config, params }),
   folders: (params, config = {}) => request.get(Root + '/favorite-folders', { ...config, params }),

@@ -48,11 +48,12 @@ public class RecommendationController {
         return ApiResponse.success(related.related(id, page, size));
     }
 
-    /** 读取推荐关注的作者。 */
+    /** 分页读取推荐关注的作者，一次一批，最多翻 30 位。 */
     @GetMapping("/recommendations/authors")
-    public ApiResponse<List<Map<String, Object>>> authors(
-        @RequestParam(defaultValue = "5") int size
+    public ApiResponse<PageResult<Map<String, Object>>> authors(
+        @RequestParam(defaultValue = "1") long page,
+        @RequestParam(defaultValue = "5") long size
     ) {
-        return ApiResponse.success(related.authors(size));
+        return ApiResponse.success(related.authors(page, size));
     }
 }

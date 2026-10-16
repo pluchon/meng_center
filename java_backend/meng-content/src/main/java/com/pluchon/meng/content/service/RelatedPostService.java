@@ -140,10 +140,58 @@ public class RelatedPostService {
         );
     }
 
-    // 按互动、相似内容和热度推荐未关注作者
-    public List<Map<String, Object>> authors(int size) {
+    // 一次最多备选几位作者（换一批最多翻到这里），备选清单缓存多久
+    private static final int MAX_AUTHORS = 30;
+    private static final Duration AUTHORS_TTL = Duration.ofMinutes(10);
+
+    // 分页读取推荐关注：第 1 页重新算并缓存备选清单，后面的页读缓存，换一批时不会重复；已关注的人每次都剔掉
+    public PageResult<Map<String, Object>> authors(long page, long size) {
         long user = UserContext.require().userId();
-        int limit = Math.min(10, Math.max(1, size));
+        long safeSize = Math.min(10, Math.max(1, size));
+        long safePage = Math.max(1, page);
+        String key = "content:rec:authors:" + user;
+        List<Map<String, Object>> all = null;
+        if (safePage > 1) try {
+            String cached = redis.opsForValue().get(key);
+            if (cached != null) all = json.readValue(
+                cached,
+                new tools.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}
+            );
+        } catch (RuntimeException ignored) {}
+        if (all == null) {
+            all = json.convertValue(
+                buildAuthors(user),
+                new tools.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}
+            );
+            try {
+                redis.opsForValue().set(key, json.writeValueAsString(all), AUTHORS_TTL);
+            } catch (RuntimeException ignored) {}
+        }
+        Set<Long> following;
+        try {
+            following = new HashSet<>(users.followees(user).data());
+        } catch (RuntimeException unavailable) {
+            following = Set.of();
+        }
+        final var followed = following;
+        var remaining = all
+            .stream()
+            .filter(item ->
+                !followed.contains(((Number) ((Map<?, ?>) item.get("author")).get("id")).longValue())
+            )
+            .toList();
+        int start = (int) Math.min(remaining.size(), (safePage - 1) * safeSize);
+        return new PageResult<>(
+            remaining.subList(start, (int) Math.min(remaining.size(), start + safeSize)),
+            remaining.size(),
+            safePage,
+            safeSize
+        );
+    }
+
+    // 按互动、相似内容和热度排出备选作者
+    private List<Map<String, Object>> buildAuthors(long user) {
+        int limit = MAX_AUTHORS;
         var rows = jdbc.queryForList(
             "SELECT p.author_id,COUNT(DISTINCT a.post_id) interactions FROM post p JOIN (SELECT post_id FROM post_like WHERE user_id=? AND create_time>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY) UNION ALL SELECT post_id FROM post_favorite WHERE user_id=? AND create_time>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY) UNION ALL SELECT post_id FROM comment WHERE author_id=? AND delete_state=0 AND create_time>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 DAY)) a ON a.post_id=p.id WHERE p.delete_state=0 AND p.review_state='NORMAL' AND p.author_id<>? GROUP BY p.author_id ORDER BY interactions DESC LIMIT 50",
             user,
