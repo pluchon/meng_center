@@ -316,6 +316,56 @@ kbd {
   font-weight: 700;
 }
 
+.pause-controls + .pause-heading {
+  margin-top: 18px;
+}
+
+.pause-setting {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pause-setting > span {
+  flex: none;
+  width: 3em;
+}
+
+.pause-choices {
+  display: flex;
+  gap: 6px;
+}
+
+.pause-choices button {
+  padding: 5px 14px;
+  border: 2px solid var(--meng-tint);
+  border-radius: 14px;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pause-choices button.on {
+  border-color: var(--meng-growth-gold-edge);
+  background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-growth-gold-edge);
+}
+
+.pause-choices button:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 2px;
+}
+
+.pause-volume {
+  flex: 1 1 auto;
+}
+
 .pause-actions {
   display: flex;
   justify-content: flex-end;

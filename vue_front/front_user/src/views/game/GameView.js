@@ -1,4 +1,4 @@
-import { computed, defineComponent, nextTick, onBeforeUnmount, reactive, ref } from 'vue'
+import { computed, defineComponent, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IconPlayerPause } from '@tabler/icons-vue'
 import { gameApi } from '@/api/game'
@@ -7,7 +7,6 @@ import { RouteName } from '@/router/names'
 import {
   gameBarkTexture,
   gameChestTexture,
-  gameCloudsTexture,
   gameCoinTexture,
   gameEndingArt,
   gameFaceTexture,
@@ -17,15 +16,14 @@ import {
   gameRockTexture,
   gameRoofTexture,
   gameSandTexture,
-  gameSkyTexture,
   gameStarTexture,
   gameTitleArt,
   gameWallTexture,
-  gameWaterTexture,
 } from '@/assets/images'
 import DialogShell from '@/components/dialog-shell/DialogShell.vue'
 import GameMap from '@/components/game-map/GameMap.vue'
 import GameShop from '@/components/game-shop/GameShop.vue'
+import GameStamina from '@/components/game-stamina/GameStamina.vue'
 import PageState from '@/components/page-state/PageState.vue'
 
 const TEXTURES = Object.freeze({
@@ -33,25 +31,41 @@ const TEXTURES = Object.freeze({
   sand: gameSandTexture,
   rock: gameRockTexture,
   path: gamePathTexture,
-  water: gameWaterTexture,
   leaf: gameLeafTexture,
   bark: gameBarkTexture,
   wall: gameWallTexture,
   roof: gameRoofTexture,
-  sky: gameSkyTexture,
   face: gameFaceTexture,
   coin: gameCoinTexture,
   chest: gameChestTexture,
   star: gameStarTexture,
-  clouds: gameCloudsTexture,
 })
 const TOAST_MS = 2200
-const CONTROL_KEYS = ['move', 'run', 'jump', 'look', 'interact', 'map', 'pause']
+const CONTROL_KEYS = ['move', 'run', 'jump', 'glide', 'climb', 'look', 'interact', 'map', 'pause']
+const QUALITIES = ['high', 'medium', 'low']
+// 画质和音量只是这台浏览器的偏好，存在本地
+const Saved = Object.freeze({ QUALITY: 'meng-island-quality', VOLUME: 'meng-island-volume' })
 
-// 萌岛页面：标题页、加载、HUD、商店、暂停和结局是 Vue，3D 世界在 src/game 里按需加载
+function readLocal(key, fallback) {
+  try {
+    return localStorage.getItem(key) ?? fallback
+  } catch {
+    return fallback
+  }
+}
+
+function writeLocal(key, value) {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    // 无痕模式等情况下存不了，下次用默认值
+  }
+}
+
+// 萌岛页面：标题页、加载、HUD、商店、暂停和结局是 Vue，3D 世界和声音在 src/game 里按需加载
 export default defineComponent({
   name: 'GameView',
-  components: { DialogShell, GameMap, GameShop, PageState },
+  components: { DialogShell, GameMap, GameShop, GameStamina, PageState },
   setup() {
     const { t } = useI18n()
     const canvas = ref(null)
@@ -70,8 +84,12 @@ export default defineComponent({
     const locked = ref(false)
     const mapOpen = ref(false)
     const shrine = ref({ x: 0, z: 0 })
-    // 世界对象不放进响应式
+    const quality = ref(QUALITIES.includes(readLocal(Saved.QUALITY, '')) ? readLocal(Saved.QUALITY, '') : 'medium')
+    const volume = ref(Math.min(100, Math.max(0, Number(readLocal(Saved.VOLUME, 70)) || 0)))
+    // 世界对象、声音和存档计时都不放进响应式
     let world = null
+    let audioContext = null
+    let audio = null
     let timer = 0
     let saved = null
     let toastId = 0
@@ -152,6 +170,7 @@ export default defineComponent({
       look: (value) => {
         locked.value = value
       },
+      notice: (key) => toast(t('game.notice.' + key)),
     }
 
     // 地图打开时角色停下；再按 M、Esc 或点地图关上
@@ -165,6 +184,7 @@ export default defineComponent({
       else if (event.code === 'Escape' && mapOpen.value) closeOverlay()
     }
     const locate = () => (world ? { ...world.position(), heading: world.heading() } : null)
+    const readStamina = () => (world && !paused.value && !mapOpen.value ? world.stamina() : null)
 
     function pause() {
       hold()
@@ -180,9 +200,13 @@ export default defineComponent({
     }
 
     async function enter() {
+      // 声音要在点击的当下创建，浏览器才允许出声
+      if (!audioContext && window.AudioContext) audioContext = new AudioContext()
+      audioContext?.resume()
       phase.value = GamePhase.LOADING
       error.value = null
       noWebgl.value = false
+      paused.value = false
       try {
         const [me, map] = await Promise.all([gameApi.profile({ silent: true }), gameApi.world({ silent: true })])
         Object.assign(profile, {
@@ -196,10 +220,19 @@ export default defineComponent({
         starTotal.value = map.spots.filter((s) => s.kind === SpotKind.STAR).length
         shrine.value = map.shrine
         await nextTick()
-        const { createIsland } = await import('@/game/world')
+        const [{ createIsland }, { createAudio }, { QUALITY }] = await Promise.all([
+          import('@/game/world'),
+          import('@/game/audio'),
+          import('@/game/post'),
+        ])
+        if (audioContext && !audio) {
+          audio = createAudio(audioContext)
+          audio.setVolume(volume.value / 100)
+        }
         world?.dispose()
+        world = null
         try {
-          world = await createIsland(canvas.value, { profile: me, world: map, urls: TEXTURES }, hooks)
+          world = await createIsland(canvas.value, { profile: me, world: map, urls: TEXTURES, quality: QUALITY[quality.value], audio }, hooks)
         } catch (e) {
           noWebgl.value = true
           throw e
@@ -220,6 +253,20 @@ export default defineComponent({
       }
     }
 
+    // 换画质要按新档位重建世界，先存一下当前位置
+    function changeQuality(next) {
+      if (next === quality.value) return
+      quality.value = next
+      writeLocal(Saved.QUALITY, next)
+      save(false)
+      enter()
+    }
+
+    watch(volume, (v) => {
+      audio?.setVolume(v / 100)
+      writeLocal(Saved.VOLUME, String(v))
+    })
+
     function bought({ id, coins }) {
       profile.coins = coins
       items.value = items.value.map((i) => (i.id === id ? { ...i, owned: true } : i))
@@ -238,6 +285,7 @@ export default defineComponent({
       window.removeEventListener('keydown', mapKeys)
       world?.dispose()
       world = null
+      audio?.dispose()
     })
 
     return {
@@ -258,11 +306,15 @@ export default defineComponent({
       locked,
       mapOpen,
       shrine,
+      quality,
+      volume,
       locate,
+      readStamina,
       toggleMap,
       enter,
       pause,
       closeOverlay,
+      changeQuality,
       bought,
       equipped,
       GamePhase,
@@ -270,6 +322,7 @@ export default defineComponent({
       RouteName,
       IconPlayerPause,
       controlKeys: CONTROL_KEYS,
+      qualities: QUALITIES,
       titleArt: gameTitleArt,
       endingArt: gameEndingArt,
       coinArt: gameCoinTexture,

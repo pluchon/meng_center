@@ -11,8 +11,8 @@ public record WorldVO(Point shrine, List<Spot> spots, List<Item> items) {
     // 一个水平位置
     public record Point(double x, double z) {}
 
-    // 一个点位，amount 是拿到时得多少金币
-    public record Spot(String id, SpotKind kind, double x, double z, int amount, boolean taken) {}
+    // 一个点位，amount 是拿到时得多少金币；y 是高处点位的地面高度，空表示在地面上
+    public record Spot(String id, SpotKind kind, double x, double z, Double y, int amount, boolean taken) {}
 
     // 一件商品
     public record Item(String id, ItemKind kind, int price, boolean owned) {}

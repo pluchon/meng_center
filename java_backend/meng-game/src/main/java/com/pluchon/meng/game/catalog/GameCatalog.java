@@ -95,8 +95,8 @@ public class GameCatalog {
     // 一个水平位置
     public record Point(double x, double z) {}
 
-    // 一个点位；金币点位带金额，宝箱的金币走配置，碎片不给金币
-    public record Spot(String id, SpotKind kind, double x, double z, Integer amount) {}
+    // 一个点位；金币点位带金额，宝箱的金币走配置，碎片不给金币；放在塔顶、浮空岛这些高处的点位带地面高度
+    public record Spot(String id, SpotKind kind, double x, double z, Integer amount, Double y) {}
 
     // 一件商品
     public record Item(String id, ItemKind kind, int price) {}

@@ -1,4 +1,4 @@
-// 小特效：捡到东西时冒星星，跑步和落地时扬起一点尘土
+// 小特效：捡到东西时冒星星，跑步和落地时扬起一点尘土，落水溅起水花，夜里角色周围飘萤火虫
 import { ParticleSystem } from '@babylonjs/core/Particles/particleSystem'
 import '@babylonjs/core/Particles/particleSystemComponent'
 import { RawTexture } from '@babylonjs/core/Materials/Textures/rawTexture'
@@ -92,5 +92,57 @@ export function createEffects(scene, starUrl) {
     dust.manualEmitCount = 14
   }
 
-  return { sparkle, feet, land }
+  // 落水：一次性的白色水花
+  function splash(x, y, z) {
+    const ps = new ParticleSystem('splash', 40, scene)
+    ps.particleTexture = dot
+    ps.emitter = new Vector3(x, y, z)
+    ps.minEmitBox = new Vector3(-0.4, 0, -0.4)
+    ps.maxEmitBox = new Vector3(0.4, 0.1, 0.4)
+    ps.color1 = new Color4(1, 1, 1, 0.9)
+    ps.color2 = new Color4(0.8, 0.95, 1, 0.8)
+    ps.colorDead = new Color4(1, 1, 1, 0)
+    ps.minSize = 0.2
+    ps.maxSize = 0.5
+    ps.minLifeTime = 0.4
+    ps.maxLifeTime = 0.8
+    ps.minEmitPower = 2
+    ps.maxEmitPower = 4
+    ps.direction1 = new Vector3(-1, 2.5, -1)
+    ps.direction2 = new Vector3(1, 3.5, 1)
+    ps.gravity = new Vector3(0, -9, 0)
+    ps.emitRate = 0
+    ps.manualEmitCount = 40
+    ps.targetStopDuration = 1
+    ps.disposeOnStop = true
+    ps.start()
+  }
+
+  // 萤火虫：天黑后在角色周围慢慢飘
+  const flies = new ParticleSystem('fireflies', 120, scene)
+  flies.particleTexture = dot
+  flies.emitter = new Vector3(0, -100, 0)
+  flies.minEmitBox = new Vector3(-22, 0.3, -22)
+  flies.maxEmitBox = new Vector3(22, 3, 22)
+  flies.color1 = new Color4(1, 0.95, 0.55, 1)
+  flies.color2 = new Color4(0.8, 1, 0.6, 1)
+  flies.colorDead = new Color4(1, 1, 0.6, 0)
+  flies.minSize = 0.12
+  flies.maxSize = 0.24
+  flies.minLifeTime = 3
+  flies.maxLifeTime = 6
+  flies.minEmitPower = 0.1
+  flies.maxEmitPower = 0.4
+  flies.direction1 = new Vector3(-0.5, 0.2, -0.5)
+  flies.direction2 = new Vector3(0.5, 0.5, 0.5)
+  flies.blendMode = ParticleSystem.BLENDMODE_ADD
+  flies.emitRate = 0
+  flies.start()
+
+  function night(level, x, y, z) {
+    flies.emitter.set(x, y, z)
+    flies.emitRate = level > 0.5 ? 18 * level : 0
+  }
+
+  return { dot, sparkle, feet, land, splash, night }
 }

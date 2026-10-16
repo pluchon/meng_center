@@ -113,6 +113,7 @@
           :locate="locate"
           @toggle="toggleMap"
         />
+        <GameStamina :read="readStamina" />
         <p
           v-if="prompt"
           class="hud-prompt"
@@ -170,6 +171,37 @@
           <dd>{{ t('game.controls.' + key + 'Text') }}</dd>
         </template>
       </dl>
+      <h3 class="pause-heading">
+        {{ t('game.settings.title') }}
+      </h3>
+      <div class="pause-setting">
+        <span>{{ t('game.settings.quality') }}</span>
+        <div
+          class="pause-choices"
+          role="radiogroup"
+          :aria-label="t('game.settings.quality')"
+        >
+          <button
+            v-for="q in qualities"
+            :key="q"
+            type="button"
+            role="radio"
+            :aria-checked="quality === q"
+            :class="{ on: quality === q }"
+            @click="changeQuality(q)"
+          >
+            {{ t('game.settings.' + q) }}
+          </button>
+        </div>
+      </div>
+      <div class="pause-setting">
+        <span>{{ t('game.settings.volume') }}</span>
+        <el-slider
+          v-model="volume"
+          class="pause-volume"
+          :aria-label="t('game.settings.volume')"
+        />
+      </div>
       <template #footer>
         <div class="pause-actions">
           <router-link

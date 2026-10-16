@@ -1,15 +1,19 @@
-// 团子：球身子、小脚、脸贴图，玩家和商店老板共用；帽子和围巾按装备换
+// 团子：球身子、小手小脚、脸贴图，玩家和商店老板共用；帽子和围巾按装备换，滑翔时举起一片大叶子
 import { MeshBuilder } from '@babylonjs/core/Meshes/meshBuilder'
 import { TransformNode } from '@babylonjs/core/Meshes/transformNode'
 import { StandardMaterial } from '@babylonjs/core/Materials/standardMaterial'
 import { Texture } from '@babylonjs/core/Materials/Textures/texture'
 import { Color3 } from '@babylonjs/core/Maths/math.color'
 import { OUTFIT_COLORS } from '@/constants/game'
+import { addToon } from './materials'
 
 export const DANGO_RADIUS = 0.6
 
 // 脸贴图三格：普通、开心、惊讶
 export const Face = Object.freeze({ NORMAL: 0, HAPPY: 1, SURPRISED: 2 })
+
+// 动作：站、走、跑、空中、滑翔、攀爬、游泳
+export const Pose = Object.freeze({ IDLE: 'idle', WALK: 'walk', RUN: 'run', AIR: 'air', GLIDE: 'glide', CLIMB: 'climb', SWIM: 'swim' })
 
 // 和脸贴图底色一致，脸和身子接缝看不出来
 const SKIN = Color3.FromHexString('#FFF8EC')
@@ -17,7 +21,8 @@ const SKIN = Color3.FromHexString('#FFF8EC')
 function material(scene, name, hex) {
   const m = new StandardMaterial(name, scene)
   m.diffuseColor = Color3.FromHexString(hex)
-  m.specularColor = new Color3(0.08, 0.08, 0.08)
+  m.specularColor = new Color3(0.05, 0.05, 0.05)
+  addToon(m)
   return m
 }
 
@@ -30,7 +35,8 @@ export function createDango(scene, faceUrl, name) {
 
   const skin = new StandardMaterial(name + '-skin', scene)
   skin.diffuseColor = SKIN
-  skin.specularColor = new Color3(0.1, 0.1, 0.1)
+  skin.specularColor = new Color3(0.06, 0.06, 0.06)
+  addToon(skin)
   const ball = MeshBuilder.CreateSphere(name + '-ball', { diameter: DANGO_RADIUS * 2, segments: 24 }, scene)
   ball.material = skin
   ball.parent = body
@@ -43,7 +49,8 @@ export function createDango(scene, faceUrl, name) {
   faceTexture.uScale = 1 / 3
   const faceMaterial = new StandardMaterial(name + '-face', scene)
   faceMaterial.diffuseTexture = faceTexture
-  faceMaterial.specularColor = new Color3(0.1, 0.1, 0.1)
+  faceMaterial.specularColor = new Color3(0.06, 0.06, 0.06)
+  addToon(faceMaterial)
   const face = MeshBuilder.CreateSphere(
     name + '-face',
     { diameter: DANGO_RADIUS * 2 + 0.012, segments: 24, arc: 1 / 3 },
@@ -64,6 +71,31 @@ export function createDango(scene, faceUrl, name) {
     foot.parent = root
     return foot
   })
+
+  // 小手：身子两侧两颗小圆球
+  const arms = [-1, 1].map((side) => {
+    const arm = MeshBuilder.CreateSphere(name + '-arm' + side, { diameter: 0.26, segments: 10 }, scene)
+    arm.scaling.set(1, 0.9, 1.1)
+    arm.material = feetMaterial
+    arm.parent = body
+    return { mesh: arm, side }
+  })
+
+  // 滑翔叶：一片很大的叶子加一条叶脉，平时藏着
+  const glider = new TransformNode(name + '-glider', scene)
+  glider.parent = body
+  glider.position.y = 0.95
+  const leafMaterial = material(scene, name + '-glider-leaf', '#8FD69A')
+  leafMaterial.backFaceCulling = false
+  const blade = MeshBuilder.CreateSphere(name + '-glider-blade', { diameter: 1, segments: 16 }, scene)
+  blade.scaling.set(2.7, 0.16, 1.7)
+  blade.material = leafMaterial
+  blade.parent = glider
+  const rib = MeshBuilder.CreateBox(name + '-glider-rib', { width: 0.07, height: 0.06, depth: 1.6 }, scene)
+  rib.position.y = 0.08
+  rib.material = material(scene, name + '-glider-rib', '#5FAE73')
+  rib.parent = glider
+  glider.setEnabled(false)
 
   const parts = { hat: null, scarf: null }
   const meshes = () => root.getChildMeshes()
@@ -153,16 +185,56 @@ export function createDango(scene, faceUrl, name) {
     parts.scarf = scarf
   }
 
-  // 走路时身子一颠一颠，脚前后交替；speed 是 0 到 1
-  function animate(time, speed, airborne) {
-    const step = Math.sin(time * 12) * speed
-    body.position.y = DANGO_RADIUS + Math.abs(step) * 0.1
-    const squash = airborne ? 1.08 : 1 - Math.abs(step) * 0.06 + Math.sin(time * 2.2) * 0.015
+  // 按动作摆身子、手脚和叶子；k 是这个动作的快慢（0 到 1），time 是秒
+  function pose(kind, time, k = 0) {
+    const run = kind === Pose.RUN
+    const moving = kind === Pose.WALK || run
+    const freq = run ? 15 : 11
+    const step = moving ? Math.sin(time * freq) * k : 0
+    glider.setEnabled(kind === Pose.GLIDE)
+    body.rotation.set(0, 0, 0)
+    body.position.y = DANGO_RADIUS + Math.abs(step) * (run ? 0.14 : 0.09)
+    let squash = 1 + Math.sin(time * 2.2) * 0.015 - Math.abs(step) * 0.06
+    let reach = 0
+    let lift = 0
+    let swing = step
+    if (run) body.rotation.x = 0.16 * k
+    if (kind === Pose.AIR) {
+      squash = 1.08
+      lift = 0.22
+    } else if (kind === Pose.GLIDE) {
+      body.rotation.x = 0.28
+      lift = 0.52
+      reach = -0.24
+      swing = 0
+      // 叶子前高后低，相机从后上方能看到整片叶面
+      glider.rotation.set(-0.35 + Math.sin(time * 3) * 0.05, 0, Math.sin(time * 2.3) * 0.08)
+    } else if (kind === Pose.CLIMB) {
+      // 贴墙：身子往前倾，两只手一上一下地交替
+      body.rotation.x = -0.18
+      swing = Math.sin(time * 9) * k
+      lift = 0.3
+      reach = 0.32
+    } else if (kind === Pose.SWIM) {
+      body.rotation.x = 0.35
+      swing = Math.sin(time * 6) * Math.max(0.3, k)
+      reach = 0.3
+    }
     body.scaling.set(2 - squash, squash, 2 - squash)
-    feet[0].position.z = 0.05 + step * 0.22
-    feet[1].position.z = 0.05 - step * 0.22
+    for (const { mesh, side } of arms) {
+      const own = kind === Pose.CLIMB ? swing * side : -swing * side
+      mesh.position.set(side * (kind === Pose.GLIDE ? 0.3 : 0.55), -0.08 + lift + (kind === Pose.CLIMB ? own * 0.25 : 0), 0.08 + reach + (moving || kind === Pose.SWIM ? own * 0.18 : 0))
+    }
+    const footSwing = kind === Pose.CLIMB ? -swing * 0.15 : step * 0.22
+    feet[0].position.set(-0.25, kind === Pose.GLIDE || kind === Pose.AIR ? 0.18 : 0.08, 0.05 + footSwing)
+    feet[1].position.set(0.25, kind === Pose.GLIDE || kind === Pose.AIR ? 0.18 : 0.08, 0.05 - footSwing)
+  }
+
+  // 商店老板用的简化版：只分站着和走路
+  function animate(time, speed, airborne) {
+    pose(airborne ? Pose.AIR : speed > 0.05 ? Pose.WALK : Pose.IDLE, time, speed)
   }
 
   setFace(Face.NORMAL)
-  return { root, meshes, setFace, setHat, setOutfit, animate }
+  return { root, body, meshes, setFace, setHat, setOutfit, animate, pose }
 }

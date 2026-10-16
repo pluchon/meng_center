@@ -20,6 +20,8 @@ function rejected(result, status, code) { assert.equal(result.status, status, JS
 async function check(name, run) { await run(); checks.push(name); console.log('PASS ' + name); }
 async function eventually(read, label, attempts = 60) { for (let i = 0; i < attempts; i++) { const value = await read(); if (value) return value; await wait(150); } throw Error('Timed out: ' + label); }
 const spot = (id) => world.spots.find((s) => s.id === id);
+const firstCoin = world.spots.find((s) => s.kind === 'COIN').id;
+const firstChest = world.spots.find((s) => s.kind === 'CHEST').id;
 const take = (id, index = 0) => { const s = spot(id); return api('POST', '/game/pickups', { spotId: id, x: s.x + 1, z: s.z }, index); };
 try {
   await eventually(async () => (await fetch('http://127.0.0.1:8105/actuator/health').catch(() => null))?.status === 200, 'game service', 200);
@@ -50,14 +52,14 @@ try {
     assert.deepEqual(map.shrine, world.shrine);
   });
   await check('A coin is taken once per day, far or unknown pickups are rejected', async () => {
-    const first = ok(await take('coin-01'));
-    assert.equal(first.amount, spot('coin-01').amount); assert.equal(first.taken, false); assert.equal(first.coins, spot('coin-01').amount);
-    const again = ok(await take('coin-01'));
+    const first = ok(await take(firstCoin));
+    assert.equal(first.amount, spot(firstCoin).amount); assert.equal(first.taken, false); assert.equal(first.coins, spot(firstCoin).amount);
+    const again = ok(await take(firstCoin));
     assert.equal(again.amount, 0); assert.equal(again.taken, true); assert.equal(again.coins, first.coins);
-    rejected(await api('POST', '/game/pickups', { spotId: 'coin-02', x: 0, z: 0 }), 400, 'GAME_TOO_FAR');
+    rejected(await api('POST', '/game/pickups', { spotId: world.spots.filter((s) => s.kind === 'COIN')[1].id, x: 0, z: 0 }), 400, 'GAME_TOO_FAR');
     rejected(await api('POST', '/game/pickups', { spotId: 'nope', x: 0, z: 0 }), 404, 'COMMON_NOT_FOUND');
     ok(await api('POST', '/game/pickups', { spotId: '' }), 400);
-    assert.ok(ok(await api('GET', '/game/world')).spots.find((s) => s.id === 'coin-01').taken);
+    assert.ok(ok(await api('GET', '/game/world')).spots.find((s) => s.id === firstCoin).taken);
     assert.equal(ok(await api('GET', '/game/profile', null, 1)).coins, 0);
   });
   await check('Buying needs enough coins; spending and ownership land together', async () => {
@@ -65,9 +67,10 @@ try {
     rejected(await api('POST', '/game/shop/purchases', { itemId: 'hat-crown' }), 409, 'GAME_NOT_ENOUGH_COINS');
     assert.equal(ok(await api('GET', '/game/profile')).coins, before);
     assert.ok(!ok(await api('GET', '/game/world')).items.find((i) => i.id === 'hat-crown').owned);
-    for (const s of world.spots.filter((x) => x.kind === 'CHEST')) assert.equal(ok(await take(s.id)).amount, 20);
+    const chests = world.spots.filter((x) => x.kind === 'CHEST');
+    for (const s of chests) assert.equal(ok(await take(s.id)).amount, 20);
     const bought = ok(await api('POST', '/game/shop/purchases', { itemId: 'hat-crown' }));
-    assert.equal(bought.amount, -80); assert.equal(bought.coins, before + 120 - 80);
+    assert.equal(bought.amount, -80); assert.equal(bought.coins, before + chests.length * 20 - 80);
     rejected(await api('POST', '/game/shop/purchases', { itemId: 'hat-crown' }), 409, 'GAME_ITEM_OWNED');
     rejected(await api('POST', '/game/shop/purchases', { itemId: 'nope' }), 404, 'COMMON_NOT_FOUND');
   });
@@ -75,14 +78,13 @@ try {
     const same = await Promise.all([1, 2, 3].map(() => api('POST', '/game/shop/purchases', { itemId: 'outfit-mint' })));
     assert.equal(same.filter((r) => r.status === 200).length, 1);
     assert.ok(same.filter((r) => r.status !== 200).every((r) => r.code === 'GAME_ITEM_OWNED'), JSON.stringify(same));
-    const left = ok(await api('GET', '/game/profile')).coins;
-    assert.ok(left >= 20 && left < 40, 'coins left ' + left);
-    const race = await Promise.all(['outfit-pink', 'outfit-sky'].map((itemId) => api('POST', '/game/shop/purchases', { itemId })));
+    assert.deepEqual(ok(await api('GET', '/game/world')).items.filter((i) => i.owned).map((i) => i.id).sort(), ['hat-crown', 'outfit-mint']);
+    // 第二个账号只有一个宝箱的 20 金币，同时买两件 20 的，只能成一件
+    assert.equal(ok(await take(firstChest, 1)).coins, 20);
+    const race = await Promise.all(['outfit-pink', 'outfit-sky'].map((itemId) => api('POST', '/game/shop/purchases', { itemId }, 1)));
     assert.equal(race.filter((r) => r.status === 200).length, 1);
     assert.equal(race.find((r) => r.status !== 200).code, 'GAME_NOT_ENOUGH_COINS');
-    assert.equal(ok(await api('GET', '/game/profile')).coins, left - 20);
-    const owned = ok(await api('GET', '/game/world')).items.filter((i) => i.owned).map((i) => i.id).sort();
-    assert.equal(owned.length, 3);
+    assert.equal(ok(await api('GET', '/game/profile', null, 1)).coins, 0);
   });
   await check('Only owned items of the right slot can be worn', async () => {
     rejected(await api('PUT', '/game/equipment', { hat: 'hat-bow', outfit: null }), 409, 'GAME_ITEM_NOT_OWNED');
@@ -106,8 +108,8 @@ try {
     ok(await api('PUT', '/game/save', { x: -40.5, y: 3.2, z: 2.25, yaw: 1.5 }));
     const me = ok(await api('GET', '/game/profile'));
     assert.deepEqual([me.x, me.y, me.z, me.yaw], [-40.5, 3.2, 2.25, 1.5]);
-    rejected(await api('PUT', '/game/save', { x: 300, y: 1, z: 0, yaw: 0 }), 400, 'GAME_OUT_OF_ISLAND');
-    rejected(await api('PUT', '/game/save', { x: 0, y: 99, z: 0, yaw: 0 }), 400, 'GAME_OUT_OF_ISLAND');
+    rejected(await api('PUT', '/game/save', { x: 600, y: 1, z: 0, yaw: 0 }), 400, 'GAME_OUT_OF_ISLAND');
+    rejected(await api('PUT', '/game/save', { x: 0, y: 400, z: 0, yaw: 0 }), 400, 'GAME_OUT_OF_ISLAND');
     ok(await api('PUT', '/game/save', { x: 0, z: 0 }), 400);
   });
   await check('The coin ledger reconciles with the balance and growth points stay untouched', async () => {

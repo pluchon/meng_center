@@ -22,6 +22,6 @@ meng.game:
   pickup-distance: 3
   chest-coins: 20
   clear-reward: 100
-  radius: 110
-  min-y: -10
-  max-y: 60
+  radius: 460
+  min-y: -30
+  max-y: 260

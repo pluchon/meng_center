@@ -9,6 +9,12 @@ import { Vector4 } from '@babylonjs/core/Maths/math.vector'
 import '@babylonjs/core/Meshes/instancedMesh'
 import { SpotKind } from '@/constants/game'
 import { heightAt } from './terrain'
+import { addToon } from './materials'
+
+// 点位所在的地面高度：放在塔顶、石头上、浮空岛上的点位自带高度
+export function baseOf(spot) {
+  return spot.y ?? heightAt(spot.x, spot.z)
+}
 
 // 自动拾取的距离，比后端允许的 3 个单位小，留出误差
 const TOUCH = 1.5
@@ -32,7 +38,7 @@ function sprite(scene, name, url, size, glow) {
 // 宝箱：箱体和箱盖各贴图片的下半和上半，打开时箱盖绕后沿翻起来
 function createChest(scene, material, spot, index) {
   const root = new TransformNode('chest' + index, scene)
-  root.position.set(spot.x, heightAt(spot.x, spot.z) - 0.05, spot.z)
+  root.position.set(spot.x, baseOf(spot) - 0.05, spot.z)
   root.rotation.y = Math.atan2(spot.x, spot.z)
   const side = new Vector4(0.15, 0.2, 0.25, 0.3)
   const body = MeshBuilder.CreateBox(
@@ -63,11 +69,12 @@ export function createPickups(scene, urls, spots, casters) {
   coin.position.y = -100
   const chestMaterial = new StandardMaterial('chest', scene)
   chestMaterial.diffuseTexture = new Texture(urls.chest, scene)
-  chestMaterial.specularColor = new Color3(0.08, 0.08, 0.08)
+  chestMaterial.specularColor = new Color3(0.05, 0.05, 0.05)
+  addToon(chestMaterial)
 
   const items = spots.map((spot, index) => {
     const item = { spot, taken: spot.taken, pending: false, open: 0 }
-    const y = heightAt(spot.x, spot.z)
+    const y = baseOf(spot)
     if (spot.kind === SpotKind.COIN) {
       item.mesh = coin.createInstance('coin' + index)
       item.mesh.position.set(spot.x, y + 0.9, spot.z)
@@ -94,13 +101,13 @@ export function createPickups(scene, urls, spots, casters) {
       const d = Math.hypot(dx, dz)
       if (item.mesh && !item.taken) {
         item.mesh.rotation.y = spot.kind === SpotKind.COIN ? time * 2.4 : 0
-        item.mesh.position.y = heightAt(spot.x, spot.z) + (spot.kind === SpotKind.STAR ? 1.2 : 0.9) + Math.sin(time * 2 + spot.x) * 0.12
-        if (!item.pending && d < TOUCH && Math.abs(y - heightAt(spot.x, spot.z)) < 2.5) touch(item)
+        item.mesh.position.y = baseOf(spot) + (spot.kind === SpotKind.STAR ? 1.2 : 0.9) + Math.sin(time * 2 + spot.x) * 0.12
+        if (!item.pending && d < TOUCH && Math.abs(y - baseOf(spot)) < 2.5) touch(item)
       }
       if (item.chest) {
         item.chest.hinge.rotation.x = -1.9 * item.open
         if (item.taken && item.open < 1) item.open = Math.min(1, item.open + dt * 2.5)
-        if (!item.taken && !item.pending && d < REACH && (!nearChest || d < nearChest.d)) nearChest = { item, d }
+        if (!item.taken && !item.pending && d < REACH && Math.abs(y - baseOf(spot)) < 2 && (!nearChest || d < nearChest.d)) nearChest = { item, d }
       }
     }
     return nearChest?.item ?? null

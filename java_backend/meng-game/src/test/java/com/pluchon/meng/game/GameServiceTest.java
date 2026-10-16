@@ -71,10 +71,10 @@ class GameServiceTest {
                                 new GameCatalog.Position(0, 1.2, -100, 0),
                                 new GameCatalog.Point(44, 42),
                                 List.of(
-                                        new GameCatalog.Spot("coin-01", SpotKind.COIN, 0, -86, 3),
-                                        new GameCatalog.Spot("chest-a", SpotKind.CHEST, 10, 10, 0),
-                                        new GameCatalog.Spot("star-a", SpotKind.STAR, 20, 20, 0),
-                                        new GameCatalog.Spot("star-b", SpotKind.STAR, 30, 30, 0))),
+                                        new GameCatalog.Spot("coin-01", SpotKind.COIN, 0, -86, 3, null),
+                                        new GameCatalog.Spot("chest-a", SpotKind.CHEST, 10, 10, 0, 33.0),
+                                        new GameCatalog.Spot("star-a", SpotKind.STAR, 20, 20, 0, null),
+                                        new GameCatalog.Spot("star-b", SpotKind.STAR, 30, 30, 0, null))),
                         List.of(
                                 new GameCatalog.Item("hat-leaf", ItemKind.HAT, 30),
                                 new GameCatalog.Item("outfit-mint", ItemKind.OUTFIT, 20)));
@@ -83,7 +83,7 @@ class GameServiceTest {
         ReflectionTestUtils.setField(service, "catalog", catalog);
         ReflectionTestUtils.setField(service, "converter", new GameConverter());
         ReflectionTestUtils.setField(
-                service, "properties", new GameProperties("Asia/Taipei", 3, 20, 100, 110, -10, 60));
+                service, "properties", new GameProperties("Asia/Taipei", 3, 20, 100, 460, -30, 260));
         ReflectionTestUtils.setField(
                 service,
                 "clock",
@@ -189,7 +189,7 @@ class GameServiceTest {
 
     @Test
     void positionOutsideTheIslandIsRejected() {
-        var e = assertThrows(BusinessException.class, () -> service.save(new SaveDTO(200.0, 1.0, 0.0, 0.0)));
+        var e = assertThrows(BusinessException.class, () -> service.save(new SaveDTO(500.0, 1.0, 0.0, 0.0)));
         assertEquals(GameError.OUT_OF_ISLAND, e.errorCode());
         assertThrows(BusinessException.class, () -> service.save(new SaveDTO(0.0, Double.NaN, 0.0, 0.0)));
         service.save(new SaveDTO(10.0, 3.0, 10.0, 1.5));

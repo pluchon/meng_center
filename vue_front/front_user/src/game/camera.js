@@ -1,8 +1,8 @@
 // 第三人称相机：点一下画面锁定鼠标，之后移动鼠标就转视角（没锁上时按住拖动也行），滚轮拉远拉近；
-// 相机和角色之间被地面、树冠或房子挡住时自动拉近，挡住的东西让开后再慢慢退回去
+// 相机和角色之间被地面、树冠、建筑或大石头挡住时自动拉近，挡住的东西让开后再慢慢退回去
 import { ArcRotateCamera } from '@babylonjs/core/Cameras/arcRotateCamera'
 import { Vector3 } from '@babylonjs/core/Maths/math.vector'
-import { HOUSES, heightAt } from './terrain'
+import { heightAt } from './terrain'
 
 const Look = Object.freeze({ RADIUS: 9, MIN: 4, MAX: 20, CLOSEST: 1.6, HEIGHT: 1.1, SENSITIVITY: 0.0024 })
 const CELL = 12
@@ -15,7 +15,7 @@ function crownOf(tree) {
     : { x: tree.x, y: ground + 3.7 * tree.scale, z: tree.z, r: 2.0 * tree.scale }
 }
 
-export function createFollowCamera(scene, canvas, start, trees, hooks) {
+export function createFollowCamera(scene, canvas, start, trees, colliders, hooks) {
   const camera = new ArcRotateCamera(
     'camera',
     Math.atan2(-Math.cos(start.yaw), -Math.sin(start.yaw)),
@@ -30,7 +30,7 @@ export function createFollowCamera(scene, canvas, start, trees, hooks) {
   camera.upperBetaLimit = 1.62
   camera.wheelDeltaPercentage = 0.01
   camera.minZ = 0.2
-  camera.maxZ = 1000
+  camera.maxZ = 2000
   // 转视角自己处理，相机自带的只留滚轮
   camera.inputs.removeByType('ArcRotateCameraKeyboardMoveInput')
   camera.inputs.removeByType('ArcRotateCameraPointersInput')
@@ -50,8 +50,7 @@ export function createFollowCamera(scene, canvas, start, trees, hooks) {
       for (let j = -1; j <= 1; j++)
         for (const c of grid.get(cx + i + ',' + (cz + j)) ?? [])
           if ((x - c.x) ** 2 + ((y - c.y) * 1.2) ** 2 + (z - c.z) ** 2 < c.r * c.r) return true
-    for (const h of HOUSES)
-      if (Math.abs(x - h.x) < h.w / 2 + 0.6 && Math.abs(z - h.z) < h.d / 2 + 0.6 && y < heightAt(h.x, h.z) + 6.2) return true
+    for (const s of colliders.near(x, z, 0.5)) if (y > s.bottom && y < s.top + 0.4 && colliders.closest(s, x, z).gap < 0.4) return true
     return false
   }
 

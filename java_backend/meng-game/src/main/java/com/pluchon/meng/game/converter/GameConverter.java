@@ -27,7 +27,7 @@ public class GameConverter {
 
     // 点位加上拿到时的金币和这个周期是否已拿
     public WorldVO.Spot spot(GameCatalog.Spot spot, int amount, boolean taken) {
-        return new WorldVO.Spot(spot.id(), spot.kind(), spot.x(), spot.z(), amount, taken);
+        return new WorldVO.Spot(spot.id(), spot.kind(), spot.x(), spot.z(), spot.y(), amount, taken);
     }
 
     // 商品加上是否已拥有
