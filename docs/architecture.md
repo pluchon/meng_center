@@ -1,7 +1,7 @@
 # 萌部落社区 · 架构设计
 
 > 2026-10-08 首版，搭骨架前的共识。
-> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[消息域](im.md)、[游戏域](game.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
+> 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[消息域](im.md)、[游戏域](game.md)、[AI 域](ai.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
 
@@ -31,8 +31,8 @@
 | 邮件 | Spring Boot 邮件 starter + SMTP | 只在 user 服务里用 |
 | 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
-| AI 服务 | Python 3.12 + LangChain / LangGraph | 不使用 Spring AI |
-| 模型 | ChatGPT 或 Qwen | 都走 OpenAI 兼容接口，靠配置切换；embedding 也走接口 |
+| AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
+| 模型 | 阿里云 DashScope 的 Qwen 与 text-embedding-v4 | 走 OpenAI 兼容接口，型号靠配置切换，见 [ai.md](ai.md) |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 
@@ -43,14 +43,13 @@ meng_center/
 ├── deploy/          本地中间件的 Compose 和初始化脚本
 ├── docs/            文档
 ├── java_backend/    Java 后端（Maven 多模块）
+├── python_ai/       Python AI 服务 meng-ai
 └── vue_front/       前端
     ├── front_user/   用户端
     └── front_admin/  管理端
 ```
 
 Maven groupId 和 Java 基础包名都是 `com.pluchon.meng`。
-
-Python AI 服务的目录在搭骨架时确定。
 
 ## 4. Java 模块结构
 
@@ -119,7 +118,7 @@ java_backend/
 | im | 私信、通知（WebSocket） |
 | growth | 经验、等级、签到、积分、抽奖（积分已做，抽奖未做） |
 | game | 萌岛（单机 3D 小游戏）的玩家档案、金币与结算、商店、存档；金币不与任何其他服务共享，见 [game.md](game.md) |
-| ai（Python） | 萌萌对话、RAG、向量索引 |
+| ai（Python） | 萌萌对话；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
   网关统一校验管理员角色，Service 再校验一次。管理端是单独的 Vue 项目。
@@ -145,8 +144,8 @@ java_backend/
 ## 6. 防耦合规则
 
 1. **依赖单向分层，不成环，同层不互调。**
-   user 在底层，不调任何业务服务；content、im 只能同步调 user；growth、ai 是下游，不被写路径同步调用。
-2. **同步调用全项目只有三条箭头**：content → user、im → user、ai → content。
+   user 和 ai 在底层，不调任何项目内服务；content、im 同步调 user，content、growth 同步调 ai 做计算；ai 不被写路径同步调用。
+2. **同步调用全项目只有四条箭头**：content → user、im → user、content → ai、growth → ai。
 3. **同步调用只读、深度为 1。** 内部接口只做查询；处理内部调用时不许再向外发起同步调用。跨服务的写只能通过事件。
 4. **「发生了一件事，别人要跟着反应」一律走 MQ 事件。** 事务提交后发送；生产者不知道谁在消费。
 5. **每个服务独占一个 MySQL 库和独立账号。** 物理上杜绝跨服务联表和共享 Entity。
@@ -166,12 +165,12 @@ java_backend/
 
 | 服务 | 可同步调 | 发出的事件 | 消费的事件 |
 |---|---|---|---|
-| user | 无 | 审核通过、关注 | 等级变更 |
-| content | user | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理 | 无 |
-| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖 |
-| growth | 无 | 等级变更、中奖 | 发帖、评论 |
+| user | 无 | 审核通过、关注、资料变更、资料审核状态变更 | 等级变更、资料审核结果 |
+| content | user、ai | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理、请求分析、审核状态变更 | 帖子分析结果、评论审核结果 |
+| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖、内容审核状态变更、资料审核状态变更 |
+| growth | ai | 等级变更、中奖 | 发帖、评论 |
 | game | 无 | 无 | 无 |
-| ai | content | 无 | 发帖、改帖、删帖 |
+| ai | 无 | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
 
@@ -183,7 +182,7 @@ java_backend/
 - 全局唯一的字段加唯一索引，入库前归一化（去空格、邮箱转小写、手机号转成带区号的统一格式）。
 - 邮箱和手机号加密存储，不落明文，唯一性靠哈希列保证（见 [auth.md](auth.md) 4.1 节）。
 - 业务状态用枚举表示，只能通过 Service 方法变更。
-- 向量索引是可重建的派生数据，归 ai 维护；帖子的关键词索引归 content。
+- 帖子的关键词索引和向量索引都是可重建的派生数据，都归 content；向量由 ai 计算后经事件交给 content。
 
 ## 9. 接口约定
 
@@ -225,7 +224,7 @@ java_backend/
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
-- 发帖审核（以后接大模型）、管理端的帖子管理。
+- 管理端的帖子管理、AI 审核的复核页。AI 审核先只记录结论，见 [ai.md](ai.md) 第 12 节。
 
 ### 待定
 
@@ -233,11 +232,9 @@ java_backend/
 |---|---|
 | AI 萌萌的会话、消息、配额归哪个 Java 服务 | 未讨论 |
 | LangGraph 图执行态是否持久化 | 起步不接，需要中断续跑时再定 |
-| Python Web 框架、Python 目录位置 | 做 AI 域时定 |
 
 ### 待核实
 
 - tianai 的 Redis 存储和浏览器拖动已通过第一阶段验证，保留后续反滥用回归。
 - Flyway 11.14.1 已迁移实际 user 表并完成读写验证；MySQL 8.4 仍有高于已验证版本 8.1 的启动提示。
 - 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
-- Elasticsearch 的 RRF 融合排序是否需要付费许可；需要的话改用加权合并或在 Python 侧实现。
