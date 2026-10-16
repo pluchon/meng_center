@@ -30,7 +30,10 @@ public class MqConfiguration {
             "comment.liked",
             "growth.level-changed",
             "user.approved",
-            "user.followed"
+            "user.followed",
+            "post.review-changed",
+            "comment.review-changed",
+            "user.profile-review-changed"
         )) {
             var exchange = new TopicExchange(
                 "meng." +

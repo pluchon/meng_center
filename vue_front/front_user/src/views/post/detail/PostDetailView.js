@@ -1,3 +1,4 @@
+import RelatedPosts from '@/components/related-posts/RelatedPosts.vue'
 import {
   computed,
   defineComponent,
@@ -47,6 +48,7 @@ import UserContact from '@/components/user-contact/UserContact.vue'
 export default defineComponent({
   name: 'PostDetailView',
   components: {
+    RelatedPosts,
     UserContact,
     CommunityLayout,
     MarkdownBody,
@@ -112,7 +114,9 @@ export default defineComponent({
           (error) => ({ error }),
         )
       try {
-        const result = await contentApi.detail(route.params.id)
+        const result = await contentApi.detail(route.params.id, {
+          params: { from: route.query.from },
+        })
         if (current === generation) post.value = result
       } catch (e) {
         if (current === generation) error.value = e

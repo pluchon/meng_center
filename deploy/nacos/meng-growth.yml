@@ -28,3 +28,10 @@ meng.growth:
   check-in-points: 5
   post-points: 10
   comment-points: 2
+spring.cloud.openfeign.client.config.growthAi:
+  connectTimeout: 500
+  readTimeout: 15000
+  loggerLevel: none
+meng.growth.ai:
+  daily: 5
+  minute: 2

@@ -24,20 +24,24 @@ import com.pluchon.meng.content.entity.PostImageEntity;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.entity.enums.ReportReason;
 import com.pluchon.meng.content.entity.enums.ReportTarget;
-
-import org.junit.jupiter.api.Test;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 class ContentConverterTest {
 
     @Test
     void recordPostCopiesEverySharedFieldAndKeepsCounterDefaults() {
-        var dto =
-                new CreatePostDTO(
-                        PostCategory.TECH, " 标题 ", "正文", List.of(9L), 9L, List.of("标签"), 7L);
+        var dto = new CreatePostDTO(
+            PostCategory.TECH,
+            " 标题 ",
+            "正文",
+            List.of(9L),
+            9L,
+            List.of("标签"),
+            7L
+        );
         var post = new PostConverter().create(dto);
         assertEquals(dto.category(), post.getCategory());
         assertEquals("标题", post.getTitle());
@@ -57,9 +61,14 @@ class ContentConverterTest {
         draft.setId(11L);
         draft.setAuthorId(22L);
         draft.setCoverImageId(33L);
-        var dto =
-                new SaveDraftDTO(
-                        PostCategory.GAME, " 草稿标题 ", "草稿正文", List.of(44L), null, List.of("标签"));
+        var dto = new SaveDraftDTO(
+            PostCategory.GAME,
+            " 草稿标题 ",
+            "草稿正文",
+            List.of(44L),
+            null,
+            List.of("标签")
+        );
         new PostConverter().applyDraft(dto, draft);
         assertEquals(dto.category(), draft.getCategory());
         assertEquals(dto.title(), draft.getTitle());
@@ -103,9 +112,13 @@ class ContentConverterTest {
         image.setThumbName("thumb.png");
         image.setWidth(800);
         image.setHeight(600);
-        var expectedImage =
-                new ImageVO(
-                        8L, "/content/files/original.png", "/content/files/thumb.png", 800, 600);
+        var expectedImage = new ImageVO(
+            8L,
+            "/content/files/original.png",
+            "/content/files/thumb.png",
+            800,
+            600
+        );
         var converter = new PostConverter();
         assertEquals(expectedImage, converter.image(image));
         var post = new PostEntity();
@@ -123,26 +136,29 @@ class ContentConverterTest {
         post.setCreateTime(time);
         var author = new PublicUserVO(3L, "作者", "avatar.png", 2);
         assertEquals(
-                new PostFeedVO(
-                        2L,
-                        PostCategory.DAILY,
-                        "标题",
-                        "摘要",
-                        List.of(expectedImage),
-                        1,
-                        4,
-                        5,
-                        6,
-                        7,
-                        true,
-                        true,
-                        "台湾",
-                        time,
-                        author),
-                converter.feed(post, List.of(image), author, true, true, 7));
+            new PostFeedVO(
+                2L,
+                PostCategory.DAILY,
+                "标题",
+                "摘要",
+                List.of(expectedImage),
+                1,
+                4,
+                5,
+                6,
+                7,
+                true,
+                true,
+                "台湾",
+                time,
+                author
+            ),
+            converter.feed(post, List.of(image), author, true, true, 7)
+        );
         assertEquals(
-                new PublicUserVO(3L, null, null, 1),
-                converter.feed(post, List.of(), null, false, false, 0).author());
+            new PublicUserVO(3L, null, null, 1),
+            converter.feed(post, List.of(), null, false, false, 0).author()
+        );
     }
 
     @Test
@@ -153,9 +169,13 @@ class ContentConverterTest {
         image.setThumbName("thumb.png");
         image.setWidth(800);
         image.setHeight(600);
-        var expectedImage =
-                new ImageVO(
-                        8L, "/content/files/original.png", "/content/files/thumb.png", 800, 600);
+        var expectedImage = new ImageVO(
+            8L,
+            "/content/files/original.png",
+            "/content/files/thumb.png",
+            800,
+            600
+        );
         var converter = new CommentConverter();
         assertEquals(expectedImage, converter.image(image));
         var comment = new CommentEntity();
@@ -175,28 +195,32 @@ class ContentConverterTest {
         var author = new PublicUserVO(3L, "作者", "avatar.png", 2);
         var target = new PublicUserVO(6L, "回复对象", null, 1);
         assertEquals(
-                new CommentVO(
-                        2L,
-                        "评论",
-                        List.of(expectedImage),
-                        4,
-                        true,
-                        "台湾",
-                        time,
-                        author,
-                        true,
-                        5,
-                        6L,
-                        "回复对象",
-                        true,
-                        List.of(new MentionVO(6L, "回复对象"))),
-                converter.comment(
-                        comment,
-                        List.of(image),
-                        List.of(mention),
-                        Map.of(3L, author, 6L, target),
-                        true,
-                        3L));
+            new CommentVO(
+                2L,
+                "评论",
+                List.of(expectedImage),
+                4,
+                true,
+                "台湾",
+                time,
+                author,
+                true,
+                5,
+                6L,
+                "回复对象",
+                true,
+                List.of(new MentionVO(6L, "回复对象")),
+                "NORMAL"
+            ),
+            converter.comment(
+                comment,
+                List.of(image),
+                List.of(mention),
+                Map.of(3L, author, 6L, target),
+                true,
+                3L
+            )
+        );
         var fallback = converter.comment(comment, List.of(), List.of(), Map.of(), false, 9L);
         assertEquals(new PublicUserVO(3L, null, null, 1), fallback.author());
         assertNull(fallback.replyToNickname());

@@ -800,6 +800,25 @@ small {
   animation: editor-wiggle 480ms ease-in-out;
 }
 
+// 生成中：魔杖一直晃，按钮轻轻呼吸，提醒还在画
+.ai-tool[aria-busy='true'] {
+  cursor: progress;
+  animation: ai-breathe 1.4s ease-in-out infinite;
+  rotate: 0deg;
+}
+
+.ai-tool[aria-busy='true'] .ai-icon {
+  animation: editor-wiggle 900ms ease-in-out infinite;
+}
+
+@keyframes ai-breathe {
+  50% {
+    box-shadow:
+      0 3px 0 var(--meng-creator-pink),
+      0 0 14px color-mix(in srgb, var(--meng-creator-pink) 70%, transparent);
+  }
+}
+
 @keyframes editor-wiggle {
   25% {
     rotate: -16deg;
@@ -949,6 +968,9 @@ small {
 }
 
 .tags-panel {
+  --glow-radius: var(--meng-radius-note);
+
+  position: relative;
   animation-delay: 180ms;
 }
 
@@ -1179,6 +1201,8 @@ small {
 }
 
 .cover-box {
+  --glow-radius: var(--meng-radius-note);
+
   position: relative;
   aspect-ratio: 16 / 9;
   border: 3px solid var(--meng-surface);
@@ -1213,6 +1237,42 @@ small {
   border: 2px dashed var(--meng-border);
   border-radius: calc(var(--meng-radius-note) - 6px);
   pointer-events: none;
+}
+
+// 生成封面时盖在上面：淡淡的流光底，边框上有光转圈，中间一枚小贴纸
+.cover-making {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--meng-tint) 80%, transparent) 20%,
+    color-mix(in srgb, var(--meng-surface) 92%, transparent) 50%,
+    color-mix(in srgb, var(--meng-tint) 80%, transparent) 80%
+  );
+  background-size: 240% 100%;
+  animation: cover-sweep 2s ease-in-out infinite;
+  cursor: progress;
+}
+
+@keyframes cover-sweep {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.cover-making-enter-active,
+.cover-making-leave-active {
+  transition: opacity 300ms ease;
+}
+
+.cover-making-enter-from,
+.cover-making-leave-to {
+  opacity: 0;
 }
 
 .cover-art {
@@ -1344,6 +1404,24 @@ small {
   background: var(--meng-surface);
   font-size: 11px;
   white-space: nowrap;
+}
+
+// 等待时三个空位变成流光的小胶囊，整个标签卡的边框上也有光在转
+.tag-recommendations span.pending {
+  border-style: solid;
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--meng-tint) 80%, var(--meng-surface)) 20%,
+    var(--meng-surface) 50%,
+    color-mix(in srgb, var(--meng-tint) 80%, var(--meng-surface)) 80%
+  );
+  background-size: 240% 100%;
+  color: var(--meng-primary);
+  animation: cover-sweep 2s ease-in-out infinite;
+}
+
+.tag-recommendations span.pending .ai-icon {
+  animation: editor-wiggle 900ms ease-in-out infinite;
 }
 
 .tags-panel,
@@ -1715,5 +1793,50 @@ small {
 
   .editor-actions .el-button--primary {
     min-width: 110px;
+  }
+}
+
+.tag-recommendations button {
+  padding: 6px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--meng-border);
+  border-radius: 15px;
+  background: var(--meng-warning);
+  color: var(--meng-text);
+  cursor: pointer;
+  animation: tag-pop 420ms var(--meng-slide-ease) both;
+  animation-delay: calc(var(--tag-order, 0) * 90ms);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+
+  &:hover:enabled {
+    transform: translateY(-2px);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+@keyframes tag-pop {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.8);
+  }
+}
+
+// 这几处的规则写在前面那段之后，所以减少动态效果要放在最后
+@media (prefers-reduced-motion: reduce) {
+  .ai-tool[aria-busy='true'],
+  .ai-tool[aria-busy='true'] .ai-icon,
+  .cover-making,
+  .tag-recommendations span.pending,
+  .tag-recommendations span.pending .ai-icon,
+  .tag-recommendations button {
+    animation: none;
   }
 }

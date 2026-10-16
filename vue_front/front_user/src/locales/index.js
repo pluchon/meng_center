@@ -11,6 +11,7 @@ import growth from './zh-CN/growth'
 import im from './zh-CN/im'
 import account from './zh-CN/account'
 import viewer from './zh-CN/viewer'
+import ai from './zh-CN/ai'
 export const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
@@ -29,6 +30,7 @@ export const i18n = createI18n({
       im,
       account,
       viewer,
+      ai,
     },
   },
 })

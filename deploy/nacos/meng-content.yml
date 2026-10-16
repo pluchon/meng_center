@@ -49,6 +49,29 @@ management.health.elasticsearch.enabled: false
 meng.content.search:
   analyzer: ik_max_word
   search-analyzer: ik_smart
+spring.rabbitmq.publisher-confirm-type: simple
+spring.cloud.openfeign.client.config.contentAi:
+  loggerLevel: none
+meng.content.ai:
+  tags-daily: 30
+  tags-minute: 6
+  inspirations-daily: 10
+  inspirations-minute: 3
+  covers-daily: 3
+  covers-minute: 1
+  reviews-daily: 5
+  reviews-minute: 2
+  feedback-daily: 100
+  feedback-minute: 20
+meng.content.rec:
+  ranker: MANUAL
+  weight:
+    hot: 0.30
+    vector: 0.25
+    interest: 0.20
+    follow: 0.15
+    freshness: 0.10
+meng.ai.moderation.enforce: true
 meng.content.job:
   admin-address: http://127.0.0.1:${MENG_XXL_JOB_PORT}
   port: ${MENG_CONTENT_JOB_PORT}

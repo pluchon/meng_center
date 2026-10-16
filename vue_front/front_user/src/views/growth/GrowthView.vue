@@ -187,7 +187,7 @@
             <button
               type="button"
               class="tone-gold"
-              @click="unavailable"
+              @click="aiOpen=true"
             >
               <img
                 :src="icons.magic"
@@ -218,6 +218,11 @@
       v-model:days="days"
       :stats="visibleStats"
       @retry="retryStats"
+    />
+    <AiAssistant
+      v-if="aiOpen"
+      v-model:open="aiOpen"
+      mode="growth"
     />
   </CommunityLayout>
 </template>

@@ -1,4 +1,12 @@
-import { computed, defineAsyncComponent, defineComponent, onMounted, onUnmounted, ref, watch } from 'vue'
+import {
+  computed,
+  defineAsyncComponent,
+  defineComponent,
+  onMounted,
+  onUnmounted,
+  ref,
+  watch,
+} from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -63,6 +71,7 @@ export default defineComponent({
     PointsDialog: defineAsyncComponent(() => import('@/components/points-dialog/PointsDialog.vue')),
   },
   setup() {
+    const profileReview = useRequestResource((signal) => userApi.profileReview({ signal }), null)
     const { t } = useI18n(),
       route = useRoute(),
       router = useRouter(),
@@ -85,6 +94,9 @@ export default defineComponent({
         null,
       ),
       pointsResource = useRequestResource((signal) => growthApi.points({ signal }), null)
+    onMounted(() => {
+      if (!other.value) void profileReview.load()
+    })
     const folders = ref([]),
       folderTotal = ref(0),
       folderRevision = ref(0),
@@ -123,8 +135,10 @@ export default defineComponent({
     const pointsBalance = computed(() => pointsResource.state.data?.balance ?? 0)
     const sectionTitle = computed(() => {
       const total = countsResource.state.data
-      if (pane.value === AccountPane.POSTS) return t('account.publishedCount', { count: total?.posts ?? 0 })
-      if (pane.value === AccountPane.LIKES) return t('account.likedCount', { count: total?.likes ?? 0 })
+      if (pane.value === AccountPane.POSTS)
+        return t('account.publishedCount', { count: total?.posts ?? 0 })
+      if (pane.value === AccountPane.LIKES)
+        return t('account.likedCount', { count: total?.likes ?? 0 })
       if (folder.value) return folderName(folder.value)
       return t(other.value ? 'account.otherFolders' : 'account.collections')
     })
@@ -169,7 +183,9 @@ export default defineComponent({
       try {
         const params = { page: 1, size: other.value ? 20 : Account.FOLDERS_MAX }
         folders.value = (
-          await (other.value ? contentApi.userFolders(viewedId.value, params) : contentApi.folders(params))
+          await (other.value
+            ? contentApi.userFolders(viewedId.value, params)
+            : contentApi.folders(params))
         ).records
       } catch (error) {
         notifyFailure(error)
@@ -291,6 +307,7 @@ export default defineComponent({
     watch(viewedId, leaveIfSelf)
     onUnmounted(() => document.documentElement.classList.remove('account-scrollbar-hidden'))
     return {
+      profileReview: profileReview.state,
       t,
       profile: profileResource.state,
       pointsBalance,

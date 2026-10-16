@@ -93,5 +93,8 @@ export default {
     LEVEL_CHANGED: '升级啦',
     USER_APPROVED: '注册申请通过啦',
     FOLLOWED: '关注了你',
+    POST_REVIEW_CHANGED: '帖子审核状态有更新',
+    COMMENT_REVIEW_CHANGED: '评论审核状态有更新',
+    PROFILE_REVIEW_CHANGED: '个人资料审核状态有更新',
   },
 }

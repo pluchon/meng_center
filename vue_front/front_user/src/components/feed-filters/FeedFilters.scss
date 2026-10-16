@@ -257,3 +257,13 @@
     border-radius: var(--meng-radius-card);
   }
 }
+
+.sort-filters .sort-recommend {
+  --slide-fill: var(--meng-category-game);
+  --slide-edge: var(--meng-category-game-dot);
+}
+
+.sort-filters .sort-relevant {
+  --slide-fill: var(--meng-success);
+  --slide-edge: var(--meng-growth-mint-edge);
+}

@@ -42,6 +42,7 @@
         >{{ t('search.total',{count:total}) }}</span>
       </header>
       <FeedFilters
+        :sorts="SearchSorts"
         :category="query.category"
         :sort="query.sort"
         @change="filter"

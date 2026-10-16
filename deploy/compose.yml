@@ -140,6 +140,18 @@ services:
       retries: 12
       start_period: 45s
 
+  xxl-job-user-bridge:
+    image: alpine/socat:1.8.0.3@sha256:beb4a68d9e4fe6b0f21ea774a0fde6c31f580dde6368939ed70100c5385b015e
+    restart: unless-stopped
+    mem_limit: 32m
+    network_mode: "service:xxl-job"
+    depends_on:
+      xxl-job:
+        condition: service_started
+    command:
+      - "TCP4-LISTEN:${MENG_USER_JOB_PORT:?required},bind=127.0.0.1,fork,reuseaddr"
+      - "TCP4:host.docker.internal:${MENG_USER_JOB_PORT:?required}"
+
   xxl-job-bridge:
     image: alpine/socat:1.8.0.3@sha256:beb4a68d9e4fe6b0f21ea774a0fde6c31f580dde6368939ed70100c5385b015e
     restart: unless-stopped

@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { usePostTime } from '@/composables/usePostTime'
 import { RouteName } from '@/router/names'
 import { MessageTab, NoticeType } from '@/constants/im'
+import { CreatorTab } from '@/constants/content'
 import {
   authCodeIcon,
   authHeartIcon,
@@ -28,6 +29,9 @@ const typeIcons = {
   [NoticeType.LEVEL_CHANGED]: navGrowthIcon,
   [NoticeType.USER_APPROVED]: authHeartIcon,
   [NoticeType.FOLLOWED]: authHeartIcon,
+  [NoticeType.POST_REVIEW_CHANGED]: messageShieldIcon,
+  [NoticeType.COMMENT_REVIEW_CHANGED]: messageShieldIcon,
+  [NoticeType.PROFILE_REVIEW_CHANGED]: messageShieldIcon,
 }
 export default defineComponent({
   name: 'MessageNotices',
@@ -65,14 +69,17 @@ export default defineComponent({
             ? authHeartIcon
             : props.group === 'GROWTH'
               ? navGrowthIcon
-            : props.group === 'POST'
-              ? navMessageIcon
-              : messageShieldIcon,
+              : props.group === 'POST'
+                ? navMessageIcon
+                : messageShieldIcon,
     )
     function open(item) {
       const notice = item.notice
       if (notice.type === NoticeType.FOLLOWED && item.actors.length)
         void router.push({ name: RouteName.USER, params: { id: item.actors[0].id } })
+      else if (notice.type === NoticeType.POST_REVIEW_CHANGED && !notice.postId)
+        // 帖子被审核退回，原帖已不在，去草稿箱看
+        void router.push({ name: RouteName.CREATOR, query: { tab: CreatorTab.DRAFTS } })
       else if (notice.postId)
         void router.push({
           name: RouteName.POST_DETAIL,

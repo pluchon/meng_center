@@ -579,3 +579,12 @@
     animation: none;
   }
 }
+
+.detail-review-state {
+  width: fit-content;
+  padding: 6px 12px;
+  border-radius: 16px;
+  background: var(--meng-warning);
+  color: var(--meng-text);
+  font-weight: 700;
+}

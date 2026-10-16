@@ -4,7 +4,7 @@ spring:
   config:
     import:
       - nacos:meng-common.yml?group=MENG_GROUP&refreshEnabled=false
-      - nacos:meng-content.yml?group=MENG_GROUP&refreshEnabled=false
+      - nacos:meng-content.yml?group=MENG_GROUP&refreshEnabled=true
   cloud:
     nacos:
       config:
@@ -12,7 +12,7 @@ spring:
         namespace: ${MENG_NACOS_NAMESPACE}
         username: ${MENG_NACOS_USERNAME}
         password: ${MENG_NACOS_PASSWORD}
-        refresh-enabled: false
+        refresh-enabled: true
       discovery:
         server-addr: ${MENG_NACOS_ADDR}
         namespace: ${MENG_NACOS_NAMESPACE}

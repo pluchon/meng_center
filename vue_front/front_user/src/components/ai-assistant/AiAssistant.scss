@@ -1,0 +1,673 @@
+// 弹窗：顶上一层淡淡的冰蓝，往下渐渐变白，右上角两颗闪烁的小星
+.ai-assistant-dialog.el-dialog {
+  position: relative;
+  padding: 22px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 28px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--meng-tint) 75%, var(--meng-surface)) 0,
+    var(--meng-surface) 150px
+  );
+  box-shadow: 0 5px 0 var(--meng-card-base);
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    background: var(--meng-decor-sparkle);
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    pointer-events: none;
+    animation: ai-twinkle 2.6s ease-in-out infinite;
+  }
+
+  &::before {
+    top: 18px;
+    right: 76px;
+    width: 16px;
+    height: 16px;
+  }
+
+  &::after {
+    top: 44px;
+    right: 58px;
+    width: 10px;
+    height: 10px;
+    background: var(--meng-creator-pink);
+    animation-delay: 1.1s;
+  }
+}
+
+@keyframes ai-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.6;
+  }
+}
+
+.ai-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 0;
+
+  img {
+    width: 36px;
+    height: 36px;
+  }
+
+  h2 {
+    margin: 0;
+    white-space: nowrap;
+    font-size: 22px;
+    color: var(--meng-text);
+    padding: 5px 12px;
+    border-radius: 20px;
+    background: var(--meng-warning);
+    box-shadow: 0 2px 0 var(--meng-category-daily);
+  }
+}
+
+// 标题右边的小贴纸：说明这些是 AI 给的参考，淡紫色，歪一点，魔杖慢慢闪
+.ai-credit {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px 4px 8px;
+  border: 2px dashed var(--meng-creator-purple);
+  border-radius: var(--meng-radius-pill);
+  background: color-mix(in srgb, var(--meng-category-game) 75%, var(--meng-surface));
+  box-shadow: 0 2px 0 var(--meng-creator-purple);
+  color: var(--meng-creator-purple-text);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  rotate: -2deg;
+
+  img {
+    width: 15px;
+    height: 15px;
+    animation: ai-twinkle 2.6s ease-in-out infinite;
+  }
+}
+
+.ai-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  padding: 7px;
+  margin-left: auto;
+  border: 2px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  cursor: pointer;
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+
+  img {
+    width: 20px;
+    height: 20px;
+    transition: transform 240ms ease;
+  }
+
+  &:hover {
+    box-shadow: 0 5px 0 var(--meng-category-anime);
+    transform: translateY(-2px);
+
+    img {
+      transform: rotate(90deg);
+    }
+  }
+
+  &:active {
+    box-shadow: 0 1px 0 var(--meng-category-anime);
+    transform: translateY(2px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--meng-primary);
+    outline-offset: 2px;
+  }
+}
+
+.ai-period + .ai-close {
+  margin-left: 0;
+}
+
+.ai-period {
+  display: flex;
+  position: relative;
+  margin-left: auto;
+  padding: 4px;
+  border: 2px dashed var(--meng-border);
+  border-radius: 24px;
+  background: var(--meng-surface);
+
+  > span {
+    position: absolute;
+    top: 3px;
+    bottom: 3px;
+    left: 3px;
+    width: calc((100% - 6px) / 2);
+    border: 2px solid var(--meng-surface);
+    border-radius: 20px;
+    background: var(--meng-warning);
+    box-shadow: 0 2px 0 var(--meng-category-daily);
+    transform: translateX(calc(var(--period) * 100%));
+    transition: transform 240ms var(--meng-slide-ease);
+  }
+
+  button {
+    position: relative;
+    padding: 7px 14px;
+    border: 0;
+    border-radius: 20px;
+    background: transparent;
+    color: var(--meng-text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:focus-visible {
+      outline: 3px solid var(--meng-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+// 四周留出的边给等待时的光晕，不然会被滚动区域切掉
+.ai-content {
+  min-height: 250px;
+  max-height: 65vh;
+  padding: 20px;
+  margin: -20px;
+  overflow-y: auto;
+  scrollbar-width: none;
+  color: var(--meng-text);
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+}
+
+// 内容区所有块的大小都是固定的：等待时的占位和生成后的内容一样大，内容多了在块里滚动
+.ai-inspirations,
+.ai-analysis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.ai-glowing {
+  position: relative;
+}
+
+// ---------- 灵感：三张卡片
+.ai-card {
+  --glow-radius: 20px;
+
+  position: relative;
+  display: grid;
+  grid-template: auto auto minmax(0, 1fr) / minmax(0, 1fr);
+  gap: 8px;
+  height: 196px;
+  padding: 14px 16px;
+  border-radius: var(--glow-radius);
+  background: var(--meng-tint);
+
+  p,
+  blockquote {
+    margin: 0;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+
+  p {
+    display: -webkit-box;
+    overflow: hidden;
+    font-size: 14px;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  blockquote {
+    min-height: 0;
+    padding-left: 12px;
+    overflow-y: auto;
+    border-left: 2px dashed var(--meng-primary);
+    font-size: 14px;
+    scrollbar-width: none;
+  }
+}
+
+.ai-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+
+  h3 {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  button {
+    flex: none;
+    padding: 6px 20px;
+    border: 1px solid var(--meng-border);
+    border-radius: 20px;
+    background: var(--meng-warning);
+    box-shadow: 0 2px 0 var(--meng-category-daily);
+    color: var(--meng-text);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition: transform 160ms ease;
+
+    &:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    &:active:not(:disabled) {
+      transform: translateY(2px);
+    }
+
+    &:focus-visible {
+      outline: 3px solid var(--meng-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// 序号：三张卡片三种颜色
+.ai-card-no {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-category-anime);
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--meng-category-anime) 60%, var(--meng-primary));
+  color: var(--meng-text);
+  font:
+    14px/1 'ZCOOL KuaiLe',
+    'Noto Sans SC',
+    sans-serif;
+}
+
+.ai-card:nth-child(2) .ai-card-no {
+  background: var(--meng-category-creation);
+  box-shadow: 0 2px 0 var(--meng-creator-pink);
+}
+
+.ai-card:nth-child(3) .ai-card-no {
+  background: var(--meng-category-daily);
+  box-shadow: 0 2px 0 var(--meng-creator-yellow);
+}
+
+// ---------- 总结：三个数、一段话、几条建议
+.ai-metrics {
+  display: flex;
+  gap: 12px;
+
+  > span {
+    --glow-radius: 18px;
+    --edge: var(--meng-category-daily);
+
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 86px;
+    padding: 14px;
+    border: 3px solid var(--meng-surface);
+    border-radius: var(--glow-radius);
+    background: var(--meng-warning);
+    box-shadow: 0 4px 0 var(--edge);
+    rotate: -1.5deg;
+    transition:
+      translate 200ms var(--meng-slide-ease),
+      rotate 250ms var(--meng-slide-ease),
+      box-shadow 200ms ease;
+
+    &:nth-child(2) {
+      --edge: var(--meng-creator-green-shadow);
+
+      background: var(--meng-success);
+      rotate: 1deg;
+    }
+
+    &:nth-child(3) {
+      --edge: var(--meng-creator-purple);
+
+      background: var(--meng-category-game);
+      rotate: -1deg;
+    }
+
+    &:hover {
+      box-shadow: 0 6px 0 var(--edge);
+      rotate: 0deg;
+      translate: 0 -2px;
+    }
+  }
+
+  small {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  strong {
+    font:
+      28px/1 'ZCOOL KuaiLe',
+      'Noto Sans SC',
+      sans-serif;
+  }
+}
+
+.ai-metric-icon {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  opacity: 0.9;
+  transition: transform 240ms ease;
+}
+
+.ai-metrics > span:hover .ai-metric-icon {
+  transform: rotate(-10deg) scale(1.12);
+}
+
+// 总结：一张便签，顶上贴一条胶带，右下角一颗星
+.ai-note {
+  --glow-radius: 20px;
+
+  position: relative;
+  height: 148px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--glow-radius);
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-card-base);
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: 2;
+    top: -12px;
+    left: 28px;
+    width: 88px;
+    height: 22px;
+    border-radius: 4px;
+    background: var(--meng-detail-tape);
+    opacity: 0.92;
+    rotate: -3deg;
+    pointer-events: none;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    width: 14px;
+    height: 14px;
+    background: var(--meng-decor-sparkle);
+    clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    pointer-events: none;
+    animation: ai-twinkle 2.6s ease-in-out infinite;
+  }
+}
+
+.ai-summary {
+  height: 100%;
+  padding: 18px 22px;
+  margin: 0;
+  overflow-y: auto;
+  line-height: 1.9;
+  scrollbar-width: none;
+  white-space: pre-wrap;
+}
+
+// 建议：一张暖色卡，每条建议是带序号的小条
+.ai-suggest {
+  --glow-radius: 20px;
+
+  height: 196px;
+  padding: 14px 16px;
+  overflow-y: auto;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--glow-radius);
+  background: color-mix(in srgb, var(--meng-warning) 75%, var(--meng-surface));
+  box-shadow: 0 4px 0 var(--meng-category-daily);
+  scrollbar-width: none;
+
+  h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 2px 0 10px 4px;
+
+    &::before {
+      content: '';
+      flex: none;
+      width: 14px;
+      height: 14px;
+      background: var(--meng-decor-sparkle);
+      clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+    }
+  }
+
+  ul {
+    display: grid;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    counter-reset: tip;
+  }
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 12px 8px 8px;
+    border-radius: 14px;
+    background: color-mix(in srgb, var(--meng-surface) 85%, transparent);
+    box-shadow: 0 2px 0 color-mix(in srgb, var(--meng-category-daily) 60%, transparent);
+    line-height: 1.7;
+    counter-increment: tip;
+
+    &::before {
+      content: counter(tip);
+      display: grid;
+      flex: none;
+      place-items: center;
+      width: 24px;
+      height: 24px;
+      margin-top: 1px;
+      border-radius: 50%;
+      background: var(--meng-category-anime);
+      color: var(--meng-text);
+      font:
+        13px/1 'ZCOOL KuaiLe',
+        'Noto Sans SC',
+        sans-serif;
+    }
+
+    &:nth-child(2)::before {
+      background: var(--meng-category-creation);
+    }
+
+    &:nth-child(3)::before {
+      background: var(--meng-category-daily);
+    }
+  }
+}
+
+// ---------- 等待时的占位：灰条代替文字，边框上有光转圈
+.ai-card.ai-glowing,
+.ai-suggest.ai-glowing {
+  h3 {
+    color: var(--meng-muted);
+    font-size: 15px;
+  }
+}
+
+.ai-lines {
+  display: grid;
+  gap: 10px;
+  align-content: center;
+  height: 48px;
+}
+
+.ai-bar {
+  display: block;
+  height: 14px;
+  align-self: center;
+  border-radius: 8px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--meng-surface) 55%, transparent) 0%,
+    color-mix(in srgb, var(--meng-surface) 95%, transparent) 50%,
+    color-mix(in srgb, var(--meng-surface) 55%, transparent) 100%
+  );
+  background-size: 220% 100%;
+  animation: ai-bar-sweep 1.6s ease-in-out infinite;
+}
+
+.ai-bar-title {
+  width: 42%;
+  height: 18px;
+}
+
+.ai-bar-short {
+  width: 68%;
+}
+
+.ai-bar-block {
+  align-self: stretch;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  border-radius: 12px;
+}
+
+.ai-note.ai-glowing .ai-summary,
+.ai-suggest.ai-glowing {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.ai-note.ai-glowing .ai-bar,
+.ai-suggest.ai-glowing .ai-bar {
+  height: 16px;
+}
+
+@keyframes ai-bar-sweep {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
+.ai-refreshing {
+  opacity: 0.45;
+  transition: opacity 160ms ease;
+}
+
+.ai-result-enter-active,
+.ai-result-leave-active {
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+
+.ai-result-enter-from,
+.ai-result-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+@media (width <= 640px) {
+  .ai-heading {
+    flex-wrap: wrap;
+  }
+
+  .ai-period {
+    margin-left: 0;
+  }
+
+  // 窄屏标题和关闭钮留在第一行，小字和切换条换到下一行
+  .ai-heading .ai-close {
+    order: 2;
+    margin-left: auto;
+  }
+
+  .ai-heading::after {
+    content: '';
+    order: 2;
+    flex-basis: 100%;
+  }
+
+  .ai-credit,
+  .ai-period {
+    order: 3;
+  }
+
+  .ai-card {
+    height: 212px;
+  }
+
+  .ai-metrics {
+    gap: 8px;
+
+    > span {
+      padding: 10px;
+    }
+  }
+
+  .ai-metric-icon {
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-assistant-dialog.el-dialog::before,
+  .ai-assistant-dialog.el-dialog::after,
+  .ai-note::after,
+  .ai-metrics > span,
+  .ai-metric-icon,
+  .ai-close,
+  .ai-close img,
+  .ai-credit img,
+  .ai-bar,
+  .ai-card-head button,
+  .ai-period > span,
+  .ai-result-enter-active,
+  .ai-result-leave-active,
+  .ai-refreshing {
+    animation: none;
+    transition: none;
+  }
+}

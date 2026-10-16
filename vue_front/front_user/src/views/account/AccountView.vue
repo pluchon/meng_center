@@ -55,6 +55,13 @@
           @retry="loadProfile"
         />
         <template v-else-if="profile.data">
+          <p
+            v-if="!other&&profileReview.data?.review_state==='CLEARED'"
+            class="profile-review-notice"
+            role="status"
+          >
+            {{ t('ai.profileCleared') }} {{ profileReview.data.reason }}
+          </p>
           <header class="account-header">
             <div class="account-portrait">
               <img

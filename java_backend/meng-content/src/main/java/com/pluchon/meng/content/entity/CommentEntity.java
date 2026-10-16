@@ -6,10 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-
-import lombok.Data;
-
 import java.time.LocalDateTime;
+import lombok.Data;
 
 // 评论持久化实体
 @Data
@@ -52,6 +50,8 @@ public class CommentEntity {
 
     // 请求地址属地
     private String ipRegion;
+    private com.pluchon.meng.content.entity.enums.ReviewState reviewState =
+        com.pluchon.meng.content.entity.enums.ReviewState.NORMAL;
 
     // 创建时间
     @TableField(insertStrategy = FieldStrategy.NEVER, updateStrategy = FieldStrategy.NEVER)
@@ -62,5 +62,6 @@ public class CommentEntity {
     private LocalDateTime updateTime;
 
     // 逻辑删除标记
-    @TableLogic private Integer deleteState;
+    @TableLogic
+    private Integer deleteState;
 }

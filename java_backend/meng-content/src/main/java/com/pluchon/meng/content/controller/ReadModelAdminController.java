@@ -2,7 +2,6 @@ package com.pluchon.meng.content.controller;
 
 import com.pluchon.meng.common.core.response.ApiResponse;
 import com.pluchon.meng.content.service.ReadModelAdminService;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -12,6 +11,19 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/content/admin")
 public class ReadModelAdminController {
+
+    @Autowired
+    private com.pluchon.meng.content.service.AiAdminService aiAdmin;
+
+    @PostMapping("/ai/reanalyze")
+    public ApiResponse<Void> analyze(
+        @org.springframework.web.bind.annotation.RequestParam(
+            defaultValue = "true"
+        ) boolean recompute
+    ) {
+        aiAdmin.reanalyze(recompute);
+        return ApiResponse.success(null);
+    }
 
     // 对应接口的业务操作
     @Autowired

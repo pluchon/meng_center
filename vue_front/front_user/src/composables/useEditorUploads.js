@@ -141,5 +141,15 @@ export function useEditorUploads(uploadImage = contentApi.upload) {
     entries.value.forEach(dispose)
     queue.length = 0
   })
-  return { images, cover, notice, blocked, add, remove, retry, hydrate }
+  function setCover(image) {
+    dispose(cover.value)
+    cover.value = {
+      ...image,
+      key: crypto.randomUUID(),
+      preview: contentImage(image.thumbUrl),
+      status: 'ready',
+      progress: 100,
+    }
+  }
+  return { images, cover, notice, blocked, add, remove, retry, hydrate, setCover }
 }

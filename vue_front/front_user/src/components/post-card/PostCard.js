@@ -33,7 +33,7 @@ export default defineComponent({
     CollectionTag,
   },
   props: { post: { type: Object, required: true } },
-  emits: ['change'],
+  emits: ['change', 'dismiss'],
   setup(props, { emit }) {
     const region = computed(() => postRegion(props.post.ipRegion))
     const route = useRoute()
@@ -44,7 +44,7 @@ export default defineComponent({
     const detailLink = computed(() => ({
       name: RouteName.POST_DETAIL,
       params: { id: props.post.id },
-      query: homeQuery.value,
+      query: props.post.reason ? { ...homeQuery.value, from: 'rec' } : homeQuery.value,
     }))
     function openDetail() {
       return router.push(detailLink.value)
@@ -65,7 +65,7 @@ export default defineComponent({
         return
       openDetail()
     }
-    const pending = reactive({ like: false, favorite: false }),
+    const pending = reactive({ like: false, favorite: false, dismiss: false }),
       previewIndex = ref(null)
     function preview(index) {
       previewIndex.value = index
@@ -113,6 +113,18 @@ export default defineComponent({
       }
     }
     return {
+      async dismiss() {
+        if (pending.dismiss) return
+        pending.dismiss = true
+        try {
+          await contentApi.feedback(props.post.id)
+          emit('dismiss', props.post.id)
+        } catch (error) {
+          notifyFailure(error)
+        } finally {
+          pending.dismiss = false
+        }
+      },
       ...useCommunity(),
       pending,
       previewIndex,

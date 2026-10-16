@@ -3,7 +3,7 @@ import { computed, defineComponent, onMounted, onUnmounted, ref, watch } from 'v
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
-import { Categories, PostSort, Search } from '@/constants/content'
+import { Categories, PostSort, SearchSorts, Search } from '@/constants/content'
 import { communitySparkle, detailBubble, navSearchIcon } from '@/assets/images'
 import CommunityLayout from '@/layouts/community/CommunityLayout.vue'
 import FeedFilters from '@/components/feed-filters/FeedFilters.vue'
@@ -27,7 +27,7 @@ export default defineComponent({
     const query = computed(() => ({
       q: typeof route.query.q === 'string' ? route.query.q.trim() : '',
       category: Categories.includes(route.query.category) ? route.query.category : undefined,
-      sort: Object.values(PostSort).includes(route.query.sort) ? route.query.sort : PostSort.HOT,
+      sort: SearchSorts.includes(route.query.sort) ? route.query.sort : PostSort.RELEVANT,
       page: Math.min(
         Search.WINDOW / Search.SIZE,
         Math.max(1, Number.isSafeInteger(Number(route.query.page)) ? Number(route.query.page) : 1),
@@ -89,6 +89,7 @@ export default defineComponent({
       controller?.abort()
     })
     return {
+      SearchSorts,
       scrollToTop,
       pageRoot,
       ...useI18n(),

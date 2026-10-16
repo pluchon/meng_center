@@ -1,4 +1,14 @@
-import { defineComponent, computed, ref, reactive, watch, onMounted, onUnmounted } from 'vue'
+import {
+  defineAsyncComponent,
+  defineComponent,
+  computed,
+  ref,
+  reactive,
+  watch,
+  onMounted,
+  onUnmounted,
+} from 'vue'
+import { aiApi } from '@/api/ai'
 import { useRoute, useRouter, onBeforeRouteLeave, onBeforeRouteUpdate } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useI18n } from 'vue-i18n'
@@ -34,10 +44,13 @@ import {
 } from '@/assets/images'
 import LiquidEther from '@/components/liquid-ether/LiquidEther.vue'
 import PageState from '@/components/page-state/PageState.vue'
+import GlowRing from '@/components/glow-ring/GlowRing.vue'
 export default defineComponent({
   name: 'PostEditorView',
   components: {
+    AiAssistant: defineAsyncComponent(() => import('@/components/ai-assistant/AiAssistant.vue')),
     PageState,
+    GlowRing,
     LiquidEther,
     MarkdownEditor,
     MarkdownBody,
@@ -66,6 +79,55 @@ export default defineComponent({
       errors = reactive({ title: '', body: '', images: '', tags: '' })
     const form = reactive({ category: PostCategory.DAILY, title: '', content: '', tags: [] }),
       count = (value) => Array.from(value).length
+    const aiOpen = ref(false),
+      aiTags = ref([]),
+      aiPending = reactive({ tags: false, covers: false })
+    // 重新生成时先收起上一批，不然新旧混在一起分不清
+    const visibleAiTags = computed(() => (aiPending.tags ? [] : aiTags.value))
+    const aiControllers = {}
+    const aiDraft = computed(() => ({
+      category: form.category,
+      title: form.title,
+      content: Array.from(form.content).slice(0, 2000).join(''),
+      selectedTags: [...form.tags],
+    }))
+    // 只看生成依据：另一个生成完成后封面变了，不该让这一个的结果作废
+    const aiSignature = () => JSON.stringify([form.category, form.title, form.content])
+    async function generateAi(kind) {
+      if (aiPending[kind]) return
+      if (!form.title.trim() && !form.content.trim()) {
+        ElMessage.info(t('ai.emptyDraft'))
+        return
+      }
+      const before = aiSignature()
+      aiPending[kind] = true
+      const controller = new AbortController()
+      aiControllers[kind] = controller
+      try {
+        const result = await aiApi[kind](aiDraft.value, { signal: controller.signal })
+        if (aiSignature() !== before) return
+        if (kind === 'tags') aiTags.value = result.tags
+        else uploads.setCover(result)
+      } catch (error) {
+        if (!error.cancelled) notifyFailure(error)
+      } finally {
+        aiPending[kind] = false
+      }
+    }
+    function insertInspiration(text) {
+      const separator = form.content ? '\n\n' : ''
+      form.content += Array.from(separator + text)
+        .slice(0, Math.max(0, PostEditor.BODY_MAX - count(form.content)))
+        .join('')
+    }
+    function openInspiration() {
+      if (!form.title.trim() && !form.content.trim()) {
+        ElMessage.info(t('ai.emptyDraft'))
+        return
+      }
+      aiOpen.value = true
+    }
+    onUnmounted(() => Object.values(aiControllers).forEach((controller) => controller.abort()))
     const editing = computed(() => route.name === RouteName.POST_EDIT)
     const titleCount = computed(() => count(form.title)),
       bodyCount = computed(() => count(form.content))
@@ -406,6 +468,14 @@ export default defineComponent({
       addTag,
       limitTitle,
       unavailable,
+      aiOpen,
+      aiDraft,
+      aiTags,
+      visibleAiTags,
+      aiPending,
+      generateAi,
+      insertInspiration,
+      openInspiration,
       submit,
       loadDraft,
       paste,

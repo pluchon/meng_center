@@ -180,6 +180,14 @@ public class DraftService {
         drafts.deleteById(id);
     }
 
+    // 帖子被退回时生成草稿：不受草稿数量上限限制，作者之后得先清出位置才能再新建草稿
+    @Transactional(rollbackFor = Exception.class)
+    public long addWithdrawn(PostDraftEntity draft) {
+        drafts.lockAuthorDrafts(draft.getAuthorId());
+        drafts.insert(draft);
+        return draft.getId();
+    }
+
     // 发布前锁定并校验关联草稿
     public void lockForPublication(Long id) {
         if (id != null) {

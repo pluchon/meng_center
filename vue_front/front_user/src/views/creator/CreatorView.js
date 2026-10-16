@@ -1,4 +1,14 @@
-import { computed, defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import {
+  defineAsyncComponent,
+  computed,
+  defineComponent,
+  nextTick,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+  watch,
+} from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
@@ -11,6 +21,7 @@ import {
   communitySparkle,
   detailBubble,
   detailFlower,
+  editorMagicIcon,
   creatorPostsIcon,
   creatorViewsIcon,
   creatorLikesIcon,
@@ -30,6 +41,7 @@ import { scrollToTop } from '@/composables/scrollToTop'
 export default defineComponent({
   name: 'CreatorView',
   components: {
+    AiAssistant: defineAsyncComponent(() => import('@/components/ai-assistant/AiAssistant.vue')),
     CommunityLayout,
     PageState,
     FeedPagination,
@@ -39,6 +51,7 @@ export default defineComponent({
     IconPencil,
   },
   setup() {
+    const aiOpen = ref(false)
     const { t } = useI18n(),
       route = useRoute(),
       router = useRouter(),
@@ -72,7 +85,11 @@ export default defineComponent({
         const position = window.scrollY
         const anchor = pagination.value?.$el.getBoundingClientRect().top
         await nextTick()
-        if (restoreScroll && route.name === RouteName.CREATOR && tab.value === CreatorTab.PUBLISHED) {
+        if (
+          restoreScroll &&
+          route.name === RouteName.CREATOR &&
+          tab.value === CreatorTab.PUBLISHED
+        ) {
           const nextAnchor = pagination.value?.$el.getBoundingClientRect().top
           if (anchor !== undefined && nextAnchor !== undefined) {
             window.scrollBy({ top: nextAnchor - anchor, behavior: 'instant' })
@@ -160,6 +177,7 @@ export default defineComponent({
     })
     onUnmounted(() => document.documentElement.classList.remove('creator-scrollbar-hidden'))
     return {
+      aiOpen,
       t,
       RouteName,
       Creator,
@@ -195,6 +213,7 @@ export default defineComponent({
       communitySparkle,
       detailBubble,
       detailFlower,
+      editorMagicIcon,
     }
   },
 })

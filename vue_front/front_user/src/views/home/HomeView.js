@@ -3,7 +3,7 @@ import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'v
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
-import { Categories, PostSort, Feed, Hero } from '@/constants/content'
+import { Categories, PostSort, FeedSorts, Feed, Hero } from '@/constants/content'
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 import {
   homeArtwork,
@@ -20,6 +20,7 @@ import PostCard from '@/components/post-card/PostCard.vue'
 import FeedFilters from '@/components/feed-filters/FeedFilters.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import PageState from '@/components/page-state/PageState.vue'
+import RecommendedAuthors from '@/components/recommended-authors/RecommendedAuthors.vue'
 const homeScrollbarClass = 'home-scrollbar-hidden'
 // 首页展示图，按这个顺序轮播，默认显示第一张。cover 的整幅铺满并带欢迎卡片、气泡和海浪；
 // 其余是自带文字的漫画海报，完整显示，上面不叠任何东西
@@ -43,6 +44,7 @@ export default defineComponent({
     FeedPagination,
     FeedFilters,
     PageState,
+    RecommendedAuthors,
   },
   setup() {
     const current = ref(0)
@@ -96,7 +98,7 @@ export default defineComponent({
     let controller
     const query = computed(() => ({
       category: Categories.includes(route.query.category) ? route.query.category : undefined,
-      sort: Object.values(PostSort).includes(route.query.sort) ? route.query.sort : PostSort.LATEST,
+      sort: FeedSorts.includes(route.query.sort) ? route.query.sort : PostSort.RECOMMEND,
       page: Math.max(
         1,
         Number.isSafeInteger(Number(route.query.page)) ? Number(route.query.page) : 1,

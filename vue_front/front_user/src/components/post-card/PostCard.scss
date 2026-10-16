@@ -19,7 +19,9 @@
 .post-card:hover {
   translate: 0 -3px;
   border-color: var(--card-edge);
-  box-shadow: 0 9px 0 var(--card-edge), 0 20px 48px var(--meng-decor-shadow);
+  box-shadow:
+    0 9px 0 var(--card-edge),
+    0 20px 48px var(--meng-decor-shadow);
 }
 
 // 卡片左上角贴一条和分类同色的纸胶带
@@ -31,7 +33,11 @@
   width: 72px;
   height: 20px;
   border-radius: 4px;
-  background: repeating-linear-gradient(135deg, var(--card-fill) 0 10px, var(--card-edge) 10px 20px);
+  background: repeating-linear-gradient(
+    135deg,
+    var(--card-fill) 0 10px,
+    var(--card-edge) 10px 20px
+  );
   opacity: 0.85;
   rotate: -4deg;
   pointer-events: none;
@@ -215,7 +221,9 @@ time {
   border-radius: var(--meng-radius-note);
   overflow: hidden;
   background: var(--meng-tint);
-  box-shadow: 0 0 0 2px var(--card-fill), 0 4px 0 2px var(--card-edge);
+  box-shadow:
+    0 0 0 2px var(--card-fill),
+    0 4px 0 2px var(--card-edge);
   aspect-ratio: 1;
   transition:
     rotate 260ms var(--meng-slide-ease),
@@ -325,19 +333,16 @@ time {
 .post-actions .views-action {
   --action-fill: var(--meng-category-game);
   --action-edge: var(--meng-category-game-dot);
-
 }
 
 .post-actions .like-action {
   --action-fill: var(--meng-danger);
   --action-edge: var(--meng-category-creation);
-
 }
 
 .post-actions .favorite-action {
   --action-fill: var(--meng-warning);
   --action-edge: var(--meng-category-daily);
-
 }
 
 .post-actions button:hover {
@@ -423,5 +428,50 @@ time {
   .post-images {
     gap: var(--meng-space-1);
   }
+}
 
+// 推荐理由和「不感兴趣」靠右，紧挨着右边的分类标签
+.post-actions .recommend-meta {
+  gap: 8px;
+  margin-left: auto;
+}
+
+.recommend-meta + .post-type {
+  margin-left: 4px;
+}
+
+.recommend-reason {
+  padding: 5px 10px;
+  border-radius: 14px;
+  background: var(--meng-warning);
+  color: var(--meng-text);
+  font-size: 12px;
+}
+
+// 放在动作行里，要盖掉动作行对按钮的贴纸样式：这里只是一个淡淡的虚线小字钮
+.post-actions .recommend-dismiss {
+  min-width: 0;
+  min-height: 0;
+  padding: 5px 9px;
+  border: 1px dashed var(--meng-border);
+  border-radius: 14px;
+  background: transparent;
+  box-shadow: none;
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 400;
+  cursor: pointer;
+  rotate: 0deg;
+  transition: color 160ms ease;
+
+  &:hover {
+    color: var(--meng-primary);
+    box-shadow: none;
+    translate: 0 0;
+  }
+
+  &:active {
+    box-shadow: none;
+    translate: 0 0;
+  }
 }

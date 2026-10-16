@@ -93,9 +93,9 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 ./deploy/scripts/Publish-NacosConfiguration.ps1
 ```
 
-初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD`、`MENG_CONTENT_IMAGE_ROOT` 与 `MENG_IM_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` / `meng_im` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建四个域库。新生成的密码也应备份到仓库外配置清单。
+初始化只生成缺失的 `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD`、`MENG_CONTENT_IMAGE_ROOT` 与 `MENG_IM_IMAGE_ROOT` 用户环境变量；数据库脚本建立 `meng_content` / `meng_growth` / `meng_im` 和各自应用账号，已有密码不覆盖。新 MySQL 卷通过入口脚本自动创建这些域库。新生成的密码也应备份到仓库外配置清单。
 
-打包后启动 `Start-Backend.ps1 -Service meng-content` 、`-Service meng-growth` 及 `-Service meng-im`，分别监听本机 8102、8103、8104；网关继续用 8080，增加 `/content/**`、`/growth/**`、`/im/**` 的 Nacos 路由及单独的 `/im/ws` WebSocket 路由。发布配置后需重启受影响业务服务，配置导入不动态刷新。
+打包后启动 `Start-Backend.ps1 -Service meng-content` 、`-Service meng-growth` 及 `-Service meng-im`，分别监听本机 8102、8103、8104；网关继续用 8080，增加 `/content/**`、`/growth/**`、`/im/**` 的 Nacos 路由及单独的 `/im/ws` WebSocket 路由。content 开启 Nacos 刷新，推荐手动权重与 `meng.content.rec.ranker` 每次请求读取最新配置；其他启动配置变更仍需重启相应服务。
 
 `meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。四个域各自管理 Flyway 迁移。消息服务使用 `V20261012001__create_im_tables` 建表，`meng-im.yml` 配置连接 Origin 和用户查询超时；私信存储目录只从 `MENG_IM_IMAGE_ROOT` 读取。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
 
@@ -103,16 +103,36 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。
 
-`Initialize-Elasticsearch.ps1` 只生成缺失的两个 ES 密码，启动容器后创建 `meng_content_app` 和角色 `meng_content`。权限限定为 `meng_post_*` 及别名 `meng_post`，不赋予集群管理权限。应用只读取自己的密码，管理员密码不发布到 Nacos。首次配置后执行 `Publish-NacosConfiguration.ps1` 并重启内容服务。
+`Initialize-Elasticsearch.ps1` 只生成缺失的两个 ES 密码，启动容器后创建 `meng_content_app` 和角色 `meng_content`。权限限定为 `meng_post_*`、别名 `meng_post` 及 `meng_vector_post*`，不赋予集群管理权限。应用只读取自己的密码，管理员密码不发布到 Nacos。首次配置后执行 `Publish-NacosConfiguration.ps1` 并重启内容服务。
 
 内容服务启动时异步检查索引；缺失时从 MySQL 重建。xxl-job 每天 04:00 调用 `contentHotRebuild` 重算热榜，04:10 调用 `contentSearchRebuild` 重建搜索索引（Asia/Taipei），没有 Spring `@Scheduled`。管理员可调用 `POST /content/admin/hot/rebuild`、`POST /content/admin/search/rebuild` 提前执行，接口返回表示已提交任务。索引别名和 Redis 生效色标用于观察切换结果。
 
 ## 定时任务
 
-`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及两项任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content` 自动注册；两项任务使用 FIRST 路由、DISCARD_LATER 阻塞策略、忽略过期触发、失败重试一次，超时分别为 600/1800 秒。手动运行在调度中心任务管理中操作，失败会反馈到任务日志。
+`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及下列任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content` 和 `meng-user` 自动注册，使用 FIRST 路由、DISCARD_LATER、忽略过期触发、失败重试一次。
+
+| 处理器 | Asia/Taipei 调度 | 超时（秒） |
+|---|---|---:|
+| `contentHotRebuild` | 每天 04:00 | 600 |
+| `contentSearchRebuild` | 每天 04:10 | 1800 |
+| `contentAiOutboxDispatch` | 每分钟 | 55 |
+| `contentRecProfileRebuild` | 每天 04:20 | 1800 |
+| `contentRecLogClean` | 每天 04:30 | 600 |
+| `contentRecRankerTrain` | 周一 05:00 | 180 |
+| `userAiOutboxDispatch` | 每分钟 | 55 |
 
 内容服务的官方执行器绑定所有网卡，端口 9102；注册地址仍是 `http://127.0.0.1:9102/`。Compose 不映射或开放执行器端口，`xxl-job-bridge` 只在调度中心容器的回环地址转发到宿主机。宿主机防火墙应阻止外部访问 9102，不为它创建对外放行规则；执行器还强制校验环境变量令牌，空值和 `default_token` 会使内容服务启动失败。Nacos 只保存调度地址、执行器端口、注册地址和日志路径，不能覆盖令牌。
 
 调度中心停机不影响内容服务启动和普通请求。执行器日志保留七天，位于 `MENG_CONTENT_IMAGE_ROOT` 相邻的 `job-logs` 目录；调度中心日志在 Docker 卷中。重启调度中心容器后也重启 `xxl-job-bridge`，使其重新共享调度中心网络空间。
+
+user 执行器同样要求环境令牌，端口 9101，内部转发器为 `xxl-job-user-bridge`，日志在头像目录相邻的 `user-job-logs`。重启调度中心时两个转发器都需重启。
+
+## AI 计算服务
+
+安装 uv 后，在仓库根目录执行 `./deploy/scripts/Start-Ai.ps1`；脚本按 `uv.lock` 安装 Python 3.12 依赖，随后监听 `127.0.0.1:8106`，健康接口为 `/actuator/health`。凭据只读取环境变量，服务注册名 `meng-ai`，Group `MENG_GROUP`。无需建立 AI 数据库，也不为它开放网关路由。
+
+content / user 的新增 Flyway 迁移分别为 `V20261016004__add_ai_content`、`V20261016002__add_profile_ai_review`，随新服务启动执行。同步发布 content / growth / user 的 Nacos 配置，更新 ES 向量索引权限并初始化上述任务。两个审核 enforce 开关默认 false，管理页面落地前保持关闭；推荐排序默认 MANUAL。Python 停机不阻塞发帖，事务 outbox 和持久队列保留分析请求，恢复后继续处理。
+
+模型、配额、蓝绿重建和评测说明见 [AI 域](../docs/ai.md)。`Start-Ai.ps1 -SkipSync` 仅省略启动前安装；`verification/Test-Ai.ps1` 不启动业务服务、不连接 MySQL。
 
 ES 故障不阻塞发帖和服务健康检查，搜索降级为标题包含查询。索引同步使用单线程、有界队列和三次重试；失败只记录帖子 ID，下次重建修复。批量重建与实时写入在进程内串行写同一索引，搜索读取不持有写锁。

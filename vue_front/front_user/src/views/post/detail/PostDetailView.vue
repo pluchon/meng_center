@@ -85,6 +85,13 @@
                 :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
               />
             </h1>
+            <p
+              v-if="post.reviewState==='IN_REVIEW'"
+              class="detail-review-state"
+              role="status"
+            >
+              {{ t('ai.review') }}
+            </p>
             <MarkdownBody :content="post.content" />
             <PostImages :images="post.images" />
             <div
@@ -167,6 +174,10 @@
           </div>
         </article>
       </template>
+      <RelatedPosts
+        v-if="post"
+        :post-id="post.id"
+      />
       <ReportDialog
         :target="reportTarget"
         @close="reportTarget=null"

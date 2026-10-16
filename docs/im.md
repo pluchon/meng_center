@@ -98,7 +98,7 @@
 | 喜欢 | 帖子被喜欢、帖子被收藏、评论被喜欢 | 按来源，现在只有「帖子」 | `post.liked`、`post.favorited`、`comment.liked` |
 | 系统 | 成长通知、举报通知、审核通知 | 按类型 | `growth.level-changed`、`report.handled`、`user.approved` |
 
-- 来源和类型都是枚举字段，以后加新来源（例如萌萌回答下的评论）或新类型（例如 AI 审核结果）只加枚举值，页面结构不变。
+- 来源和类型都是枚举字段，以后加新来源（例如萌萌回答下的评论）或新类型只加枚举值，页面结构不变。AI 审核把帖子退回草稿箱、把评论转为「审核中」或恢复展示时，content 发 `post.review-changed` / `comment.review-changed`，资料被 AI 清掉时 user 发 `user.profile-review-changed`，都归在「审核」类型下，见 [ai.md](ai.md) 第 12 节。
 
 ### 5.2 规则
 

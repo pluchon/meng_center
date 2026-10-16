@@ -9,6 +9,7 @@
   </parent>
   <artifactId>meng-user</artifactId>
   <dependencies>
+    <dependency><groupId>com.xuxueli</groupId><artifactId>xxl-job-core</artifactId><version>3.5.0</version></dependency>
     <dependency><groupId>com.github.gotson</groupId><artifactId>webp-imageio</artifactId><version>0.2.2</version></dependency><dependency><groupId>com.pluchon.meng</groupId><artifactId>meng-api-growth</artifactId></dependency>
     <dependency>
       <groupId>com.pluchon.meng</groupId>

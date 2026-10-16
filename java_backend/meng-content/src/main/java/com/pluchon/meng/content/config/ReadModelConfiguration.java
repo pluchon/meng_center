@@ -8,6 +8,11 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 @Configuration
 public class ReadModelConfiguration {
 
+    @Bean("recommendationExecutor")
+    ThreadPoolTaskExecutor recommendationExecutor() {
+        return executor("content-recommend-", 4, 32);
+    }
+
     @Bean("contentIndexExecutor")
     ThreadPoolTaskExecutor indexExecutor() {
         return executor("content-index-", 1, 256);

@@ -1,0 +1,374 @@
+// 首页推荐流上面的一条：虚线便签卡，顶上一截胶带，里面五张歪歪的小贴纸卡
+.recommended-authors {
+  position: relative;
+  margin-bottom: var(--meng-space-5);
+  padding: 22px 20px 20px;
+  border: 2px dashed var(--meng-border);
+  border-radius: var(--meng-radius-card);
+  background: color-mix(in srgb, var(--meng-surface) 70%, transparent);
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+
+    img {
+      width: 30px;
+      height: 30px;
+    }
+
+    h2 {
+      margin: 0;
+      padding: 4px 14px;
+      border-radius: var(--meng-radius-pill);
+      background: var(--meng-warning);
+      box-shadow: 0 2px 0 var(--meng-category-daily);
+      color: var(--meng-text);
+      font-size: 18px;
+    }
+  }
+}
+
+// 换一批：淡蓝贴纸靠在标题行最右边，箭头悬停转半圈，换的时候一直转
+.authors-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding: 5px 16px 5px 10px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+  color: var(--meng-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  rotate: 2deg;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    rotate 220ms ease;
+
+  svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentcolor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 2;
+    transition: transform 400ms var(--meng-slide-ease);
+  }
+
+  &:hover:enabled {
+    box-shadow: 0 5px 0 var(--meng-category-anime);
+    rotate: 0deg;
+    transform: translateY(-2px);
+
+    svg {
+      transform: rotate(180deg);
+    }
+  }
+
+  &:active:enabled {
+    box-shadow: 0 1px 0 var(--meng-category-anime);
+    transform: translateY(2px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--meng-primary);
+    outline-offset: 3px;
+  }
+
+  &:disabled {
+    cursor: progress;
+  }
+
+  &.spinning svg {
+    animation: authors-spin 800ms linear infinite;
+  }
+}
+
+@keyframes authors-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.authors-tape {
+  position: absolute;
+  top: -11px;
+  right: 56px;
+  width: 92px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--meng-detail-tape);
+  opacity: 0.92;
+  rotate: 3deg;
+  pointer-events: none;
+}
+
+.authors-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.author-card {
+  --edge: var(--meng-category-anime);
+  --glow-radius: 22px;
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 220px;
+  padding: 14px 10px 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--glow-radius);
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--edge);
+  rotate: -1.5deg;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    rotate 250ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+
+  &:nth-child(2) {
+    --edge: var(--meng-creator-pink);
+
+    background: var(--meng-danger);
+    rotate: 1deg;
+  }
+
+  &:nth-child(3) {
+    --edge: var(--meng-category-daily);
+
+    background: var(--meng-warning);
+    rotate: -1deg;
+  }
+
+  &:nth-child(4) {
+    --edge: var(--meng-category-game-dot);
+
+    background: var(--meng-category-game);
+    rotate: 1.5deg;
+  }
+
+  &:nth-child(5) {
+    --edge: var(--meng-creator-green-shadow);
+
+    background: var(--meng-success);
+    rotate: -0.5deg;
+  }
+
+  &:hover {
+    box-shadow: 0 6px 0 var(--edge);
+    rotate: 0deg;
+    translate: 0 -2px;
+  }
+}
+
+.author-link {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  color: var(--meng-text);
+  text-decoration: none;
+
+  .el-avatar {
+    border: 3px solid var(--meng-surface);
+    box-shadow: 0 2px 0 var(--edge);
+  }
+
+  strong {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--meng-primary);
+    outline-offset: 3px;
+  }
+}
+
+.author-level {
+  padding: 1px 9px;
+  border-radius: var(--meng-radius-pill);
+  background: color-mix(in srgb, var(--meng-surface) 80%, transparent);
+  color: var(--meng-muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.author-reason {
+  display: -webkit-box;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--meng-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: center;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.author-follow {
+  flex: none;
+  min-width: 78px;
+  padding: 6px 18px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-surface);
+  box-shadow: 0 3px 0 var(--edge);
+  color: var(--meng-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease;
+
+  &:hover:enabled {
+    box-shadow: 0 5px 0 var(--edge);
+    transform: translateY(-2px);
+  }
+
+  &:active:enabled {
+    box-shadow: 0 1px 0 var(--edge);
+    transform: translateY(2px);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--meng-primary);
+    outline-offset: 2px;
+  }
+
+  &.done {
+    background: var(--meng-success);
+    color: var(--meng-growth-green);
+    opacity: 1;
+    cursor: default;
+  }
+
+  &:disabled:not(.done) {
+    opacity: 0.65;
+    cursor: wait;
+  }
+}
+
+// 等待时的占位：圆头像、几条灰条，边框上有光转圈
+.author-loading {
+  --edge: var(--meng-border);
+
+  justify-content: flex-start;
+  rotate: 0deg;
+}
+
+.author-avatar-skeleton,
+.author-bar {
+  display: block;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--meng-surface) 55%, transparent) 0%,
+    color-mix(in srgb, var(--meng-surface) 95%, transparent) 50%,
+    color-mix(in srgb, var(--meng-surface) 55%, transparent) 100%
+  );
+  background-size: 220% 100%;
+  animation: author-sweep 1.6s ease-in-out infinite;
+}
+
+.author-avatar-skeleton {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+}
+
+.author-bar {
+  width: 80%;
+  height: 12px;
+  border-radius: 8px;
+}
+
+.author-bar-name {
+  width: 55%;
+  height: 16px;
+}
+
+.author-bar-button {
+  width: 78px;
+  height: 30px;
+  margin-top: auto;
+  border-radius: var(--meng-radius-pill);
+}
+
+@keyframes author-sweep {
+  from {
+    background-position: 120% 0;
+  }
+
+  to {
+    background-position: -120% 0;
+  }
+}
+
+// 换一批：整排先淡出再淡入，新的一批从下面浮上来
+.authors-batch-enter-active,
+.authors-batch-leave-active {
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.authors-batch-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.authors-batch-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+@media (width <= 900px) {
+  .authors-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 560px) {
+  .authors-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recommended-authors {
+    padding-inline: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .author-card,
+  .author-follow,
+  .author-bar,
+  .author-avatar-skeleton,
+  .authors-refresh,
+  .authors-refresh svg,
+  .authors-batch-enter-active,
+  .authors-batch-leave-active {
+    animation: none;
+    transition: none;
+  }
+}

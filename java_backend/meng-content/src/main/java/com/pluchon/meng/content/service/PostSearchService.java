@@ -13,14 +13,12 @@ import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.entity.enums.PostSort;
 import com.pluchon.meng.content.mapper.PostMapper;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 // 帖子搜索、降级查询与展示资料组装
 @Service
@@ -48,35 +46,54 @@ public class PostSearchService {
 
     // 校验搜索边界并分页组装结果，不可用时降级
     public PageResult<SearchPostVO> search(
-            String input, PostCategory category, PostSort sort, long page, long size) {
+        String input,
+        PostCategory category,
+        PostSort sort,
+        long page,
+        long size
+    ) {
+        return search(input, category, sort, page, size, true);
+    }
+
+    // 语义搜索已完成准入检查，降级时不重复扣频率额度。
+    PageResult<SearchPostVO> search(
+        String input,
+        PostCategory category,
+        PostSort sort,
+        long page,
+        long size,
+        boolean checkLimit
+    ) {
         String q = input.trim();
         int length = q.codePointCount(0, q.length());
-        if (length < 1 || length > 50 || page < 1 || size < 1 || size > 50 || page > 10000 / size)
-            throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-        limits.search(UserContext.require().userId());
+        if (
+            length < 1 || length > 50 || page < 1 || size < 1 || size > 50 || page > 10000 / size
+        ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        if (checkLimit) limits.search(UserContext.require().userId());
         var matches = index.search(q, category, sort, page, size);
         List<PostEntity> rows;
         long total;
         var hitMap = new HashMap<Long, PostSearchIndex.Hit>();
         if (matches == null || matches.total() == 0) {
-            var query =
-                    Wrappers.<PostEntity>lambdaQuery()
-                            .eq(category != null, PostEntity::getCategory, category)
-                            .apply(
-                                    "title LIKE {0} ESCAPE '!'",
-                                    "%"
-                                            + q.replace("!", "!!")
-                                                    .replace("%", "!%")
-                                                    .replace("_", "!_")
-                                            + "%");
+            var query = Wrappers.<PostEntity>lambdaQuery()
+                .eq(PostEntity::getReviewState, "NORMAL")
+                .eq(category != null, PostEntity::getCategory, category)
+                .apply(
+                    "title LIKE {0} ESCAPE '!'",
+                    "%" + q.replace("!", "!!").replace("%", "!%").replace("_", "!_") + "%"
+                );
             if (sort == PostSort.HOT) query.orderByDesc(PostEntity::getHotScore);
             query.orderByDesc(PostEntity::getId);
             var result = posts.selectPage(new Page<>(page, size), query);
             rows = result.getRecords();
             total = result.getTotal();
         } else {
-            if (matches.hits().isEmpty())
-                return new PageResult<>(List.of(), matches.total(), page, size);
+            if (matches.hits().isEmpty()) return new PageResult<>(
+                List.of(),
+                matches.total(),
+                page,
+                size
+            );
             var ids = matches.hits().stream().map(PostSearchIndex.Hit::id).toList();
             matches.hits().forEach(hit -> hitMap.put(hit.id(), hit));
             var query = Wrappers.<PostEntity>lambdaQuery().in(PostEntity::getId, ids);
@@ -98,37 +115,40 @@ public class PostSearchService {
         for (var item : feed.hydrate(rows)) {
             var hit = hitMap.get(item.id());
             var title =
-                    hit == null
-                                    || hit.title().isEmpty()
-                                    || !SearchHighlight.text(hit.title()).equals(item.title())
-                            ? SearchHighlight.literal(item.title(), q)
-                            : hit.title();
+                hit == null ||
+                hit.title().isEmpty() ||
+                !SearchHighlight.text(hit.title()).equals(item.title())
+                    ? SearchHighlight.literal(item.title(), q)
+                    : hit.title();
             var snippet =
-                    hit == null
-                                    || hit.content().isEmpty()
-                                    || !summary.plain(entities.get(item.id()).getContent())
-                                            .contains(SearchHighlight.text(hit.content()))
-                            ? List.of(new HighlightSegmentVO(item.summary(), false))
-                            : hit.content();
+                hit == null ||
+                hit.content().isEmpty() ||
+                !summary
+                    .plain(entities.get(item.id()).getContent())
+                    .contains(SearchHighlight.text(hit.content()))
+                    ? List.of(new HighlightSegmentVO(item.summary(), false))
+                    : hit.content();
             records.add(
-                    new SearchPostVO(
-                            item.id(),
-                            item.category(),
-                            item.title(),
-                            item.summary(),
-                            item.images(),
-                            item.imageCount(),
-                            item.viewCount(),
-                            item.likeCount(),
-                            item.commentCount(),
-                            item.favoriteCount(),
-                            item.liked(),
-                            item.favorited(),
-                            item.ipRegion(),
-                            item.createTime(),
-                            item.author(),
-                            title,
-                            snippet));
+                new SearchPostVO(
+                    item.id(),
+                    item.category(),
+                    item.title(),
+                    item.summary(),
+                    item.images(),
+                    item.imageCount(),
+                    item.viewCount(),
+                    item.likeCount(),
+                    item.commentCount(),
+                    item.favoriteCount(),
+                    item.liked(),
+                    item.favorited(),
+                    item.ipRegion(),
+                    item.createTime(),
+                    item.author(),
+                    title,
+                    snippet
+                )
+            );
         }
         return new PageResult<>(records, total, page, size);
     }

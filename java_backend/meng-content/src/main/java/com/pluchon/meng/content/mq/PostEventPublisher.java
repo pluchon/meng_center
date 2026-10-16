@@ -22,30 +22,13 @@ public class PostEventPublisher {
         rabbit.convertAndSend(
             ContentInteractionEvent.EXCHANGE,
             interaction.eventType(),
-            new EventEnvelope<>(
-                id,
-                interaction.eventType(),
-                clock.instant(),
-                id,
-                interaction
-            )
+            new EventEnvelope<>(id, interaction.eventType(), clock.instant(), id, interaction)
         );
     }
 
     @TransactionalEventListener
     public void committed(CommentCreatedEvent comment) {
-        String id = UUID.randomUUID().toString();
-        rabbit.convertAndSend(
-            CommentCreatedEvent.EXCHANGE,
-            CommentCreatedEvent.EVENT_TYPE,
-            new EventEnvelope<>(
-                id,
-                CommentCreatedEvent.EVENT_TYPE,
-                clock.instant(),
-                id,
-                comment
-            )
-        );
+        aiEvents.dispatchAsync();
     }
 
     // 领域事件发送组件
@@ -56,19 +39,11 @@ public class PostEventPublisher {
     @Autowired
     private Clock clock;
 
+    @Autowired
+    private com.pluchon.meng.content.service.AiEventService aiEvents;
+
     @TransactionalEventListener
     public void committed(PostPublishedEvent post) {
-        String id = UUID.randomUUID().toString();
-        rabbit.convertAndSend(
-            PostPublishedEvent.EXCHANGE,
-            PostPublishedEvent.EVENT_TYPE,
-            new EventEnvelope<>(
-                id,
-                PostPublishedEvent.EVENT_TYPE,
-                clock.instant(),
-                id,
-                post
-            )
-        );
+        aiEvents.dispatchAsync();
     }
 }

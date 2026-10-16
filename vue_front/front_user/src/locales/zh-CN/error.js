@@ -1,4 +1,6 @@
 export default {
+  AI_UNAVAILABLE: 'AI 暂时没空，稍后再试试吧',
+  AI_CONTENT_REJECTED: '这份内容暂时无法生成封面，请调整描述',
   USER_USERNAME_COOLDOWN: '用户名每 30 天只能修改一次',
   USER_PASSWORD_WRONG: '当前密码不正确',
   CONTENT_FOLDER_LIMIT: '最多只能创建 20 个收藏夹',
@@ -22,4 +24,10 @@ export default {
   USER_DELIVERY_FAILED: '验证码发送失败，请稍后重试',
   USER_SMS_UNAVAILABLE: '短信通道尚未配置',
   USER_LEGAL_VERSION_CHANGED: '协议已更新，请重新阅读并同意',
+  GAME_TOO_FAR: '离得太远了，再走近一点',
+  GAME_OUT_OF_ISLAND: '位置不在岛上',
+  GAME_NOT_ENOUGH_COINS: '金币不够，再去岛上转转吧',
+  GAME_ITEM_OWNED: '已经拥有这件了',
+  GAME_ITEM_NOT_OWNED: '还没有这件',
+  GAME_STARS_MISSING: '星之碎片还没集齐',
 }

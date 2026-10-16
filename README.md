@@ -9,6 +9,7 @@ meng_center/
 ├── docs/            文档
 ├── deploy/          Docker 中间件、Nacos 配置及启动脚本
 ├── java_backend/    Java 后端（Spring Boot 4 微服务）
+├── python_ai/       Python AI 计算服务（FastAPI、LangChain / LangGraph）
 ├── vue_front/       两个独立 Vue 3 前端
 └── verification/    隔离联调、压测和浏览器验证
 ```
@@ -21,6 +22,7 @@ meng_center/
 - [内容域](docs/content.md)：帖子、评论、配图的接口、数据、规则和验收点，主页、详情、发帖页的拆分
 - [成长域](docs/growth.md)：签到、经验、等级的接口、数据、规则和验收点
 - [消息域](docs/im.md)：私信、通知、实时连接的接口、数据、规则和验收点，消息中心页面
+- [AI 域](docs/ai.md)：萌萌以外的 AI：帖子理解、推荐、相关帖子、语义搜索、发帖页 AI 入口、成长总结、审核
 - [前端规范](docs/frontend.md)：项目划分、目录、三文件拆分、不硬编码的做法、检查工具
 - [环境、密钥与约定](docs/setup.md)：本机环境、环境变量清单、命名约定、等外部条件的事
 - [本地中间件](deploy/README.md)：`meng_center` 启动、端口与凭据约定

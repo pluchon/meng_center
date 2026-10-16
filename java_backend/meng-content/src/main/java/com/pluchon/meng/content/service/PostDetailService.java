@@ -26,6 +26,9 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class PostDetailService {
 
+    @Autowired
+    private RecommendationProfileService profiles;
+
     // 作者的每日互动统计
     @Autowired
     private AuthorStatisticsService statistics;
@@ -74,15 +77,15 @@ public class PostDetailService {
     public PostDetailVO get(long id) {
         long user = UserContext.require().userId();
         var post = posts.selectById(id);
-        if (post == null) throw new BusinessException(
-            CommonErrorCode.NOT_FOUND
-        );
-        String key = "meng:content:viewed:" + id + ":" + user;
+        if (post == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         if (
-            Boolean.TRUE.equals(
-                redis.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24))
-            )
-        ) {
+            !"NORMAL".equals(post.getReviewState().name()) &&
+            post.getAuthorId() != user &&
+            !"ADMIN".equals(UserContext.require().role())
+        ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        profiles.viewed(user, id);
+        String key = "meng:content:viewed:" + id + ":" + user;
+        if (Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key, "1", Duration.ofHours(24)))) {
             long author = post.getAuthorId();
             try {
                 transactions.executeWithoutResult(status -> {
@@ -105,9 +108,7 @@ public class PostDetailService {
             }
             post = posts.selectById(id);
         }
-        if (post == null) throw new BusinessException(
-            CommonErrorCode.NOT_FOUND
-        );
+        if (post == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         var attachments = images.selectList(
             Wrappers.<PostImageEntity>lambdaQuery()
                 .eq(PostImageEntity::getPostId, id)
@@ -148,7 +149,8 @@ public class PostDetailService {
             feed.favorited(),
             feed.ipRegion(),
             feed.createTime(),
-            feed.author()
+            feed.author(),
+            post.getReviewState().name()
         );
     }
 }

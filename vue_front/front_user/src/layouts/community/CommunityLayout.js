@@ -46,7 +46,7 @@ export default defineComponent({
         ElMessage.warning(t('search.tooLong', { max: Search.QUERY_MAX }))
         return
       }
-      void router.push({ name: RouteName.SEARCH, query: { q, sort: PostSort.HOT, page: '1' } })
+      void router.push({ name: RouteName.SEARCH, query: { q, sort: PostSort.RELEVANT, page: '1' } })
     }
     const searchOpen = ref(false),
       searchInput = ref(null),

@@ -15,6 +15,9 @@ import org.apache.ibatis.annotations.Update;
 // 帖子查询、锁定与计数更新
 @Mapper
 public interface PostMapper extends BaseMapper<PostEntity> {
+    @Update("UPDATE post SET update_time=CURRENT_TIMESTAMP(6) WHERE id=#{id} AND delete_state=0")
+    int touchContentVersion(long id);
+
     // 按作者汇总现存帖子的计数
     @Select(
         "SELECT COUNT(*) post_count,COALESCE(SUM(view_count),0) view_count," +
@@ -37,10 +40,7 @@ public interface PostMapper extends BaseMapper<PostEntity> {
     );
 
     // 按主键游标读取维护批次，关闭总数查询并覆盖普通接口的五十条限制
-    default List<PostEntity> selectRebuildBatch(
-        long cursor,
-        LocalDateTime since
-    ) {
+    default List<PostEntity> selectRebuildBatch(long cursor, LocalDateTime since) {
         var page = new Page<PostEntity>(1, 500, false);
         page.setMaxLimit(500L);
         return selectPage(
@@ -53,14 +53,14 @@ public interface PostMapper extends BaseMapper<PostEntity> {
     }
 
     @Update(
-        "UPDATE post SET hot_score=hot_score+#{delta} WHERE id=#{id} AND delete_state=0"
+        "UPDATE post SET update_time=update_time,hot_score=hot_score+#{delta} WHERE id=#{id} AND delete_state=0"
     )
     int incrementHotScore(@Param("id") long id, @Param("delta") long delta);
 
     @Update(
         "UPDATE post p LEFT JOIN (SELECT post_id,COUNT(DISTINCT user_id) n FROM post_favorite GROUP BY" +
             " post_id) f ON f.post_id=p.id SET" +
-            " p.hot_score=p.view_count*#{view}+p.like_count*#{like}+p.comment_count*#{comment}+COALESCE(f.n,0)*#{favorite}" +
+            " p.update_time=p.update_time,p.hot_score=p.view_count*#{view}+p.like_count*#{like}+p.comment_count*#{comment}+COALESCE(f.n,0)*#{favorite}" +
             " WHERE p.delete_state=0 AND p.create_time>=#{since}"
     )
     int recalculateRecentHotScores(
@@ -72,13 +72,13 @@ public interface PostMapper extends BaseMapper<PostEntity> {
     );
 
     @Update(
-        "UPDATE post SET view_count=view_count+1,hot_score=hot_score+#{weight} WHERE id=#{id}" +
+        "UPDATE post SET update_time=update_time,view_count=view_count+1,hot_score=hot_score+#{weight} WHERE id=#{id}" +
             " AND delete_state=0"
     )
     int incrementViews(@Param("id") long id, @Param("weight") int weight);
 
     @Update(
-        "UPDATE post SET comment_count=comment_count+#{delta},hot_score=hot_score+#{score}" +
+        "UPDATE post SET update_time=update_time,comment_count=comment_count+#{delta},hot_score=hot_score+#{score}" +
             " WHERE id=#{id} AND delete_state=0"
     )
     int incrementCommentCount(
@@ -88,7 +88,7 @@ public interface PostMapper extends BaseMapper<PostEntity> {
     );
 
     @Update(
-        "UPDATE post SET cover_image_id=#{cover} WHERE id=#{id} AND delete_state=0"
+        "UPDATE post SET update_time=update_time,cover_image_id=#{cover} WHERE id=#{id} AND delete_state=0"
     )
     int updateCoverImage(@Param("id") long id, @Param("cover") Long cover);
 
@@ -96,7 +96,7 @@ public interface PostMapper extends BaseMapper<PostEntity> {
     PostEntity selectByIdForUpdate(long id);
 
     @Update(
-        "UPDATE post SET like_count=like_count+#{delta},hot_score=hot_score+#{score} WHERE" +
+        "UPDATE post SET update_time=update_time,like_count=like_count+#{delta},hot_score=hot_score+#{score} WHERE" +
             " id=#{id} AND delete_state=0"
     )
     int incrementLikeCount(
