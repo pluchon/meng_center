@@ -65,12 +65,14 @@ java_backend/
 ├── meng-api/                所有域的对外契约
 │   ├── meng-api-user/
 │   ├── meng-api-content/
-│   └── meng-api-growth/
+│   ├── meng-api-growth/
+│   └── meng-api-companion/
 ├── meng-gateway/            网关
 ├── meng-user/               用户域
 ├── meng-content/            内容域
 ├── meng-im/                 私信与通知域
 ├── meng-growth/             成长域
+└── meng-companion/          萌萌会话、关系与作品域
 ```
 
 `meng-im` 通过网关向前端提供消息接口，没有被其他服务调用的内部接口，也不生产跨服务事件，因此没有 `meng-api-im`。
@@ -167,7 +169,7 @@ java_backend/
 |---|---|---|---|
 | user | 无 | 审核通过、关注、资料变更、资料审核状态变更 | 等级变更、资料审核结果 |
 | content | user、ai | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理、请求分析、审核状态变更 | 帖子分析结果、评论审核结果 |
-| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖、内容审核状态变更、资料审核状态变更 |
+| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖、内容审核状态变更、资料审核状态变更、萌萌升阶 |
 | growth | ai | 等级变更、中奖 | 发帖、评论 |
 | companion | user、ai | 萌萌升阶 | 无 |
 | ai | content、growth（只限萌萌工具，只读） | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
@@ -176,7 +178,7 @@ java_backend/
 
 ## 8. 数据约定
 
-- 库名：`meng_user`、`meng_content`、`meng_im`、`meng_growth`，同一个 MySQL 实例。
+- 库名：`meng_user`、`meng_content`、`meng_im`、`meng_growth`、`meng_companion`，同一个 MySQL 实例。
 - 主键 BIGINT 自增，不用雪花 ID 和 UUID。
 - 业务表都带 `create_time`、`update_time`、`delete_state`，默认逻辑删除。
 - 全局唯一的字段加唯一索引，入库前归一化（去空格、邮箱转小写、手机号转成带区号的统一格式）。

@@ -1,3 +1,6 @@
+@use './companion-theme';
+@include companion-theme.themes('.el-dialog.companion-dialog');
+
 // 公共对话框和消息条的统一样式，对照画布上的「公共对话框」画板。
 // 三种用法共用同一套样子：el-dialog（加 meng-dialog）、确认框（ElMessageBox 加 meng-confirm）、消息条（ElMessage）。
 
@@ -427,4 +430,25 @@
   white-space: nowrap;
   rotate: 4deg;
   pointer-events: none;
+}
+
+.el-dialog.companion-dialog {
+  padding: 0;
+  overflow: hidden;
+  border: 3px solid var(--meng-surface);
+  border-radius: 32px;
+  background: var(--meng-surface);
+  box-shadow:
+    0 8px 0 var(--c-edge),
+    var(--meng-companion-dialog-depth);
+  color: var(--meng-text);
+}
+
+.el-dialog.companion-dialog .el-dialog__header {
+  margin: 0;
+  padding: 0;
+}
+
+.el-dialog.companion-dialog .el-dialog__body {
+  padding: 0;
 }

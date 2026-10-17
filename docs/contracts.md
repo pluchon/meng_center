@@ -90,12 +90,12 @@ ai 的七个接口是纯计算，不改任何状态，按只读接口对待；�
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `POST /ai/internal/companion/replies` | ai | companion | 事件流：工具进度、气泡、作品、好感建议、记忆候选、审核分类 | 超时或 5xx：这一轮不计次，前端显示「萌萌们去休息了」，返回 503 `AI_UNAVAILABLE` |
+| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 整轮气泡、作品、好感建议、记忆候选、审核分类；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
 | `POST /ai/internal/companion/summaries` | ai | companion | 一段会话摘要 | 保留旧摘要，下一轮再试 |
 | `GET /content/internal/posts/search?q=&size=` | content | ai（萌萌工具） | 公开帖子的 id、标题、摘要、作者昵称，最多 5 篇 | 工具返回「没找到」，角色照常回复 |
 | `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（萌萌工具） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
 | `GET /growth/internal/users/{id}/summary` | growth | ai（萌萌工具） | 等级、连续签到天数、今天是否签到 | 同上 |
-| `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 用用户名代替 |
+| `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 使用中性称呼「你」，不为此读取登录账号或联系方式 |
 
 - ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
 - 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。

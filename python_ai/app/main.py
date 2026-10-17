@@ -17,8 +17,10 @@ from app.clients.discovery import Discovery
 from app.clients.models import BudgetExceeded, ModelFactory
 from app.config.settings import Settings
 from app.consumers.events import Consumers
+from app.routes.companion import router as companion_router
 from app.routes.internal import router
 from app.services.assistant import Assistant, CoverRejected
+from app.services.companion import Companion
 
 LOG = logging.getLogger(__name__)
 APP_LOG = logging.getLogger("app")
@@ -58,6 +60,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         stack.push_async_callback(discovery.close)
         await discovery.start()
         app.state.assistant = assistant
+        app.state.companion = Companion(assistant, http)
         app.state.training_lock = asyncio.Semaphore(1)
         yield
 
@@ -66,6 +69,7 @@ app = FastAPI(
     title="meng-ai internal computation", lifespan=lifespan, docs_url=None, redoc_url=None, openapi_url=None
 )
 app.include_router(router)
+app.include_router(companion_router)
 
 
 @app.get("/actuator/health")

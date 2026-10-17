@@ -1,0 +1,43 @@
+server:
+  address: 127.0.0.1
+  port: 8107
+spring:
+  cloud:
+    nacos:
+      discovery:
+        ip: 127.0.0.1
+  datasource:
+    url: jdbc:mysql://127.0.0.1:${MENG_MYSQL_PORT}/meng_companion?characterEncoding=utf8&connectionTimeZone=UTC
+    username: meng_companion_app
+    password: ${MENG_MYSQL_COMPANION_PASSWORD}
+  flyway:
+    locations: classpath:db/migration
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    banner: false
+spring.cloud.openfeign.client.config.companionUser:
+  connectTimeout: 500
+  readTimeout: 1500
+  loggerLevel: none
+meng.companion:
+  thresholds: [0, 100, 300, 600, 1000]
+  affection-max: 1200
+  daily-gain: 30
+  first-chat-gain: 10
+  message-daily: 200
+  message-minute: 10
+  document-daily: 10
+  document-minute: 2
+  image-daily: 3
+  image-minute: 1
+  hotlines:
+    - region: TW
+      name: 1925安心專線
+      phone: '1925'
+      url: https://www.mohw.gov.tw/cp-16-19209-1.html?oai_link_source=model_response_hotline

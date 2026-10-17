@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: meng-companion
+  config:
+    import:
+      - nacos:meng-common.yml?group=MENG_GROUP&refreshEnabled=true
+      - nacos:meng-companion.yml?group=MENG_GROUP&refreshEnabled=true
+  cloud:
+    nacos:
+      config:
+        server-addr: ${MENG_NACOS_ADDR}
+        namespace: ${MENG_NACOS_NAMESPACE}
+        username: ${MENG_NACOS_USERNAME}
+        password: ${MENG_NACOS_PASSWORD}
+        refresh-enabled: true
+      discovery:
+        server-addr: ${MENG_NACOS_ADDR}
+        namespace: ${MENG_NACOS_NAMESPACE}
+        username: ${MENG_NACOS_USERNAME}
+        password: ${MENG_NACOS_PASSWORD}
+        group: MENG_GROUP

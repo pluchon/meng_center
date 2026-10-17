@@ -25,6 +25,7 @@ export const Im = Object.freeze({
 })
 export const MessageKind = Object.freeze({ TEXT: 'TEXT', IMAGE: 'IMAGE' })
 export const NoticeType = Object.freeze({
+  COMPANION_STAGE_REACHED: 'COMPANION_STAGE_REACHED',
   POST_COMMENT: 'POST_COMMENT',
   COMMENT_REPLY: 'COMMENT_REPLY',
   COMMENT_MENTION: 'COMMENT_MENTION',

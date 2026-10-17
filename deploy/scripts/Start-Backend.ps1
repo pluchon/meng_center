@@ -1,4 +1,4 @@
-param([ValidateSet('meng-user', 'meng-gateway', 'meng-content', 'meng-growth', 'meng-im')] [string] $Service, [switch] $InitializeAdmin, [string[]] $ConfigurationArguments = @())
+param([ValidateSet('meng-user', 'meng-gateway', 'meng-content', 'meng-growth', 'meng-im', 'meng-companion')] [string] $Service, [switch] $InitializeAdmin, [string[]] $ConfigurationArguments = @())
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot/Environment.ps1"
 Import-MengEnvironment

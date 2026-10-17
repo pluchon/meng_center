@@ -15,6 +15,9 @@ import java.util.List;
 @Mapper
 public interface GrowthMapper {
 
+    @Select("SELECT id,user_id,exp,level FROM growth_account WHERE user_id=#{user} AND delete_state=0")
+    GrowthAccountEntity selectExistingAccount(long user);
+
     @Insert(
             "INSERT INTO growth_account(user_id,exp,level) VALUES(#{user},0,1) ON DUPLICATE KEY"
                 + " UPDATE user_id=#{user}")

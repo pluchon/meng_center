@@ -73,17 +73,18 @@
             aria-hidden="true"
           ></span>{{ t('home.nav.growth') }}
         </router-link>
-        <button
-          type="button"
+        <router-link
+          class="nav-meng"
           data-slide
-          @click="unavailable"
+          :class="{selected:route.name===RouteName.MENG}"
+          :to="{name:RouteName.MENG}"
         >
           <span class="nav-icon"><img
             :src="navMengIcon"
             alt=""
             aria-hidden="true"
           ></span>{{ t('home.nav.ai') }}
-        </button>
+        </router-link>
       </nav>
       <div class="nav-tools">
         <div class="nav-search-slot">
@@ -166,7 +167,7 @@
       <slot />
     </main>
     <footer
-      v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH&&route.name!==RouteName.ACCOUNT"
+      v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH&&route.name!==RouteName.ACCOUNT&&route.name!==RouteName.MENG"
       class="community-footer"
     >
       <div class="footer-inner">

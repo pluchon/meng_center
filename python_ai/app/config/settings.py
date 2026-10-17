@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     classifier_model: str = "qwen3.8-flash"
     writer_model: str = "qwen3.8-flash"
+    companion_model: str = "qwen3.8-flash"
+    companion_temperature: float = Field(default=0.85, ge=0.8, le=0.9)
     vision_model: str = "qwen3.8-flash"
     embedding_model: str = "qwen3.7-text-embedding-flash"
     embedding_dimensions: int = Field(default=1024, ge=1024, le=1024)

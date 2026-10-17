@@ -20,6 +20,7 @@ import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 import PageState from '@/components/page-state/PageState.vue'
 // 每种通知对应的小图标
 const typeIcons = {
+  [NoticeType.COMPANION_STAGE_REACHED]: authHeartIcon,
   [NoticeType.POST_COMMENT]: authCodeIcon,
   [NoticeType.COMMENT_REPLY]: authCodeIcon,
   [NoticeType.COMMENT_MENTION]: authCodeIcon,
@@ -75,7 +76,9 @@ export default defineComponent({
     )
     function open(item) {
       const notice = item.notice
-      if (notice.type === NoticeType.FOLLOWED && item.actors.length)
+      if (notice.type === NoticeType.COMPANION_STAGE_REACHED)
+        void router.push({name:RouteName.MENG})
+      else if (notice.type === NoticeType.FOLLOWED && item.actors.length)
         void router.push({ name: RouteName.USER, params: { id: item.actors[0].id } })
       else if (notice.type === NoticeType.POST_REVIEW_CHANGED && !notice.postId)
         // 帖子被审核退回，原帖已不在，去草稿箱看

@@ -18,6 +18,20 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotificationListener {
 
+    @RabbitListener(queues = "meng.im.companion.stage-reached")
+    public void companionStage(EventEnvelope<com.pluchon.meng.api.companion.event.StageReachedEvent> event) {
+        check(event, "companion.stage-reached");
+        var body = event.body();
+        var row = new ImRows.Notice();
+        row.setReceiverId(body.userId());
+        row.setChannel(Channel.SYSTEM);
+        row.setCategory("COMPANION");
+        row.setType(NoticeType.COMPANION_STAGE_REACHED);
+        row.setExcerpt("你和" + body.characterName() + "的关系到了「" + body.stageName() + "」");
+        row.setDedupeKey("companion-stage:" + event.eventId());
+        notices.receive(row);
+    }
+
     @RabbitListener(
         queues = {
             "meng.im.post.review-changed",

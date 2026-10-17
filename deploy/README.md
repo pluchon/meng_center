@@ -99,6 +99,16 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 `meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。四个域各自管理 Flyway 迁移。消息服务使用 `V20261012001__create_im_tables` 建表，`meng-im.yml` 配置连接 Origin 和用户查询超时；私信存储目录只从 `MENG_IM_IMAGE_ROOT` 读取。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
 
+## 萌萌服务
+
+`meng-companion` 监听 `127.0.0.1:8107`，网关入口为 `/companion/**`。首次使用依次执行 `Initialize-LocalEnvironment.ps1`、`Initialize-DomainDatabases.ps1`、`Publish-NacosConfiguration.ps1`，再打包并执行 `Start-Backend.ps1 -Service meng-companion`。已有数据卷原地新增 `meng_companion` 库及 `meng_companion_app`，只使用 `MENG_MYSQL_COMPANION_PASSWORD`，不修改已有账号或卷。
+
+作品与私密对话图片保存到 `MENG_COMPANION_WORK_ROOT`，默认位于用户 LocalAppData 下。Flyway 创建角色、关系、会话、消息、记忆、作品、安全记录及私密图片记录；初始角色资料不引用占位图片文件。Python 继续共用 8106，不建立会话数据库。
+
+同时更新 content 的 `V20261017001__add_public_author_snapshot`，供萌萌只读工具使用公开昵称快照，内部请求不再同步查询 user。工具只能查询公开帖子及当前用户成长数据。IM 消费 `companion.stage-reached`，系统频道的 `COMPANION` 类型表示萌萌通知。新增配置或路由后重启相应服务；companion 的业务阈值支持 Nacos 刷新。
+
+对话、安全和模型评测命令见 [萌萌文档](../docs/meng.md)。前端设计与立绘仍以画布 `meng_ai` 为准。
+
 ## 搜索引擎
 
 Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。

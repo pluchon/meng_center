@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 64 64" fill="none">
+<title>翻看更早的消息</title>
+<g stroke="#1854A0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M15 22h32a5 5 0 0 1 5 5v24H20a5 5 0 0 1-5-5Z" fill="#DDF1F7"/>
+<path d="M20 29h25v22H20a5 5 0 0 1 0-10h25" fill="#FFFFFF"/>
+<path d="M24 34h13M24 38h8" stroke="#7CBDE7" stroke-width="2.5"/>
+<path d="M12 24a16 16 0 0 1 26-13" stroke="#1854A0"/>
+<path d="M12 14v10h10" fill="#9DDBFA"/>
+<path d="m40 13 4 2-4 2-2 4-2-4-4-2 4-2 2-4Z" fill="#F8EDCF" stroke="#1854A0" stroke-width="2"/>
+</g></svg>

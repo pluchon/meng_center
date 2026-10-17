@@ -169,8 +169,8 @@ nav {
   height: 44px;
   border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
-  background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-border);
+  background: var(--slide-fill, var(--meng-tint));
+  box-shadow: 0 3px 0 var(--slide-edge, var(--meng-border));
   opacity: 0;
   pointer-events: none;
   transition:
@@ -830,4 +830,9 @@ nav [data-nav]:hover .nav-icon {
   color: var(--meng-surface);
   font-size: 11px;
   font-weight: 800;
+}
+
+.nav-meng {
+  --slide-fill: var(--meng-warning);
+  --slide-edge: var(--meng-creator-yellow);
 }

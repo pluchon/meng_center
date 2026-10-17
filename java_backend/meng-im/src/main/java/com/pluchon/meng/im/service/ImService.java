@@ -359,7 +359,7 @@ public class ImService {
     public List<ImVO.Group> groups(Channel channel) {
         var keys =
             channel == Channel.SYSTEM
-                ? List.of("GROWTH", "REPORT", "APPROVAL", "FOLLOW")
+                ? List.of("GROWTH", "REPORT", "APPROVAL", "FOLLOW", "COMPANION")
                 : List.of("POST");
         long user = user();
         var groups = new ArrayList<ImVO.Group>();
@@ -538,7 +538,7 @@ public class ImService {
             channel == null ||
             (source != null && !source.equals("POST")) ||
             (category != null &&
-                !List.of("GROWTH", "REPORT", "APPROVAL", "FOLLOW").contains(category)) ||
+                !List.of("GROWTH", "REPORT", "APPROVAL", "FOLLOW", "COMPANION").contains(category)) ||
             (channel == Channel.SYSTEM && source != null) ||
             (channel != Channel.SYSTEM && category != null) ||
             (required &&

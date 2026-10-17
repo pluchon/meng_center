@@ -30,6 +30,7 @@ class ModelFactory:
             "vision": settings.vision_model,
             "embedding": settings.embedding_model,
             "cover": settings.cover_model,
+            "companion": settings.companion_model,
         }
         limits = {model: asyncio.Semaphore(settings.concurrency) for model in set(role_models.values())}
         self.semaphores = {role: limits[model] for role, model in role_models.items()}
@@ -47,6 +48,13 @@ class ModelFactory:
         )
         self.writer = ChatOpenAI(
             model=settings.writer_model, temperature=0.5, timeout=12, max_retries=2, **shared
+        )
+        self.companion = ChatOpenAI(
+            model=settings.companion_model,
+            temperature=settings.companion_temperature,
+            timeout=18,
+            max_retries=0,
+            **{**shared, "max_tokens": 4000},
         )
         self.vision = ChatOpenAI(
             model=settings.vision_model, temperature=0, timeout=15, max_retries=0, **shared

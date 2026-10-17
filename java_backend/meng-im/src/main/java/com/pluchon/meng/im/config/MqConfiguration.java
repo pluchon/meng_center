@@ -33,11 +33,12 @@ public class MqConfiguration {
             "user.followed",
             "post.review-changed",
             "comment.review-changed",
-            "user.profile-review-changed"
+            "user.profile-review-changed",
+            "companion.stage-reached"
         )) {
             var exchange = new TopicExchange(
                 "meng." +
-                    (event.startsWith("growth.")
+                    (event.startsWith("companion.") ? "companion" : event.startsWith("growth.")
                         ? "growth"
                         : event.startsWith("user.")
                           ? "user"

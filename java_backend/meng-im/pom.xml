@@ -8,6 +8,7 @@
   </parent>
   <artifactId>meng-im</artifactId>
   <dependencies>
+    <dependency><groupId>com.pluchon.meng</groupId><artifactId>meng-api-companion</artifactId><version>${project.version}</version></dependency>
     <dependency>
       <groupId>com.pluchon.meng</groupId>
       <artifactId>meng-common-web</artifactId>

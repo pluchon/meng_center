@@ -3,7 +3,9 @@ const Root = '/user'
 export const userApi = Object.freeze({
   profileReview: (config = {}) =>
     request.get(Root + '/me/profile-review', { silent: true, ...config }),
-  me: (silent = false, config = {}) => request.get(Root + '/me', { ...config, silent }),
+  // probe 用于启动时探测登录态：未登录是正常结果，不提示也不跳登录页
+  me: (probe = false, config = {}) =>
+    request.get(Root + '/me', { ...config, silent: probe, optionalAuth: probe }),
   login: (data) => request.post(Root + '/sessions', data, { loginRequest: true }),
   logout: () => request.delete(Root + '/sessions/current'),
   captcha: () => request.post(Root + '/captcha'),

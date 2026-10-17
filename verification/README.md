@@ -44,6 +44,8 @@ npm --prefix verification ci
 | `./verification/Test-ImCenter.ps1` | 多账号真实私信、陌生人限制、图片权限与图集、并发幂等、已读回执、屏蔽、删除游标、撤回（5 分钟时限与临界、对方看不到内容、未读和摘要同步）、在线隐身、多标签同步；真实内容通知、聚合去重、分组已读、跨页评论定位、四个标签页、失败重试、桌面手机与减少动态效果、断线补拉及 24 并发读取；清理自己的账号、配图与数据 |
 | `./verification/Test-SocialPoints.ps1` | 关注与粉丝（幂等、不能关注自己、计数精确、列表关系标记与翻页）、关注通知每对只一条、收藏夹默认私密与公开私密切换对别人主页的影响、别人主页的帖子和数量、积分的签到发帖评论获得、每件事只算一次、明细筛选与翻页、余额和规则；结束后清理随机账号和数据 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
+| `node verification/Test-CompanionStream.mjs` | 萌萌前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
+| `./verification/Test-Companion.ps1` | 萌萌 Java 好感、隐私及架构不变量，Python 危机、拦截、限次、输出重写、工具白名单和预算失败分支；加 `-EvaluateModels` 使用真实模型执行 30 条普通提问与 33 条对抗样本，`-CompareModel qwen-plus-character` 增加匿名台词评分，`-Baseline <JSON>` 比较新旧角色卡。真实评测消耗 DashScope 额度，虚构语料和结果只写入 `test-output/` |
 | `./verification/Test-Ai.ps1` | Python 锁文件安装、Ruff、离线假模型图分支和 MQ 确认/重投/预算延迟测试；`-EvaluateModels` 调用真实模型跑审核与主题评测，`-Baseline <JSON文件>` 阻止违规召回率或误判率回退；`-Integration` 对运行中的网关、user/content/growth/im/ai 做真实辅助接口、SQL 数字与缓存、发帖到 MQ/向量索引、语义搜索、推荐分页与反馈、资料审核、旧结果与幂等联调，结束后清理随机账号和派生数据；加 `-Covers` 验证真实生图与上传。真实评测和联调会使用 DashScope 额度，结果只在本地终端 |
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，

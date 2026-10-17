@@ -58,7 +58,7 @@ export default defineComponent({
     const pixel = ref(null)
     const pausePixels = () => pixel.value?.hold(220)
     const availableGroups = computed(() =>
-      tab.value === MessageTab.SYSTEM ? ['GROWTH', 'FOLLOW', 'REPORT', 'APPROVAL'] : ['POST'],
+      tab.value === MessageTab.SYSTEM ? ['GROWTH', 'COMPANION', 'FOLLOW', 'REPORT', 'APPROVAL'] : ['POST'],
     )
     const group = computed(() =>
       availableGroups.value.includes(route.query.group)
