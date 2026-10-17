@@ -1,6 +1,6 @@
 # 萌部落社区 · 事件与内部接口
 
-> 2026-10-08 首版。这是[架构设计](architecture.md)第 7 节依赖表的展开。
+> 这是[架构设计](architecture.md)第 7 节依赖表的展开。
 > 这里没有列出的跨服务交互都不允许存在。
 
 ## 1. 事件
@@ -43,7 +43,6 @@
 | `post.liked` | content | postId、postTitle、actorId、authorId | im：通知作者 |
 | `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者；某人对这篇帖子的第一行收藏记录插入成功时发一次，之后放进别的收藏夹不重复发 |
 | `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
-| `report.handled` | content | reportId、reporterId、targetType、targetId、postId、postTitle、excerpt、targetAuthorId、result | im：通知举报人；成立时通知内容作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
 | `lottery.won` | growth | userId、prizeName | im：中奖通知 |
 | `companion.stage-reached` | companion | userId、characterCode、characterName、stage、stageName | im：通知本人（系统频道的「萌萌」类型） |
@@ -56,7 +55,7 @@
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
 - growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
 - AI 请求、审核通知使用 content / user 本域的事务 outbox，broker confirm 后标记已发送；AI 结果持久发布成功后才确认输入。结果重复投递由 eventId 或用户资料版本去重，迟到的旧内容版本丢弃。重试、死信与每日 token 预算延迟见 [ai.md](ai.md) 第 4.3 节。
-- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。举报处理和中奖事件仍等待对应业务落地。
+- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。中奖事件等抽奖落地后再接。
 
 ## 2. 内部接口
 
