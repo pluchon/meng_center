@@ -116,7 +116,8 @@ java_backend/
 | content | 帖子、评论、点赞、收藏、搜索索引同步 |
 | im | 私信、通知（WebSocket） |
 | growth | 经验、等级、签到、积分、抽奖（积分已做，抽奖未做） |
-| ai（Python） | 萌萌对话；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
+| companion | 萌萌：角色、会话和消息、好感度、长期记忆、作品、限次与防沉迷，见 [meng.md](meng.md) |
+| ai（Python） | 萌萌的对话图；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
   网关统一校验管理员角色，Service 再校验一次。管理端是单独的 Vue 项目。
@@ -142,9 +143,10 @@ java_backend/
 ## 6. 防耦合规则
 
 1. **依赖单向分层，不成环，同层不互调。**
-   user 和 ai 在底层，不调任何项目内服务；content、im 同步调 user，content、growth 同步调 ai 做计算；ai 不被写路径同步调用。
-2. **同步调用全项目只有四条箭头**：content → user、im → user、content → ai、growth → ai。
+   user 在底层，不调任何项目内服务；content、im、companion 同步调 user，content、growth、companion 同步调 ai 做计算；除萌萌对话外，ai 不被写路径同步调用。
+2. **同步调用全项目只有这几条箭头**：content → user、im → user、companion → user、content → ai、growth → ai、companion → ai；以及萌萌工具专用的 ai → content、ai → growth（只读）。
 3. **同步调用只读、深度为 1。** 内部接口只做查询；处理内部调用时不许再向外发起同步调用。跨服务的写只能通过事件。
+   唯一的例外是萌萌：companion → ai → content / growth 深度为 2。只有萌萌对话图里的工具能调，接口在 ai 里写成白名单，content、growth 处理这些调用时不再外调，也永远不调 companion，所以不成环。见 [meng.md](meng.md) 第 6.3 节。
 4. **「发生了一件事，别人要跟着反应」一律走 MQ 事件。** 事务提交后发送；生产者不知道谁在消费。
 5. **每个服务独占一个 MySQL 库和独立账号。** 物理上杜绝跨服务联表和共享 Entity。
 6. **一次写操作只落在一个服务，不做分布式事务。** 必须同事务的放同一个域；跨域最终一致，消费者幂等。
@@ -167,7 +169,8 @@ java_backend/
 | content | user、ai | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理、请求分析、审核状态变更 | 帖子分析结果、评论审核结果 |
 | im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖、内容审核状态变更、资料审核状态变更 |
 | growth | ai | 等级变更、中奖 | 发帖、评论 |
-| ai | 无 | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
+| companion | user、ai | 萌萌升阶 | 无 |
+| ai | content、growth（只限萌萌工具，只读） | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
 
@@ -227,8 +230,7 @@ java_backend/
 
 | 项 | 当前倾向 |
 |---|---|
-| AI 萌萌的会话、消息、配额归哪个 Java 服务 | 未讨论 |
-| LangGraph 图执行态是否持久化 | 起步不接，需要中断续跑时再定 |
+| LangGraph 图执行态是否持久化 | 不接；萌萌的会话状态由 companion 保存，每次请求带上下文 |
 
 ### 待核实
 

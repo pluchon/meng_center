@@ -46,6 +46,7 @@
 | `report.handled` | content | reportId、reporterId、targetType、targetId、postId、postTitle、excerpt、targetAuthorId、result | im：通知举报人；成立时通知内容作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
 | `lottery.won` | growth | userId、prizeName | im：中奖通知 |
+| `companion.stage-reached` | companion | userId、characterCode、characterName、stage、stageName | im：通知本人（系统频道的「萌萌」类型） |
 
 说明：
 
@@ -81,11 +82,23 @@
 | `POST /ai/internal/covers` | ai | content | 一张图片 | 同上 |
 | `POST /ai/internal/growth-summaries` | ai | growth | 总结和建议 | 同上 |
 
-ai 的七个接口是纯计算，不改任何状态，按只读接口对待；因为请求体大，用 POST。输入输出和超时见 [ai.md](ai.md) 第 3.2 节。ai 不调用任何项目内服务，帖子的全文通过事件拿到。
+ai 的七个接口是纯计算，不改任何状态，按只读接口对待；因为请求体大，用 POST。输入输出和超时见 [ai.md](ai.md) 第 3.2 节。这些功能里 ai 不调用任何项目内服务，帖子的全文通过事件拿到。
 
-### 2.3 尚未覆盖
+### 2.3 萌萌
 
-AI 萌萌的对话链路（前端经哪个 Java 服务进入、配额在哪扣）还没设计，等会话归属确定后补进本文。
+前端只经 companion 进入；限次、好感、记忆都在 companion。设计见 [meng.md](meng.md)。
+
+| 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
+|---|---|---|---|---|
+| `POST /ai/internal/companion/replies` | ai | companion | 事件流：工具进度、气泡、作品、好感建议、记忆候选、审核分类 | 超时或 5xx：这一轮不计次，前端显示「萌萌们去休息了」，返回 503 `AI_UNAVAILABLE` |
+| `POST /ai/internal/companion/summaries` | ai | companion | 一段会话摘要 | 保留旧摘要，下一轮再试 |
+| `GET /content/internal/posts/search?q=&size=` | content | ai（萌萌工具） | 公开帖子的 id、标题、摘要、作者昵称，最多 5 篇 | 工具返回「没找到」，角色照常回复 |
+| `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（萌萌工具） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
+| `GET /growth/internal/users/{id}/summary` | growth | ai（萌萌工具） | 等级、连续签到天数、今天是否签到 | 同上 |
+| `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 用用户名代替 |
+
+- ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
+- 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。
 
 ## 3. 新增契约的流程
 

@@ -1,7 +1,7 @@
 # 萌部落社区 · AI 域（萌萌以外）
 
 > 配套文档：[架构设计](architecture.md)、[事件与内部接口](contracts.md)、[内容域](content.md)、[成长域](growth.md)。
-> 萌萌（角色扮演）不在本文范围，它和这里共用同一个 Python 服务与模型客户端，但数据、提示词和安全约束各管各的。
+> 萌萌（角色扮演）见 [meng.md](meng.md)，它和这里共用同一个 Python 服务与模型客户端，但数据、提示词和安全约束各管各的。
 
 ## 1. 范围
 
@@ -16,16 +16,16 @@
 
 | 谁 | 做什么 |
 |---|---|
-| ai（Python） | 只做计算：调 Qwen 抽特征、判审核、生成文字和图片，调 embedding 算向量。不建库、不改任何业务状态、不同步调用任何 Java 服务 |
+| ai（Python） | 只做计算：调 Qwen 抽特征、判审核、生成文字和图片，调 embedding 算向量。不建库、不改任何业务状态；本文的功能不同步调用任何 Java 服务（萌萌的工具例外，见 [meng.md](meng.md) 第 6.3 节） |
 | content | 帖子特征和审核结论的存储、向量索引、推荐、相关帖子、语义搜索；发帖页 AI 入口的对外接口、鉴权和限次 |
 | growth | 成长 AI 总结的对外接口：自己用 SQL 统计数字，交给 ai 写文字，结果缓存和限次在 growth |
 | user | 昵称、签名、头像的审核结论存储和处理 |
 
 ### 2.2 调用方向
 
-- **同步**：content → ai、growth → ai，都是「把数据给 ai，拿回计算结果」。ai 不反过来同步调任何服务，所以不成环。
+- **同步**：content → ai、growth → ai，都是「把数据给 ai，拿回计算结果」。本文的功能里 ai 不反过来同步调任何服务；萌萌工具对 content、growth 的只读调用是唯一例外，content、growth 都不会同步调 companion，所以不成环。
 - **异步**：content 把帖子和评论的全文（和配图的小图）放进事件发给 ai，user 把改过的资料放进事件发给 ai；ai 算完发结果事件，由原来的域消费后落库处理。
-- 前端不直接访问 ai。网关不给非萌萌功能开 `/ai/**` 路由，ai 的内部接口只监听本机，供 Java 服务调用。
+- 前端不直接访问 ai。网关不开 `/ai/**` 路由（萌萌也经 companion 进入），ai 的内部接口只监听本机，供 Java 服务调用。
 - 这样「AI 只做计算」（[架构](architecture.md)第 6 节规则 8）落得最彻底：权限、限次、缓存、状态都在 Java。
 
 ## 3. ai 服务
@@ -67,7 +67,7 @@
 | `POST /ai/internal/creator-reviews` | content | 创作统计数字（见第 11.2 节） | 一段总结和两三条建议 | 15 秒 |
 | `POST /ai/internal/ranker-trainings` | content | 曝光样本（特征和是否点击） | 权重、截距、留出集 AUC、样本数 | 120 秒 |
 
-- ai 处理内部请求时会调 DashScope（外部服务），但不调任何项目内服务。
+- ai 处理这些内部请求时会调 DashScope（外部服务），但不调任何项目内服务。
 - 失败语义：调用方拿到超时或 5xx 时返回 503 和业务码 `AI_UNAVAILABLE`，前端提示「AI 暂时没空」；不重试、不伪装成空结果。
 - Feign 的按方法超时通过每次调用的 `Request.Options` 参数传入：避免 `setMethodOptions` 的线程隔离，也避免 Spring Cloud 用 Nacos 的 logger 等配置重建全局 Options 后覆盖方法超时。
 
