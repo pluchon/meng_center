@@ -12,29 +12,49 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 // 有界执行队列避免长对话耗尽请求线程
 @Configuration
 public class CoreConfiguration {
-    @Bean
-    Clock clock() { return Clock.systemUTC(); }
 
     @Bean
-    HttpClient httpClient() {
-        return HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(2))
-            .version(HttpClient.Version.HTTP_1_1).followRedirects(HttpClient.Redirect.NEVER).build();
+    Clock clock() {
+        return Clock.systemUTC();
     }
 
     @Bean
-    JacksonJsonMessageConverter messageConverter() { return new JacksonJsonMessageConverter(); }
+    HttpClient httpClient() {
+        return HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(2))
+            .version(HttpClient.Version.HTTP_1_1)
+            .followRedirects(HttpClient.Redirect.NEVER)
+            .build();
+    }
 
     @Bean
-    TopicExchange companionExchange() { return new TopicExchange("meng.companion.topic", true, false); }
+    JacksonJsonMessageConverter messageConverter() {
+        return new JacksonJsonMessageConverter();
+    }
+
+    @Bean
+    TopicExchange companionExchange() {
+        return new TopicExchange("meng.companion.topic", true, false);
+    }
 
     @Bean
     ThreadPoolTaskExecutor companionExecutor() {
         var executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(4);
-        executor.setMaxPoolSize(12);
-        executor.setQueueCapacity(12);
+        executor.setCorePoolSize(16);
+        executor.setMaxPoolSize(200);
+        executor.setQueueCapacity(0);
         executor.setThreadNamePrefix("companion-");
         executor.setAwaitTerminationSeconds(5);
+        return executor;
+    }
+
+    @Bean
+    ThreadPoolTaskExecutor companionBackgroundExecutor() {
+        var executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(8);
+        executor.setQueueCapacity(32);
+        executor.setThreadNamePrefix("companion-background-");
         return executor;
     }
 }

@@ -36,8 +36,16 @@ meng.companion:
   document-minute: 2
   image-daily: 3
   image-minute: 1
+  concurrent-turns: 2
+  ip-minute: 60
   hotlines:
     - region: TW
       name: 1925安心專線
       phone: '1925'
       url: https://www.mohw.gov.tw/cp-16-19209-1.html?oai_link_source=model_response_hotline
+meng.companion.job:
+  admin-address: http://127.0.0.1:${MENG_XXL_JOB_PORT}
+  port: ${MENG_COMPANION_JOB_PORT}
+  address: http://127.0.0.1:${MENG_COMPANION_JOB_PORT}/
+  log-path: ${MENG_COMPANION_WORK_ROOT}/../companion-job-logs
+management.endpoints.web.exposure.include: health,info,metrics

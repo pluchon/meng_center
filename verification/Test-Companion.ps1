@@ -19,7 +19,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'AI dependencies unavailable.' }
     & uv run --frozen ruff check app tests evals
     if ($LASTEXITCODE -ne 0) { throw 'AI static checks failed.' }
-    & uv run --frozen pytest tests/test_companion.py -q
+    & uv run --frozen pytest tests/test_companion.py tests/test_companion_runtime.py -q
     if ($LASTEXITCODE -ne 0) { throw 'Companion graph tests failed.' }
     if ($EvaluateModels) {
         $arguments = @('run', '--frozen', 'python', '-m', 'evals.companion.run')

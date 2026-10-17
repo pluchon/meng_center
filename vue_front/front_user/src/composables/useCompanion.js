@@ -1,7 +1,12 @@
-import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, h, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { companionApi, sendCompanionMessage, companionImage } from '@/api/companion'
+import {
+  companionApi,
+  sendCompanionMessage,
+  regenerateCompanionMessage,
+  companionImage,
+} from '@/api/companion'
 import { Companion, CompanionError, CompanionEvent } from '@/constants/meng'
 import { companionArt } from '@/constants/companionArt'
 import { RouteName } from '@/router/names'
@@ -10,6 +15,7 @@ import { useUserStore } from '@/stores/user'
 import { useCompanionResource } from './useCompanionResource'
 import { usePostTime } from './usePostTime'
 import { notifyFailure } from './useFailureNotice'
+import { ElMessage } from 'element-plus'
 import { confirmDialog } from './useConfirm'
 
 export function useCompanion() {
@@ -43,6 +49,9 @@ export function useCompanion() {
   const sending = ref(false),
     creating = ref(false),
     draft = ref(''),
+    selectedWork = ref(null),
+    feedbackBusy = ref(null),
+    levelBusy = ref(false),
     attachments = ref([]),
     uploading = ref(false)
   const sendError = ref(null),
@@ -86,6 +95,10 @@ export function useCompanion() {
       String(cooldownSeconds.value % 60).padStart(2, '0'),
   )
   const drafts = new Map()
+  const envelopes = new Map()
+  const sendControllers = new Set()
+  let retryEnvelope = null,
+    polling = false
   const progress = (c) =>
     Math.min(100, ((c?.stage || 1) - 1 + Math.min(1, Math.max(0, c?.progress || 0))) * 25)
   const localProgress = (c) => Math.min(100, Math.max(0, (c?.progress || 0) * 100))
@@ -103,15 +116,12 @@ export function useCompanion() {
   const day = (value) => (value ? dayFormatter.format(timestamp(value)) : '')
   const inputDisabled = computed(
     () =>
-      sending.value ||
-      loading.value ||
-      !sessionId.value ||
-      usage.usage?.messages === 0 ||
-      cooldownSeconds.value > 0,
+      loading.value || !sessionId.value || usage.usage?.messages === 0 || cooldownSeconds.value > 0,
   )
   const stages = computed(() => tm('meng.stages'))
   const failedText = computed(() => sendError.value?.message || t('meng.failed'))
   const topicFull = computed(() => sessionTotal.value >= Companion.SESSION_LIMIT)
+  const drawing = computed(() => !!sessionList.value.find((s) => String(s.id) === String(sessionId.value))?.drawing)
   function bottom(force = false) {
     const element = log.value
     if (!force && element && element.scrollHeight - element.clientHeight - element.scrollTop > 120)
@@ -124,6 +134,8 @@ export function useCompanion() {
     })
   }
   function stopRound() {
+    for (const controller of sendControllers) controller.abort()
+    sendControllers.clear()
     sendController?.abort()
     sending.value = false
     typing.value = false
@@ -131,7 +143,11 @@ export function useCompanion() {
   }
   function saveLocalDraft() {
     if (sessionId.value)
-      drafts.set(String(sessionId.value), { text: draft.value, images: attachments.value })
+      drafts.set(String(sessionId.value), {
+        text: draft.value,
+        images: attachments.value,
+        work: selectedWork.value,
+      })
   }
   async function goHome() {
     await router.push({ name: RouteName.MENG })
@@ -190,6 +206,10 @@ export function useCompanion() {
     const saved = drafts.get(String(id))
     draft.value = saved?.text || ''
     attachments.value = saved?.images || []
+    selectedWork.value = saved?.work || null
+    const topic = sessionList.value.find((s) => String(s.id) === String(id))
+    if (topic) topic.unread = false
+    typing.value = !!topic?.generating
     loading.value = true
     historyLoading.value = false
     loadError.value = null
@@ -212,7 +232,7 @@ export function useCompanion() {
     if (token === generation) void loadSide(token)
   }
   async function newTopic() {
-    if (creating.value || sending.value || topicFull.value) return
+    if (creating.value || topicFull.value) return
     creating.value = true
     const current = code.value
     try {
@@ -233,12 +253,12 @@ export function useCompanion() {
       page = more ? sessionPage.value + 1 : 1
     const result = await companionApi.sessions(
       current,
-      { page, size: Companion.PAGE_SIZE },
+      { page, size: more ? Companion.PAGE_SIZE : Math.max(Companion.PAGE_SIZE, sessionList.value.length) },
       { signal: readController?.signal, silent: true },
     )
     if (token !== generation || !active) return
     sessionList.value = more ? sessionList.value.concat(result.records) : result.records
-    sessionPage.value = page
+    sessionPage.value = more ? page : Math.max(1, Math.ceil(result.records.length / Companion.PAGE_SIZE))
     sessionTotal.value = result.total
   }
   async function loadEarlier() {
@@ -313,126 +333,238 @@ export function useCompanion() {
     else messages.value.push(message)
     bottom()
   }
-  async function send() {
-    const text = draft.value.trim()
-    if (
-      inputDisabled.value ||
-      (!text && !attachments.value.length) ||
-      text.length > Companion.MAX_LENGTH
+  async function refreshCurrent(token = generation) {
+    const id = sessionId.value
+    if (!id) return
+    const result = await companionApi.messages(
+      id,
+      { size: Companion.HISTORY_SIZE },
+      { silent: true },
     )
+    if (token !== generation || !active || String(id) !== String(sessionId.value)) return
+    const records = result.records.toReversed(),
+      oldest = records[0]?.id
+    messages.value = [
+      ...messages.value.filter((m) => typeof m.id === 'number' && m.id < oldest),
+      ...records,
+    ]
+    before.value = before.value || result.nextBefore
+    for (const record of records) {
+      if (record.clientMessageId && record.turnState === 'COMMITTED')
+        envelopes.delete(record.clientMessageId)
+    }
+    bottom()
+  }
+  async function receive(event, data, token, controller) {
+    if (token !== generation || controller.signal.aborted) return
+    if (event === CompanionEvent.STATUS) {
+      if (data.kind === 'CRISIS_HELP') hotlines.value = data.hotlines || []
+      else statusText.value = data.text || ''
+    } else if (event === CompanionEvent.BUBBLE) {
+      statusText.value = ''
+      typing.value = true
+      await new Promise((resolve) => {
+        const timer = setTimeout(
+          done,
+          Math.min(
+            Companion.TYPE_MAX_MS,
+            Math.max(Companion.TYPE_MIN_MS, (data.content?.length || 1) * Companion.TYPE_MS),
+          ),
+        )
+        function done() {
+          clearTimeout(timer)
+          controller.signal.removeEventListener('abort', done)
+          resolve()
+        }
+        controller.signal.addEventListener('abort', done, { once: true })
+      })
+      if (token === generation && !controller.signal.aborted) await appendMessage(data)
+    } else if (event === CompanionEvent.WORK) {
+      recentWorks.value = [data, ...recentWorks.value.filter((w) => w.id !== data.id)].slice(0, 3)
+      await appendMessage({
+        id: 'work-' + data.id,
+        role: 'CHARACTER',
+        workId: data.id,
+        content: data.title,
+      })
+    } else if (event === CompanionEvent.STAGE) {
+      stageNotice.value = { ...data, previousStage: character.value?.stageName }
+      if (data.message) await appendMessage(data.message)
+    } else if (event === CompanionEvent.QUEUED) {
+      const message = messages.value.find((m) => m.clientMessageId === data.clientMessageId)
+      if (message) message.turnState = 'RECEIVED'
+    } else if (event === CompanionEvent.DONE) usage.setUsage(data.usage)
+    bottom()
+  }
+  async function send() {
+    const text = draft.value.trim(),
+      images = attachments.value.map((image) => image.id)
+    if (inputDisabled.value || (!text && !images.length) || text.length > Companion.MAX_LENGTH)
       return
     const token = generation,
       id = sessionId.value,
-      images = attachments.value.map((image) => image.id)
+      work = selectedWork.value
+    const previous = retryEnvelope && envelopes.get(retryEnvelope)
+    const body =
+      previous &&
+      previous.content === text &&
+      JSON.stringify(previous.imageIds) === JSON.stringify(images)
+        ? previous
+        : {
+            clientMessageId: crypto.randomUUID(),
+            content: text,
+            imageIds: images,
+            workId: work?.id || null,
+          }
+    envelopes.set(body.clientMessageId, body)
+    retryEnvelope = null
+    const controller = new AbortController()
+    sendController = controller
+    sendControllers.add(controller)
     sending.value = true
     sendError.value = null
     typing.value = true
-    sendController = new AbortController()
-    const controller = sendController
-    const temporary = {
-      id: 'pending-' + Date.now(),
+    await appendMessage({
+      id: 'pending-' + body.clientMessageId,
+      clientMessageId: body.clientMessageId,
       role: 'USER',
       content: text,
       imageIds: images,
       createTime: new Date().toISOString(),
-    }
-    await appendMessage(temporary)
+      turnState: 'RECEIVED',
+    })
     draft.value = ''
     attachments.value = []
-    let complete = false
+    selectedWork.value = null
     try {
-      await sendCompanionMessage(
-        id,
-        { content: text, imageIds: images },
-        {
-          signal: controller.signal,
-          onEvent: async (event, data) => {
-            if (token !== generation || controller.signal.aborted) return
-            if (event === CompanionEvent.STATUS) {
-              if (data.kind === 'CRISIS_HELP') hotlines.value = data.hotlines || []
-              else statusText.value = data.text || ''
-            } else if (event === CompanionEvent.BUBBLE) {
-              statusText.value = ''
-              typing.value = true
-              await new Promise((resolve) => {
-                const timer = setTimeout(
-                  done,
-                  Math.min(
-                    Companion.TYPE_MAX_MS,
-                    Math.max(Companion.TYPE_MIN_MS, data.content.length * Companion.TYPE_MS),
-                  ),
-                )
-                function done() {
-                  clearTimeout(timer)
-                  controller.signal.removeEventListener('abort', done)
-                  resolve()
-                }
-                controller.signal.addEventListener('abort', done, { once: true })
-              })
-              if (token === generation && !controller.signal.aborted) await appendMessage(data)
-            } else if (event === CompanionEvent.WORK) {
-              recentWorks.value = [
-                data,
-                ...recentWorks.value.filter((w) => w.id !== data.id),
-              ].slice(0, 3)
-              await appendMessage({
-                id: 'work-' + data.id,
-                role: 'CHARACTER',
-                workId: data.id,
-                content: data.title,
-              })
-            } else if (event === CompanionEvent.STAGE) {
-              stageNotice.value = { ...data, previousStage: character.value?.stageName }
-              if (data.message) await appendMessage(data.message)
-            } else if (event === CompanionEvent.DONE) {
-              complete = true
-              usage.setUsage(data.usage)
-            }
-            bottom()
-          },
-        },
-      )
+      await sendCompanionMessage(id, body, {
+        signal: controller.signal,
+        onEvent: (event, data) => receive(event, data, token, controller),
+      })
     } catch (e) {
       if (token !== generation || controller.signal.aborted) return
       sendError.value = e
-      // 次数用完和冷却以服务端用量为准，刷新后输入区随之置灰
       if (e.code === CompanionError.COOLDOWN || e.code === CompanionError.QUOTA)
         void usage.load().catch(() => {})
-      draft.value ||= text
-      attachments.value = images.map((imageId) => ({ id: imageId, url: companionImage(imageId) }))
+      if (!draft.value) {
+        draft.value = text
+        attachments.value = images.map((imageId) => ({ id: imageId, url: companionImage(imageId) }))
+        selectedWork.value = work
+        retryEnvelope = body.clientMessageId
+      }
     } finally {
+      sendControllers.delete(controller)
       if (token === generation && !controller.signal.aborted) {
-        sending.value = false
-        typing.value = false
+        sending.value = sendControllers.size > 0
         statusText.value = ''
-        // 以持久化历史替换临时消息，避免作品事件和历史记录重复。
         try {
-          const result = await companionApi.messages(
-            id,
-            { size: Companion.HISTORY_SIZE },
-            { silent: true, signal: readController.signal },
-          )
-          if (token === generation) {
-            const records = result.records.toReversed(),
-              oldest = records[0]?.id
-            messages.value = [
-              ...messages.value.filter((m) => typeof m.id === 'number' && m.id < oldest),
-              ...records,
-            ]
-            before.value = before.value || result.nextBefore
-            bottom()
-          }
-        } catch {
-          /* 保留已经显示的消息，下一次进入时恢复历史。 */
-        }
-        if (complete) {
-          void loadSessions().catch(() => {})
+          await refreshCurrent(token)
+          await loadSessions()
+          typing.value =
+            sending.value ||
+            !!sessionList.value.find((s) => String(s.id) === String(id))?.generating
           void loadSide(token)
           void refreshCharacters()
+        } catch {
+          /* 下一次轮询恢复已经提交的历史。 */
         }
       }
     }
   }
+  function retryMessage(message) {
+    draft.value = message.content
+    attachments.value = (message.imageIds || []).map((id) => ({ id, url: companionImage(id) }))
+    envelopes.set(message.clientMessageId, {
+      clientMessageId: message.clientMessageId,
+      content: message.content,
+      imageIds: message.imageIds || [],
+      workId: null,
+    })
+    retryEnvelope = message.clientMessageId
+    void send()
+  }
+  async function regenerate(message) {
+    if (feedbackBusy.value || sending.value) return
+    const token = generation,
+      controller = new AbortController()
+    sendControllers.add(controller)
+    feedbackBusy.value = message.id
+    typing.value = true
+    try {
+      await regenerateCompanionMessage(message.id, {
+        signal: controller.signal,
+        onEvent: (event, data) => receive(event, data, token, controller),
+      })
+      if (token !== generation) return
+      messages.value = []
+      before.value = null
+      await refreshCurrent(token)
+      await loadSide(token)
+    } catch (error) {
+      if (!error.cancelled) notifyFailure(error)
+    } finally {
+      sendControllers.delete(controller)
+      feedbackBusy.value = null
+      if (token === generation) typing.value = false
+    }
+  }
+  async function feedback(message) {
+    if (feedbackBusy.value) return
+    feedbackBusy.value = message.id
+    try {
+      await companionApi.feedback(message.id)
+      ElMessage.success(t('meng.feedbackSaved'))
+    } catch (error) {
+      notifyFailure(error)
+    } finally {
+      feedbackBusy.value = null
+    }
+  }
+  async function setLevel(level) {
+    if (levelBusy.value || !character.value || level === character.value.level) return
+    levelBusy.value = true
+    const current = code.value
+    try {
+      await companionApi.level(current, level)
+      await refreshCharacters()
+    } catch (error) {
+      notifyFailure(error)
+    } finally {
+      levelBusy.value = false
+    }
+  }
+  async function revise(work) {
+    if (code.value !== work.characterCode) {
+      await goChat(work.characterCode)
+      await start()
+    }
+    selectedWork.value = work
+    dialog.value = ''
+  }
+  async function poll() {
+    if (!active || !user.loggedIn || !chatting.value || document.hidden || polling || loading.value)
+      return
+    polling = true
+    const token = generation
+    try {
+      await loadSessions()
+      if (token === generation && !sendControllers.size) {
+        await refreshCurrent(token)
+        typing.value = !!sessionList.value.find((s) => String(s.id) === String(sessionId.value))
+          ?.generating
+        await loadSide(token)
+      }
+    } catch {
+      /* 保留当前画面，后续轮询继续恢复。 */
+    } finally {
+      polling = false
+    }
+  }
+  const pollTimer = setInterval(poll, Companion.POLL_MS)
+  const visible = () => {
+    if (!document.hidden) void poll()
+  }
+  document.addEventListener('visibilitychange', visible)
   async function addImages(files) {
     if (uploading.value || inputDisabled.value) return
     uploading.value = true
@@ -484,14 +616,27 @@ export function useCompanion() {
     }
   }
   function deleteTopic(id) {
+    let forget = false
+    const message = h('div', [
+      h('p', t('meng.deleteConfirm')),
+      h('label', [
+        h('input', {
+          type: 'checkbox',
+          onChange: (event) => {
+            forget = event.target.checked
+          },
+        }),
+        t('meng.forgetSession'),
+      ]),
+    ])
     void confirm(async () => {
-      await companionApi.deleteSession(id)
+      await companionApi.deleteSession(id, forget)
       drafts.delete(String(id))
       if (String(id) === String(sessionId.value)) {
         await router.replace({ name: RouteName.MENG, params: route.params })
         await start()
       } else await loadSessions()
-    })
+    }, message)
   }
   function openDialog(kind, workId = null) {
     dialogWorkId.value = workId
@@ -535,6 +680,9 @@ export function useCompanion() {
     stopUserWatch()
     stopCooldownWatch()
     clearInterval(cooldownTimer)
+    clearInterval(pollTimer)
+    document.removeEventListener('visibilitychange', visible)
+    envelopes.clear()
   })
   return reactive({
     t,
@@ -569,10 +717,14 @@ export function useCompanion() {
     creating,
     draft,
     attachments,
+    selectedWork,
+    feedbackBusy,
+    levelBusy,
     uploading,
     sendError,
     statusText,
     typing,
+    drawing,
     sideClosed,
     log,
     before,
@@ -596,6 +748,11 @@ export function useCompanion() {
     loadEarlier,
     start,
     send,
+    regenerate,
+    feedback,
+    setLevel,
+    revise,
+    retryMessage,
     pasteImages,
     dropImages,
     keydown,

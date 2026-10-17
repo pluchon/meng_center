@@ -25,6 +25,7 @@ import {
   IconSparkles,
 } from '@tabler/icons-vue'
 import { CompanionContext } from '@/constants/meng'
+import { Emotions } from '@/constants/comments'
 import { companionHistoryEarlierIcon, companionReplyDotsArt } from '@/assets/images'
 import MengState from '@/components/meng-state/MengState.vue'
 import { notifyFailure } from '@/composables/useFailureNotice'
@@ -66,6 +67,7 @@ export default defineComponent({
       IconPhoto,
       earlierIcon: companionHistoryEarlierIcon,
       replyDots: companionReplyDotsArt,
+      stickerImage: (name) => Emotions.find((item) => item.name === name)?.image,
       setLog: (element) => {
         context.log = element
       },

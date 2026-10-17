@@ -1,358 +1,1026 @@
 package com.pluchon.meng.companion.service;
 
-import com.pluchon.meng.api.companion.event.StageReachedEvent;
-import com.pluchon.meng.common.core.error.BusinessException;
-import com.pluchon.meng.common.core.error.CommonErrorCode;
+import com.pluchon.meng.common.core.error.*;
 import com.pluchon.meng.common.core.response.ApiResponse;
-import com.pluchon.meng.companion.client.AiClient;
-import com.pluchon.meng.companion.client.UserClient;
+import com.pluchon.meng.companion.client.*;
 import com.pluchon.meng.companion.config.CompanionProperties;
-import com.pluchon.meng.companion.controller.CompanionDTO;
+import com.pluchon.meng.companion.controller.*;
 import com.pluchon.meng.companion.converter.CompanionConverter;
 import com.pluchon.meng.companion.entity.Rows;
-import com.pluchon.meng.companion.mapper.CompanionMapper;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.Clock;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HexFormat;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.pluchon.meng.companion.mapper.*;
+import java.time.*;
+import java.util.*;
+import java.util.concurrent.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import org.springframework.web.context.request.async.DeferredResult;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.MediaType;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-// 完整轮次通过审核后，在同一事务中保存气泡、作品、好感和记忆
+// 请求连接只订阅结果；轮次由数据库和带租约的会话锁管理，断开连接不取消生成。
 @Service
 public class ReplyService {
+
     @Autowired
     private CompanionService companion;
+
     @Autowired
     private CompanionMapper mapper;
+
+    @Autowired
+    private RuntimeMapper runtime;
+
     @Autowired
     private CompanionLimits limits;
+
     @Autowired
     private CompanionProperties properties;
+
     @Autowired
-    private WorkStorage storage;
+    private CompanionContext contexts;
+
+    @Autowired
+    private CompanionOutbox outbox;
+
     @Autowired
     private AiClient ai;
+
     @Autowired
     private UserClient users;
+
     @Autowired
     private TransactionTemplate transactions;
+
     @Autowired
     private ThreadPoolTaskExecutor companionExecutor;
-    @Autowired
-    private ApplicationEventPublisher events;
+
     @Autowired
     private Clock clock;
-    private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();
 
-    public DeferredResult<ResponseEntity<?>> send(long user, long sessionId, CompanionDTO.Send body) {
-        companion.requireSession(user, sessionId);
-        limits.checkCooldown(user);
-        String token = limits.lock(sessionId);
-        var emitter = new SseEmitter(115_000L);
-        var response = new DeferredResult<ResponseEntity<?>>(115_000L);
-        AtomicBoolean disconnected = new AtomicBoolean();
-        response.onTimeout(() -> {
-            disconnected.set(true);
-            response.setResult(ResponseEntity.status(503).contentType(MediaType.APPLICATION_JSON).body(ApiResponse.failure(CompanionError.AI_UNAVAILABLE, null)));
-        });
-        emitter.onCompletion(() -> disconnected.set(true));
-        emitter.onTimeout(() -> disconnected.set(true));
-        emitter.onError(error -> disconnected.set(true));
-        try {
-            companionExecutor.execute(() -> run(user, sessionId, body, token, emitter, response, disconnected));
-        } catch (RuntimeException error) {
-            limits.unlock(sessionId, token);
-            throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+    @Autowired
+    private CompanionTelemetry telemetry;
+
+    private final JsonMapper json = JsonMapper.builder()
+        .findAndAddModules()
+        .build();
+    private final ConcurrentMap<
+        Long,
+        CopyOnWriteArrayList<Channel>
+    > subscribers = new ConcurrentHashMap<>();
+
+    private static final class Channel {
+
+        final SseEmitter emitter = new SseEmitter(115_000L);
+        final DeferredResult<ResponseEntity<?>> response = new DeferredResult<>(
+            115_000L
+        );
+        volatile boolean connected = true;
+
+        Channel() {
+            emitter.onCompletion(() -> connected = false);
+            emitter.onError(error -> connected = false);
+            emitter.onTimeout(() -> {
+                connected = false;
+                emitter.complete();
+            });
+            response.onTimeout(() -> {
+                connected = false;
+                response.setResult(
+                    ResponseEntity.status(503)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(
+                            ApiResponse.failure(
+                                CompanionError.AI_UNAVAILABLE,
+                                null
+                            )
+                        )
+                );
+            });
         }
-        return response;
+
+        void event(String type, Object data) {
+            if (!connected) return;
+            try {
+                if (!response.hasResult()) response.setResult(
+                    ResponseEntity.ok()
+                        .contentType(MediaType.TEXT_EVENT_STREAM)
+                        .header("Cache-Control", "no-store")
+                        .header("X-Accel-Buffering", "no")
+                        .body(emitter)
+                );
+                emitter.send(SseEmitter.event().name(type).data(data));
+            } catch (Exception ignored) {
+                connected = false;
+            }
+        }
+
+        void error(ErrorCode code) {
+            if (!response.hasResult()) response.setResult(
+                ResponseEntity.status(code.httpStatus())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(ApiResponse.failure(code, null))
+            );
+            else event("error", Map.of("code", code.code()));
+            emitter.complete();
+            connected = false;
+        }
+
+        void done(Object usage) {
+            event("done", Map.of("usage", usage));
+            emitter.complete();
+            connected = false;
+        }
     }
 
-    private record Prepared(Rows.Session session, Rows.Bond bond, Rows.Message input, List<String> images) {}
+    public DeferredResult<ResponseEntity<?>> send(
+        long user,
+        long sessionId,
+        CompanionDTO.Send body,
+        String zone,
+        String ip
+    ) {
+        return send(user, sessionId, body, zone, ip, null);
+    }
 
-    private Prepared prepare(long user, long sessionId, CompanionDTO.Send body) {
+    private DeferredResult<ResponseEntity<?>> send(
+        long user,
+        long sessionId,
+        CompanionDTO.Send body,
+        String zone,
+        String ip,
+        Long regenerates
+    ) {
+        String timeZone = CompanionContext.zone(zone);
+        var submitted = transactions.execute(status -> {
+            var session = companion.requireSession(user, sessionId);
+            mapper.ensureBond(user, session.getCharacterCode());
+            var bond = mapper.lockBond(user, session.getCharacterCode());
+            if (
+                mapper.lockSession(sessionId, user) == null
+            ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+            var previous = runtime.duplicate(sessionId, body.clientMessageId());
+            String text = body.content() == null ? "" : body.content().strip();
+            if (previous != null) {
+                if (
+                    !Objects.equals(previous.getContent(), text) ||
+                    !Objects.equals(
+                        previous.getRequestWorkId(),
+                        body.workId()
+                    ) ||
+                    !json
+                        .readTree(previous.getImageIds())
+                        .equals(json.valueToTree(body.imageIds()))
+                ) throw new BusinessException(CommonErrorCode.CONFLICT);
+                if ("FAILED".equals(previous.getTurnState())) {
+                    limits.checkCooldown(user);
+                    runtime.retry(
+                        previous.getId(),
+                        bond.getRevision(),
+                        timeZone
+                    );
+                    previous.setTurnState("RECEIVED");
+                }
+                return previous;
+            }
+            if (
+                text.isBlank() && body.imageIds().isEmpty()
+            ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+            limits.checkCooldown(user);
+            limits.checkIp(user, ip, text.length());
+            for (Long image : body.imageIds())
+                if (
+                    mapper.image(image, user) == null
+                ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+            contexts.works(user, session, body.workId());
+            runtime.zone(user, session.getCharacterCode(), timeZone);
+            var message = new Rows.Message();
+            message.setSessionId(sessionId);
+            message.setRole("USER");
+            message.setContent(text);
+            message.setImageIds(json.writeValueAsString(body.imageIds()));
+            message.setClientMessageId(body.clientMessageId());
+            message.setTurnState("RECEIVED");
+            message.setRequestWorkId(body.workId());
+            message.setRequestRevision(bond.getRevision());
+            message.setTimeZone(timeZone);
+            message.setRegeneratesMessageId(regenerates);
+            mapper.insertMessage(message);
+            return message;
+        });
+        var channel = new Channel();
+        if ("COMMITTED".equals(submitted.getTurnState())) {
+            for (var message : runtime.replies(
+                sessionId,
+                submitted.getTurnId() == null
+                    ? submitted.getId()
+                    : submitted.getTurnId()
+            ))
+                replay(channel, user, message);
+            channel.done(limits.usage(user, timeZone));
+            return channel.response;
+        }
+        subscribers
+            .computeIfAbsent(submitted.getId(), key ->
+                new CopyOnWriteArrayList<>()
+            )
+            .add(channel);
+        int started = kick(sessionId);
+        if (started == 0) {
+            runtime.state(submitted.getId(), submitted.getId(), "FAILED");
+            subscribers.remove(submitted.getId());
+            channel.error(CompanionError.COMPANION_BUSY);
+        } else if (started < 0) {
+            // 排队只确认接收，生成结果从历史补齐；相同 clientMessageId 不会新增一条输入。
+            channel.event(
+                "queued",
+                Map.of("clientMessageId", body.clientMessageId())
+            );
+            channel.done(limits.usage(user, timeZone));
+            subscribers.computeIfPresent(submitted.getId(), (key, list) -> {
+                list.remove(channel);
+                return list.isEmpty() ? null : list;
+            });
+        }
+        return channel.response;
+    }
+
+    private void replay(Channel channel, long user, Rows.Message message) {
+        if (message.getWorkId() != null) channel.event(
+            "work",
+            companion.work(user, message.getWorkId())
+        );
+        else channel.event("bubble", CompanionConverter.message(message));
+    }
+
+    private int kick(long sessionId) {
+        String token = limits.tryLock(sessionId);
+        if (token == null) return -1;
+        var pending = runtime.pending(sessionId);
+        if (pending.isEmpty()) {
+            limits.unlock(sessionId, token);
+            return -1;
+        }
+        var session = mapper.session(sessionId, owner(sessionId));
+        if (session == null) {
+            limits.unlock(sessionId, token);
+            return -1;
+        }
+        long user = session.getUserId();
+        if (!limits.activate(user, token)) {
+            limits.unlock(sessionId, token);
+            return 0;
+        }
+        try {
+            companionExecutor.execute(() ->
+                run(user, sessionId, token, pending.get(0).getId())
+            );
+        } catch (RuntimeException error) {
+            limits.deactivate(user, token);
+            limits.unlock(sessionId, token);
+            return 0;
+        }
+        return 1;
+    }
+
+    private long owner(long session) {
+        return transactions.execute(status -> {
+            var pending = runtime.pending(session);
+            if (pending.isEmpty()) return 0L;
+            return outbox.sessionOwner(session);
+        });
+    }
+
+    private record Prepared(
+        Rows.Session session,
+        Rows.Bond bond,
+        List<Rows.Message> inputs,
+        String content,
+        List<String> images,
+        Long work
+    ) {}
+
+    private Prepared prepare(long user, long sessionId) {
         return transactions.execute(status -> {
             var found = companion.requireSession(user, sessionId);
             var bond = mapper.lockBond(user, found.getCharacterCode());
             var session = mapper.lockSession(sessionId, user);
-            if (session == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+            if (session == null) throw new BusinessException(
+                CommonErrorCode.NOT_FOUND
+            );
+            var inputs = new ArrayList<Rows.Message>();
             var images = new ArrayList<String>();
-            for (Long id : body.imageIds()) {
-                String path = mapper.image(id, user);
-                if (path == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
-                images.add(storage.thumbnail(path));
+            var text = new StringBuilder();
+            Long work = null;
+            for (var input : runtime.pending(sessionId)) {
+                var ids = json.readTree(input.getImageIds());
+                if (
+                    !inputs.isEmpty() &&
+                    (text.length() + input.getContent().length() + 1 > 1000 ||
+                        images.size() + ids.size() > 3 ||
+                        (work != null &&
+                            input.getRequestWorkId() != null &&
+                            !work.equals(input.getRequestWorkId())))
+                ) break;
+                if (input.getRequestRevision() != bond.getRevision()) {
+                    runtime.state(input.getId(), input.getId(), "FAILED");
+                    continue;
+                }
+                if (!text.isEmpty()) text.append('\n');
+                text.append(input.getContent());
+                for (var id : ids) {
+                    String file = mapper.image(id.asLong(), user);
+                    if (file == null) throw new BusinessException(
+                        CommonErrorCode.NOT_FOUND
+                    );
+                    images.add(outbox.thumbnail(file));
+                }
+                if (input.getRequestWorkId() != null) work =
+                    input.getRequestWorkId();
+                inputs.add(input);
             }
-            var input = new Rows.Message();
-            input.setSessionId(sessionId);
-            input.setRole("USER");
-            input.setContent(body.content().strip());
-            input.setImageIds(json.writeValueAsString(body.imageIds()));
-            mapper.insertMessage(input);
-            return new Prepared(session, bond, input, List.copyOf(images));
+            if (inputs.isEmpty()) return null;
+            long turn = inputs.get(0).getId();
+            for (var input : inputs)
+                runtime.state(input.getId(), turn, "CONTEXT_READY");
+            return new Prepared(
+                session,
+                bond,
+                List.copyOf(inputs),
+                text.toString(),
+                List.copyOf(images),
+                work
+            );
         });
     }
 
-    private void run(long user, long sessionId, CompanionDTO.Send body, String token, SseEmitter emitter,
-                     DeferredResult<ResponseEntity<?>> response, AtomicBoolean disconnected) {
+    private void run(
+        long user,
+        long sessionId,
+        String token,
+        long submittedId
+    ) {
+        long started = System.nanoTime();
+        Prepared prepared = null;
         CompanionLimits.Reservation reservation = null;
-        List<String> savedFiles = new ArrayList<>();
         boolean committed = false;
         try {
-            var prepared = prepare(user, sessionId, body);
-            reservation = limits.reserve(user);
+            prepared = prepare(user, sessionId);
+            if (prepared == null) {
+                for (var channel : subscribers.getOrDefault(
+                    submittedId,
+                    new CopyOnWriteArrayList<>()
+                ))
+                    channel.error(CommonErrorCode.CONFLICT);
+                return;
+            }
+            long turn = prepared.inputs().get(0).getId();
+            String zone = prepared.inputs().get(0).getTimeZone();
+            reservation = limits.reserve(user, zone);
             var request = context(user, prepared, reservation);
-            if (disconnected.get()) return;
-            JsonNode result = ai.reply(request, (type, data) -> {
-                if (disconnected.get()) throw new IllegalStateException("Companion stream interrupted");
-                open(response, emitter);
-                emit(emitter, type, data);
-            });
-            if (disconnected.get() || !limits.locked(sessionId, token)) return;
-            List<Rows.Work> works = decodeWorks(user, prepared, result, reservation, savedFiles);
-            var output = persist(user, prepared, result, works);
+            runtime.groupState(turn, "GENERATING");
+            var current = prepared;
+            JsonNode result = ai.reply(request, (type, data) ->
+                broadcast(current, type, data)
+            );
+            if (!limits.locked(sessionId, token)) throw new BusinessException(
+                CompanionError.AI_UNAVAILABLE
+            );
+            runtime.groupState(turn, "CHECKED");
+            var memoryIds = new ArrayList<Long>();
+            for (var id : result
+                .path("metrics")
+                .path("layers")
+                .path("memoryIds"))
+                if (
+                    ((List<?>) request.get("memoryIds")).contains(id.asLong())
+                ) memoryIds.add(id.asLong());
+            var output = persist(
+                user,
+                prepared,
+                result,
+                reservation,
+                memoryIds
+            );
             committed = true;
-            String label = result.path("label").asString();
-            List<String> used = new ArrayList<>();
-            if (!"CRISIS".equals(label)) {
+            telemetry.completed(result, System.nanoTime() - started);
+            boolean billable =
+                result.path("billable").asBoolean(true) &&
+                !"CRISIS".equals(result.path("label").asString());
+            var used = new ArrayList<String>();
+            if (billable) {
                 used.add("message");
-                works.forEach(w -> used.add("DOCUMENT".equals(w.getKind()) ? "document" : "image"));
+                if (!result.path("works").isEmpty()) used.add("document");
             }
-            limits.finish(reservation, used);
+            boolean drawing = !result.path("drawings").isEmpty();
+            var finish = new CompanionLimits.Reservation(
+                reservation.user(),
+                reservation.date(),
+                reservation.token(),
+                reservation
+                    .kinds()
+                    .stream()
+                    .filter(k -> !drawing || !"image".equals(k))
+                    .toList(),
+                reservation.messageAllowed()
+            );
+            limits.finish(finish, used);
             reservation = null;
-            if (!"CRISIS".equals(label)) limits.play(user);
-            open(response, emitter);
-            for (Map<String, Object> event : output) emit(emitter, event.get("event").toString(), event.get("data"));
-            if ("CRISIS".equals(label)) emit(emitter, "status", Map.of("kind", "CRISIS_HELP", "hotlines", properties.getHotlines()));
-            if ("SEXUAL".equals(label) || "JAILBREAK".equals(label)) {
-                LocalDate date = today();
-                LocalDateTime start = date.atStartOfDay(ZoneId.of("Asia/Taipei")).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime();
-                if (mapper.blocks(user, start, start.plusDays(1)) >= 3) {
-                    limits.cooldown(user);
-                    mapper.safety(user, prepared.session().getCharacterCode(), prepared.input().getId(), "COOLDOWN");
-                }
-            }
-            emit(emitter, "done", Map.of("usage", limits.usage(user)));
-            emitter.complete();
+            if (billable) limits.play(user, zone);
+            for (var event : output)
+                broadcast(
+                    prepared,
+                    event.get("event").toString(),
+                    event.get("data")
+                );
+            if ("CRISIS".equals(result.path("label").asString())) broadcast(
+                prepared,
+                "status",
+                Map.of(
+                    "kind",
+                    "CRISIS_HELP",
+                    "hotlines",
+                    properties.getHotlines()
+                )
+            );
+            for (var input : prepared.inputs())
+                for (var channel : subscribers.getOrDefault(
+                    input.getId(),
+                    new CopyOnWriteArrayList<>()
+                ))
+                    channel.done(limits.usage(user, zone));
         } catch (Exception error) {
-            if (!disconnected.get()) {
-                var code = error instanceof BusinessException business ? business.errorCode() : CompanionError.AI_UNAVAILABLE;
-                try {
-                    if (!response.hasResult()) response.setResult(ResponseEntity.status(code.httpStatus()).contentType(MediaType.APPLICATION_JSON).body(ApiResponse.failure(code, null)));
-                    else emit(emitter, "error", Map.of("code", code.code()));
-                    emitter.complete();
-                }
-                catch (Exception ignored) { emitter.completeWithError(new IllegalStateException("Companion stream interrupted")); }
+            ErrorCode code =
+                error instanceof BusinessException business
+                    ? business.errorCode()
+                    : CompanionError.AI_UNAVAILABLE;
+            if (prepared != null) {
+                if (!committed) runtime.groupState(
+                    prepared.inputs().get(0).getId(),
+                    "FAILED"
+                );
+                for (var input : prepared.inputs())
+                    for (var channel : subscribers.getOrDefault(
+                        input.getId(),
+                        new CopyOnWriteArrayList<>()
+                    ))
+                        channel.error(code);
+            } else {
+                runtime.state(submittedId, submittedId, "FAILED");
+                for (var channel : subscribers.getOrDefault(
+                    submittedId,
+                    new CopyOnWriteArrayList<>()
+                ))
+                    channel.error(code);
             }
         } finally {
             try {
                 if (reservation != null) limits.finish(reservation, List.of());
             } finally {
-                if (!committed) savedFiles.forEach(storage::delete);
-                limits.unlock(sessionId, token);
+                subscribers.remove(submittedId);
+                if (prepared != null) for (var input : prepared.inputs())
+                    subscribers.remove(input.getId());
+                try {
+                    limits.deactivate(user, token);
+                } finally {
+                    limits.unlock(sessionId, token);
+                }
+                if (!runtime.pending(sessionId).isEmpty()) kick(sessionId);
             }
         }
     }
 
-    private void open(DeferredResult<ResponseEntity<?>> response, SseEmitter emitter) {
-        if (!response.hasResult()) response.setResult(ResponseEntity.ok().contentType(MediaType.TEXT_EVENT_STREAM)
-            .header("Cache-Control", "no-store").header("X-Accel-Buffering", "no").body(emitter));
-    }
-
-    private Map<String, Object> context(long user, Prepared prepared, CompanionLimits.Reservation reservation) {
-        var session = prepared.session();
-        Long boundary = mapper.recentBoundary(session.getId(), session.getSummaryUntilMessageId());
-        long after = boundary == null ? session.getSummaryUntilMessageId() : boundary - 1;
-        var history = new ArrayList<>(mapper.history(session.getId(), after));
-        Collections.reverse(history);
-        var old = boundary == null ? List.<Rows.Message>of() : mapper.summaryBatch(session.getId(), session.getSummaryUntilMessageId(), boundary);
-        if (!old.isEmpty()) {
-            String summary = ai.summarize(session.getSummary(), turns(old));
-            if (summary != null) transactions.executeWithoutResult(status -> {
-                var bond = mapper.lockBond(user, session.getCharacterCode());
-                if (bond.getRevision() == prepared.bond().getRevision() && mapper.lockSession(session.getId(), user) != null) {
-                    mapper.summary(session.getId(), summary, old.get(old.size() - 1).getId(), session.getSummaryUntilMessageId());
-                    session.setSummary(summary);
-                }
-            });
+    private Map<String, Object> context(
+        long user,
+        Prepared p,
+        CompanionLimits.Reservation reservation
+    ) {
+        var session = p.session();
+        String zone = p.inputs().get(0).getTimeZone();
+        var memories = contexts.memories(
+            user,
+            session.getCharacterCode(),
+            p.content(),
+            zone,
+            p.inputs().get(0).getId().toString()
+        );
+        var rows = new ArrayList<>(
+            mapper.history(session.getId(), session.getWindowStartMessageId())
+        );
+        Collections.reverse(rows);
+        if (p.inputs().get(0).getRegeneratesMessageId() != null) {
+            var rejected = runtime.message(
+                p.inputs().get(0).getRegeneratesMessageId()
+            );
+            rows.removeIf(m ->
+                Objects.equals(m.getTurnId(), rejected.getTurnId())
+            );
         }
         String nickname = "你";
         try {
             var response = users.users(List.of(user));
-            if (response != null && "OK".equals(response.code()) && response.data() != null && !response.data().isEmpty()) nickname = response.data().get(0).nickname();
-        } catch (Exception ignored) { }
-        var local = clock.instant().atZone(ZoneId.of("Asia/Taipei"));
-        String mood = "当前时间：" + local.toLocalDateTime() + "；上次聊天：" + prepared.bond().getLastChatTime() + "（UTC）";
-        if (limits.restReminder(user)) mood += "；已经连续聊天约一小时，请自然提出休息";
+            if (
+                response != null &&
+                response.data() != null &&
+                !response.data().isEmpty()
+            ) nickname = response.data().get(0).nickname();
+        } catch (RuntimeException ignored) {}
         var request = new LinkedHashMap<String, Object>();
         request.put("userId", user);
         request.put("character", session.getCharacterCode());
-        request.put("stage", prepared.bond().getStage());
+        request.put("stage", p.bond().getStage());
+        request.put("level", p.bond().getLevel());
+        request.put("levelChanged", p.bond().isLevelChanged());
+        var card = contexts.card(user, session.getCharacterCode());
+        request.put("card", card);
         request.put("nickname", nickname == null ? "你" : nickname);
-        request.put("mood", mood);
-        request.put("memories", mapper.memories(user, session.getCharacterCode()).stream().map(Rows.Memory::getContent).toList());
+        var local = clock
+            .instant()
+            .atZone(ZoneId.of(zone))
+            .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
+        request.put(
+            "mood",
+            "当地时间：" +
+                local.toLocalDateTime() +
+                "；上次聊天（UTC）：" +
+                p.bond().getLastChatTime() +
+                (limits.restReminder(user, zone)
+                    ? "；已连续聊天约一小时，请自然提出休息"
+                    : "")
+        );
+        request.put("timeZone", zone);
+        request.put("turnId", p.inputs().get(0).getId().toString());
+        request.put("memories", memories.stable());
+        request.put("memoryItems", memories.items());
+        request.put("sharedMemory", memories.shared());
+        request.put("priorTokens", memories.tokens());
+        request.put("profile", p.bond().getProfile());
+        request.put("recalled", memories.recalled());
+        request.put("due", memories.due());
+        request.put("daily", contexts.daily(session.getCharacterCode(), zone));
+        request.put("examples", contexts.examples(p.bond(), p.content(), card));
+        request.put(
+            "previousFeeling",
+            Objects.requireNonNullElse(runtime.feeling(session.getId()), "平静")
+        );
+        request.put("recentReplies", runtime.recentReplies(session.getId()));
+        request.put("works", contexts.works(user, session, p.work()));
         request.put("summary", session.getSummary());
-        request.put("history", turns(history));
-        request.put("content", prepared.input().getContent());
-        request.put("images", prepared.images());
+        request.put("history", turns(rows));
+        request.put(
+            "content",
+            p.content().isBlank() ? "请看看图片" : p.content()
+        );
+        request.put("images", p.images());
         request.put("tools", limits.tools(reservation));
         request.put("messageAllowed", reservation.messageAllowed());
+        if (p.inputs().get(0).getRegeneratesMessageId() != null) request.put(
+            "tools",
+            List.of(
+                "search_posts",
+                "my_recent_posts",
+                "my_growth",
+                "recall",
+                "read_work"
+            )
+        );
+        request.put("memoryIds", memories.used());
         return request;
     }
 
-    private List<Map<String, String>> turns(List<Rows.Message> history) {
-        // 连发气泡合并为一条 assistant 消息，避免把气泡条数当作轮次。
+    public static List<Map<String, String>> turns(List<Rows.Message> history) {
         var turns = new ArrayList<Map<String, String>>();
         for (var message : history) {
-            if (!List.of("USER", "CHARACTER").contains(message.getRole())) continue;
-            if (!turns.isEmpty() && turns.get(turns.size() - 1).get("role").equals(message.getRole())) {
+            if (
+                !List.of("USER", "CHARACTER").contains(message.getRole()) ||
+                message.getWorkId() != null ||
+                "STICKER".equals(message.getKind())
+            ) continue;
+            if (
+                !turns.isEmpty() &&
+                turns
+                    .get(turns.size() - 1)
+                    .get("role")
+                    .equals(message.getRole())
+            ) {
                 var previous = turns.remove(turns.size() - 1);
-                turns.add(Map.of("role", message.getRole(), "content", previous.get("content") + "\n" + message.getContent()));
-            } else turns.add(Map.of("role", message.getRole(), "content", message.getContent()));
+                String content =
+                    previous.get("content") + "\n" + message.getContent();
+                turns.add(
+                    Map.of(
+                        "role",
+                        message.getRole(),
+                        "content",
+                        content.substring(0, Math.min(6000, content.length()))
+                    )
+                );
+            } else turns.add(
+                Map.of(
+                    "role",
+                    message.getRole(),
+                    "content",
+                    message.getContent()
+                )
+            );
         }
-        return turns;
+        return turns.size() > 80
+            ? turns.subList(turns.size() - 80, turns.size())
+            : turns;
     }
 
-    private List<Rows.Work> decodeWorks(long user, Prepared prepared, JsonNode result, CompanionLimits.Reservation reservation, List<String> savedFiles) {
-        var works = new ArrayList<Rows.Work>();
-        var used = new java.util.HashSet<String>();
-        for (var node : result.path("works")) {
-            String kind = node.path("kind").asString();
-            if (!List.of("DOCUMENT", "IMAGE").contains(kind) || !used.add(kind)) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-            if (!reservation.kinds().contains("DOCUMENT".equals(kind) ? "document" : "image")) throw new BusinessException(CompanionError.COMPANION_QUOTA_EXCEEDED);
-            var work = new Rows.Work();
-            work.setUserId(user);
-            work.setCharacterCode(prepared.session().getCharacterCode());
-            work.setSessionId(prepared.session().getId());
-            work.setKind(kind);
-            work.setTitle(node.path("title").asString());
-            if (work.getTitle().isBlank() || work.getTitle().length() > 80) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-            if ("DOCUMENT".equals(kind)) {
-                String body = node.path("body").asString();
-                if (body.isBlank() || body.length() > 20_000) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-                work.setBody(body);
-            } else {
-                byte[] image = Base64.getDecoder().decode(node.path("image").asString());
-                var saved = storage.save(image);
-                work.setFilePath(saved.name());
-                savedFiles.add(saved.name());
-            }
-            works.add(work);
-        }
-        return works;
-    }
-
-    private List<Map<String, Object>> persist(long user, Prepared prepared, JsonNode result, List<Rows.Work> works) {
+    private List<Map<String, Object>> persist(
+        long user,
+        Prepared p,
+        JsonNode result,
+        CompanionLimits.Reservation r,
+        List<Long> memoryIds
+    ) {
         return transactions.execute(status -> {
-            var session = prepared.session();
+            var session = p.session();
             var bond = mapper.lockBond(user, session.getCharacterCode());
-            if (bond.getRevision() != prepared.bond().getRevision() || mapper.lockSession(session.getId(), user) == null) throw new BusinessException(CommonErrorCode.CONFLICT);
+            if (
+                bond.getRevision() != p.bond().getRevision() ||
+                mapper.lockSession(session.getId(), user) == null
+            ) throw new BusinessException(CommonErrorCode.CONFLICT);
             String label = result.path("label").asString();
-            if (!List.of("PASS", "ROMANCE_PUSH", "CRISIS", "SEXUAL", "JAILBREAK").contains(label)) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-            boolean crisis = "CRISIS".equals(label);
-            boolean blocked = "SEXUAL".equals(label) || "JAILBREAK".equals(label);
-            if ((crisis || blocked) && !works.isEmpty()) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            if (
+                !List.of(
+                    "PASS",
+                    "ROMANCE_PUSH",
+                    "CRISIS",
+                    "SEXUAL",
+                    "JAILBREAK"
+                ).contains(label)
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
             var bubbles = result.path("bubbles");
-            if (!bubbles.isArray() || bubbles.isEmpty() || bubbles.size() > 3) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            if (
+                !bubbles.isArray() || bubbles.isEmpty() || bubbles.size() > 3
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            boolean normal = List.of("PASS", "ROMANCE_PUSH").contains(label);
+            boolean billable = result.path("billable").asBoolean(true);
             int oldStage = bond.getStage();
-            LocalDate date = today();
-            boolean firstToday = !date.equals(bond.getTodayDate());
-            int delta = CompanionRules.apply(bond, result.path("affection").asInt(), label, date, properties);
-            if (!crisis && !blocked) {
-                if (bond.getFirstChatTime() == null) bond.setFirstChatTime(now());
+            LocalDate date = clock
+                .instant()
+                .atZone(ZoneId.of(p.inputs().get(0).getTimeZone()))
+                .toLocalDate();
+            boolean first = !date.equals(bond.getTodayDate());
+            boolean regenerating =
+                p.inputs().get(0).getRegeneratesMessageId() != null;
+            int delta =
+                normal && billable && !regenerating
+                    ? CompanionRules.apply(
+                          bond,
+                          result.path("affection").asInt(),
+                          label,
+                          date,
+                          properties
+                      )
+                    : 0;
+            if (normal && billable) {
+                if (bond.getFirstChatTime() == null) bond.setFirstChatTime(
+                    now()
+                );
                 bond.setLastChatTime(now());
-                if (firstToday) bond.setChatDays(bond.getChatDays() + 1);
+                if (first) bond.setChatDays(bond.getChatDays() + 1);
                 mapper.updateBond(bond);
-                mapper.touchMemories(user, session.getCharacterCode());
-                for (var node : result.path("memories")) {
-                    String text = node.asString().strip().replaceAll("\\s+", " ");
-                    if (CompanionRules.safeMemory(text)) {
-                        var memory = new Rows.Memory();
-                        memory.setUserId(user);
-                        memory.setCharacterCode(session.getCharacterCode());
-                        memory.setContent(text);
-                        memory.setContentHash(hash(text));
-                        memory.setSourceMessageId(prepared.input().getId());
-                        mapper.insertMemory(memory);
-                    }
-                }
-                var memories = mapper.memories(user, session.getCharacterCode());
-                for (int index = 50; index < memories.size(); index++) mapper.deleteMemory(memories.get(index).getId(), user);
             }
-            if (!"PASS".equals(label) && !"ROMANCE_PUSH".equals(label)) mapper.safety(user, session.getCharacterCode(), prepared.input().getId(), label);
-            mapper.completeMessage(prepared.input().getId(), label);
+            long turn = p.inputs().get(0).getId();
             var output = new ArrayList<Map<String, Object>>();
-            int count = 1;
+            int count = p.inputs().size();
+            for (var input : p.inputs())
+                mapper.completeMessage(input.getId(), label);
+            int index = 0;
             for (var bubble : bubbles) {
-                String content = bubble.asString();
-                if (content.isBlank() || content.length() > 500) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-                var message = characterMessage(session.getId(), content, label, count == 1 ? delta : 0);
-                output.add(Map.of("event", "bubble", "data", CompanionConverter.message(message)));
+                String text = bubble.asString();
+                if (
+                    text.isBlank() || text.length() > 500
+                ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                var message = character(
+                    session.getId(),
+                    turn,
+                    text,
+                    label,
+                    index++ == 0 ? delta : 0,
+                    result
+                );
+                output.add(
+                    Map.of(
+                        "event",
+                        "bubble",
+                        "data",
+                        CompanionConverter.message(message)
+                    )
+                );
                 count++;
             }
-            for (var work : works) {
-                mapper.insertWork(work);
-                var message = characterMessage(session.getId(), work.getTitle(), label, 0);
-                mapper.attachWork(message.getId(), work.getId());
+            if (regenerating) outbox.replace(
+                user,
+                p.inputs().get(0).getRegeneratesMessageId(),
+                turn,
+                runtime.replies(session.getId(), turn).get(0).getId()
+            );
+            String sticker = result.path("sticker").asString("");
+            if (!sticker.isBlank()) {
+                boolean allowed = false;
+                for (var id : contexts
+                    .card(user, session.getCharacterCode())
+                    .path("stickers"))
+                    if (sticker.equals(id.asString())) allowed = true;
+                if (!allowed) throw new BusinessException(
+                    CompanionError.AI_UNAVAILABLE
+                );
+                var m = character(session.getId(), turn, "", label, 0, result);
+                m.setKind("STICKER");
+                m.setSticker(sticker);
+                outbox.sticker(m.getId(), sticker);
+                output.add(
+                    Map.of(
+                        "event",
+                        "bubble",
+                        "data",
+                        CompanionConverter.message(m)
+                    )
+                );
                 count++;
-                output.add(Map.of("event", "work", "data", CompanionConverter.work(work, true)));
+            }
+            if (
+                result.path("works").size() > 1 ||
+                result.path("drawings").size() > 1
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            if (
+                !normal &&
+                (!result.path("works").isEmpty() ||
+                    !result.path("drawings").isEmpty())
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            for (var node : result.path("works")) {
+                if (
+                    !r.kinds().contains("document") ||
+                    !"DOCUMENT".equals(node.path("kind").asString())
+                ) throw new BusinessException(
+                    CompanionError.COMPANION_QUOTA_EXCEEDED
+                );
+                var work = new Rows.Work();
+                work.setUserId(user);
+                work.setCharacterCode(session.getCharacterCode());
+                work.setSessionId(session.getId());
+                work.setKind("DOCUMENT");
+                work.setTitle(node.path("title").asString());
+                work.setBody(node.path("body").asString());
+                if (
+                    work.getTitle().isBlank() ||
+                    work.getTitle().length() > 80 ||
+                    work.getBody().isBlank() ||
+                    work.getBody().length() > 20000
+                ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                if (
+                    !node.path("parentId").isNull() &&
+                    node.path("parentId").asLong() > 0
+                ) {
+                    var parent = companion.requireWork(
+                        user,
+                        node.path("parentId").asLong()
+                    );
+                    if (
+                        !parent
+                            .getCharacterCode()
+                            .equals(session.getCharacterCode()) ||
+                        !"DOCUMENT".equals(parent.getKind())
+                    ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+                    work.setParentId(parent.getId());
+                }
+                mapper.insertWork(work);
+                var m = character(
+                    session.getId(),
+                    turn,
+                    work.getTitle(),
+                    label,
+                    0,
+                    result
+                );
+                mapper.attachWork(m.getId(), work.getId());
+                count++;
+                output.add(
+                    Map.of(
+                        "event",
+                        "work",
+                        "data",
+                        CompanionConverter.work(work, true)
+                    )
+                );
+            }
+            for (var drawing : result.path("drawings")) {
+                if (!r.kinds().contains("image")) throw new BusinessException(
+                    CompanionError.COMPANION_QUOTA_EXCEEDED
+                );
+                outbox.drawing(
+                    user,
+                    session.getId(),
+                    turn,
+                    drawing.path("instruction").asString(),
+                    r,
+                    bond.getRevision()
+                );
+                limits.retainImage(r);
             }
             if (bond.getStage() > oldStage) {
                 var c = companion.character(session.getCharacterCode());
-                String stageName = json.readTree(c.getStageNames()).get(bond.getStage() - 1).asString();
-                String line = CompanionRules.stageLine(c.getCode(), bond.getStage());
-                var message = characterMessage(session.getId(), line, "PASS", 0);
+                String name = json
+                    .readTree(c.getStageNames())
+                    .get(bond.getStage() - 1)
+                    .asString();
+                var m = character(
+                    session.getId(),
+                    turn,
+                    contexts
+                        .card(user, c.getCode())
+                        .path("stageLines")
+                        .get(bond.getStage() - 1)
+                        .asString(),
+                    label,
+                    0,
+                    result
+                );
                 count++;
-                events.publishEvent(new StageReachedEvent(user, c.getCode(), c.getName(), bond.getStage(), stageName));
-                output.add(Map.of("event", "stage", "data", Map.of("stage", bond.getStage(), "stageName", stageName, "message", CompanionConverter.message(message))));
+                outbox.enqueue(
+                    "companion.stage-reached",
+                    "stage-" + turn,
+                    Map.of(
+                        "userId",
+                        user,
+                        "characterCode",
+                        c.getCode(),
+                        "characterName",
+                        c.getName(),
+                        "stage",
+                        bond.getStage(),
+                        "stageName",
+                        name
+                    )
+                );
+                output.add(
+                    Map.of(
+                        "event",
+                        "stage",
+                        "data",
+                        Map.of(
+                            "stage",
+                            bond.getStage(),
+                            "stageName",
+                            name,
+                            "message",
+                            CompanionConverter.message(m)
+                        )
+                    )
+                );
             }
-            mapper.advanceSession(session.getId(), prepared.input().getContent().substring(0, Math.min(20, prepared.input().getContent().length())), count, now());
+            mapper.advanceSession(
+                session.getId(),
+                p.content().substring(0, Math.min(20, p.content().length())),
+                count,
+                now()
+            );
+            runtime.unread(session.getId(), user, true);
+            runtime.levelConsumed(
+                user,
+                session.getCharacterCode(),
+                p.bond().getLevel()
+            );
+            if (!normal) {
+                mapper.safety(user, session.getCharacterCode(), turn, label);
+                outbox.checkCooldown(
+                    user,
+                    session.getCharacterCode(),
+                    turn,
+                    date
+                );
+            }
+            if (normal && billable && !regenerating) outbox.enqueue(
+                "turn.committed",
+                "turn-" + turn,
+                Map.of(
+                    "userId",
+                    user,
+                    "characterCode",
+                    session.getCharacterCode(),
+                    "sessionId",
+                    session.getId(),
+                    "messageId",
+                    turn,
+                    "revision",
+                    bond.getRevision(),
+                    "timeZone",
+                    p.inputs().get(0).getTimeZone()
+                )
+            );
+            outbox.messageContext(turn, memoryIds);
+            long mentioned = result.path("mentioned_memory_id").asLong(0);
+            if (memoryIds.contains(mentioned)) outbox.mentioned(
+                user,
+                session.getCharacterCode(),
+                mentioned
+            );
+            outbox.touch(user, session.getCharacterCode(), memoryIds);
             return output;
         });
     }
 
-    private Rows.Message characterMessage(long sessionId, String content, String label, int delta) {
+    private Rows.Message character(
+        long session,
+        long turn,
+        String text,
+        String label,
+        int delta,
+        JsonNode result
+    ) {
         var message = new Rows.Message();
-        message.setSessionId(sessionId);
+        message.setSessionId(session);
+        message.setTurnId(turn);
         message.setRole("CHARACTER");
-        message.setContent(content);
-        message.setBubbles(json.writeValueAsString(List.of(content)));
+        message.setContent(text);
+        message.setBubbles(json.writeValueAsString(List.of(text)));
         message.setSafetyLabel(label);
         message.setAffectionDelta(delta);
         message.setCompleted(true);
         message.setCreateTime(now());
+        message.setFeeling(result.path("feeling").asString("平静"));
+        message.setIntent(result.path("intent").asString("回应"));
+        message.setPromptVersion(result.path("promptVersion").asString());
+        message.setModel(result.path("model").asString());
+        message.setMetrics(result.path("metrics").toString());
         mapper.insertMessage(message);
         return message;
     }
 
-    private void emit(SseEmitter emitter, String type, Object data) {
-        try { emitter.send(SseEmitter.event().name(type).data(data)); }
-        catch (Exception exception) { throw new IllegalStateException("Companion stream interrupted"); }
+    private void broadcast(Prepared p, String type, Object data) {
+        for (var input : p.inputs())
+            for (var channel : subscribers.getOrDefault(
+                input.getId(),
+                new CopyOnWriteArrayList<>()
+            ))
+                channel.event(type, data);
     }
 
-    private String hash(String text) {
-        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(text.toLowerCase(java.util.Locale.ROOT).getBytes(StandardCharsets.UTF_8))); }
-        catch (Exception error) { throw new IllegalStateException("SHA-256 unavailable"); }
+    public void recover() {
+        runtime.expireTurns();
+        for (long session : runtime.waiting()) kick(session);
     }
-    private LocalDate today() { return clock.instant().atZone(ZoneId.of("Asia/Taipei")).toLocalDate(); }
-    private LocalDateTime now() { return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC); }
+
+    public void feedback(long user, long id) {
+        var m = runtime.message(id);
+        if (
+            m == null ||
+            !"CHARACTER".equals(m.getRole()) ||
+            m.getWorkId() != null
+        ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        companion.requireSession(user, m.getSessionId());
+        outbox.feedback(user, id, "OFF_CHARACTER", m.getContent());
+    }
+
+    public DeferredResult<ResponseEntity<?>> regenerate(
+        long user,
+        long id,
+        String zone,
+        String ip
+    ) {
+        var m = runtime.message(id);
+        if (
+            m != null && m.getRegeneratesMessageId() != null
+        ) throw new BusinessException(CommonErrorCode.CONFLICT);
+        if (
+            m == null ||
+            !"CHARACTER".equals(m.getRole()) ||
+            m.getTurnId() == null ||
+            m.getWorkId() != null
+        ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        companion.requireSession(user, m.getSessionId());
+        var original = runtime.message(m.getTurnId());
+        if (
+            outbox.regenerated(user, m.getTurnId()) &&
+            runtime.duplicate(m.getSessionId(), "regenerate-" + id) == null
+        ) throw new BusinessException(CommonErrorCode.CONFLICT);
+        outbox.feedback(user, id, "REGENERATE", m.getContent());
+        var images = new ArrayList<Long>();
+        for (var image : json.readTree(original.getImageIds()))
+            images.add(image.asLong());
+        return send(
+            user,
+            m.getSessionId(),
+            new CompanionDTO.Send(
+                "regenerate-" + id,
+                original.getContent(),
+                images,
+                null
+            ),
+            zone,
+            ip,
+            id
+        );
+    }
+
+    private LocalDateTime now() {
+        return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
+    }
 }

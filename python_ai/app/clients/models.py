@@ -8,14 +8,11 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 from langchain_core.callbacks import UsageMetadataCallbackHandler
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from redis.asyncio import Redis
 
+from app.clients.model_gateway import CURRENT, BudgetExceeded, GatewayChatOpenAI, ModelGateway
 from app.config.settings import Settings
-
-
-class BudgetExceeded(Exception):
-    pass
 
 
 class ModelFactory:
@@ -24,6 +21,7 @@ class ModelFactory:
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
         self.settings = settings
         self.redis = redis
+        self.gateway = ModelGateway(settings, redis)
         role_models = {
             "classifier": settings.classifier_model,
             "writer": settings.writer_model,
@@ -31,6 +29,8 @@ class ModelFactory:
             "embedding": settings.embedding_model,
             "cover": settings.cover_model,
             "companion": settings.companion_model,
+            "brain": settings.brain_model,
+            "rerank": settings.rerank_model,
         }
         limits = {model: asyncio.Semaphore(settings.concurrency) for model in set(role_models.values())}
         self.semaphores = {role: limits[model] for role, model in role_models.items()}
@@ -40,25 +40,32 @@ class ModelFactory:
             extra_body={"enable_thinking": False},
             max_tokens=1600,
         )
-        self.classifier = ChatOpenAI(
-            model=settings.classifier_model, temperature=0, timeout=7, max_retries=2, **shared
-        )
-        self.graph_classifier = ChatOpenAI(
+        self.classifier = GatewayChatOpenAI(
             model=settings.classifier_model, temperature=0, timeout=7, max_retries=0, **shared
-        )
-        self.writer = ChatOpenAI(
-            model=settings.writer_model, temperature=0.5, timeout=12, max_retries=2, **shared
-        )
-        self.companion = ChatOpenAI(
+        ).configure_gateway(self.gateway, "classifier")
+        self.graph_classifier = GatewayChatOpenAI(
+            model=settings.classifier_model, temperature=0, timeout=7, max_retries=0, **shared
+        ).configure_gateway(self.gateway, "classifier")
+        self.writer = GatewayChatOpenAI(
+            model=settings.writer_model, temperature=0.5, timeout=12, max_retries=0, **shared
+        ).configure_gateway(self.gateway, "writer")
+        self.companion = GatewayChatOpenAI(
             model=settings.companion_model,
             temperature=settings.companion_temperature,
             timeout=18,
             max_retries=0,
             **{**shared, "max_tokens": 4000},
-        )
-        self.vision = ChatOpenAI(
+        ).configure_gateway(self.gateway, "companion")
+        self.brain = GatewayChatOpenAI(
+            model=settings.brain_model,
+            temperature=0.3,
+            timeout=12,
+            max_retries=0,
+            **{**shared, "max_tokens": 2000},
+        ).configure_gateway(self.gateway, "brain")
+        self.vision = GatewayChatOpenAI(
             model=settings.vision_model, temperature=0, timeout=15, max_retries=0, **shared
-        )
+        ).configure_gateway(self.gateway, "vision")
         self.embeddings = OpenAIEmbeddings(
             model=settings.embedding_model,
             dimensions=settings.embedding_dimensions,
@@ -76,32 +83,32 @@ class ModelFactory:
         key = f"ai:tokens:{date}"
         if int(await self.redis.get(key) or 0) >= self.settings.daily_token_limit:
             raise BudgetExceeded
+        current = CURRENT.get()
+        if current and current.user:
+            local_date = datetime.now(ZoneInfo(current.zone)).strftime("%Y%m%d")
+            used = int(await self.redis.get(f"meng:ai:user-tokens:{current.user}:{local_date}") or 0)
+            if used >= self.settings.user_daily_token_limit:
+                raise BudgetExceeded
+            current.degraded = used >= self.settings.user_daily_token_limit * 0.8
         callback = UsageMetadataCallbackHandler()
-        try:
-            yield callback
-        finally:
-            total = sum(item.get("total_tokens", 0) for item in callback.usage_metadata.values())
-            if total:
-                async with self.redis.pipeline(transaction=True) as pipe:
-                    await pipe.incrby(key, total).expire(key, 172800).execute()
+        yield callback
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         async with self.semaphores["embedding"]:
-            # Use the LangChain client's string-input path, retaining provider usage metadata.
-            response = await self.embeddings.async_client.create(
-                input=texts,
-                model=self.settings.embedding_model,
-                dimensions=self.settings.embedding_dimensions,
-                encoding_format="float",
+            # 字符串输入保留服务商用量信息，网关统一处理限流、重试和熔断。
+            response = await self.gateway.invoke(
+                self.settings.embedding_model,
+                "embedding",
+                sum(map(len, texts)),
+                lambda: self.embeddings.async_client.create(
+                    input=texts,
+                    model=self.settings.embedding_model,
+                    dimensions=self.settings.embedding_dimensions,
+                    encoding_format="float",
+                ),
+                lambda result: {"input_tokens": result.usage.total_tokens, "output_tokens": 0},
             )
             vectors = [item.embedding for item in sorted(response.data, key=lambda item: item.index)]
-            date = datetime.now(ZoneInfo(self.settings.timezone)).strftime("%Y%m%d")
-            async with self.redis.pipeline(transaction=True) as pipe:
-                await (
-                    pipe.incrby(f"ai:tokens:{date}", response.usage.total_tokens)
-                    .expire(f"ai:tokens:{date}", 172800)
-                    .execute()
-                )
         if len(vectors) != len(texts) or any(len(v) != self.settings.embedding_dimensions for v in vectors):
             raise ValueError("Embedding shape mismatch")
         return vectors

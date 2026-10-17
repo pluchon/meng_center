@@ -46,6 +46,8 @@
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
 | `lottery.won` | growth | userId、prizeName | im：中奖通知 |
 | `companion.stage-reached` | companion | userId、characterCode、characterName、stage、stageName | im：通知本人（系统频道的「萌萌」类型） |
+| `companion.promise-due` | companion | userId、characterCode、characterName、memoryId、content、dueDate | im：约定到期当天通知本人（「萌萌」类型），每个约定只发一次 |
+| `companion.drawing-finished` | companion | userId、characterCode、characterName、sessionId、workId、title | im：画好了，通知本人（「萌萌」类型） |
 
 说明：
 
@@ -89,8 +91,11 @@ ai 的七个接口是纯计算，不改任何状态，按只读接口对待；�
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 整轮气泡、作品、好感建议、记忆候选、审核分类；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
-| `POST /ai/internal/companion/summaries` | ai | companion | 一段会话摘要 | 保留旧摘要，下一轮再试 |
+| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 选中的气泡（文字或贴纸）、作品、画图任务、好感建议、心情与意图、审核分类、各候选的分数；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
+| `POST /ai/internal/companion/summaries` | ai | companion | 一段会话摘要（分块压缩，轮后异步调用） | 保留旧摘要，下一轮再试；期间按预算截断最旧的历史 |
+| `POST /ai/internal/companion/consolidations` | ai | companion（整理消费者） | 对候选记忆的 ADD / SUPERSEDE / INVALIDATE / NOOP 决定、约定日期、回忆卡、重写后的核心档案 | 消息重试，超过次数进死信；聊天不受影响 |
+| `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量；给定候选时返回重排序结果 | 检索退回为按重要度和时间排序的全量或截断 |
+| `POST /ai/internal/companion/drawings` | ai | companion（画图任务） | 一张图片 | 任务失败，释放画图额度，聊天里显示「没画成」 |
 | `GET /content/internal/posts/search?q=&size=` | content | ai（萌萌工具） | 公开帖子的 id、标题、摘要、作者昵称，最多 5 篇 | 工具返回「没找到」，角色照常回复 |
 | `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（萌萌工具） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
 | `GET /growth/internal/users/{id}/summary` | growth | ai（萌萌工具） | 等级、连续签到天数、今天是否签到 | 同上 |
@@ -98,6 +103,7 @@ ai 的七个接口是纯计算，不改任何状态，按只读接口对待；�
 
 - ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
 - 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。
+- ai 不回调 companion：`recall`、`read_work` 等工具需要的记忆和作品，由 companion 在请求里预先给出。
 
 ## 3. 新增契约的流程
 

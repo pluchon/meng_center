@@ -119,7 +119,7 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 
 ## 定时任务
 
-`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及下列任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content` 和 `meng-user` 自动注册，使用 FIRST 路由、DISCARD_LATER、忽略过期触发、失败重试一次。
+`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及下列任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content`、`meng-user` 和 `meng-companion` 自动注册，使用 FIRST 路由、DISCARD_LATER、忽略过期触发、失败重试一次。
 
 | 处理器 | Asia/Taipei 调度 | 超时（秒） |
 |---|---|---:|
@@ -130,6 +130,11 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 | `contentRecLogClean` | 每天 04:30 | 600 |
 | `contentRecRankerTrain` | 周一 05:00 | 180 |
 | `userAiOutboxDispatch` | 每分钟 | 55 |
+| `companionOutboxDispatch` | 每分钟，重发未确认事件并恢复遗留轮次 | 55 |
+| `companionMemoryMaintain` | 每 10 分钟，补向量、回忆卡和过期清理 | 500 |
+| `companionPromiseNotify` | 每 5 分钟，按用户当地日期检查约定 | 240 |
+
+萌萌更新需要发布 `meng-companion.yml`，并重新执行任务初始化以登记 9107 执行器及内部转发器。companion 启动时执行 `V20261017002__companion_runtime` 和 `V20261017003__seed_companion_cards`，消息服务执行 `V20261017001__companion_notification_targets`。旧记忆保留，来源会话和窗口起点随迁移回填，缺失向量由维护任务分批补齐。新客户端发消息必须带 `clientMessageId`，前后端应一起更新。
 
 内容服务的官方执行器绑定所有网卡，端口 9102；注册地址仍是 `http://127.0.0.1:9102/`。Compose 不映射或开放执行器端口，`xxl-job-bridge` 只在调度中心容器的回环地址转发到宿主机。宿主机防火墙应阻止外部访问 9102，不为它创建对外放行规则；执行器还强制校验环境变量令牌，空值和 `default_token` 会使内容服务启动失败。Nacos 只保存调度地址、执行器端口、注册地址和日志路径，不能覆盖令牌。
 

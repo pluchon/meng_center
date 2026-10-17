@@ -137,7 +137,7 @@
                     :key="stage"
                     :class="{current:i===bondCharacter.stage-1,locked:i>=bondCharacter.stage}"
                   >
-                    <strong>{{ stage }}<small v-if="i===bondCharacter.stage-1">{{ t('meng.now') }}</small></strong><span>{{ i<bondCharacter.stage?t('meng.'+modalCode+'.descriptions.'+i):t('meng.future') }}</span><div
+                    <strong>{{ stage }}<small v-if="i===bondCharacter.stage-1">{{ t('meng.now') }}</small></strong><span>{{ i < bondCharacter.stage ? t('meng.'+modalCode+'.descriptions.'+i):t('meng.future') }}</span><div
                       v-if="i===bondCharacter.stage-1"
                       class="stage-progress"
                     >
@@ -177,25 +177,90 @@
           kind="memory"
           empty
         />
-        <ul
+        <div
           v-else
-          class="memory-grid"
+          class="memory-groups"
         >
-          <li
-            v-for="(m,index) in memory.data"
-            :key="m.id"
-            :style="{'--card-index':index}"
+          <section
+            v-for="group in memoryGroups"
+            :key="group.kind"
           >
-            <span><IconSparkles /></span><p>{{ m.content }}</p><button
-              type="button"
-              :aria-label="t('meng.forget')"
-              :disabled="busy"
-              @click="forget(m.id)"
-            >
-              <IconX />
-            </button>
-          </li>
-        </ul>
+            <h3>{{ t('meng.memoryKind.'+group.kind) }}</h3>
+            <ul class="memory-grid">
+              <li
+                v-for="(m,index) in group.records"
+                :key="m.id"
+                :style="{'--card-index':index}"
+              >
+                <span><IconSparkles /></span>
+                <div class="memory-content">
+                  <input
+                    v-if="memoryEdits[m.id]"
+                    v-model="memoryEdits[m.id].content"
+                    maxlength="60"
+                    :aria-label="t('meng.editMemory')"
+                  >
+                  <p v-else>
+                    {{ m.content }}
+                  </p>
+                  <small v-if="m.dueDate">{{ t('meng.dueDate',{date:m.dueDate}) }}</small>
+                  <div class="memory-actions">
+                    <template v-if="memoryEdits[m.id]">
+                      <button
+                        type="button"
+                        :disabled="busy || !memoryEdits[m.id].content.trim()"
+                        :aria-label="t('meng.saveMemory')"
+                        @click="editMemory(m,{content:memoryEdits[m.id].content})"
+                      >
+                        <IconCheck />
+                      </button>
+                      <button
+                        type="button"
+                        :aria-label="t('meng.cancelEdit')"
+                        @click="delete memoryEdits[m.id]"
+                      >
+                        <IconX />
+                      </button>
+                    </template>
+                    <button
+                      v-else
+                      type="button"
+                      :aria-label="t('meng.editMemory')"
+                      @click="memoryEdits[m.id]={content:m.content}"
+                    >
+                      <IconPencil />
+                    </button>
+                    <button
+                      type="button"
+                      :aria-label="t(m.pinned?'meng.unpinMemory':'meng.pinMemory')"
+                      :aria-pressed="m.pinned"
+                      :disabled="busy"
+                      @click="editMemory(m,{pinned:!m.pinned})"
+                    >
+                      <IconPin />
+                    </button>
+                    <button
+                      v-if="m.dueDate"
+                      type="button"
+                      :aria-label="t('meng.calendar')"
+                      @click="calendar(m)"
+                    >
+                      <IconCalendar />
+                    </button>
+                    <button
+                      type="button"
+                      :aria-label="t('meng.forget')"
+                      :disabled="busy"
+                      @click="forget(m.id)"
+                    >
+                      <IconX />
+                    </button>
+                  </div>
+                </div>
+              </li>
+            </ul>
+          </section>
+        </div>
       </template>
       <template v-else>
         <div
@@ -324,6 +389,14 @@
                   {{ t('meng.imageFailed') }}
                 </button>
               </div><div class="preview-actions">
+                <button
+                  v-if="current.kind==='DOCUMENT'"
+                  class="meng-button secondary"
+                  type="button"
+                  @click="revise(current)"
+                >
+                  {{ t('meng.revise') }}
+                </button>
                 <button
                   class="meng-button violet"
                   type="button"

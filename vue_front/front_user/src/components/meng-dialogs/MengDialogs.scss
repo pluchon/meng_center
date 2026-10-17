@@ -270,6 +270,43 @@
   margin-left: auto;
 }
 
+.memory-groups {
+  display: grid;
+  gap: 16px;
+}
+
+.memory-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-content input {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid var(--c-edge);
+  border-radius: 8px;
+  padding: 6px;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+  font: inherit;
+}
+
+.memory-content small {
+  display: block;
+  color: var(--meng-muted);
+}
+
+.memory-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.memory-actions button[aria-pressed='true'] {
+  color: var(--c-ink);
+  background: var(--c-tint);
+}
+
 .memory-grid {
   margin: 0;
   padding: 0;

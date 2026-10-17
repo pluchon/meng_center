@@ -1,5 +1,100 @@
 @use '@/styles/companion';
 
+.level-switch {
+  padding: 4px 16px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.level-switch button {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--c-edge);
+  border-radius: 16px;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.level-switch button[aria-pressed='true'] {
+  background: var(--c-tint);
+  color: var(--c-ink);
+}
+
+.topic-unread {
+  color: var(--c-ink);
+  font-weight: 800;
+}
+
+.topic-unread::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 4px;
+  border-radius: 50%;
+  background: var(--c-accent);
+}
+
+.companion-sticker {
+  max-width: 112px;
+  height: auto;
+  object-fit: contain;
+}
+
+.bubble-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+}
+
+.bubble-actions button,
+.selected-work button {
+  padding: 3px;
+  border: 0;
+  background: transparent;
+  color: var(--meng-muted);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.message-bubble:hover .bubble-actions,
+.message-bubble:focus-within .bubble-actions {
+  opacity: 1;
+}
+
+.queued-note {
+  display: block;
+  color: var(--meng-muted);
+  font-size: 11px;
+}
+
+.selected-work {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  background: var(--c-tint);
+  font-size: 12px;
+}
+
+.selected-work svg {
+  width: 16px;
+  height: 16px;
+}
+
+@media (hover: none) {
+  .bubble-actions {
+    opacity: 1;
+  }
+}
+
 .chat-card {
   height: 880px;
   position: relative;

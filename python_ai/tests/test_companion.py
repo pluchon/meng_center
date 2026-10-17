@@ -10,9 +10,10 @@ import pytest
 from pydantic import ValidationError
 
 from app.clients.models import BudgetExceeded
-from app.prompts.companion import BOUNDARY, CARDS, system_prompt
+from app.prompts.companion import BOUNDARY, system_prompt
 from app.schemas.companion import Bubbles, Extraction, ReplyRequest
 from app.services.companion import FORBIDDEN, MARKDOWN, SENSITIVE, Companion
+from evals.companion.cards import CARDS, card_payload
 
 
 def request(**overrides):
@@ -24,6 +25,7 @@ def request(**overrides):
             "nickname": "云朵",
             "content": "今天有点累",
             "tools": [],
+            "card": card_payload(overrides.get("character", "TSUNDERE")),
             **overrides,
         }
     )
@@ -35,7 +37,9 @@ async def usage():
 
 
 def factory():
-    return SimpleNamespace(usage=usage, settings=SimpleNamespace(companion_model="test"))
+    return SimpleNamespace(
+        usage=usage, settings=SimpleNamespace(companion_model="test", brain_model="brain-test")
+    )
 
 
 class Scenario(Companion):
@@ -117,7 +121,16 @@ async def test_tools_only_query_current_user_and_fixed_read_only_paths():
             "emit": AsyncMock(),
         }
         tools = {t.name: t for t in service.tools(state)}
-        assert set(tools) == {"my_growth", "my_recent_posts", "search_posts"}
+        assert set(tools) == {
+            "my_growth",
+            "my_recent_posts",
+            "search_posts",
+            "recall",
+            "read_work",
+            "revise_work",
+            "write_document",
+            "draw_picture",
+        }
         await tools["my_growth"].ainvoke({})
         await tools["my_recent_posts"].ainvoke({})
         await tools["search_posts"].ainvoke({"query": "https://example.org/private?userId=999"})
@@ -134,7 +147,7 @@ async def test_tool_failure_does_not_leak_response_or_provider_exception():
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
         service = Companion(SimpleNamespace(models=factory()), http)
         tools = service.tools({"request": request(tools=["my_growth"]), "works": [], "emit": AsyncMock()})
-        result = await tools[0].ainvoke({})
+        result = await next(t for t in tools if t.name == "my_growth").ainvoke({})
         assert "没找到" in result and "secret" not in result
 
 
@@ -205,17 +218,31 @@ async def test_missing_structured_review_or_rewrite_fails_closed():
         "works": [{"kind": "DOCUMENT"}],
     }
     result = await service.check_output(state)
-    assert result == {"bubbles": [CARDS["TSUNDERE"].fallback], "works": []}
-    assert await service.extract(state) == {"affection": 0, "memories": []}
+    assert result["bubbles"] == [CARDS["TSUNDERE"].fallback]
+    assert result["works"] == [] and result["fallback"]
 
 
-async def test_single_event_does_not_become_an_invented_habit():
+async def test_memory_requires_evidence_from_the_correct_speaker():
+    from datetime import date
+
+    from app.schemas.companion import Consolidation, ConsolidationRequest, MemoryDecision, Turn
+
     service = Companion(SimpleNamespace(models=factory()), None)
-    service.structured = AsyncMock(return_value=Extraction(affection=1, memories=["用户习惯凌晨两点聊天"]))
-    state = {
-        "request": request(content="今天凌晨两点还不太想睡"),
-        "callback": None,
-        "bubbles": ["早点休息"],
-        "label": "PASS",
-    }
-    assert (await service.extract(state))["memories"] == []
+    service.structured = AsyncMock(
+        return_value=Consolidation(
+            decisions=[
+                MemoryDecision(
+                    action="ADD",
+                    content="用户习惯凌晨聊天",
+                    evidence="每天凌晨都聊天",
+                )
+            ]
+        )
+    )
+    result = await service.consolidate(
+        ConsolidationRequest(
+            local_date=date(2026, 10, 17),
+            turns=[Turn(role="USER", content="今天凌晨还没睡")],
+        )
+    )
+    assert result["decisions"] == []

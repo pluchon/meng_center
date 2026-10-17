@@ -95,9 +95,9 @@
 |---|---|---|---|
 | 评论 | 评论我的帖子、回复我的评论 | 按来源，现在只有「帖子」 | `comment.created` |
 | 喜欢 | 帖子被喜欢、帖子被收藏、评论被喜欢 | 按来源，现在只有「帖子」 | `post.liked`、`post.favorited`、`comment.liked` |
-| 系统 | 成长通知、审核通知、萌萌通知 | 按类型 | `growth.level-changed`、`user.approved`、`companion.stage-reached` |
+| 系统 | 成长通知、审核通知、萌萌通知 | 按类型 | `growth.level-changed`、`user.approved`、`companion.stage-reached`、`companion.promise-due`、`companion.drawing-finished` |
 
-- 来源和类型都是枚举字段，以后加新来源（例如萌萌回答下的评论）或新类型只加枚举值，页面结构不变。AI 审核把帖子退回草稿箱、把评论转为「审核中」或恢复展示时，content 发 `post.review-changed` / `comment.review-changed`，资料被 AI 清掉时 user 发 `user.profile-review-changed`，都归在「审核」类型下，见 [ai.md](ai.md) 第 12 节。和萌萌角色的关系升到新阶段时，companion 发 `companion.stage-reached`，归在「萌萌」类型下，点开跳到和这个角色的聊天，见 [meng.md](meng.md) 第 4.4 节。
+- 来源和类型都是枚举字段，以后加新来源（例如萌萌回答下的评论）或新类型只加枚举值，页面结构不变。AI 审核把帖子退回草稿箱、把评论转为「审核中」或恢复展示时，content 发 `post.review-changed` / `comment.review-changed`，资料被 AI 清掉时 user 发 `user.profile-review-changed`，都归在「审核」类型下，见 [ai.md](ai.md) 第 12 节。和萌萌角色的关系升到新阶段、约定到期、后台画图完成时，companion 分别发 `companion.stage-reached`、`companion.promise-due`、`companion.drawing-finished`，都归在「萌萌」类型下，点开跳到和这个角色的聊天，见 [meng.md](meng.md) 第 4.4、5.4、6.3 节。
 
 ### 5.2 规则
 

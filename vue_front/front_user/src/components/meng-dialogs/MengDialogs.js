@@ -23,6 +23,9 @@ import {
   IconFileText,
   IconPhoto,
   IconTrash,
+  IconPencil,
+  IconPin,
+  IconCalendar,
 } from '@tabler/icons-vue'
 import { CompanionContext } from '@/constants/meng'
 import { companionApi, companionFile } from '@/api/companion'
@@ -54,6 +57,9 @@ export default defineComponent({
     IconChevronLeft,
     IconFiles,
     IconTrash,
+    IconPencil,
+    IconPin,
+    IconCalendar,
   },
   setup() {
     const context = inject(CompanionContext),
@@ -63,6 +69,7 @@ export default defineComponent({
       page = ref(1),
       selected = ref(null),
       imageError = ref(false)
+    const memoryEdits = reactive({})
     const memory = useCompanionResource(
       (signal) => companionApi.memories(context.modalCode, { silent: true, signal }),
       [],
@@ -148,6 +155,39 @@ export default defineComponent({
       void loadWorks()
     }
     const loadMemory = () => memory.execute()
+    const memoryGroups = computed(() =>
+      context.Companion.MEMORY_KINDS.map((kind) => ({
+        kind,
+        records: memory.data.value.filter((item) => item.kind === kind),
+      })).filter((group) => group.records.length),
+    )
+    async function editMemory(item, body) {
+      if (busy.value) return
+      busy.value = true
+      try {
+        await companionApi.editMemory(item.id, body)
+        if (body.content != null) delete memoryEdits[item.id]
+        await loadMemory()
+        await context.loadSide()
+      } catch (error) {
+        notifyFailure(error)
+      } finally {
+        busy.value = false
+      }
+    }
+    async function calendar(item) {
+      try {
+        const blob = await companionApi.calendar(item.id),
+          url = URL.createObjectURL(blob)
+        const anchor = document.createElement('a')
+        anchor.href = url
+        anchor.download = 'promise.ics'
+        anchor.click()
+        setTimeout(() => URL.revokeObjectURL(url), 1000)
+      } catch (error) {
+        notifyFailure(error)
+      }
+    }
     function close() {
       if (!busy.value) {
         context.dialog = ''
@@ -234,6 +274,10 @@ export default defineComponent({
       ...toRefs(context),
       works: reactive(works),
       memory: reactive(memory),
+      memoryEdits,
+      memoryGroups,
+      editMemory,
+      calendar,
       preview: reactive(preview),
       current,
       busy,

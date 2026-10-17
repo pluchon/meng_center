@@ -86,6 +86,8 @@ export default {
   toLevel: 'Lv.{level} {name}',
   action: {
     COMPANION_STAGE_REACHED: '你和萌萌的关系变近了',
+    COMPANION_PROMISE_DUE: '她记着今天的约定',
+    COMPANION_DRAWING_FINISHED: '她画好了',
     POST_COMMENT: '评论了你的帖子',
     COMMENT_REPLY: '回复了你的评论',
     COMMENT_MENTION: '在评论里提到了你',

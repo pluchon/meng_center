@@ -34,15 +34,19 @@ public class MqConfiguration {
             "post.review-changed",
             "comment.review-changed",
             "user.profile-review-changed",
-            "companion.stage-reached"
+            "companion.stage-reached",
+            "companion.promise-due",
+            "companion.drawing-finished"
         )) {
             var exchange = new TopicExchange(
                 "meng." +
-                    (event.startsWith("companion.") ? "companion" : event.startsWith("growth.")
-                        ? "growth"
-                        : event.startsWith("user.")
-                          ? "user"
-                          : "content") +
+                    (event.startsWith("companion.")
+                        ? "companion"
+                        : event.startsWith("growth.")
+                          ? "growth"
+                          : event.startsWith("user.")
+                            ? "user"
+                            : "content") +
                     ".topic",
                 true,
                 false

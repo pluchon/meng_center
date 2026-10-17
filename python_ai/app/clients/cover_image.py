@@ -9,11 +9,24 @@ from app.schemas.models import CoverPlan
 
 
 class CoverImageClient:
-    def __init__(self, settings: Settings, http: httpx.AsyncClient) -> None:
+    def __init__(self, settings: Settings, http: httpx.AsyncClient, gateway=None) -> None:
         self.settings = settings
         self.http = http
+        self.gateway = gateway
 
     async def generate(self, plan: CoverPlan) -> bytes:
+        if self.gateway:
+            return await self.gateway.invoke(
+                self.settings.cover_model,
+                "cover",
+                len(plan.prompt),
+                lambda: self._generate(plan),
+                lambda result: {"images": 1},
+                retry=False,
+            )
+        return await self._generate(plan)
+
+    async def _generate(self, plan: CoverPlan) -> bytes:
         response = await self.http.post(
             self.settings.cover_url,
             headers={"Authorization": "Bearer " + self.settings.api_key.get_secret_value()},

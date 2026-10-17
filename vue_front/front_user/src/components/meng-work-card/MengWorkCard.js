@@ -15,8 +15,8 @@ export default defineComponent({
     title: { type: String, default: '' },
     item: { type: Object, default: null },
   },
-  emits: ['open'],
-  setup(props) {
+  emits: ['open', 'revise'],
+  setup(props, { emit }) {
     const { t } = useI18n(),
       router = useRouter(),
       busy = ref(false)
@@ -47,6 +47,13 @@ export default defineComponent({
         busy.value = false
       }
     }
-    return { t, resource, busy, toDraft, fileUrl: companionFile }
+    return {
+      t,
+      resource,
+      busy,
+      toDraft,
+      fileUrl: companionFile,
+      revise: () => emit('revise', resource.state.data),
+    }
   },
 })

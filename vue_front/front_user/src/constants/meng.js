@@ -8,6 +8,8 @@ export const Companion = Object.freeze({
   TYPE_MS: 40,
   TYPE_MIN_MS: 600,
   TYPE_MAX_MS: 2500,
+  POLL_MS: 3000,
+  MEMORY_KINDS: ['NAME', 'LIKE', 'LIFE', 'PROMISE', 'SELF'],
 })
 export const CompanionEvent = Object.freeze({
   STATUS: 'status',
@@ -16,6 +18,7 @@ export const CompanionEvent = Object.freeze({
   STAGE: 'stage',
   DONE: 'done',
   ERROR: 'error',
+  QUEUED: 'queued',
 })
 export const CompanionError = Object.freeze({
   BUSY: 'COMPANION_BUSY',

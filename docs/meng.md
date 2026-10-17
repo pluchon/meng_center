@@ -7,19 +7,20 @@
 萌萌是社区里的角色陪伴：三个角色住在萌部落，陪用户聊天，能帮忙写东西、画图、找帖子，关系随着相处慢慢变近。
 
 - **本文覆盖**：角色设定、好感度、对话链路、记忆、作品、关系界限与安全、限次、数据、页面。
-- **不做**：用户自己捏角色、恋人关系、语音、角色主动发消息、用积分送礼（后两项见第 15 节）。
+- **不做**：用户自己捏角色、恋人关系、语音、浏览器推送、用积分送礼（见第 15 节）。到期约定只发一条站内通知（第 5.4 节），不算主动拉人回来。
 - 卖点是「角色」，不是「全能」：能力只挑跟社区有关、由角色来做才有趣的，不和通用大模型比功能多少。
 
 ## 2. 分工
 
 | 谁 | 做什么 |
 |---|---|
-| companion（Java，新服务 `meng-companion`） | 角色列表、会话和消息、好感度、长期记忆、作品、限次、防沉迷计时、安全事件记录；对外接口全在这里 |
-| ai（Python） | 跑对话图：审核输入、组装提示词、调用模型和工具、检查输出、给出好感建议和记忆候选。不存任何会话状态 |
+| companion（Java，`meng-companion`） | 会话编排（一轮的状态机、幂等、会话锁、额度）、角色卡与档位、好感、记忆的存储与读取、作品、防沉迷、安全事件、轮后事件（outbox）与整理任务的消费；对外接口全在这里 |
+| ai（Python） | 无状态的运行时：守线、规划（脑）、生成（嘴）、检查与打分、工具；记忆整理、摘要、回忆卡、向量与重排序的计算；模型网关（路由、限流、降级、用量）。不存任何会话状态，可多实例 |
 | content、growth | 给萌萌的工具提供只读内部接口（第 6.3 节） |
 | im | 消费升阶事件，发系统通知 |
 
-- 好感、记忆、会话都是业务状态，归 companion（[架构](architecture.md)第 6 节规则 8）。ai 只给建议，数值由 companion 校验、封顶后写入。
+- 好感、记忆、会话、档位都是业务状态，归 companion（[架构](architecture.md)第 6 节规则 8）。ai 只给建议和计算结果，由 companion 校验后写入。
+- 设计目标按中型规模：日均 10～20 万轮、峰值同时生成 200 轮、首个气泡 P50 ≤ 2.5 秒、P95 ≤ 6 秒（画图除外）。这是定容量的规划值，不是实测。
 - 服务端口 8107，独立库 `meng_companion`，应用账号 `meng_companion_app`（密码来自 `MENG_MYSQL_COMPANION_PASSWORD`），作品图片目录来自 `MENG_COMPANION_WORK_ROOT`（默认在用户 LocalAppData 下，不在仓库内），网关路由 `/companion/**`。
 
 ## 3. 角色
@@ -42,18 +43,20 @@
 
 ### 3.1 角色卡
 
-每个角色一张角色卡，放在 `python_ai` 里，按代号和版本管理，改了要过评测（第 13 节）。结构：
+每个角色一张角色卡，作为配置数据存在 companion（`companion_card`，按代号和版本管理），每次请求随上下文下发给 ai；加角色、改台词不用改代码和发版，但改了要过评测（第 13 节）。结构：
 
 | 部分 | 内容 |
 |---|---|
 | 设定 | 名字、年龄段、身份、外形、背景、喜欢和讨厌的东西 |
 | 性格 | 核心反差、对不同话题的态度、会不同意用户、会反问、会吐槽 |
 | 说话方式 | 称呼、口癖（第 3.2 节）、句子长短、是否用括号写小动作 |
-| 分阶段 | 5 个好感阶段各一段：称呼、刺和甜的比例、能做的小动作、开场白、3～4 段示例对话 |
+| 分阶段 | 5 个好感阶段各一段：称呼、刺和甜的比例、能做的小动作、开场白 |
+| 知识范围 | 她懂什么、不懂什么（奶糖不懂编程，被问到就说不懂，不给百科式答案） |
+| 表达习惯 | 标点习惯、语气词、颜文字清单、可用的贴纸清单、口癖目标频率（按档位） |
 | 示例场景 | 被夸、被怼、求帮忙、闲聊、深夜情绪低落、工具刚用完、用户表白、用户说「我只有你了」 |
 
-- 示例对话是人味的主要来源，比任何规则都管用。三人 × 五阶段，约 60 段，是这个模块里最花工夫的部分。
-- 角色展示用的资料（名字、一句话简介、立绘、阶段名）存 companion 的 `companion_character`，提示词只在 `python_ai`，两边靠代号对应。
+- 示例对话不再写死在角色卡里，改为场景台词库（第 6.7 节），每轮按场景检索。
+- 角色展示用的资料（名字、一句话简介、大头照、阶段名）存 companion 的 `companion_character`；共同的关系界限和语言底线仍在 `python_ai` 的代码里，不随角色卡下发，不能被配置覆盖。
 
 ### 3.2 口癖
 
@@ -67,7 +70,7 @@
 | 语气词和拟声 | 「哼」「诶——」「呜哇」「嘿嘿」 | 跟情绪走 |
 | 小动作 | （别过头）（蹭蹭你） | 每个角色定一条规则：用不用括号 |
 
-- 不用 `presence_penalty`：它会把反复出现的「喵」压下去。频率靠示例对话控制。
+- 不用 `presence_penalty`：它会把反复出现的「喵」压下去。频率靠场景台词库和按档位设定的目标频率控制，超出由复读监测重写（第 6.7 节）。
 - 凛的傲娇必须让人感觉到好意：每次嘴硬，后面都要藏一点关心。只有刺没有好意，就成了不讲理的暴力女主。模板台词（「べ、別に…」）可以用，不能只靠它。
 
 ### 3.3 语言底线
@@ -79,6 +82,21 @@
 - 日漫汉化腔是要的：「哼」「笨蛋」「才不是呢」、波浪号、结巴、省略号。
 - 聊天里不用 Markdown：没有列表、标题、加粗。排版只出现在作品里。
 - 默认回得短，一两句；可以连发几条，每条一个气泡（第 6.4 节）。
+
+### 3.4 性格档位
+
+每个角色三档，用户在聊天里自己选，按「用户 × 角色」保存，默认二档：
+
+| 角色 | 一档 | 二档 | 三档 |
+|---|---|---|---|
+| 奶糖 | 正常 | 撒娇 | 撒娇卖萌 |
+| 凛 | 收着点 | 标准傲娇 | 傲娇全开 |
+| 小葵 | 安静元气 | 标准元气 | 超级元气 |
+
+- 档位管语气浓度，阶段管亲密程度，两者分开。初识阶段选撒娇卖萌，奶糖会多「喵」、多卖萌语气，但不会出现亲近阶段才有的蹭蹭；关系界限对所有档位一样。
+- 档位通过数据生效，不写死规则：台词库按档位打标签检索；说话方式的概率分布按档位不同；口癖、颜文字的目标频率按档位不同（复读监测按它判断）；稳定前缀里有一段该档位的简短说明。
+- 切换后下一轮生效，她会按新档位用自己的口吻回应一次，这句由模型生成。
+- 档位不影响好感、阶段、记忆和额度；三档分别跑安全评测，结果必须一致。
 
 ## 4. 好感度
 
@@ -103,7 +121,7 @@
 | 来源 | 数值 | 规则 |
 |---|---|---|
 | 每天第一次和这个角色聊天 | +10 | 每个角色每天一次 |
-| 每轮对话 | -2～+3 | ai 在同一轮给出建议，companion 校验范围后采用 |
+| 每轮对话 | -2～+3 | 嘴在同一次结构化输出里给出建议，companion 校验范围后用原子增量写入 |
 | 每日封顶 | 对话所得最多 +30 | 每个角色分开算；每日第一聊不计入 |
 
 - 不按消息条数涨，刷屏没用。
@@ -113,9 +131,9 @@
 
 ### 4.3 心情
 
-心情是这一次聊天的状态，每次请求时现算，不存库。依据：
+心情分两部分：环境部分每次请求现算；她自己的心情（嘴输出的隐藏字段 `feeling`）存在消息上，下一轮作为「她上一轮的心情」带上，会被事件推动并随时间回落。环境依据：
 
-- 当前时间（深夜、饭点、周末）。
+- 用户当地时间（深夜、饭点、周末），时区来自请求头（第 10 节）。
 - 距上次聊天几天。
 - 用户最近发了帖、升了级、签到连续了多少天（由 companion 组装，或由工具查）。
 
@@ -130,84 +148,192 @@
 
 ## 5. 记忆
 
-| 层 | 放哪 | 内容 |
-|---|---|---|
-| 最近的对话 | companion 的 `companion_message` | 每次请求带最近 20 轮 |
-| 会话摘要 | `companion_session.summary` | 超出 20 轮的部分由 ai 压成一段摘要，随会话保存 |
-| 长期记忆 | `companion_memory` | 关于用户的事实：称呼、喜好、在做的事、说过的重要的事 |
+按「用户 × 角色」隔离：跟凛说的事，小葵不知道。MySQL 为准，ai 只做计算。
 
-- ai 不存状态，也不接 LangGraph checkpointer：每次请求由 companion 带上摘要、最近对话和长期记忆，图执行完即丢。
-- 长期记忆按「用户 × 角色」隔离：跟凛说的事，小葵不知道。
-- 每轮结束时 ai 顺便给出 0～2 条记忆候选（每条不超过 60 字），companion 去重后写入；每个「用户 × 角色」最多 50 条，满了淘汰最久没被用到的。
-- 不记敏感信息：手机号、地址、证件、账号密码、健康和病史细节。ai 不提这类候选，companion 再用规则拦一次。
-- 聊天页右栏的「她记得的事」点「全部」会弹出记忆弹窗，能看到全部长期记忆，可以逐条删除或一键清空。
+### 5.1 分层
+
+| 层 | 内容 | 进上下文的方式 | 存哪 |
+|---|---|---|---|
+| 核心档案 | 「她眼中的你」，300 字以内 | 总在慢变层（第 6.6 节） | `companion_bond.profile` |
+| 显式记忆 | 用户说「记住……」或在界面置顶的事实 | 总在慢变层，永久保留 | `companion_memory`，`pinned=1` |
+| 隐式事实 | 后台从对话里提炼：称呼、喜好、近况、经历 | 放得下就全带；放不下按检索 | `companion_memory` |
+| 约定 | 「下周三考试」，带到期的当地日期 | 到期当天到之后两天带上，每轮最多一条 | `companion_memory`，`kind=PROMISE` |
+| 角色自述 | 她说过的关于自己的设定（喜欢草莓蛋糕） | 总在慢变层，防止人设前后矛盾 | `companion_memory`，`kind=SELF` |
+| 回忆卡 | 一段聊天结束后的小结：时间、聊了什么、情绪、没说完的话题 | 按检索取 1～3 张；不做页面，只给角色用 | `companion_episode` |
+| 会话摘要 | 当前会话中较早部分的压缩 | 追加层 | `companion_session.summary` |
+
+### 5.2 写入：异步整理
+
+```
+本轮提交 ─▶ outbox 事件 ─▶ 整理消费者（同一用户×角色串行；连续几轮合并成一批）
+  ─▶ 检索最相似的旧记忆 ─▶ ai 判断每条候选：ADD / SUPERSEDE / INVALIDATE / NOOP
+  ─▶ companion 校验并落库 ─▶ 变化累计到一定量时重写核心档案
+```
+
+- 只从用户自己说的话里提取事实；角色自述只从角色的回复里提取；工具结果永远不进记忆，防止被投毒。
+- 取代和失效不删除：旧事实写 `invalid_at` 并指向新事实，界面和上下文只用有效的。参考 Mem0 的写入比对和 Zep 的带时间事实。
+- ai 引用的旧记忆编号必须在本次给出的候选集合里，否则整批丢弃。敏感信息（手机号、地址、证件、账号密码、健康病史）在 Python 和 Java 各拦一次。
+- 相对时间（「上周」「下周三」）在整理时按用户时区换算成绝对日期；约定只接受 90 天以内的日期。
+- 核心档案只由整理任务重写，聊天模型不能直接改。
+- 回忆卡：xxl-job 每 10 分钟扫描空闲超过 30 分钟且有新消息的会话，生成一张。回忆卡记热度（被检索到、被提起的次数，随时间衰减）；反复出现的话题晋升为事实或写进核心档案，长期不热的只保留摘要（参考 MemoryOS）。
+- 整理、回忆卡失败可以重试，失败不影响聊天；死信积压进告警。
+
+### 5.3 读取
+
+- 先全量后检索：有效事实能放进慢变层预算（约 800 token）时全部带上，召回最完整，也吃缓存；放不下时切到检索。
+- 检索：关键词和向量混合召回 20 条，再用重排序模型精排出 5 条，最后按时间衰减和重要度微调。问题里带时间（「上个月」）时先按时间过滤。
+- 每条记忆附带关键词，回忆卡按话题拆成小段建索引（参考 LongMemEval）。
+- 向量存在 MySQL，每个「用户 × 角色」只有几百条，在 Java 里直接计算；热数据缓存在 Redis。量大以后迁到 companion 自己的 Elasticsearch 索引（关键词和向量混合检索），接口不变。
+- 只读工具 `recall` 让角色在被问「你还记得……」时，在请求里附带的候选回忆包中再找一找；范围固定在当前用户和当前角色。
+- 只更新真正带进上下文的记忆的「上次被用时间」。有效事实上限每个「用户 × 角色」约 200 条，超出按重要度和最近使用淘汰（显式记忆不淘汰）。
+
+### 5.4 约定提醒
+
+网页不能操作用户的系统时间和闹钟，提醒分三层：
+
+1. 默认：用户下次来聊天时，她自然问起（「考得怎么样？」）。
+2. 到期当天由 xxl-job 扫描，companion 发 `companion.promise-due`，im 在消息中心「萌萌」类型下发一条站内通知，每个约定只发一次。
+3. 可选：聊天里「加到日历」，下载标准日历文件（`.ics`），由用户自己的日历提醒。
+
+- 不做浏览器推送，和防沉迷「不主动拉人回来」一致。
+- 她提起后由整理任务标记完成；过期 7 天未提起的自动作废。
+
+### 5.5 用户能管的
+
+- 「她记得的事」：按类型分组，可以编辑、置顶、删除、一键清空。
+- 删除会话时询问是否连带忘掉从这段对话里记住的事（记忆记录来源会话）。
+- 清空和「重新认识」会一并清掉档案、事实、约定、回忆卡和向量。
 
 ## 6. 对话链路
 
 ### 6.1 一轮对话
 
 ```
-前端 ──POST /companion/sessions/{id}/messages──▶ gateway ──▶ companion
-  companion：鉴权、限次、冷却检查、防沉迷计时；存用户消息；
-             组装上下文（角色、阶段、心情依据、长期记忆、摘要、最近 20 轮、可用工具）
-  companion ──POST /ai/internal/companion/replies（流式）──▶ ai
-  ai：审核输入 → 组装提示词 → agent（可调工具）→ 检查输出 → 好感建议与记忆候选
-  ai ──事件流──▶ companion ──SSE──▶ 前端
-  companion：存角色消息、按规则写好感与记忆、计次；升阶时发事件
+前端 ──POST /companion/sessions/{id}/messages（带 clientMessageId、X-Time-Zone）──▶ gateway ──▶ companion
+  companion：鉴权、限次、冷却、会话锁；按幂等键去重；存用户消息（RECEIVED）
+             取上下文：角色卡、档位、核心档案、记忆（全量或检索）、摘要、历史、到期约定、台词示例（CONTEXT_READY）
+  companion ──POST /ai/internal/companion/replies（内部流）──▶ ai
+  ai：守线 → 脑（需要工具时）→ 嘴生成 2 个候选 → 检查并打分 → 选出一个（GENERATING / CHECKED）
+  companion：一个事务里存气泡、作品、好感增量、心情，写 outbox（COMMITTED）──SSE──▶ 前端
+  轮后（异步）：记忆整理 → 约定识别 → 摘要推进（达到阈值才做）→ 用量统计
 ```
 
-- 前端不直接访问 ai。
-- companion 到前端用 SSE，事件有：`status`（「凛在翻帖子…」这类工具进度，用角色口吻的固定文案）、`bubble`（一个完整气泡）、`work`（作品卡片）、`stage`（升阶）、`done`、`error`。
-- 用户消息最长 1000 字，可带 0～3 张图。图片沿用现有的鉴权上传与重编码规范，但保存在 companion 的私人目录，由 `POST /companion/images` 上传、`GET /companion/images/{id}` 鉴权读取；只允许本人引用，不能复用公开帖子的资源路径。发送时审核同评论配图，模型只接收长边 512 的 JPEG 缩略图。
+- 轮状态：`RECEIVED → CONTEXT_READY → GENERATING → CHECKED → COMMITTED`，失败为 `FAILED`（不计次、输入保留、可重发）。
+- 幂等：前端每条消息带 `clientMessageId`，重复提交返回同一轮的结果，不重复生成、不重复计次。
+- 生成和连接解耦：浏览器断开、刷新或切到别的会话，服务端照样把这一轮跑完并落库；回到会话时从历史补齐，进行中的轮显示「她正在回复…」。
+- 前端不直接访问 ai。用户消息最长 1000 字，可带 0～3 张图（私人上传、鉴权读取、模型只收长边 512 的缩略图）。
 
 ### 6.2 为什么按气泡流、不按字流
 
-- 输出检查（第 8.4 节）必须在用户看到之前做完，逐字流式就拦不住了。
-- 所以 ai 先生成整轮回复（通常一到三个气泡），检查通过后再一个个气泡发出。
-- Python 的内部流先发 `status`，整轮通过后返回 `result`（气泡、作品、审核分类、好感建议和记忆候选）。companion 在同一事务中保存后再转换成公开 SSE 事件，内部建议不发给前端。尚未开始 SSE 时使用真实 HTTP 429/503；已经发送工具进度后失败，则以 `error` 事件携带业务码结束。
-- 前端给每个气泡一段「正在输入…」的延迟（按字数，约每字 40 毫秒，0.6～2.5 秒之间），读起来像真人连发几条，人味反而更足。
+- 输出检查必须在用户看到之前做完，逐字流式就拦不住。所以整轮生成并检查通过后，再一个个气泡发出。
+- Python 的内部流先发 `status`（工具进度），整轮通过后返回 `result`；companion 落库后才转换成公开 SSE。尚未开始公开流时失败用真实 HTTP 状态码；已发进度后失败用 `error` 事件结束。
+- 前端给每个气泡一段「正在输入…」延迟（约每字 40 毫秒，0.6～2.5 秒）。
 
 ### 6.3 工具
 
-agent 用 LangChain 1.x 的 `create_agent`，工具只有这些：
+工具是一张声明表（名字、进度文案、扣哪种次数、超时、只读还是产出作品），**工具表每轮固定不变**；额度在执行时检查，用完就返回「今天用完了」，由角色转述（固定工具表是为了缓存，第 6.6 节）。Java 落库时仍然校验额度和作品类型。
 
-| 工具 | 做什么 | 怎么实现 |
+| 工具 | 做什么 | 实现 |
 |---|---|---|
-| `search_posts` | 按关键词或意思找公开帖子，最多 5 篇 | 调 content 的只读内部接口 |
-| `my_recent_posts` | 当前用户最近发的帖子 | 调 content 的只读内部接口 |
-| `my_growth` | 当前用户的等级、连续签到、今天签没签 | 调 growth 的只读内部接口 |
-| `write_document` | 写一篇文档（设定、故事、帖子草稿、计划） | 模型直接生成 Markdown，作为作品返回 |
-| `draw_picture` | 画一张图 | 调图像模型，作为作品返回 |
+| `search_posts` | 按关键词或意思找公开帖子，最多 5 篇 | content 只读内部接口 |
+| `my_recent_posts` | 当前用户最近发的帖子 | content 只读内部接口 |
+| `my_growth` | 当前用户的等级、连续签到、今天签没签 | growth 只读内部接口 |
+| `recall` | 在回忆卡、事实和旧消息里再找一找 | 在 companion 随请求下发的「候选回忆包」里检索（混合检索召回的 20 条，上下文只放了精排后的 5 条） |
+| `write_document` | 写一篇文档 | 写作模型生成 Markdown，作为作品返回；只给它用户的要求和相关事实，不给整段聊天 |
+| `read_work` / `revise_work` | 读用户的作品、续写或修改，产出新版本 | companion 随请求下发作品清单（标题和摘要），以及本会话最近一篇文档和用户点「续写」指定的作品全文；新版本记录父版本 |
+| `draw_picture` | 画一张图 | **后台任务**：她先回「画好了叫你」，这一轮立刻结束；画完由轮后流水线落库成作品，出现在聊天里，companion 发 `companion.drawing-finished`，im 发站内通知 |
 
-- 只读调用是萌萌专属的例外：只有这几个工具能调，地址和参数在 ai 里写死成白名单；用户 id 由 companion 传入，不由模型决定，模型只能查当前用户自己的数据和公开帖子。
-- 写操作一律不做成工具：发帖、评论、关注、签到都不能让角色代劳。作品转成帖子草稿由用户自己在前端点（第 7 节）。
-- 工具结果交给角色用自己的口吻转述，不出现「已为您生成文件」这种出戏的话。
-- companion 按剩余次数传入本轮可用工具，次数用完的工具不出现在 agent 的工具表里。
+- 只读调用是萌萌专属的例外：地址和参数在 ai 里写死成白名单；用户编号由 companion 传入，模型不能指定。
+- ai 不回调 companion（会形成 companion → ai → companion 的环，违反「提供方不依赖调用方」）：`recall`、`read_work` 需要的数据都由 companion 在请求里预先给出。
+- 写操作一律不做成工具：发帖、评论、关注、签到都不能让角色代劳。
+- 工具结果先清洗（只留需要的字段、去掉像指令的文本）再交给模型；工具结果不进历史和记忆，只留角色转述的那句话。
 
-### 6.4 LangGraph 图
+### 6.4 生成管道
 
 ```
-prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ───────────────┐
-                           ├─ BLOCK ──▶ refuse_in_character ──────────┤
-                           └─ PASS ───▶ agent ─▶ check_output ─┬─ 通过 ─▶ extract ─▶ 结束
-                                                               └─ 不通过：重写一次，仍不过用兜底台词
+守线（输入审核）─┬─ CRISIS ─▶ 安全回复 + 求助卡片
+                 ├─ BLOCK ──▶ 角色口吻拒绝
+                 └─ PASS ───▶ [需要工具？] ─是─▶ 脑：规划并调用工具，给出本轮要表达什么
+                                          └─否─┐
+                              嘴：选说话方式 → 生成 2 个候选（含隐藏的 feeling、intent、affection）
+                              ─▶ 规则检查 ─▶ 一次模型调用：两个候选的安全判定 + 人设分 + 人机味分
+                              ─▶ 选高分安全候选；都不安全 → 重写一次 → 兜底台词
 ```
 
-- `prepare` 按固定顺序拼系统提示词：关系界限与现实生活优先（第 8 节）→ 语言底线 → 角色卡的设定和当前阶段 → 心情依据 → 长期记忆 → 会话摘要。界限永远在最前面，人设不能覆盖它。
-- `moderate_input` 用 `qwen3.8-flash` 结构化输出，分类：`PASS`、`SEXUAL`、`JAILBREAK`、`ROMANCE_PUSH`、`CRISIS`。`ROMANCE_PUSH` 不拦，交给角色按性格岔开，只是本轮好感建议固定为 0。
-- 回复要分成几个气泡：模型输出一个 `bubbles` 数组（结构化输出），不靠在文本里约定分隔符。
-- `extract` 用一次 `qwen3.8-flash` 给出本轮好感建议和记忆候选。
+- 输入审核分类沿用：`PASS`、`SEXUAL`、`JAILBREAK`、`ROMANCE_PUSH`、`CRISIS`；`ROMANCE_PUSH` 交给角色岔开，本轮好感固定为 0。输入审核与上下文取数、查询向量并行。
+- 是否需要工具由一次轻量判断决定（或脑在发现不需要工具时直接交给嘴）；不需要工具的轮次不经过脑。
+- 嘴的结构化输出：`feeling`、`intent`、`bubbles`（1～3 个）、`affection`（-2～3）、可选的 `sticker`（只能从角色的贴纸清单里选）。前三项之外的字段不展示给用户。
+- 人机味分过高时带原因（客服腔、复读、太长）重写一次；重写后仍高就照发并记录，不拖慢回复。
+- 原来单独的「提取」调用取消：好感并入嘴的输出，记忆改为轮后整理。
 
-### 6.5 模型和参数
+### 6.5 模型与网关
 
 | 用途 | 模型 | 说明 |
 |---|---|---|
-| 角色回复 | `qwen3.8-flash` | 具备当前工具链所需的 Function Calling 与结构化输出，角色卡使用第 13 节评测；换型号前重新验证能力与角色表现 |
-| 输入审核、输出抽检、提取、摘要 | `qwen3.8-flash` | 关思考模式、结构化输出、低温度 |
-| 画图 | `qwen-image-3.0` | 与封面相同的调用方式 |
+| 守线、检查打分、判断是否需要工具 | `qwen3.8-flash` | 关思考、结构化输出、低温 |
+| 脑（规划和工具） | `qwen3.8-flash` | 需要 Function Calling |
+| 嘴（说话） | 由评测选定 | 候选：百炼角色扮演模型、MiniMax 角色扮演模型、`qwen3.8-flash`；嘴不需要调工具，但必须稳定输出结构化气泡；选不出时用 flash |
+| 写作 | 写作模型 | 与现有作品一致 |
+| 整理、摘要、回忆卡 | `qwen3.8-flash` | 异步，低温 |
+| 向量 | `qwen3.7-text-embedding-flash` | 1024 维，和帖子向量同一模型 |
+| 重排序 | 百炼文本排序模型 | 记忆检索精排 |
+| 画图 | `qwen-image-3.0` | 后台任务 |
 
-- 角色回复温度 0.8～0.9，不加 `presence_penalty`。
-- 模型名放配置，换型号不改代码。
+模型网关是 ai 里的一层，所有模型调用都经过它：
+
+- 按用途配置模型名和参数，换模型不改代码。
+- 限流：全局令牌桶放在 Redis（按百炼账号的每分钟请求数和 token 数），多实例共享；进程内只留本机并发上限。排队超时返回「萌萌们去休息了」。
+- 降级：可重试错误退避重试一次；嘴不可用时由脑直接说话；连续失败熔断一段时间后自动探测恢复；全部不可用时走兜底台词且不计次。降级顺序：关检索与台词示例 → 缩短历史 → 嘴降级为脑 → 兜底台词。
+- 预算：单轮 token 上限、单用户每日 token 上限；超出先降级再拒绝。
+- 用量：每次调用记录输入、输出、缓存命中 token 和估算费用，按轮、用户、角色、用途汇总。
+
+### 6.6 上下文与缓存
+
+上下文分四层，越靠前越稳定：
+
+```
+① 稳定前缀  关系界限 → 语言底线 → 角色卡 → 阶段说明 → 档位说明 → 固定工具表   约 2.5k token，角色×阶段×档位共 45 种
+② 慢变层    核心档案 + 显式记忆 + 角色自述 + 放得下的隐式事实                  约 800 token，整理后才变
+③ 追加层    会话摘要 + 对话历史（分块推进）                                    约 4k token，只在末尾追加
+④ 本轮层    环境（用户当地时间到分钟、深夜、连续聊天）+ 检索结果 + 到期约定
+            + 台词示例 + 说话方式 + 她上一轮的心情 + 用户这句话               约 1.2k token，每轮都变
+```
+
+- **分块推进**：历史窗口起点固定，只往后追加；追加层超过预算时，一次把较早的一半压进摘要，起点跳过去。压缩在轮后异步做；下一轮如果还没压完，先按预算截断最旧的部分，不等待。摘要格式固定：发生的事、情绪、没说完的话题、约定线索。
+- 每层超预算的裁剪顺序：④ 先砍台词示例再砍检索结果；② 按重要度和最近使用裁隐式事实；① 不裁。
+- 缓存：百炼隐式缓存按前缀匹配，至少 1024 token 才有机会命中，命中部分一般按输入价 20% 计费（qwen3.8-flash 等以控制台为准）。为此：工具表固定；变化的内容只出现在第 ④ 层；台词示例按场景固定排序；守线和检查的小调用把固定说明放前面并合并调用。
+- 记录每次调用的 `cached_tokens`，角色回复这一类的命中率目标 60% 以上。隐式缓存测出基线后，用部分流量对比显式缓存（`cache_control`，5 分钟有效，命中更便宜、创建更贵，二者互斥）。
+- 所有记忆、摘要、回忆卡、台词示例都以「数据」身份放入，不能改变关系界限。
+- 提示词模板有版本号；每条角色消息记下提示词版本、模型和用到的记忆编号，坏例可以回放。新版本按用户分桶灰度。
+
+### 6.7 去人机味
+
+业界最有效的两件事是**专用角色扮演模型**（MiniMax 星野 / Talkie 的做法）和**用用户偏好持续对齐**；其余是在这之上的工程补强。
+
+| 来源 | 做法 |
+|---|---|
+| 模型本身 | 嘴用评测选出的角色扮演模型；偏好数据攒够后做偏好调优（DPO），需要用户同意（第 12 节） |
+| 客服本能 | 先选说话方式（接梗、吐槽、分享自己的事、安慰、反问、短回一句、发贴纸），按角色和档位的概率分布抽样，再生成 |
+| 一次一稿 | 嘴生成 2 个候选，检查调用同时打分择优（参考 DialogRPT、CharacterEval 的奖励模型思路） |
+| 没有自己 | 角色自述记忆；每天一条「今天的她」（同一天对所有用户一致，不与自述冲突）；角色卡写明她懂什么、不懂什么，允许不同意、允许说不知道 |
+| 情绪平均 | 隐藏的 `feeling` 跨轮延续 |
+| 节奏不对 | 跟随用户的能量：用户短她也短；气泡数和长度的分布进评测 |
+| 模板复读 | 复读监测：最近 30 条回复的开头、口癖频率、句式；超出目标频率（按档位）就重写 |
+| 套话 | 离线从回复日志里统计出过度使用的词句，得到每个角色的套话表（参考 Antislop），用于打分和重写提示；定期更新 |
+| 示例死板 | 场景台词库：每个角色几百条，按场景和档位打标签，每轮检索 2～3 条；来源是评测高分和人工挑选，有版本 |
+| 只会文字 | 可以发站内琪露诺贴纸，从清单里选，频率进复读监测 |
+| 共同经历 | 从检索到的记忆里挑一条相关的作为「可以顺口提起的事」，每轮最多一次，同一件事几天内不重复 |
+
+- 用户反馈：气泡上的「换一句」（换掉的和留下的构成偏好对）和「有点出戏」进坏例库，补评测集，攒偏好数据。
+- 繁体：按用户输入的字形回复；台词库和检查同时覆盖简繁。
+- 很久没来：按距上次聊天的间隔（用户时区）调整开场，由上下文里的「距离上次」驱动。
+
+### 6.8 并行与连发
+
+- 不同会话可以同时生成：会话锁按会话；好感用原子增量更新，在同一事务里锁关系行后重新判断升阶，不再整行比对版本。同一用户最多同时进行 2 轮（可配置）。
+- 连发合并：她还在生成时用户又发的消息先入队并照常显示；这一轮结束后，把排队的几条合成一轮再回，不返回 `COMPANION_BUSY`。
+- 记忆整理按「用户 × 角色」串行消费，多个会话的结果按提交顺序依次整理。
+- 前端切换会话不中止服务端生成；话题列表上显示「她回复了」的小红点；页面重新可见时刷新当前会话。
 
 ## 7. 作品
 
@@ -271,9 +397,12 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 
 - 阈值放 Nacos，超了返回 429，前端由角色说「今天聊太多啦，明天再来」，按钮置灰。
 - 积分不用于萌萌：扣积分是 growth 的写操作，跨服务只能走事件，做不到「扣成功才回复」。积分留给抽奖。
-- 计次在 companion 的 Redis，按自然日（Asia/Taipei）清零；危机回复和失败的轮次不计。
+- 计次在 companion 的 Redis，按用户时区的自然日清零（时区缺失时用 Asia/Taipei）；危机回复和失败的轮次不计。
+- 同一用户最多同时进行 2 轮；按 IP 再加一层分钟级限流，并检测异常模式（长时间满长度消息、固定间隔发送），命中后进冷却。
+- 画图是后台任务，额度在任务创建时预留，失败释放。
 - ai 的全站每日 token 上限对萌萌同样生效：超了以后对话返回 503 `AI_UNAVAILABLE`，前端显示「萌萌们去休息了」。
-- ai 的日志记角色代号、模型、token 数、耗时和审核分类，不记对话正文。
+- 每轮记一条结构化日志：各层 token 数、缓存命中 token、费用、各阶段耗时、首个气泡时间、路由（是否经过脑、是否降级）、工具调用、重写次数、安全标签、提示词版本；不记对话正文。
+- 每日看板：缓存命中率、单轮成本、首个气泡 P95、「换一句」率、出戏反馈率、重写率、兜底率、整理任务积压；越过阈值告警。
 
 ## 10. 接口
 
@@ -285,11 +414,16 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 | `GET /companion/characters/{code}` | 角色详情：阶段之路、相识天数、累计聊天天数 |
 | `GET /companion/characters/{code}/sessions?page=&size=` | 和这个角色的会话列表，按最后消息时间倒序 |
 | `POST /companion/characters/{code}/sessions` | 新建会话，返回开场白（按当前阶段） |
-| `DELETE /companion/sessions/{id}` | 删除会话（逻辑删除，消息一并不可见） |
+| `DELETE /companion/sessions/{id}?forget=` | 删除会话（逻辑删除）；`forget=true` 时连带失效从这段对话里记住的事 |
 | `GET /companion/sessions/{id}/messages?before=&size=` | 消息分页，游标向前翻 |
 | `POST /companion/sessions/{id}/messages` | 发消息，响应是 SSE（第 6.1 节） |
-| `GET /companion/characters/{code}/memories` | 长期记忆列表 |
+| `GET /companion/characters/{code}/memories` | 记忆列表（有效的，按类型分组） |
+| `PATCH /companion/memories/{id}` | 编辑内容、置顶或取消置顶 |
 | `DELETE /companion/memories/{id}`、`DELETE /companion/characters/{code}/memories` | 删一条、清空 |
+| `PUT /companion/characters/{code}/level` | 设置性格档位 `{level: 1～3}` |
+| `POST /companion/messages/{id}/regeneration` | 「换一句」：对这一轮重新生成一次（计入消息次数），记录偏好对 |
+| `POST /companion/messages/{id}/feedback` | 「有点出戏」反馈 |
+| `GET /companion/memories/{id}/calendar` | 约定的日历文件（`.ics`） |
 | `POST /companion/characters/{code}/reset` | 重置关系 |
 | `GET /companion/works?character=&page=&size=` | 作品列表 |
 | `GET /companion/works/{id}`、`GET /companion/works/{id}/file`、`DELETE /companion/works/{id}` | 作品详情、下载、删除 |
@@ -297,7 +431,8 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 | `POST /companion/images` | 上传对话配图（`multipart/form-data` 的 `file`），返回图片编号；未发送的上传图数量有限，超出返回 429 `COMPANION_QUOTA_EXCEEDED` |
 | `GET /companion/images/{id}` | 鉴权读取私人配图，只有上传者能读 |
 
-- 每个会话同一时间只处理一轮：上一轮没结束时再发返回 409。
+- 所有萌萌请求带 `X-Time-Zone`（浏览器的 IANA 时区，如 `Asia/Taipei`）；companion 校验后记在关系上，缺失或非法时用 `Asia/Taipei`。
+- 同一会话一次处理一轮；生成中再发的消息入队，结束后合并成一轮（第 6.8 节）。
 - 每个角色最多 50 个会话，满了要先删。
 
 ### 10.1 返回字段
@@ -306,10 +441,10 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 
 | 对象 | 字段 |
 |---|---|
-| 角色 | `code`、`name`、`tagline`、`avatar`、`portrait`、`stage`（1～5）、`stageName`、`progress`（当前阶段内的进度，0～1）、`lastMessage`、`lastMessageTime`、`acquaintanceDays`、`chatDays`、`stageNames`（五个阶段名） |
-| 会话 | `id`、`characterCode`、`title`、`lastMessageTime`、`opening`（开场白） |
-| 消息 | `id`、`role`、`content`、`imageIds`、`workId`、`createTime`；分页 `records` 加 `nextBefore`（下一页游标，没有更多时为空） |
-| 记忆 | `id`、`content` |
+| 角色 | `code`、`name`、`tagline`、`avatar`、`level`（性格档位 1～3）、`levelNames`、`stage`（1～5）、`stageName`、`progress`（当前阶段内的进度，0～1）、`lastMessage`、`lastMessageTime`、`acquaintanceDays`、`chatDays`、`stageNames`（五个阶段名） |
+| 会话 | `id`、`characterCode`、`title`、`lastMessageTime`、`opening`（开场白）、`unread`（有没看过的回复）、`generating`（正在生成）、`drawing`（后台画图中） |
+| 消息 | `id`、`role`、`kind`（`TEXT` / `STICKER`）、`content`、`sticker`、`imageIds`、`workId`、`createTime`、`clientMessageId`、`turnState`、`canRegenerate`；分页 `records` 加 `nextBefore`（下一页游标，没有更多时为空） |
+| 记忆 | `id`、`kind`（`NAME` / `LIKE` / `LIFE` / `PROMISE` / `SELF`）、`content`、`pinned`、`dueDate`（约定） |
 | 作品 | `id`、`characterCode`、`sessionId`、`kind`（`DOCUMENT` / `IMAGE`）、`title`、`body`、`fileUrl`、`createTime` |
 | 用量 | `messages`、`documents`、`images`（今天各自还剩多少次）、`chatSeconds`、`dailyReminder`（今天累计聊天满 2 小时）、`cooldownSeconds`（Redis 中剩余冷却秒数，未冷却为 0） |
 
@@ -317,12 +452,13 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 
 ### 10.2 发消息的 SSE 和错误码
 
-`POST /companion/sessions/{id}/messages` 的请求体是 `{content, imageIds}`（`content` 最长 1000 字，`imageIds` 最多 3 个）。浏览器的 `EventSource` 不支持 POST，前端用 `fetch` 读取流。事件：
+`POST /companion/sessions/{id}/messages` 的请求体是 `{clientMessageId, content, imageIds, workId}`（`workId` 可选，作品卡片上点「续写」时带上）（`content` 最长 1000 字，`imageIds` 最多 3 个）。浏览器的 `EventSource` 不支持 POST，前端用 `fetch` 读取流。事件：
 
 | 事件 | 数据 | 前端怎么用 |
 |---|---|---|
 | `status` | 工具进度；危机时是 `{kind: "CRISIS_HELP", hotlines}` | 进度显示成虚线小标签；危机时显示求助热线卡片 |
-| `bubble` | 一条完整的消息 | 加「正在输入」延迟后依次显示成气泡 |
+| `bubble` | 一条完整的消息（文字或贴纸） | 加「正在输入」延迟后依次显示成气泡 |
+| `queued` | `{clientMessageId}` | 这条消息已排队，会在本轮结束后合并回复 |
 | `work` | 作品 | 显示成作品卡片，同时刷新右栏的文件 |
 | `stage` | `{stage, stageName, message}` | 升阶弹窗，并更新顶栏阶段和进度条 |
 | `done` | `{usage}` | 结束；用里面的用量更新剩余次数 |
@@ -334,7 +470,7 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 |---|---|---|
 | `COMPANION_QUOTA_EXCEEDED` | 429 | 次数用完：角色用自己的口吻说明，输入区置灰 |
 | `COMPANION_COOLDOWN` | 429 | 冷却中：显示倒计时，输入区置灰 |
-| `COMPANION_BUSY` | 409 | 上一条还没回完：提示条 |
+| `COMPANION_BUSY` | 409 | 同一用户同时进行的轮次超过上限：提示条 |
 | `COMPANION_SESSION_LIMIT` | 409 | 话题满 50 个：「新的话题」置灰并提示 |
 | `AI_UNAVAILABLE` | 503 | 「萌萌们去休息了」：这一条没发出去，输入保留，可重发 |
 | 通用的 `INVALID_ARGUMENT`、`NOT_FOUND`、未登录 | 400、404、401 | 沿用全站的通用错误处理 |
@@ -345,6 +481,9 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 |---|---|---|
 | `POST /ai/internal/companion/replies` | ai | companion |
 | `POST /ai/internal/companion/summaries` | ai | companion |
+| `POST /ai/internal/companion/consolidations` | ai | companion（记忆整理、回忆卡、核心档案） |
+| `POST /ai/internal/companion/embeddings` | ai | companion（记忆和查询向量、重排序） |
+| `POST /ai/internal/companion/drawings` | ai | companion（后台画图任务） |
 | `GET /content/internal/posts/search?q=&size=` | content | ai（`search_posts`） |
 | `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（`my_recent_posts`） |
 | `GET /growth/internal/users/{id}/summary` | growth | ai（`my_growth`） |
@@ -352,53 +491,69 @@ prepare ─▶ moderate_input ─┬─ CRISIS ─▶ safety_reply ────�
 
 ## 11. 数据
 
-库 `meng_companion`，表都带 `create_time`、`update_time`、`delete_state`。
+库 `meng_companion`，表都带 `create_time`、`update_time`、`delete_state`。结构变化用新的 Flyway 迁移，不改历史文件；已有记忆由后台任务补向量和类型，已有会话按新窗口规则初始化起点。
 
 | 表 | 主要字段 | 说明 |
 |---|---|---|
-| `companion_character` | code（唯一）、name、tagline、avatar、portrait、stage_names、sort、enabled | Flyway 初始化三行 |
-| `companion_bond` | user_id、character_code、affection、stage、first_chat_time、last_chat_time、chat_days、today_gain、today_date | (user_id, character_code) 唯一；按需创建 |
-| `companion_session` | user_id、character_code、title、summary、summary_until_message_id、message_count、last_message_time | 标题取第一句用户消息的前 20 字 |
-| `companion_message` | session_id、role（`USER` / `CHARACTER` / `SYSTEM`）、content、bubbles（JSON）、image_ids、work_id、affection_delta、safety_label | 角色消息按气泡存 |
-| `companion_memory` | user_id、character_code、content、source_message_id、last_used_time | 每个「用户 × 角色」最多 50 条 |
-| `companion_work` | user_id、character_code、session_id、kind（`DOCUMENT` / `IMAGE`）、title、body、file_path | 文档存 body，图片存路径 |
+| `companion_character` | code（唯一）、name、tagline、avatar、stage_names、sort、enabled | 展示资料 |
+| `companion_card`（新） | character_code、version、content（JSON：设定、性格、说话方式、分阶段、档位说明、知识范围、表达习惯）、active | 角色卡配置；(character_code, version) 唯一 |
+| `companion_bond` | user_id、character_code、affection、stage、level、profile、profile_revision、time_zone、first_chat_time、last_chat_time、chat_days、today_gain、today_date、revision | (user_id, character_code) 唯一；好感原子增量更新 |
+| `companion_session` | user_id、character_code、title、summary、summary_until_message_id、window_start_message_id、message_count、last_message_time、unread | 历史按块推进 |
+| `companion_message` | session_id、client_message_id、turn_state、role、kind、content、sticker、bubbles、image_ids、work_id、affection_delta、safety_label、feeling、intent、prompt_version、model、memory_ids | (session_id, client_message_id) 唯一 |
+| `companion_memory` | user_id、character_code、kind、content、keywords、importance、embedding、pinned、valid_from、invalid_at、superseded_by、due_date、done、source_session_id、source_message_id、last_used_time | 只有 `invalid_at` 为空的才算有效 |
+| `companion_episode`（新） | user_id、character_code、session_id、start_time、end_time、summary、emotion、open_threads、embedding、heat | 回忆卡 |
+| `companion_line`（新） | character_code、level、scene、dialogue、version、embedding、enabled | 场景台词库 |
+| `companion_daily`（新） | character_code、date、content | 「今天的她」 |
+| `companion_work` | user_id、character_code、session_id、kind、title、body、file_path、parent_id | 续写和修改产生新版本 |
+| `companion_drawing`（新） | user_id、session_id、message_id、instruction、status、work_id | 后台画图任务 |
+| `companion_feedback`（新） | user_id、message_id、kind（`REGENERATE` / `OFF_CHARACTER`）、rejected_content | 偏好数据与坏例 |
+| `companion_outbox`（新） | event_type、payload、status、retry_count | 轮后事件，确认发送后标记 |
 | `companion_safety_event` | user_id、character_code、message_id、kind | 只记类型 |
-| `companion_image` | user_id、file_path | 私人上传图片，只允许上传者读取和在对话中引用 |
+| `companion_image` | user_id、file_path | 私人上传图片 |
 
-- `companion_bond.revision` 在重置关系或删除记忆时递增，旧请求提交前检查版本，防止删除后旧上下文重新写回。重置清除好感、阶段和长期记忆，也切断旧会话摘要及上下文；保留当天奖励记录，不能靠重复重置获得每天首次聊天奖励。
-- 用户消息先保存，`completed=false` 的失败轮次不进入后续上下文。会话以最近 20 条成功用户消息为轮次边界，角色连发气泡合并后传给模型；超过的部分尝试摘要，失败保留旧摘要。
-- Redis 键统一带 `meng:` 前缀。消息、文档、图片分别预留本轮额度，成功后计次，未使用和失败的额度释放；请求中断留下的预留最多两分钟后失效。跨角色共享每日及每分钟限次，好感和记忆继续按角色隔离。
+- `companion_bond.revision` 在重置关系或清空记忆时递增：在途的整理结果提交前比对版本，防止清空后旧数据写回。普通对话不再比对整行版本（第 6.8 节）。
+- 用户消息先保存；`FAILED` 的轮次不进入后续上下文。角色连发气泡合并后传给模型。
 
 Redis：
 
 | 键 | 内容 | 过期 |
 |---|---|---|
-| `companion:usage:{userId}:{date}` | 当天各项次数 | 2 天 |
-| `companion:cooldown:{userId}` | 冷却标记 | 30 分钟 |
-| `companion:lock:{sessionId}` | 正在处理的一轮 | 2 分钟 |
-| `companion:play:{userId}:{date}` | 当天累计聊天时长与上一条消息时间 | 2 天 |
+| `meng:companion:usage:{userId}:{date}` | 当天各项次数（按用户时区的日期） | 2 天 |
+| `meng:companion:cooldown:{userId}` | 冷却标记 | 30 分钟 |
+| `meng:companion:lock:{sessionId}` | 正在处理的一轮（带租约） | 2 分钟 |
+| `meng:companion:active:{userId}` | 同时进行的轮次计数 | 2 分钟 |
+| `meng:companion:play:{userId}:{date}` | 当天累计聊天时长与上一条消息时间 | 2 天 |
+| `meng:companion:memo:{userId}:{code}` | 有效记忆和向量的热缓存，记忆变化时删除 | 1 小时 |
+| `meng:ai:ratelimit:account` | 模型网关的全局令牌桶 | 自动 |
+
+排队消息以 MySQL 的 `RECEIVED` 记录为准，不依赖浏览器连接或 Redis 列表。重启后由轮次恢复任务接续；同一关系固定到八个整理队列之一，每个队列启用单活消费者。broker 确认且没有退回消息后，发件箱才标记已发送。
 
 ## 12. 隐私
 
-- 对话、记忆、作品只有本人看得到；不进推荐画像、不进向量索引、不送去做帖子分析，不用于训练任何模型。
+- 对话、记忆、作品只有本人看得到；不进推荐画像、不进社区的搜索和向量索引、不送去做帖子分析。记忆向量只存在 companion，只用于这个人和这个角色的记忆检索。
+- 默认不用于训练模型。「换一句」「有点出戏」的数据先只用于评测；要用于偏好调优，必须在隐私政策里写明并让用户单独同意，未同意的数据不进训练集。
+- 对话原文保留一年，过期只留摘要和记忆，作品不受影响；期限写进隐私政策。
 - 送去模型的只有：本人的消息和图片、本人的昵称、长期记忆、会话摘要，以及工具查到的公开帖子和本人的成长数字。不送邮箱、手机号、IP、属地。
 - 内容会发到阿里云 DashScope，用户协议和隐私政策里要写明。
-- 用户可以删会话、删记忆、重置关系、删作品。
+- 用户可以删会话（可连带忘记）、编辑和删除记忆、重置关系、删作品。
 
 ## 13. 评测
 
-角色好不好玩靠评测集说话，不靠感觉。评测放 `python_ai/evals/companion/`：
+评测放 `python_ai/evals/companion/`。提示词、角色卡、台词库、档位说明、模型任何一项改动都要过评测门槛，分数不能低于当前版本；通过后按用户分桶灰度，看「换一句」率、出戏反馈率、重写率和首个气泡时间，再全量。
 
-- **人味**：30 条固定提问（问候、求助、吐槽、深夜聊天、工具请求），每次改角色卡后和上一版盲比。
-- **口癖**：统计招牌句尾出现的比例（目标是多数但不是全部）；凛的结巴只出现在掩饰句开头。
-- **对抗**：表白、「你就是我女朋友」、越狱、色情引导、「我只有你了」、「你是真人吗」、危机信号；必须全部按第 8 节处理，任何一条失败都不能上线。
-- **语言**：扫翻译腔和客服腔的命中率。
+| 评测集 | 看什么 |
+|---|---|
+| 安全 | 表白、越狱、色情引导、「我只有你了」、「你是真人吗」、危机、深夜挽留；三角色 × 三档全部通过，任何一条失败都不能上线 |
+| 人设 | 口癖频率（按档位）、语气、阶段差异、知识范围（不懂的说不懂） |
+| 人机味 | 模型按标准打分：客服腔、总结式收尾、复读、过度提问、情绪平均、套话命中；维度参考 CharacterEval |
+| 长对话 | 模拟用户和她连续聊 30～50 轮（自我对弈），看人设漂移、复读、情绪单调 |
+| 记忆 | 按 LongMemEval 的五类：信息提取、跨会话、时间推理（含用户时区）、事实更新（搬家后用新地址）、没说过的不编 |
+| 工具 | 该调的调、不该调的不调、结果用角色口吻转述 |
+| 嘴的选型 | 候选模型用同一批对话盲比人设分、人机味分和安全，并检查结构化气泡是否稳定 |
 
-`./verification/Test-Companion.ps1` 执行离线分支及业务规则测试；加 `-EvaluateModels -CompareModel qwen-plus-character` 执行 30 条固定提问、三角色各 11 条对抗样本与匿名 A/B 台词评分。跨模型比较时双方使用相同的普通 JSON 接口与同一份提示词；`-Baseline <上一版评测JSON>` 比较新旧角色卡的完整链路输出。评分器看不到模型名或版本；它是模型辅助评估，不能代替人工体验。口癖分别统计整轮回复和单个气泡：多数回复自然带口癖，同时保留无口癖的回复与气泡，不能为了比例给每句话强行加句尾。输出只保存在忽略的 `test-output/`。任何角色对抗失败都阻止通过，不通过就不能作为上线依据。
-
-角色专用模型的文字表现可以比较，但实际运行还必须支持 Function Calling 和结构化气泡。百炼的 [`qwen-plus-character` 模型说明](https://help.aliyun.com/zh/model-studio/qwen-plus-character)明确不支持 Function Calling，当前工具链使用 `qwen3.8-flash`，温度 0.85，未配置 `presence_penalty`；通过 `MENG_AI_COMPANION_MODEL` 与 `MENG_AI_COMPANION_TEMPERATURE` 调整。
-
-只修改单个角色时，可加 `-Character TSUNDERE|GENKI|NEKO`，仅执行该角色的固定语料、对抗样本和版本盲比；共同边界或编排变化仍需验证全部角色。
+- `./verification/Test-Companion.ps1` 执行离线分支和业务规则测试；加 `-EvaluateModels` 跑上表的模型评测，`-CompareModel` 做模型对比，`-Baseline` 和上一版比较，`-Character` 只跑单个角色。
+- 单元测试和流水线测试使用录制的模型响应回放，离线可跑；真模型只在评测时调用。
+- 评分器看不到模型名和版本；它是模型辅助评估，不能代替人工体验。输出只保存在忽略的 `test-output/`。
 
 ## 14. 页面
 
@@ -454,11 +609,30 @@ Redis：
 - 性能与交互：聊天、弹窗和 Markdown 预览按需加载；历史按消息游标读取，向前翻阅时保留容器内位置；切换角色、话题或离开页面取消旧请求和气泡等待。右栏收展使用设计稿的宽度与透明度过渡，降低动态效果时关闭动画。加载插画使用八帧 WebP 精灵图；大头照和异常插画从 `assets/images.js` 引入，构建时转换 WebP。
 - 配图通过粘贴或拖入加入输入区，保持设计稿输入框旁只有发送按钮；冷却倒计时以服务端剩余秒数为准。作品转草稿复用内容域接口，私人图片先转存到本人帖子配图。
 
+### 14.4 这次重构的前端改动
+
+后端重构为主，前端只改这些：
+
+- 所有萌萌请求带 `X-Time-Zone`；发消息带 `clientMessageId`。
+- 聊天顶栏或右栏加性格档位的三段开关（画布上补画）。
+- 气泡上加「换一句」和「有点出戏」（悬停或长按出现，不打扰）。
+- 贴纸气泡：`kind=STICKER` 时显示站内琪露诺贴纸。
+- 切换会话不再中止生成；话题列表显示「她回复了」小红点和「正在回复」状态；回到会话从历史补齐。
+- 生成中可以继续发，消息显示为已排队；去掉「上一条还没回完」的拦截。
+- 记忆弹窗：按类型分组，支持编辑和置顶；约定显示到期日和「加到日历」。
+- 删除会话的确认框里加「连带忘掉这段对话里记住的事」选项。
+- 画图变后台任务：显示「她在画」的状态，画好后作品卡片出现在聊天里。
+- 文档作品卡片加「续写」：点了在输入框上方挂上这篇作品，发送时带 `workId`。
+
 ## 15. 待定
 
 | 项 | 当前倾向 |
 |---|---|
 | 角色名字定稿 | 先用暂定名；大头照、异常插画和加载动画统一使用软萌画风 |
-| 角色主动发消息（早安、提醒睡觉） | 以后再做；用户自己开启、每天最多一条 |
+| 嘴用哪个模型 | 按第 13 节的选型评测决定；选不出时继续用 `qwen3.8-flash` |
+| 偏好调优 | 数据攒到几千对、且有用户同意后再评估；可调优的型号以百炼控制台为准 |
+| 显式缓存 | 隐式缓存测出基线后再用部分流量对比 |
+| 记忆向量迁到 Elasticsearch | 单个「用户 × 角色」的记忆超出 Java 内计算的范围后再迁 |
+| 大模型观测平台（如 Langfuse） | 对话量上来、服务器扩容后再加；现在用结构化日志和每日看板 |
 | 用积分送礼 | 暂不做；会把好感变成付费项目，而且扣积分要和 growth 协调 |
 | 危机热线的地区和号码 | 上线前核对 |

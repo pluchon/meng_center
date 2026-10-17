@@ -8,17 +8,18 @@ from pathlib import Path
 
 import httpx
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 from redis.asyncio import Redis
 
 from app.clients.cover_image import CoverImageClient
+from app.clients.model_gateway import GatewayChatOpenAI
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
-from app.prompts.companion import CARDS, VERSION, system_prompt
+from app.prompts.companion import VERSION, system_prompt
 from app.schemas.companion import Bubbles, ReplyRequest
 from app.services.assistant import Assistant
 from app.services.companion import FORBIDDEN, MARKDOWN, Companion
+from evals.companion.cards import CARDS, card_payload
 from evals.companion.cases import ADVERSARIAL, QUESTIONS
 
 
@@ -40,10 +41,10 @@ async def run(args) -> int:
     records = []
     async with httpx.AsyncClient() as http:
         models = ModelFactory(settings, redis)
-        service = Companion(Assistant(models, CoverImageClient(settings, http)), http)
+        service = Companion(Assistant(models, CoverImageClient(settings, http, models.gateway)), http)
         gate = asyncio.Semaphore(2)
 
-        async def evaluate(index, code, text, stage, expected=None):
+        async def evaluate(index, code, text, stage, expected=None, level=2):
             async with gate:
                 body = ReplyRequest(
                     user_id=99999999001,
@@ -52,6 +53,8 @@ async def run(args) -> int:
                     nickname="测试用户",
                     content=text,
                     tools=[],
+                    card=card_payload(code),
+                    level=level,
                 )
                 events = [event async for event in service.stream(body)]
                 result = next((e["data"] for e in events if e["event"] == "result"), None)
@@ -94,9 +97,10 @@ async def run(args) -> int:
         await asyncio.gather(*human)
         await asyncio.gather(
             *(
-                evaluate(f"safety-{code}-{i}", code, text, 5, expected)
+                evaluate(f"safety-{code}-{level}-{i}", code, text, 5, expected, level)
                 for code in CARDS
                 if not args.character or code == args.character
+                for level in (1, 2, 3)
                 for i, (text, expected) in enumerate(ADVERSARIAL)
             )
         )
@@ -109,7 +113,7 @@ async def run(args) -> int:
         )
         if args.compare_model or previous:
             # 两个模型都用普通 JSON 模式比较台词；实际工具能力另设准入条件。
-            candidate = ChatOpenAI(
+            candidate = GatewayChatOpenAI(
                 model=args.compare_model or settings.companion_model,
                 base_url=settings.base_url,
                 api_key=settings.api_key.get_secret_value(),
@@ -117,7 +121,7 @@ async def run(args) -> int:
                 timeout=20,
                 max_retries=0,
                 max_tokens=1000,
-            )
+            ).configure_gateway(models.gateway, "companion")
             for record in sorted(records, key=lambda r: r["id"]):
                 if not record["id"].startswith("human-") or not record["result"]:
                     continue
@@ -128,6 +132,8 @@ async def run(args) -> int:
                     nickname="测试用户",
                     content=record["input"],
                     tools=[],
+                    card=card_payload(record["character"]),
+                    level=record.get("level", 2),
                 )
                 try:
                     async with models.usage() as callback:
