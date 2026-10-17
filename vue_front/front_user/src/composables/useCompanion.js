@@ -1,7 +1,6 @@
 import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ElMessageBox } from 'element-plus'
 import { companionApi, sendCompanionMessage, companionImage } from '@/api/companion'
 import { Companion, CompanionError, CompanionEvent } from '@/constants/meng'
 import { companionArt } from '@/constants/companionArt'
@@ -11,6 +10,7 @@ import { useUserStore } from '@/stores/user'
 import { useCompanionResource } from './useCompanionResource'
 import { usePostTime } from './usePostTime'
 import { notifyFailure } from './useFailureNotice'
+import { confirmDialog } from './useConfirm'
 
 export function useCompanion() {
   const { t, tm } = useI18n(),
@@ -27,14 +27,6 @@ export function useCompanion() {
   const character = computed(() => characters.data.value?.find((c) => c.code === code.value))
   const theme = computed(() => (character.value?.code || Companion.CHARACTERS[0]).toLowerCase())
   const avatar = (c) => companionArt[c]?.avatar
-  const portrait = (c, stage = 0, error = null) => {
-    const art = companionArt[c]
-    if (!art) return ''
-    if (error?.code === CompanionError.COOLDOWN || (c === code.value && cooldownSeconds.value > 0))
-      return art.angry
-    if (error) return art.worried
-    return art.portraits[stage >= 4 ? 2 : stage >= 2 ? 1 : 0]
-  }
   const sessionList = ref([]),
     sessionPage = ref(1),
     sessionTotal = ref(0),
@@ -476,14 +468,15 @@ export function useCompanion() {
     }
   }
   async function confirm(action, text = t('meng.deleteConfirm')) {
-    try {
-      await ElMessageBox.confirm(text, t('meng.title'), {
-        confirmButtonText: t('meng.confirm'),
-        cancelButtonText: t('meng.cancel'),
-      })
-    } catch {
-      return
-    }
+    // 萌萌里需要确认的都是删除和重置，统一用公共确认框的粉色危险样式
+    const confirmed = await confirmDialog({
+      message: text,
+      title: t('meng.title'),
+      confirmText: t('meng.confirm'),
+      cancelText: t('meng.cancel'),
+      danger: true,
+    })
+    if (!confirmed) return
     try {
       await action()
     } catch (e) {
@@ -554,7 +547,6 @@ export function useCompanion() {
     character,
     theme,
     avatar,
-    portrait,
     stages,
     progress,
     localProgress,

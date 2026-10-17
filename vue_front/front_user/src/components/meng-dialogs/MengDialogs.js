@@ -37,9 +37,11 @@ import {
 } from '@/assets/images'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import MengState from '@/components/meng-state/MengState.vue'
+import DialogShell from '@/components/dialog-shell/DialogShell.vue'
 export default defineComponent({
   name: 'MengDialogs',
   components: {
+    DialogShell,
     MengState,
     MarkdownBody: defineAsyncComponent(() => import('@/components/markdown-body/MarkdownBody.vue')),
     IconX,
@@ -86,6 +88,12 @@ export default defineComponent({
     )
     const shortName = computed(() => context.t('meng.' + context.modalCode + '.short'))
     const modalTheme = computed(() => context.modalCode.toLowerCase())
+    // 公共对话框的语义色跟着角色走；首页的作品柜不属于某个角色，用紫色
+    const tone = computed(() =>
+      context.dialog === 'all' && !context.stageNotice
+        ? 'violet'
+        : { TSUNDERE: 'blue', GENKI: 'gold', NEKO: 'pink' }[context.modalCode],
+    )
     const heading = computed(() =>
       context.stageNotice
         ? context.t('meng.stageUp', { name: shortName.value })
@@ -236,6 +244,7 @@ export default defineComponent({
       bondCharacter,
       shortName,
       modalTheme,
+      tone,
       heading,
       headingIcon,
       dialogWidth,

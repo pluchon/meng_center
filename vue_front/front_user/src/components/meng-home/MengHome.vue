@@ -68,15 +68,15 @@
         :class="c.code.toLowerCase()"
         :style="{'--card-index':index}"
       >
-        <div class="character-portrait">
-          <img
-            :src="portrait(c.code,c.stage)"
+        <div class="character-face">
+          <span class="face-frame"><img
+            :src="avatar(c.code)"
             :alt="c.name"
             fetchpriority="high"
             decoding="async"
-            width="768"
-            height="1024"
-          >
+            width="168"
+            height="168"
+          ></span>
           <span class="personality">{{ t('meng.'+c.code+'.type') }}</span>
           <span class="greeting">{{ t('meng.'+c.code+'.greeting') }}</span>
         </div>

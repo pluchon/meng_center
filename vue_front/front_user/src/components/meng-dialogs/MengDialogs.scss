@@ -1,64 +1,14 @@
 @use '@/styles/companion';
 
-.modal-heading {
-  position: relative;
-  padding: 18px 22px 30px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--c-soft, var(--meng-bg));
-}
-
-.modal-heading::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 7px;
-  background: var(--meng-companion-rainbow);
-}
-
-.modal-heading h2 {
-  margin: 0;
-  font: 22px/1.2 var(--meng-font-display);
-}
-
-.modal-heading-icon {
-  flex: none;
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  border: 2px solid var(--meng-surface);
-  border-radius: 50%;
-  background: var(--c-tint, var(--meng-category-game));
-  color: var(--c-ink, var(--meng-creator-purple-text));
-  box-shadow: 0 3px 0 var(--c-edge, var(--meng-creator-purple));
-}
-
-.modal-heading-icon svg {
-  width: 20px;
-  height: 20px;
-}
-
 .modal-count {
   padding: 3px 10px;
   border-radius: 12px;
-  background: var(--meng-surface);
+  background: var(--c-tint);
+  box-shadow: 0 2px 0 var(--c-edge);
   color: var(--c-ink);
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
-}
-
-.modal-close {
-  margin-left: auto;
-  width: 40px;
-  height: 40px;
-  min-height: 40px;
-  flex: none;
-  padding: 0;
 }
 
 .reset-button {
@@ -66,17 +16,11 @@
   font-size: 13px;
 }
 
-.reset-button + .modal-close {
-  margin-left: 0;
-}
-
 .modal-content {
   max-height: min(680px, calc(100dvh - 190px));
   min-height: 0;
-  padding: 20px 22px 24px;
   overflow: hidden auto;
   scrollbar-width: none;
-  background: var(--c-soft, var(--meng-bg));
 }
 
 .bond-content {
@@ -673,33 +617,6 @@
 }
 
 @media (width <= 560px) {
-  .modal-heading {
-    padding: 18px 14px 24px;
-    flex-wrap: wrap;
-  }
-
-  .modal-heading h2 {
-    font-size: 20px;
-  }
-
-  .modal-heading-icon {
-    width: 30px;
-    height: 30px;
-  }
-
-  .modal-content {
-    padding: 16px 12px 20px;
-  }
-
-  .reset-button {
-    order: 1;
-    flex-basis: 100%;
-  }
-
-  .reset-button + .modal-close {
-    margin-left: auto;
-  }
-
   .bond-summary {
     justify-content: center;
   }

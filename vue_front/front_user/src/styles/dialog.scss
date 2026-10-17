@@ -432,23 +432,7 @@
   pointer-events: none;
 }
 
-.el-dialog.companion-dialog {
-  padding: 0;
-  overflow: hidden;
-  border: 3px solid var(--meng-surface);
-  border-radius: 32px;
-  background: var(--meng-surface);
-  box-shadow:
-    0 8px 0 var(--c-edge),
-    var(--meng-companion-dialog-depth);
-  color: var(--meng-text);
-}
-
-.el-dialog.companion-dialog .el-dialog__header {
-  margin: 0;
-  padding: 0;
-}
-
-.el-dialog.companion-dialog .el-dialog__body {
-  padding: 0;
+// 萌萌的弹窗用公共外壳，标题栏里多一个靠右的操作按钮（重新认识、全部忘掉）
+.companion-dialog .shell-head .reset-button + .shell-close {
+  margin-left: 0;
 }

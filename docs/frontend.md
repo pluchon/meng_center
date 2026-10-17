@@ -184,6 +184,11 @@ export const UserStatusLabelKey = Object.freeze({
 | 5xx、网络错误 | 统一提示服务异常 |
 | 其他 4xx | 整理成 `{ status, code, message }` 抛给调用方，由页面决定怎么展示 |
 
+- 这套处理是 `request.js` 导出的 `settleFailure`：Axios 拦截器和用 `fetch` 读流的接口（萌萌发消息）共用，文案按业务码查 `error.*`，页面不再自己判断状态码或拼错误文案。
+- 请求配置 `silent` 只关掉顶部提示，失败交给页面就地展示；401 照样跳登录页。只有启动时探测登录态的请求带 `optionalAuth`，未登录是正常结果，不跳转。
+- 已经提示过的失败带 `notified`；页面要弹提示时统一调 `notifyFailure`，它会跳过已提示和主动取消的请求。
+- 页面只按业务码处理自己的特例（如登录页的「审核中」、发帖的重复举报），按状态挑异常插画用 `failureArt` 或业务自己的状态组件。
+
 ## 7. 路由
 
 - 路由表里的组件一律懒加载。

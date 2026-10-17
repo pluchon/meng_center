@@ -331,14 +331,14 @@
             <IconChevronLeft />{{ t('meng.back') }}
           </button>
         </div>
-        <section class="status-portrait">
+        <section class="status-face">
           <div>
-            <img
-              :src="portrait(code,character.stage,sendError)"
+            <span class="face-frame"><img
+              :src="avatar(code)"
               :alt="character.name"
-              width="768"
-              height="1024"
-            ><span class="stage-stamp">{{ character.stageName }}</span>
+              width="128"
+              height="128"
+            ></span><span class="stage-stamp">{{ character.stageName }}</span>
           </div><p><span><IconCalendar />{{ t('meng.days',{count:character.acquaintanceDays}) }}</span><span><IconMessages />{{ t('meng.chatDays',{count:character.chatDays}) }}</span></p>
         </section>
         <section

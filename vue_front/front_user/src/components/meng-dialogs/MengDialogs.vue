@@ -1,54 +1,41 @@
 <template>
-  <el-dialog
+  <DialogShell
     :model-value="!!dialog || !!stageNotice"
     :width="dialogWidth"
+    :icon="headingIcon"
+    :tone="tone"
+    :busy="busy"
     class="companion-dialog"
     :class="modalTheme"
-    :show-close="false"
-    align-center
-    append-to-body
-    destroy-on-close
-    :close-on-click-modal="!busy"
-    :close-on-press-escape="!busy"
     @close="close"
   >
-    <template #header>
-      <header class="modal-heading">
-        <span class="modal-heading-icon"><component :is="headingIcon" /></span><h2>{{ heading }}</h2><span
-          v-if="dialog==='bond' && bondCharacter"
-          class="modal-count"
-        >{{ bondCharacter.stageName }}</span><span
-          v-if="dialog==='all'||dialog==='works'"
-          class="modal-count"
-        >{{ t('meng.workCount',{count:works.data.total}) }}</span><span
-          v-if="dialog==='memory'"
-          class="modal-count"
-        >{{ t('meng.memoryCount',{count:memory.data.length}) }}</span><button
-          v-if="dialog==='bond'"
-          type="button"
-          class="meng-button pink reset-button"
-          :disabled="busy"
-          @click="reset"
-        >
-          {{ t('meng.reset') }}
-        </button><button
-          v-if="dialog==='memory' && memory.data.length"
-          class="meng-button pink reset-button"
-          type="button"
-          :disabled="busy"
-          @click="forgetAll"
-        >
-          {{ t('meng.forgetAll') }}
-        </button><button
-          type="button"
-          class="meng-button secondary modal-close"
-          :aria-label="t('common.close')"
-          :disabled="busy"
-          @click="close"
-        >
-          <IconX />
-        </button>
-      </header>
+    <template #title>
+      <h2><span>{{ heading }}</span></h2><span
+        v-if="dialog==='bond' && bondCharacter"
+        class="modal-count"
+      >{{ bondCharacter.stageName }}</span><span
+        v-if="dialog==='all'||dialog==='works'"
+        class="modal-count"
+      >{{ t('meng.workCount',{count:works.data.total}) }}</span><span
+        v-if="dialog==='memory'"
+        class="modal-count"
+      >{{ t('meng.memoryCount',{count:memory.data.length}) }}</span><button
+        v-if="dialog==='bond'"
+        type="button"
+        class="meng-button pink reset-button"
+        :disabled="busy"
+        @click="reset"
+      >
+        {{ t('meng.reset') }}
+      </button><button
+        v-if="dialog==='memory' && memory.data.length"
+        class="meng-button pink reset-button"
+        type="button"
+        :disabled="busy"
+        @click="forgetAll"
+      >
+        {{ t('meng.forgetAll') }}
+      </button>
     </template>
     <div class="modal-content">
       <div
@@ -60,7 +47,7 @@
           alt=""
           width="84"
           height="84"
-        ><p>{{ t('meng.stageUp',{name:shortName}) }}</p><h3>{{ t('meng.stageChange',{from:stageNotice.previousStage,to:stageNotice.stageName}) }}</h3><p class="stage-line">
+        ><h3>{{ t('meng.stageChange',{from:stageNotice.previousStage,to:stageNotice.stageName}) }}</h3><p class="stage-line">
           {{ stageNotice.message?.content }}
         </p><button
           class="meng-button primary"
@@ -363,7 +350,7 @@
         </div>
       </template>
     </div>
-  </el-dialog>
+  </DialogShell>
 </template>
 <script src="./MengDialogs.js"></script>
 <style lang="scss" scoped src="./MengDialogs.scss"></style>

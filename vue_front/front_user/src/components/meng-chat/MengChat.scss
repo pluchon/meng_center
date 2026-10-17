@@ -610,22 +610,38 @@
   font-size: 13px;
 }
 
-.status-portrait > div {
+.status-face > div {
   position: relative;
-  height: 190px;
+  height: 170px;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   border: 2px dashed var(--c-edge);
   border-radius: 24px;
-  background: var(--c-tint);
+  background:
+    radial-gradient(circle, var(--meng-surface) 2px, transparent 2.5px) 0 0 / 20px 20px,
+    var(--c-tint);
 }
 
-.status-portrait > div > img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+// 大头照是圆形贴纸：白边、角色色底影
+.face-frame {
+  width: 128px;
+  height: 128px;
+  overflow: hidden;
+  border: 5px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-surface);
+  box-shadow: 0 5px 0 var(--c-edge);
+  rotate: -3deg;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 }
 
-.status-portrait .stage-stamp {
+.status-face .stage-stamp {
   position: absolute;
   top: 12px;
   left: 12px;
@@ -634,14 +650,14 @@
   background: var(--meng-surface);
 }
 
-.status-portrait p {
+.status-face p {
   margin: 10px 0 0;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.status-portrait p > span {
+.status-face p > span {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -654,7 +670,7 @@
   color: var(--meng-muted);
 }
 
-.status-portrait p svg {
+.status-face p svg {
   width: 12px;
   height: 12px;
 }
