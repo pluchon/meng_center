@@ -54,7 +54,8 @@ class Inspiration(Schema):
     angle: str = Field(min_length=1, max_length=100)
     explanation: str = Field(min_length=1, max_length=200)
     opening: str = Field(
-        min_length=1, max_length=600,
+        min_length=1,
+        max_length=600,
         description="第二人称提问或客观说明形式的正文开头，不虚构作者经历、日期、数量或已完成成果。",
     )
 
@@ -100,11 +101,13 @@ def _without(value: str, pattern: re.Pattern[str], message: str) -> str:
 
 class Summary(Schema):
     summary: str = Field(
-        min_length=1, max_length=600,
+        min_length=1,
+        max_length=600,
         description="只总结统计支持的活动，不复述数字或虚构升级、成果、情绪；建议放 suggestions。",
     )
     suggestions: list[str] = Field(
-        min_length=1, max_length=3,
+        min_length=1,
+        max_length=3,
         description="具体可实行的内容或互动建议；不虚构读者活跃时段，不推荐无统计依据的发布时间。",
     )
 

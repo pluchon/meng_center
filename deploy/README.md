@@ -53,7 +53,7 @@ Nacos 宿主机 gRPC 端口必须是服务端口加 1000。改映射后也需要
 
 Windows Java 17 启动必须带 `-Dfile.encoding=UTF-8`，脚本已设置。IDEA 的 VM options 也要设置该项，并加载用户环境变量及 `ports.env` 中的端口变量。Nacos 不可用时应用启动失败，不以本地快照绕过检查。
 
-在 `vue_front/front_user` 与 `vue_front/front_admin` 两个目录分别执行 `npm ci`、`npm run dev`。用户端是 `http://127.0.0.1:5173`，管理端是 `http://127.0.0.1:5174`；请求经各自 Vite 代理到 8080 网关，user 仅监听本机 8101。
+在 `vue_front/front_user` 执行 `npm ci`、`npm run dev`。用户端是 `http://127.0.0.1:5173`；管理端前端已移除，仅保留文档规格和后端管理员接口。请求经各自 Vite 代理到 8080 网关，user 仅监听本机 8101。
 
 QQ SMTP 使用现有环境凭据，主机 `smtp.qq.com`、SSL 465；实际认证已验证。国内短信在 `meng-user.yml` 的 `sms` 配置，国际短信在 `international-sms`，补齐对应签名、模板或 Sender ID 后再启用。
 
@@ -99,6 +99,16 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 `meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。四个域各自管理 Flyway 迁移。消息服务使用 `V20261012001__create_im_tables` 建表，`meng-im.yml` 配置连接 Origin 和用户查询超时；私信存储目录只从 `MENG_IM_IMAGE_ROOT` 读取。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
 
+## 萌萌服务
+
+`meng-companion` 监听 `127.0.0.1:8107`，网关入口为 `/companion/**`。首次使用依次执行 `Initialize-LocalEnvironment.ps1`、`Initialize-DomainDatabases.ps1`、`Publish-NacosConfiguration.ps1`，再打包并执行 `Start-Backend.ps1 -Service meng-companion`。已有数据卷原地新增 `meng_companion` 库及 `meng_companion_app`，只使用 `MENG_MYSQL_COMPANION_PASSWORD`，不修改已有账号或卷。
+
+作品与私密对话图片保存到 `MENG_COMPANION_WORK_ROOT`，默认位于用户 LocalAppData 下。Flyway 创建角色、关系、会话、消息、记忆、作品、安全记录及私密图片记录；初始角色资料不引用占位图片文件。Python 继续共用 8106，不建立会话数据库。
+
+同时更新 content 的 `V20261017001__add_public_author_snapshot`，供萌萌只读工具使用公开昵称快照，内部请求不再同步查询 user。工具只能查询公开帖子及当前用户成长数据。IM 消费 `companion.stage-reached`，系统频道的 `COMPANION` 类型表示萌萌通知。新增配置或路由后重启相应服务；companion 的业务阈值支持 Nacos 刷新。
+
+对话、安全和模型评测命令见 [萌萌文档](../docs/meng.md)。前端设计与立绘仍以画布 `meng_ai` 为准。
+
 ## 搜索引擎
 
 Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。
@@ -109,7 +119,7 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 
 ## 定时任务
 
-`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及下列任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content` 和 `meng-user` 自动注册，使用 FIRST 路由、DISCARD_LATER、忽略过期触发、失败重试一次。
+`Initialize-XxlJob.ps1` 创建独立库、应用账号、官方 3.5.0 表结构及下列任务，再启动调度中心和内部转发器。初始化可重复执行，不插入官方演示任务或默认密码。登录 `http://127.0.0.1:18082`，账号 `admin`，密码从用户环境变量 `MENG_XXL_JOB_ADMIN_PASSWORD` 读取。执行器组 `meng-content`、`meng-user` 和 `meng-companion` 自动注册，使用 FIRST 路由、DISCARD_LATER、忽略过期触发、失败重试一次。
 
 | 处理器 | Asia/Taipei 调度 | 超时（秒） |
 |---|---|---:|
@@ -120,6 +130,13 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 | `contentRecLogClean` | 每天 04:30 | 600 |
 | `contentRecRankerTrain` | 周一 05:00 | 180 |
 | `userAiOutboxDispatch` | 每分钟 | 55 |
+| `companionOutboxDispatch` | 每分钟，重发未确认事件并恢复遗留轮次 | 55 |
+| `companionMemoryMaintain` | 每 10 分钟，补向量、回忆卡和过期清理 | 500 |
+| `companionPromiseNotify` | 每 5 分钟，按用户当地日期检查约定 | 240 |
+
+萌萌更新需要发布 `meng-companion.yml`，并重新执行任务初始化以登记 9107 执行器及内部转发器。companion 启动时执行 `V20261017002__companion_runtime` 和 `V20261017003__seed_companion_cards`，消息服务执行 `V20261017001__companion_notification_targets`。旧记忆保留，来源会话和窗口起点随迁移回填，缺失向量由维护任务分批补齐。新客户端发消息必须带 `clientMessageId`，前后端应一起更新。
+
+Windows 会锁定正在运行的 JAR，更新前先停止对应实例，再打包并重新启动 companion、IM 和 Python AI。仅通过单元测试或修改源码不表示业务实例已经更新。角色卡和台词内容由 companion 启动时从 `resources/companion/catalog.json` 按版本导入，历史 Flyway 文件不修改；内容编辑只更新 JSON 与版本号。更新后执行 `./verification/Test-CompanionDeployment.ps1`，核对三项迁移、当前内容版本的 45 组场景台词、三个任务、执行器注册及进程是否晚于构建产物。
 
 内容服务的官方执行器绑定所有网卡，端口 9102；注册地址仍是 `http://127.0.0.1:9102/`。Compose 不映射或开放执行器端口，`xxl-job-bridge` 只在调度中心容器的回环地址转发到宿主机。宿主机防火墙应阻止外部访问 9102，不为它创建对外放行规则；执行器还强制校验环境变量令牌，空值和 `default_token` 会使内容服务启动失败。Nacos 只保存调度地址、执行器端口、注册地址和日志路径，不能覆盖令牌。
 

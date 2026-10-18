@@ -59,13 +59,13 @@ export function useSlider(root, { item, active = '.selected', deps = () => [] })
   }
 
   function onLeave(event) {
-    if (event.type === 'focusout' && root.value.contains(event.relatedTarget)) return
+    if (event.type === 'focusout' && root.value?.contains(event.relatedTarget)) return
     reset()
   }
 
   // 指针离开事件偶尔丢失（快速移出窗口、切换标签页、元素在指针下被替换），用全局事件兜底
   function onDocumentMove(event) {
-    if (hovered && !root.value.contains(event.target)) reset()
+    if (hovered && !root.value?.contains(event.target)) reset()
   }
 
   const settle = () => place(true)

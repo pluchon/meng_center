@@ -1,6 +1,6 @@
 # 萌部落社区 · 事件与内部接口
 
-> 2026-10-08 首版。这是[架构设计](architecture.md)第 7 节依赖表的展开。
+> 这是[架构设计](architecture.md)第 7 节依赖表的展开。
 > 这里没有列出的跨服务交互都不允许存在。
 
 ## 1. 事件
@@ -43,9 +43,11 @@
 | `post.liked` | content | postId、postTitle、actorId、authorId | im：通知作者 |
 | `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者；某人对这篇帖子的第一行收藏记录插入成功时发一次，之后放进别的收藏夹不重复发 |
 | `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
-| `report.handled` | content | reportId、reporterId、targetType、targetId、postId、postTitle、excerpt、targetAuthorId、result | im：通知举报人；成立时通知内容作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
 | `lottery.won` | growth | userId、prizeName | im：中奖通知 |
+| `companion.stage-reached` | companion | userId、characterCode、characterName、stage、stageName | im：通知本人（系统频道的「萌萌」类型） |
+| `companion.promise-due` | companion | userId、characterCode、characterName、memoryId、content、dueDate | im：约定到期当天通知本人（「萌萌」类型），每个约定只发一次 |
+| `companion.drawing-finished` | companion | userId、characterCode、characterName、sessionId、workId、title | im：画好了，通知本人（「萌萌」类型） |
 
 说明：
 
@@ -55,7 +57,7 @@
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
 - growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
 - AI 请求、审核通知使用 content / user 本域的事务 outbox，broker confirm 后标记已发送；AI 结果持久发布成功后才确认输入。结果重复投递由 eventId 或用户资料版本去重，迟到的旧内容版本丢弃。重试、死信与每日 token 预算延迟见 [ai.md](ai.md) 第 4.3 节。
-- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。举报处理和中奖事件仍等待对应业务落地。
+- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。中奖事件等抽奖落地后再接。
 
 ## 2. 内部接口
 
@@ -75,17 +77,37 @@
 | `POST /ai/internal/creator-reviews` | ai | content | 创作总结和建议 | 返回 503 `AI_UNAVAILABLE` |
 | `POST /ai/internal/ranker-trainings` | ai | content | 排序模型的权重和 AUC | 本周不换模型，下周再试 |
 | `GET /user/internal/users/{id}/followees` | user | content | 某人关注的人的 id，按关注时间倒序，最多 500 个 | 推荐流跳过「关注」这一路，其余照常 |
-| `POST /ai/internal/embeddings` | ai | content | 每段文本的向量 | 语义搜索退回关键词 |
+| `POST /ai/internal/embeddings` | ai | content | 每段文本的向量 | AI 语义搜索返回 `AI_UNAVAILABLE`，不退回关键词 |
+| `POST /ai/internal/retrievals` | ai | content | 只读 agent 按完整含义选择候选下标，可返回空结果；候选由调用方按公开性和数据归属限定 | 返回 503 `AI_UNAVAILABLE`，不退回关键词匹配 |
 | `POST /ai/internal/tag-suggestions` | ai | content | 3 个标签 | 返回 503 `AI_UNAVAILABLE` |
 | `POST /ai/internal/inspirations` | ai | content | 3 个切入角度和开头 | 同上 |
 | `POST /ai/internal/covers` | ai | content | 一张图片 | 同上 |
 | `POST /ai/internal/growth-summaries` | ai | growth | 总结和建议 | 同上 |
 
-ai 的七个接口是纯计算，不改任何状态，按只读接口对待；因为请求体大，用 POST。输入输出和超时见 [ai.md](ai.md) 第 3.2 节。ai 不调用任何项目内服务，帖子的全文通过事件拿到。
+ai 的八个接口是纯计算，不改任何状态，按只读接口对待；因为请求体大，用 POST。输入输出和超时见 [ai.md](ai.md) 第 3.2 节。这些功能里 ai 不调用任何项目内服务，帖子的全文通过事件拿到。
 
-### 2.3 尚未覆盖
+### 2.3 萌萌
 
-AI 萌萌的对话链路（前端经哪个 Java 服务进入、配额在哪扣）还没设计，等会话归属确定后补进本文。
+前端只经 companion 进入；限次、好感、记忆都在 companion。设计见 [meng.md](meng.md)。
+
+| 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
+|---|---|---|---|---|
+| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 选中的气泡（文字或贴纸）、作品、画图任务、好感建议、心情与意图、审核分类、各候选的分数；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
+| `POST /ai/internal/companion/summaries` | ai | companion | 一段会话摘要（分块压缩，轮后异步调用） | 保留旧摘要，下一轮再试；期间按预算截断最旧的历史 |
+| `POST /ai/internal/companion/consolidations` | ai | companion（整理消费者） | 对候选记忆的 ADD / SUPERSEDE / INVALIDATE / NOOP 决定、约定日期、回忆卡、重写后的核心档案 | 消息重试，超过次数进死信；聊天不受影响 |
+| `POST /ai/internal/companion/dailies` | ai | companion（`companionMemoryMaintain` 任务） | 某个角色某一天的「今天的她」，一两句；纯计算 | 不写入，下次任务再补；这期间对话上下文里没有这一项 |
+| `POST /ai/internal/companion/memory-reviews` | ai | companion（本人手工编辑记忆） | 对记忆内容的语义审核结果 `safe` 与审核完成标记 `reviewed`；纯计算，不写记忆 | 不安全返回业务参数错误；审核缺失、额度不足或调用失败返回 503 `AI_UNAVAILABLE`，保留原记忆 |
+| `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量；给定候选时由检索 agent 返回相关候选下标 | 不注入未经 agent 判断的检索结果；置顶事实仍受上下文预算保护 |
+| `POST /ai/internal/companion/drawings` | ai | companion（画图任务） | 一张图片 | 任务失败，释放画图额度，聊天里显示「没画成」 |
+| `POST /content/internal/posts/vector-search` | content | ai（萌萌工具） | 对传入的 1024 维查询向量召回最多 20 篇公开帖子；ai 再由检索 agent 判断并选择最多 5 篇 | 工具明确说明当前无法按含义检索，不退回关键词匹配，不编造结果 |
+| `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（萌萌工具） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
+| `GET /growth/internal/users/{id}/summary` | growth | ai（萌萌工具） | 等级、连续签到天数、今天是否签到 | 同上 |
+| `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 使用中性称呼「你」，不为此读取登录账号或联系方式 |
+
+- ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
+- 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。
+- ai 不回调 companion：`recall`、`read_work` 等工具需要的记忆和作品，由 companion 在请求里预先给出。
+- 记忆整理和摘要包含独立语义复核；返回 `reviewed` 后 companion 才允许持久化。数据归属、证据、编号、长度与日期仍由 companion 校验。
 
 ## 3. 新增契约的流程
 

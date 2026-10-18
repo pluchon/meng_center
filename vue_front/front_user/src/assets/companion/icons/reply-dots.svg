@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="24" viewBox="0 0 72 24">
+<title>角色正在回复</title>
+<style>
+.dot{animation:reply 1.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+.second{animation-delay:.16s}.third{animation-delay:.32s}
+@keyframes reply{0%,60%,100%{transform:translateY(0);opacity:.45}30%{transform:translateY(-3px);opacity:1}}
+@media(prefers-reduced-motion:reduce){.dot{animation:none;opacity:1}}
+</style>
+<circle class="dot" cx="13" cy="13" r="5" fill="#73AED3"/>
+<circle class="dot second" cx="36" cy="13" r="5" fill="#9DDBFA"/>
+<circle class="dot third" cx="59" cy="13" r="5" fill="#73AED3"/>
+</svg>

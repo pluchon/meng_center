@@ -1,6 +1,5 @@
 # 萌部落社区 · 架构设计
 
-> 2026-10-08 首版，搭骨架前的共识。
 > 配套文档：[事件与内部接口](contracts.md)、[认证模块](auth.md)、[内容域](content.md)、[成长域](growth.md)、[消息域](im.md)、[AI 域](ai.md)、[前端规范](frontend.md)、[环境、密钥与约定](setup.md)。
 
 ## 1. 定位
@@ -33,7 +32,7 @@
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
 | 模型 | DashScope：Qwen3.8 Flash、Qwen3.7 Embedding Flash、Qwen Image 3.0 标准版 | 文本与向量走 OpenAI 兼容接口，千问同步生图；型号靠配置切换，见 [ai.md](ai.md) |
-| 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
+| 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 当前只保留用户端项目；管理端仅保留文档规格，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 
 ## 3. 仓库结构
@@ -45,8 +44,7 @@ meng_center/
 ├── java_backend/    Java 后端（Maven 多模块）
 ├── python_ai/       Python AI 服务 meng-ai
 └── vue_front/       前端
-    ├── front_user/   用户端
-    └── front_admin/  管理端
+    └── front_user/   用户端；管理端实现已移除
 ```
 
 Maven groupId 和 Java 基础包名都是 `com.pluchon.meng`。
@@ -65,12 +63,14 @@ java_backend/
 ├── meng-api/                所有域的对外契约
 │   ├── meng-api-user/
 │   ├── meng-api-content/
-│   └── meng-api-growth/
+│   ├── meng-api-growth/
+│   └── meng-api-companion/
 ├── meng-gateway/            网关
 ├── meng-user/               用户域
 ├── meng-content/            内容域
 ├── meng-im/                 私信与通知域
 ├── meng-growth/             成长域
+└── meng-companion/          萌萌会话、关系与作品域
 ```
 
 `meng-im` 通过网关向前端提供消息接口，没有被其他服务调用的内部接口，也不生产跨服务事件，因此没有 `meng-api-im`。
@@ -116,10 +116,11 @@ java_backend/
 | content | 帖子、评论、点赞、收藏、搜索索引同步 |
 | im | 私信、通知（WebSocket） |
 | growth | 经验、等级、签到、积分、抽奖（积分已做，抽奖未做） |
-| ai（Python） | 萌萌对话；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
+| companion | 萌萌：角色卡与档位、会话编排、好感度、分层记忆与整理任务、作品、限次与防沉迷，见 [meng.md](meng.md) |
+| ai（Python） | 萌萌的对话图；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
-  网关统一校验管理员角色，Service 再校验一次。管理端是单独的 Vue 项目。
+  网关统一校验管理员角色，Service 再校验一次。管理端前端已移除，管理员接口仍在，规格保留在文档里。
 - **定时任务**：xxl-job。调度中心是一个独立的容器，执行器嵌在有任务的域服务里，任务写在拥有那份数据的域。不设独立的定时任务服务，也不再用 Spring 的 `@Scheduled`。
   - 调度中心用官方镜像 3.5.0，按摘要固定。低于 3.4.0 的版本有已公开的安全漏洞，不用。
     它只监听本机；容器内端口是 8080，和网关相同，宿主机端口另取并写在 `deploy/ports.env`。容器时区设为 Asia/Taipei，任务的 cron 按这个时区理解。
@@ -142,9 +143,10 @@ java_backend/
 ## 6. 防耦合规则
 
 1. **依赖单向分层，不成环，同层不互调。**
-   user 和 ai 在底层，不调任何项目内服务；content、im 同步调 user，content、growth 同步调 ai 做计算；ai 不被写路径同步调用。
-2. **同步调用全项目只有四条箭头**：content → user、im → user、content → ai、growth → ai。
+   user 在底层，不调任何项目内服务；content、im、companion 同步调 user，content、growth、companion 同步调 ai 做计算；除萌萌对话外，ai 不被写路径同步调用。
+2. **同步调用全项目只有这几条箭头**：content → user、im → user、companion → user、content → ai、growth → ai、companion → ai；以及萌萌工具专用的 ai → content、ai → growth（只读）。
 3. **同步调用只读、深度为 1。** 内部接口只做查询；处理内部调用时不许再向外发起同步调用。跨服务的写只能通过事件。
+   唯一的例外是萌萌：companion → ai → content / growth 深度为 2。只有萌萌对话图里的工具能调，接口在 ai 里写成白名单，content、growth 处理这些调用时不再外调，也永远不调 companion，所以不成环。见 [meng.md](meng.md) 第 6.3 节。
 4. **「发生了一件事，别人要跟着反应」一律走 MQ 事件。** 事务提交后发送；生产者不知道谁在消费。
 5. **每个服务独占一个 MySQL 库和独立账号。** 物理上杜绝跨服务联表和共享 Entity。
 6. **一次写操作只落在一个服务，不做分布式事务。** 必须同事务的放同一个域；跨域最终一致，消费者幂等。
@@ -165,15 +167,16 @@ java_backend/
 |---|---|---|---|
 | user | 无 | 审核通过、关注、资料变更、资料审核状态变更 | 等级变更、资料审核结果 |
 | content | user、ai | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理、请求分析、审核状态变更 | 帖子分析结果、评论审核结果 |
-| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖、内容审核状态变更、资料审核状态变更 |
+| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、中奖、内容审核状态变更、资料审核状态变更、萌萌升阶、约定到期、画图完成 |
 | growth | ai | 等级变更、中奖 | 发帖、评论 |
-| ai | 无 | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
+| companion | user、ai | 萌萌升阶、约定到期、画图完成 | 无 |
+| ai | content、growth（只限萌萌工具，只读） | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
 
 ## 8. 数据约定
 
-- 库名：`meng_user`、`meng_content`、`meng_im`、`meng_growth`，同一个 MySQL 实例。
+- 库名：`meng_user`、`meng_content`、`meng_im`、`meng_growth`、`meng_companion`，同一个 MySQL 实例。
 - 主键 BIGINT 自增，不用雪花 ID 和 UUID。
 - 业务表都带 `create_time`、`update_time`、`delete_state`，默认逻辑删除。
 - 全局唯一的字段加唯一索引，入库前归一化（去空格、邮箱转小写、手机号转成带区号的统一格式）。
@@ -190,48 +193,25 @@ java_backend/
 - 项目自己的环境变量统一加 `MENG_` 前缀，避免和本机其他项目互相覆盖；第三方账号（阿里云、SMTP 等）沿用本机已有的变量名。
 - 日志不打印密码、验证码、JWT、票据；邮箱和手机号脱敏。
 
-## 10. 范围台账
+## 10. 暂不做与待定
 
-### 已确认
-
-- 定位、功能范围、技术栈、服务划分、防耦合规则（本文 1 至 7 节）。
-- 模块布局：server 在顶层，api 集中放 `meng-api`。
-- 跨域最终一致可接受。
-- 认证：注册需邮箱或手机号（二选一）、允许多设备登录、Token 放 HttpOnly Cookie（见 [auth.md](auth.md)）。
-- 审核：被拒绝的人能重新申请；`user` 表带申请理由和拒绝原因。
-- 邮箱和手机号：都加密存储；手机号支持台湾等八个地区，默认台湾。
-- 通道：短信用阿里云（中国站），邮件用 Spring 邮件 starter 走 SMTP。
-- 工程：groupId 和基础包名 `com.pluchon.meng`；迁移用 Flyway；Compose 放 `deploy/`（见 [setup.md](setup.md)）。
-
-找回密码已按仓库主人后续要求追加：独立重置验证码、邮箱/手机二选一，重置后撤销全部旧会话；不改变审核状态。
-
-第二期（见 [content.md](content.md)、[growth.md](growth.md)、[im.md](im.md)）：
-
-- 内容：五个固定分类、发帖、帖子流、喜欢、收藏、浏览量、IP 属地、配图、评论、举报、热榜、帖子搜索。正文用 Markdown，配图存本机磁盘。
-  热榜放 Redis，搜索用 Elasticsearch 9.2 系列，两者都是 MySQL 的派生数据，每天重建并用蓝绿切换生效。
-- 成长：签到、经验与等级。成长账户按需创建。
-- 消息：私信和通知合在一个消息中心。实时推送只用一条 WebSocket，发消息仍走 HTTP；im 单实例运行，多实例时推送经 RabbitMQ 广播。
-- 个人中心：资料、换绑和设备管理归 user，收藏夹和我喜欢的归 content，屏蔽名单归 im；页面分别调三个服务，服务之间不为它新增调用（见 [auth.md](auth.md) 第 13 节）。
-- 分三步交付：先做主页，再做帖子详情和发帖页，最后做热榜和搜索。
-
-### 暂缓
+### 暂不做
 
 - 上线服务器。按当前组件量 8G 才宽裕；4G 需要砍 xxl-job 并压缩业务服务数。
 - Cloudflare、浏览器指纹。
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
-- 管理端的帖子管理、AI 审核的复核页。AI 审核先只记录结论，见 [ai.md](ai.md) 第 12 节。
+- 管理端前端（注册审核、举报处理、帖子管理、AI 审核复核的页面）。AI 审核的结论和管理员接口见 [ai.md](ai.md) 第 12 节。
 
 ### 待定
 
 | 项 | 当前倾向 |
 |---|---|
-| AI 萌萌的会话、消息、配额归哪个 Java 服务 | 未讨论 |
-| LangGraph 图执行态是否持久化 | 起步不接，需要中断续跑时再定 |
+| LangGraph 图执行态是否持久化 | 不接；萌萌的会话状态由 companion 保存，每次请求带上下文 |
 
 ### 待核实
 
 - tianai 的 Redis 存储和浏览器拖动已通过第一阶段验证，保留后续反滥用回归。
 - Flyway 11.14.1 已迁移实际 user 表并完成读写验证；MySQL 8.4 仍有高于已验证版本 8.1 的启动提示。
-- 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 12 节）。
+- 阿里云短信向各地区的送达情况，以及通知类短信的限制（见 [auth.md](auth.md) 第 11 节）。

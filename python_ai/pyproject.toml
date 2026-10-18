@@ -4,7 +4,7 @@ version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "fastapi~=0.135.0", "uvicorn~=0.41.0", "pydantic-settings~=2.13.0",
-  "langchain-core~=1.2.0", "langchain-openai~=1.1.0", "langgraph~=1.1.0",
+  "langchain~=1.2.0", "langchain-core~=1.2.0", "langchain-openai~=1.1.0", "langgraph~=1.1.0",
   "aio-pika~=9.6.0", "redis~=7.3.0", "httpx~=0.28.0",
   "scikit-learn~=1.8.0", "nacos-sdk-python~=3.2.0",
   "tzdata>=2026.1,<2027",

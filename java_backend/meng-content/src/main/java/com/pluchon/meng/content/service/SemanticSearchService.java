@@ -1,19 +1,16 @@
 package com.pluchon.meng.content.service;
 
 import com.pluchon.meng.content.client.AiClient;
+import com.pluchon.meng.content.client.AiComputation;
 import com.pluchon.meng.content.controller.vo.HighlightSegmentVO;
 import com.pluchon.meng.content.controller.vo.SearchPostVO;
-import com.pluchon.meng.content.converter.SearchHighlight;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.PostCategory;
-import com.pluchon.meng.content.entity.enums.PostSort;
 import com.pluchon.meng.content.mapper.PostMapper;
 import java.time.Duration;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +18,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.json.JsonMapper;
 
-// 关键词和向量召回的相关度融合
+// 向量只生成公开候选，结果由检索 agent 按含义判断；AI 不可用时退回关键词检索，结果照常返回。
 @Service
 public class SemanticSearchService {
 
@@ -41,9 +38,9 @@ public class SemanticSearchService {
     @Autowired
     private PostService feed;
 
-    // 关键词搜索降级路径
+    // AI 不可用时的关键词检索
     @Autowired
-    private PostSearchService keywords;
+    private PostSearchService keyword;
 
     // 搜索频率准入
     @Autowired
@@ -53,12 +50,10 @@ public class SemanticSearchService {
     @Autowired
     private StringRedisTemplate redis;
 
-    // 动态配置读取
-    @Autowired
-    private org.springframework.core.env.Environment environment;
-
     // 复用 JSON 编解码器
-    private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();
+    private final JsonMapper json = JsonMapper.builder()
+        .findAndAddModules()
+        .build();
 
     public record Result(
         List<SearchPostVO> records,
@@ -68,12 +63,17 @@ public class SemanticSearchService {
         boolean semantic
     ) {}
 
-    // 先限流，再做向量与关键词融合，失败退回关键词
-    public Result search(String input, PostCategory category, long page, long size) {
+    // 身份、公开性与限流由业务端校验，相关性与排序交给 agent。
+    public Result search(
+        String input,
+        PostCategory category,
+        long page,
+        long size
+    ) {
         String q = java.text.Normalizer.normalize(
             input.strip(),
             java.text.Normalizer.Form.NFKC
-        ).toLowerCase(Locale.ROOT);
+        );
         if (
             q.isBlank() ||
             q.codePointCount(0, q.length()) > 50 ||
@@ -84,8 +84,10 @@ public class SemanticSearchService {
         ) throw new com.pluchon.meng.common.core.error.BusinessException(
             com.pluchon.meng.common.core.error.CommonErrorCode.INVALID_ARGUMENT
         );
-        limits.search(com.pluchon.meng.common.web.context.UserContext.require().userId());
-        PostVectorIndex.Hybrid matches;
+        limits.search(
+            com.pluchon.meng.common.web.context.UserContext.require().userId()
+        );
+        List<PostEntity> ordered;
         try {
             if (
                 redis.opsForValue().get("content:vector:building") != null
@@ -111,48 +113,105 @@ public class SemanticSearchService {
                 var response = ai.embeddings(Map.of("texts", List.of(q)));
                 var batches = json.convertValue(
                     response.get("vectors"),
-                    new tools.jackson.core.type.TypeReference<List<List<Float>>>() {}
+                    new tools.jackson.core.type.TypeReference<
+                        List<List<Float>>
+                    >() {}
                 );
                 vector = batches.get(0);
-                redis.opsForValue().set(key, json.writeValueAsString(vector), Duration.ofDays(1));
+                redis
+                    .opsForValue()
+                    .set(
+                        key,
+                        json.writeValueAsString(vector),
+                        Duration.ofDays(1)
+                    );
             }
-            // 只要真正相近的：太远的向量命中不算，否则任何搜索词都会带出一串不相干的帖子
-            matches = vectors.hybrid(
-                q,
-                vector,
-                category,
-                environment.getProperty("meng.content.search.min-similarity", Float.class, 0.34f)
+            var ids = vectors
+                .nearest(vector, category, 0, 20)
+                .stream()
+                .map(hit -> hit.document().id())
+                .toList();
+            var rows = new HashMap<Long, PostEntity>();
+            if (!ids.isEmpty()) posts
+                .selectByIds(ids)
+                .stream()
+                .filter(p -> "NORMAL".equals(p.getReviewState().name()))
+                .filter(p -> Integer.valueOf(0).equals(p.getDeleteState()))
+                .forEach(p -> rows.put(p.getId(), p));
+            var candidates = ids
+                .stream()
+                .map(rows::get)
+                .filter(Objects::nonNull)
+                .toList();
+            if (candidates.isEmpty()) return new Result(
+                List.of(),
+                0,
+                page,
+                size,
+                true
             );
+            var decision = ai.retrieve(
+                new AiComputation.RetrievalRequest(
+                    input,
+                    candidates
+                        .stream()
+                        .map(post ->
+                            json.writeValueAsString(
+                                Map.of(
+                                    "id",
+                                    post.getId(),
+                                    "title",
+                                    post.getTitle(),
+                                    "content",
+                                    Objects.toString(post.getSummary(), ""),
+                                    "createdAt",
+                                    post.getCreateTime().toString()
+                                )
+                            )
+                        )
+                        .toList(),
+                    20,
+                    com.pluchon.meng.common.web.context.UserContext.require().userId()
+                )
+            );
+            if (
+                decision == null ||
+                decision.ranked() == null ||
+                new HashSet<>(decision.ranked()).size() !=
+                    decision.ranked().size() ||
+                decision
+                    .ranked()
+                    .stream()
+                    .anyMatch(
+                        index ->
+                            index == null ||
+                            index < 0 ||
+                            index >= candidates.size()
+                    )
+            ) throw new IllegalStateException(
+                "Invalid agent retrieval selection"
+            );
+            ordered = decision.ranked().stream().map(candidates::get).toList();
         } catch (Exception unavailable) {
-            var result = keywords.search(input, category, PostSort.RELEVANT, page, size, false);
-            return new Result(result.records(), result.total(), page, size, false);
-        }
-        var scores = new HashMap<Long, Double>();
-        for (var list : List.of(matches.keyword(), matches.semantic()))
-            for (int i = 0; i < list.size(); i++) scores.merge(
-                list.get(i),
-                1d / (61 + i),
-                Double::sum
+            // 准入已在上面扣过，关键词检索不再重复计次；响应带 semantic=false，前端不提示错误。
+            var fallback = keyword.search(
+                input,
+                category,
+                com.pluchon.meng.content.entity.enums.PostSort.RELEVANT,
+                page,
+                size,
+                false
             );
-        var ids = scores
-            .keySet()
-            .stream()
-            .sorted(
-                Comparator.<Long>comparingDouble(scores::get)
-                    .reversed()
-                    .thenComparing(Comparator.reverseOrder())
-            )
-            .toList();
-        var rows = new HashMap<Long, PostEntity>();
-        if (!ids.isEmpty()) posts
-            .selectByIds(ids)
-            .stream()
-            .filter(p -> "NORMAL".equals(p.getReviewState().name()))
-            .forEach(p -> rows.put(p.getId(), p));
-        var ordered = ids.stream().map(rows::get).filter(Objects::nonNull).toList();
+            return new Result(
+                fallback.records(),
+                fallback.total(),
+                fallback.page(),
+                fallback.size(),
+                false
+            );
+        }
         int start = (int) Math.min(ordered.size(), (page - 1) * size),
             end = (int) Math.min(ordered.size(), start + size);
-        var keywordIds = new HashSet<>(matches.keyword());
         var records = feed
             .hydrate(ordered.subList(start, end))
             .stream()
@@ -173,9 +232,7 @@ public class SemanticSearchService {
                     p.ipRegion(),
                     p.createTime(),
                     p.author(),
-                    keywordIds.contains(p.id())
-                        ? SearchHighlight.literal(p.title(), input)
-                        : List.of(new HighlightSegmentVO(p.title(), false)),
+                    List.of(new HighlightSegmentVO(p.title(), false)),
                     List.of(new HighlightSegmentVO(p.summary(), false))
                 )
             )

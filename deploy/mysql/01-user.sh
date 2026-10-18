@@ -14,7 +14,7 @@ GRANT ALL PRIVILEGES ON meng_user.* TO 'meng_user_app'@'%';
 SQL
 unset password_hex
 
-for domain in content growth im; do
+for domain in content growth im companion; do
     name="MENG_MYSQL_${domain^^}_PASSWORD"
     password_hex=$(printf '%s' "${!name}" | od -An -v -tx1 | tr -d ' \n')
     MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --protocol=socket -uroot <<SQL

@@ -4,4 +4,4 @@
     >../../pom.xml</relativePath></parent><artifactId
   >meng-api-growth</artifactId><dependencies><dependency><groupId
       >com.pluchon.meng</groupId><artifactId
-      >meng-common-core</artifactId></dependency></dependencies></project>
+      >meng-common-core</artifactId></dependency><dependency><groupId>org.springframework</groupId><artifactId>spring-web</artifactId></dependency></dependencies></project>

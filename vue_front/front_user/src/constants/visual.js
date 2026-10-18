@@ -68,3 +68,12 @@ export const AuthDecorVariant = Object.freeze({
   REGISTER: 'register',
   RESET: 'reset',
 })
+
+export const ShapeGridMotion = Object.freeze({
+  SPEED: 0.08,
+  CELL_SIZE: 56,
+  BASE_FPS: 60,
+  MAX_PIXEL_RATIO: 2,
+  FRAME_SECONDS: 1 / 30,
+  MAX_DELTA: 0.05,
+})

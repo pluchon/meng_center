@@ -9,6 +9,7 @@ export default defineComponent({
     state: { type: String, required: true },
     // StateArt 里的名字；不传则按状态用通用插画
     art: { type: String, default: '' },
+    loadingSpriteUrl: { type: String, default: '' },
     size: { type: String, default: StateSize.MEDIUM },
     // 覆盖默认说明文字
     text: { type: String, default: '' },
@@ -25,6 +26,6 @@ export default defineComponent({
       return StateArt.blockEmpty
     })
     const line = computed(() => props.text || t('common.' + props.state))
-    return { t, RouteName, image, line, loadingSprite: stateLoadingSprite }
+    return { t, RouteName, image, line, loadingSprite: computed(() => props.loadingSpriteUrl || stateLoadingSprite) }
   },
 })

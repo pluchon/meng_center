@@ -1,4 +1,18 @@
 import {
+  companionPageLoginRequiredArt,
+  companionBlockEmptyWorksArt,
+  companionBlockEmptyMemoryArt,
+  companionBlockNewTopicArt,
+  companionBlockLoadFailedArt,
+  companionPageCharacterNotFoundArt,
+  companionPageTopicMissingArt,
+  companionPageRestingArt,
+  companionPageRestingChatArt,
+  companionPageNetworkFailedArt,
+  companionPageAccessRestrictedArt,
+  companionPageMaintenanceArt,
+  companionPageLoadFailedArt,
+
   stateBlockEmptyArt,
   stateBlockFailureArt,
   stateEmptyChartArt,
@@ -23,6 +37,20 @@ import {
 
 // 状态插画的名字到图片，页面只写名字
 export const StateArt = Object.freeze({
+  mengLogin: companionPageLoginRequiredArt,
+  mengEmptyWorks: companionBlockEmptyWorksArt,
+  mengEmptyMemory: companionBlockEmptyMemoryArt,
+  mengNewTopic: companionBlockNewTopicArt,
+  mengFailure: companionBlockLoadFailedArt,
+  mengCharacter: companionPageCharacterNotFoundArt,
+  mengTopic: companionPageTopicMissingArt,
+  mengResting: companionPageRestingArt,
+  mengRestingChat: companionPageRestingChatArt,
+  mengNetwork: companionPageNetworkFailedArt,
+  mengRestricted: companionPageAccessRestrictedArt,
+  mengMaintenance: companionPageMaintenanceArt,
+  mengPageFailure: companionPageLoadFailedArt,
+
   blockEmpty: stateBlockEmptyArt,
   blockFailure: stateBlockFailureArt,
   chart: stateEmptyChartArt,

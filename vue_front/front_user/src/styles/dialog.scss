@@ -1,3 +1,6 @@
+@use './companion-theme';
+@include companion-theme.themes('.el-dialog.companion-dialog');
+
 // 公共对话框和消息条的统一样式，对照画布上的「公共对话框」画板。
 // 三种用法共用同一套样子：el-dialog（加 meng-dialog）、确认框（ElMessageBox 加 meng-confirm）、消息条（ElMessage）。
 
@@ -427,4 +430,55 @@
   white-space: nowrap;
   rotate: 4deg;
   pointer-events: none;
+}
+
+// 萌萌的弹窗用公共外壳，标题栏里多一个靠右的操作按钮（重新认识、全部忘掉）
+.companion-dialog .shell-head .reset-button + .shell-close {
+  margin-left: 0;
+}
+
+@media (width <= 560px) {
+  .companion-dialog .shell-head {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  .companion-dialog .shell-icon {
+    grid-area: 1 / 1;
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+  }
+
+  .companion-dialog .shell-head h2 {
+    grid-area: 1 / 2;
+    min-width: 0;
+    font-size: 20px;
+  }
+
+  .companion-dialog .shell-head h2 span {
+    max-width: 100%;
+    padding-inline: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .companion-dialog .shell-close {
+    grid-area: 1 / 3;
+    justify-self: end;
+    margin-left: 0;
+  }
+
+  .companion-dialog .modal-count {
+    grid-area: 2 / 2;
+    justify-self: start;
+  }
+
+  .companion-dialog .reset-button {
+    grid-area: 2 / 3;
+    margin-left: 0;
+    white-space: nowrap;
+  }
 }

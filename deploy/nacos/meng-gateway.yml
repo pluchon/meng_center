@@ -12,6 +12,10 @@ spring:
       server:
         webflux:
           routes:
+            - id: meng-companion
+              uri: lb://meng-companion
+              predicates:
+                - Path=/companion/**
             - id: meng-im-websocket
               uri: lb:ws://meng-im
               predicates:
@@ -44,8 +48,6 @@ meng:
       allowed-origins:
         - http://localhost:5173
         - http://127.0.0.1:5173
-        - http://localhost:5174
-        - http://127.0.0.1:5174
       session-ttl: 7d
       public-read: []
       whitelist:

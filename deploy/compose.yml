@@ -10,6 +10,7 @@ services:
       MENG_MYSQL_CONTENT_PASSWORD: ${MENG_MYSQL_CONTENT_PASSWORD:?required}
       MENG_MYSQL_GROWTH_PASSWORD: ${MENG_MYSQL_GROWTH_PASSWORD:?required}
       MENG_MYSQL_IM_PASSWORD: ${MENG_MYSQL_IM_PASSWORD:?required}
+      MENG_MYSQL_COMPANION_PASSWORD: ${MENG_MYSQL_COMPANION_PASSWORD:?required}
     command: [--character-set-server=utf8mb4, --collation-server=utf8mb4_0900_ai_ci]
     ports:
       - "127.0.0.1:${MENG_MYSQL_PORT:?required}:3306"
@@ -151,6 +152,18 @@ services:
     command:
       - "TCP4-LISTEN:${MENG_USER_JOB_PORT:?required},bind=127.0.0.1,fork,reuseaddr"
       - "TCP4:host.docker.internal:${MENG_USER_JOB_PORT:?required}"
+
+  xxl-job-companion-bridge:
+    image: alpine/socat:1.8.0.3@sha256:beb4a68d9e4fe6b0f21ea774a0fde6c31f580dde6368939ed70100c5385b015e
+    restart: unless-stopped
+    mem_limit: 32m
+    network_mode: "service:xxl-job"
+    depends_on:
+      xxl-job:
+        condition: service_started
+    command:
+      - "TCP4-LISTEN:${MENG_COMPANION_JOB_PORT:?required},bind=127.0.0.1,fork,reuseaddr"
+      - "TCP4:host.docker.internal:${MENG_COMPANION_JOB_PORT:?required}"
 
   xxl-job-bridge:
     image: alpine/socat:1.8.0.3@sha256:beb4a68d9e4fe6b0f21ea774a0fde6c31f580dde6368939ed70100c5385b015e

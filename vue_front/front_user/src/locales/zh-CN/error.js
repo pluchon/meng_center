@@ -1,4 +1,9 @@
 export default {
+  COMPANION_QUOTA_EXCEEDED: '本时段次数用完了，稍后再来聊吧',
+  COMPANION_COOLDOWN: '先冷静一下，30 分钟后再来聊天',
+  COMPANION_BUSY: '上一条还没回完，稍等一下',
+  COMPANION_SESSION_LIMIT: '已经有 50 个话题了，先删除一些旧话题吧',
+
   AI_UNAVAILABLE: 'AI 暂时没空，稍后再试试吧',
   AI_CONTENT_REJECTED: '这份内容暂时无法生成封面，请调整描述',
   USER_USERNAME_COOLDOWN: '用户名每 30 天只能修改一次',

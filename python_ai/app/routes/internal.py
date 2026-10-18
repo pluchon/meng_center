@@ -13,9 +13,15 @@ from app.schemas.models import (
     TagRequest,
     TrainingRequest,
 )
+from app.schemas.retrieval import RetrievalRequest
 from app.services.ranker import train
 
 router = APIRouter(prefix="/ai/internal")
+
+
+@router.post("/retrievals")
+async def retrievals(body: RetrievalRequest, request: Request) -> dict:
+    return await request.app.state.companion.retrieve(body)
 
 
 @router.post("/embeddings")

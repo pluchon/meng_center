@@ -18,6 +18,66 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotificationListener {
 
+    @RabbitListener(queues = "meng.im.companion.stage-reached")
+    public void companionStage(
+        EventEnvelope<com.pluchon.meng.api.companion.event.StageReachedEvent> event
+    ) {
+        check(event, "companion.stage-reached");
+        var body = event.body();
+        var row = new ImRows.Notice();
+        row.setReceiverId(body.userId());
+        row.setChannel(Channel.SYSTEM);
+        row.setCategory("COMPANION");
+        row.setType(NoticeType.COMPANION_STAGE_REACHED);
+        row.setExcerpt(
+            "你和" +
+                body.characterName() +
+                "的关系到了「" +
+                body.stageName() +
+                "」"
+        );
+        row.setDedupeKey("companion-stage:" + event.eventId());
+        row.setCompanionCode(body.characterCode());
+        notices.receive(row);
+    }
+
+    @RabbitListener(queues = "meng.im.companion.promise-due")
+    public void companionPromise(
+        EventEnvelope<com.pluchon.meng.api.companion.event.PromiseDueEvent> event
+    ) {
+        check(event, "companion.promise-due");
+        var body = event.body();
+        var row = new ImRows.Notice();
+        row.setReceiverId(body.userId());
+        row.setChannel(Channel.SYSTEM);
+        row.setCategory("COMPANION");
+        row.setType(NoticeType.COMPANION_PROMISE_DUE);
+        row.setCompanionCode(body.characterCode());
+        row.setExcerpt(
+            body.characterName() + "记着今天的约定：" + body.content()
+        );
+        row.setDedupeKey("companion-promise:" + body.memoryId());
+        notices.receive(row);
+    }
+
+    @RabbitListener(queues = "meng.im.companion.drawing-finished")
+    public void companionDrawing(
+        EventEnvelope<com.pluchon.meng.api.companion.event.DrawingFinishedEvent> event
+    ) {
+        check(event, "companion.drawing-finished");
+        var body = event.body();
+        var row = new ImRows.Notice();
+        row.setReceiverId(body.userId());
+        row.setChannel(Channel.SYSTEM);
+        row.setCategory("COMPANION");
+        row.setType(NoticeType.COMPANION_DRAWING_FINISHED);
+        row.setCompanionCode(body.characterCode());
+        row.setCompanionSessionId(body.sessionId());
+        row.setExcerpt(body.characterName() + "画好了「" + body.title() + "」");
+        row.setDedupeKey("companion-drawing:" + body.workId());
+        notices.receive(row);
+    }
+
     @RabbitListener(
         queues = {
             "meng.im.post.review-changed",
@@ -26,7 +86,9 @@ public class NotificationListener {
         }
     )
     public void review(org.springframework.amqp.core.Message message) {
-        var json = tools.jackson.databind.json.JsonMapper.builder().findAndAddModules().build();
+        var json = tools.jackson.databind.json.JsonMapper.builder()
+            .findAndAddModules()
+            .build();
         var event = json.readTree(message.getBody());
         var body = event.path("body");
         String type = event.path("eventType").asString();
@@ -52,13 +114,15 @@ public class NotificationListener {
                 fields.isEmpty()
                     ? "资料已恢复"
                     : String.join("、", fields) +
-                        "未通过审核，已清除，改好后可以重新填写" +
-                        (reason.isEmpty() ? "" : "：" + reason)
+                          "未通过审核，已清除，改好后可以重新填写" +
+                          (reason.isEmpty() ? "" : "：" + reason)
             );
         } else {
             row.setReceiverId(body.path("authorId").asLong());
             // 帖子被退回草稿箱后原帖已不存在，不挂帖子编号，点开通知去草稿箱
-            boolean withdrawn = "WITHDRAWN".equals(body.path("reviewState").asString());
+            boolean withdrawn = "WITHDRAWN".equals(
+                body.path("reviewState").asString()
+            );
             if (!withdrawn) row.setPostId(body.path("postId").asLong());
             row.setPostTitle(body.path("postTitle").asString());
             row.setType(
@@ -66,14 +130,17 @@ public class NotificationListener {
                     ? NoticeType.POST_REVIEW_CHANGED
                     : NoticeType.COMMENT_REVIEW_CHANGED
             );
-            if (body.has("commentId")) row.setCommentId(body.path("commentId").asLong());
+            if (body.has("commentId")) row.setCommentId(
+                body.path("commentId").asLong()
+            );
             String reason = body.path("reason").asString("").strip();
             row.setExcerpt(
                 withdrawn
-                    ? "未通过审核，已退回草稿箱" + (reason.isEmpty() ? "" : "：" + reason)
+                    ? "未通过审核，已退回草稿箱" +
+                          (reason.isEmpty() ? "" : "：" + reason)
                     : "IN_REVIEW".equals(body.path("reviewState").asString())
-                        ? "内容正在审核，仅自己可见"
-                        : "内容已恢复展示"
+                      ? "内容正在审核，仅自己可见"
+                      : "内容已恢复展示"
             );
         }
         row.setDedupeKey("review:" + event.path("eventId").asString());
@@ -93,7 +160,9 @@ public class NotificationListener {
         row.setChannel(Channel.COMMENT);
         row.setSource("POST");
         row.setType(
-            body.parentCommentId() == null ? NoticeType.POST_COMMENT : NoticeType.COMMENT_REPLY
+            body.parentCommentId() == null
+                ? NoticeType.POST_COMMENT
+                : NoticeType.COMMENT_REPLY
         );
         row.setPostId(body.postId());
         row.setPostTitle(body.postTitle());
@@ -126,7 +195,11 @@ public class NotificationListener {
     }
 
     @RabbitListener(
-        queues = { "meng.im.post.liked", "meng.im.post.favorited", "meng.im.comment.liked" }
+        queues = {
+            "meng.im.post.liked",
+            "meng.im.post.favorited",
+            "meng.im.comment.liked",
+        }
     )
     public void interaction(EventEnvelope<ContentInteractionEvent> event) {
         var body = event.body();
@@ -141,7 +214,9 @@ public class NotificationListener {
                 case "post.liked" -> NoticeType.POST_LIKED;
                 case "post.favorited" -> NoticeType.POST_FAVORITED;
                 case "comment.liked" -> NoticeType.COMMENT_LIKED;
-                default -> throw new IllegalArgumentException("Wrong interaction type");
+                default -> throw new IllegalArgumentException(
+                    "Wrong interaction type"
+                );
             }
         );
         row.setPostId(body.postId());
@@ -193,13 +268,20 @@ public class NotificationListener {
         row.setChannel(Channel.SYSTEM);
         row.setCategory("FOLLOW");
         row.setType(NoticeType.FOLLOWED);
-        row.setDedupeKey("followed:" + event.body().followerId() + ":" + event.body().followeeId());
+        row.setDedupeKey(
+            "followed:" +
+                event.body().followerId() +
+                ":" +
+                event.body().followeeId()
+        );
         notices.receive(row);
     }
 
     private static void check(EventEnvelope<?> event, String expected) {
         if (
-            !expected.equals(event.eventType()) || event.eventId() == null || event.body() == null
+            !expected.equals(event.eventType()) ||
+            event.eventId() == null ||
+            event.body() == null
         ) throw new IllegalArgumentException("Wrong event envelope");
     }
 }

@@ -33,6 +33,7 @@
     <module>meng-content</module>
     <module>meng-growth</module>
     <module>meng-im</module>
+    <module>meng-companion</module>
   </modules>
   <dependencyManagement>
     <dependencies>

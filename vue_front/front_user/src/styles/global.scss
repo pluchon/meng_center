@@ -69,6 +69,9 @@ button {
   }
 }
 
+html.meng-scrollbar-hidden,
+html.meng-scrollbar-hidden body,
+html.meng-scrollbar-hidden .el-overlay-dialog,
 html.account-scrollbar-hidden,
 html.account-scrollbar-hidden body,
 html.search-scrollbar-hidden,
@@ -84,6 +87,9 @@ html.detail-scrollbar-hidden body {
   scrollbar-width: none;
 }
 
+html.meng-scrollbar-hidden::-webkit-scrollbar,
+html.meng-scrollbar-hidden body::-webkit-scrollbar,
+html.meng-scrollbar-hidden .el-overlay-dialog::-webkit-scrollbar,
 html.account-scrollbar-hidden::-webkit-scrollbar,
 html.account-scrollbar-hidden body::-webkit-scrollbar,
 html.search-scrollbar-hidden::-webkit-scrollbar,

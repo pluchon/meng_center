@@ -14,7 +14,7 @@ function Add-Check([string] $Name, [bool] $Passed) {
 try {
     $services = @(& docker @composeArguments ps --format json | ForEach-Object { $_ | ConvertFrom-Json })
     if ($LASTEXITCODE -ne 0) { throw 'Cannot inspect middleware.' }
-    $primary = @($services | Where-Object Service -NE 'xxl-job-bridge')
+    $primary = @($services | Where-Object Service -NotLike '*-bridge')
     Add-Check 'Six middleware containers healthy and internal bridge running' ($primary.Count -eq 6 -and @($primary | Where-Object Health -NE 'healthy').Count -eq 0 -and @($services | Where-Object { $_.Service -eq 'xxl-job-bridge' -and $_.State -eq 'running' }).Count -eq 1)
 
     $query = & docker @composeArguments exec -T mysql sh -c 'MYSQL_PWD="$MENG_MYSQL_USER_PASSWORD" mysql -h 127.0.0.1 -u meng_user_app meng_user -Nse "SELECT DATABASE(), CURRENT_USER(), 1"' 2>$null
