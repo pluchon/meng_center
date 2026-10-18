@@ -561,7 +561,7 @@ public class ReplyService {
         request.put("recalled", memories.recalled());
         request.put("due", memories.due());
         request.put("daily", contexts.daily(session.getCharacterCode(), zone));
-        request.put("examples", contexts.examples(p.bond(), p.content(), card));
+        request.put("examples", contexts.examples(p.bond(), card));
         request.put(
             "previousFeeling",
             Objects.requireNonNullElse(runtime.feeling(session.getId()), "平静")

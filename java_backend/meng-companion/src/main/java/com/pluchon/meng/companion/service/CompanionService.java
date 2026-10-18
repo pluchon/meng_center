@@ -3,6 +3,7 @@ package com.pluchon.meng.companion.service;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.core.page.PageResult;
+import com.pluchon.meng.companion.client.AiClient;
 import com.pluchon.meng.companion.config.CompanionProperties;
 import com.pluchon.meng.companion.controller.CompanionVO;
 import com.pluchon.meng.companion.converter.CompanionConverter;
@@ -15,9 +16,11 @@ import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.json.JsonMapper;
 
 // 查询和管理只处理本人记录，删除会话不删除独立作品
@@ -40,7 +43,10 @@ public class CompanionService {
     private CompanionContext context;
 
     @Autowired
-    private org.springframework.jdbc.core.JdbcTemplate jdbc;
+    private AiClient ai;
+
+    @Autowired
+    private TransactionTemplate transactions;
 
     @Autowired
     private org.springframework.data.redis.core.StringRedisTemplate redis;
@@ -196,17 +202,10 @@ public class CompanionService {
         mapper.lockBond(user, session.getCharacterCode());
         mapper.lockSession(id, user);
         mapper.deleteSession(id, user);
-        jdbc.update(
-            "UPDATE companion_message SET turn_state='FAILED' WHERE session_id=? AND turn_state IN ('RECEIVED','CONTEXT_READY','GENERATING','CHECKED')",
-            id
-        );
+        runtime.failSessionTurns(id);
         if (forget) {
             mapper.invalidate(user, session.getCharacterCode());
-            jdbc.update(
-                "UPDATE companion_memory SET invalid_at=UTC_TIMESTAMP(6),embedding=NULL WHERE user_id=? AND source_session_id=? AND invalid_at IS NULL",
-                user,
-                id
-            );
+            runtime.forgetSessionMemories(user, id);
             clearDerived(user, session.getCharacterCode());
         }
     }
@@ -282,16 +281,8 @@ public class CompanionService {
     }
 
     private void clearDerived(long user, String code) {
-        jdbc.update(
-            "UPDATE companion_bond SET profile='',profile_revision=profile_revision+1 WHERE user_id=? AND character_code=?",
-            user,
-            code
-        );
-        jdbc.update(
-            "UPDATE companion_episode SET delete_state=1,embedding=NULL WHERE user_id=? AND character_code=?",
-            user,
-            code
-        );
+        runtime.clearProfile(user, code);
+        runtime.clearEpisodes(user, code);
         redis.delete("meng:companion:memo:" + user + ":" + code);
     }
 
@@ -307,7 +298,6 @@ public class CompanionService {
         runtime.zone(user, code, CompanionContext.zone(zone));
     }
 
-    @Transactional(rollbackFor = Exception.class)
     public void editMemory(
         long user,
         long id,
@@ -317,25 +307,48 @@ public class CompanionService {
         if (code == null) throw new BusinessException(
             CommonErrorCode.NOT_FOUND
         );
-        mapper.lockBond(user, code);
         if (
-            body.content() != null && !CompanionRules.safeMemory(body.content())
+            body.content() != null &&
+            !CompanionRules.validMemory(body.content())
         ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-        if (body.content() != null) jdbc.update(
-            "UPDATE companion_memory SET content=?,content_hash=?,embedding=NULL,keywords=NULL WHERE id=? AND user_id=? AND invalid_at IS NULL",
-            body.content().strip(),
-            hash(body.content().strip()),
-            id,
-            user
-        );
-        if (body.pinned() != null) jdbc.update(
-            "UPDATE companion_memory SET pinned=? WHERE id=? AND user_id=? AND invalid_at IS NULL",
-            body.pinned(),
-            id,
-            user
-        );
-        mapper.invalidate(user, code);
-        clearDerived(user, code);
+        if (body.content() != null) {
+            var review = ai.compute(
+                "memory-reviews",
+                Map.of(
+                    "userId",
+                    user,
+                    "character",
+                    code,
+                    "content",
+                    body.content()
+                )
+            );
+            if (
+                !review.path("reviewed").asBoolean()
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            if (!review.path("safe").asBoolean()) throw new BusinessException(
+                CommonErrorCode.INVALID_ARGUMENT
+            );
+        }
+        transactions.executeWithoutResult(status -> {
+            mapper.lockBond(user, code);
+            if (
+                !code.equals(mapper.memoryCode(id, user))
+            ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+            if (body.content() != null) runtime.editMemory(
+                body.content().strip(),
+                hash(body.content().strip()),
+                id,
+                user
+            );
+            if (body.pinned() != null) runtime.pinMemory(
+                body.pinned(),
+                id,
+                user
+            );
+            mapper.invalidate(user, code);
+            clearDerived(user, code);
+        });
     }
 
     public String calendar(long user, long id) {

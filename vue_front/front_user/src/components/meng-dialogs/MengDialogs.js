@@ -168,7 +168,7 @@ export default defineComponent({
         await companionApi.editMemory(item.id, body)
         if (body.content != null) delete memoryEdits[item.id]
         await loadMemory()
-        await context.loadSide()
+        if (context.chatting) await context.loadSide()
       } catch (error) {
         notifyFailure(error)
       } finally {

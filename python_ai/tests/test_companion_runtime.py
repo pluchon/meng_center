@@ -136,7 +136,10 @@ async def test_gateway_uses_shared_redis_bucket_and_rejects_round_budget_before_
     redis.eval.return_value = 1
     gateway = ModelGateway(Settings.model_construct(), redis)
     await asyncio.gather(gateway.acquire("a", 100), gateway.acquire("b", 100))
-    assert {call.args[2] for call in redis.eval.await_args_list} == {"meng:ai:ratelimit:account"}
+    assert {call.args[2] for call in redis.eval.await_args_list} == {
+        "meng:ai:ratelimit:account",
+        gateway.daily_key(),
+    }
     context = CURRENT.set(RoundUsage(tokens=24000))
     try:
         with pytest.raises(BudgetExceeded):

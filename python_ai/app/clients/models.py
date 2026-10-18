@@ -16,12 +16,12 @@ from app.config.settings import Settings
 
 
 class ModelFactory:
-    def __init__(self, settings: Settings, redis: Redis) -> None:
+    def __init__(self, settings: Settings, redis: Redis, budget_prefix: str | None = None) -> None:
         os.environ["LANGSMITH_TRACING"] = "false"
         os.environ["LANGCHAIN_TRACING_V2"] = "false"
         self.settings = settings
         self.redis = redis
-        self.gateway = ModelGateway(settings, redis)
+        self.gateway = ModelGateway(settings, redis, budget_prefix)
         role_models = {
             "classifier": settings.classifier_model,
             "writer": settings.writer_model,
@@ -30,7 +30,6 @@ class ModelFactory:
             "cover": settings.cover_model,
             "companion": settings.companion_model,
             "brain": settings.brain_model,
-            "rerank": settings.rerank_model,
         }
         limits = {model: asyncio.Semaphore(settings.concurrency) for model in set(role_models.values())}
         self.semaphores = {role: limits[model] for role, model in role_models.items()}
@@ -79,8 +78,7 @@ class ModelFactory:
 
     @asynccontextmanager
     async def usage(self) -> AsyncIterator[UsageMetadataCallbackHandler]:
-        date = datetime.now(ZoneInfo(self.settings.timezone)).strftime("%Y%m%d")
-        key = f"ai:tokens:{date}"
+        key = self.gateway.daily_key()
         if int(await self.redis.get(key) or 0) >= self.settings.daily_token_limit:
             raise BudgetExceeded
         current = CURRENT.get()
@@ -99,7 +97,7 @@ class ModelFactory:
             response = await self.gateway.invoke(
                 self.settings.embedding_model,
                 "embedding",
-                sum(map(len, texts)),
+                sum(len(text.encode("utf-8")) for text in texts),
                 lambda: self.embeddings.async_client.create(
                     input=texts,
                     model=self.settings.embedding_model,

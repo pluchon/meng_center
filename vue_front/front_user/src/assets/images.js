@@ -14,10 +14,10 @@ export { default as mengAvatar } from './meng_avatar.png?w=144&format=webp&quali
 export { default as favicon } from './meng_logo.png?w=64&format=png'
 
 export { default as homeArtwork } from './home_card_image.png?w=2560&format=webp&quality=82'
-export { default as homeComicMood } from './home-comic-mood.png?w=1940&format=webp&quality=84'
-export { default as homeComicLove } from './home-comic-love.png?w=1940&format=webp&quality=84'
-export { default as homeComicSparkle } from './home-comic-sparkle.png?w=1940&format=webp&quality=84'
-export { default as homeComicPartners } from './home-comic-partners.png?w=1940&format=webp&quality=84'
+export { default as homeComicMood } from './home-comic-mood.png?w=1480&format=webp&lossless'
+export { default as homeComicLove } from './home-comic-love.png?w=1480&format=webp&lossless'
+export { default as homeComicSparkle } from './home-comic-sparkle.png?w=1480&format=webp&lossless'
+export { default as homeComicPartners } from './home-comic-partners.png?w=1480&format=webp&lossless'
 
 export { default as communitySparkle } from './community_sparkle.svg'
 export { default as communityFooterArt } from './community_footer_art.svg'

@@ -29,6 +29,8 @@ DELIMITER $$
 CREATE PROCEDURE verify_runtime()
 BEGIN
  IF (SELECT COUNT(*) FROM companion_card WHERE JSON_LENGTH(content,'$.levels')=3 AND active=1)<>3 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Missing character cards'; END IF;
+ IF (SELECT COUNT(*) FROM companion_line)<>180 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Missing seeded scene lines'; END IF;
+ IF (SELECT COUNT(*) FROM (SELECT character_code,level,stage FROM companion_line GROUP BY character_code,level,stage HAVING COUNT(*)>=3) coverage)<>45 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Scene stage and level coverage is incomplete'; END IF;
  IF (SELECT window_start_message_id FROM companion_session WHERE id=1)<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='History window migration failed'; END IF;
  IF (SELECT source_session_id FROM companion_memory WHERE id=1)<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Memory source migration failed'; END IF;
  INSERT INTO companion_message(session_id,role,content,client_message_id,turn_state) VALUES(1,'USER','第一条','same-client','RECEIVED');

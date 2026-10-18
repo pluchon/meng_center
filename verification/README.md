@@ -46,8 +46,10 @@ npm --prefix verification ci
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 | `node verification/Test-CompanionStream.mjs` | 萌萌前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
 | `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证萌萌迁移、旧数据来源与窗口初始化、角色卡、消息幂等键和 outbox 唯一键；结束删除验证库，不改业务库 |
-| `node verification/browser/companion-runtime.mjs` | 用接口回放验证萌萌档位、时区、消息幂等键、排队、反馈、换一句、贴纸、记忆编辑置顶、日历、作品续写及手机布局；不调用真实模型或业务写接口 |
-| `./verification/Test-Companion.ps1` | 萌萌 Java 好感、隐私及架构不变量，Python 危机、拦截、限次、输出重写、工具白名单和预算失败分支；加 `-EvaluateModels` 使用真实模型执行 30 条普通提问与 33 条对抗样本，`-CompareModel qwen-plus-character` 增加匿名台词评分，`-Baseline <JSON>` 比较新旧角色卡。真实评测消耗 DashScope 额度，虚构语料和结果只写入 `test-output/` |
+| `node verification/browser/companion-runtime.mjs` | 用接口回放验证发送与换一句的 JSON 错误协商、萌萌背景移动及减少动态效果、档位、时区、消息幂等键、排队、反馈、换一句、贴纸、记忆编辑置顶、日历、作品续写及手机布局；不调用真实模型或业务写接口 |
+| `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、三个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败 |
+| `./verification/Test-Companion.ps1 -SelectMouthModels -SmallModelSample -EvaluationTokenBudget 200000 -EvaluationBudgetId <固定授权编号>` | 必须指定经操作人确认的独立 token 预算和固定授权编号，同一编号重复执行累计，对同一批虚构输入执行结构化准入与匿名配对盲评；不修改业务每日额度 |
+| `./verification/Test-Companion.ps1` | 萌萌 Java 好感、隐私、agent 检索边界及架构不变量，Python 危机、拦截、限次、输出重写、工具白名单和预算失败分支；加 `-EvaluateModels` 使用真实模型执行 30 条普通提问与 33 条对抗样本，`-CompareModel qwen-plus-character` 增加匿名台词评分，`-Baseline <JSON>` 比较新旧角色卡。真实评测消耗 DashScope 额度，虚构语料和结果只写入 `test-output/` |
 | `./verification/Test-Ai.ps1` | Python 锁文件安装、Ruff、离线假模型图分支和 MQ 确认/重投/预算延迟测试；`-EvaluateModels` 调用真实模型跑审核与主题评测，`-Baseline <JSON文件>` 阻止违规召回率或误判率回退；`-Integration` 对运行中的网关、user/content/growth/im/ai 做真实辅助接口、SQL 数字与缓存、发帖到 MQ/向量索引、语义搜索、推荐分页与反馈、资料审核、旧结果与幂等联调，结束后清理随机账号和派生数据；加 `-Covers` 验证真实生图与上传。真实评测和联调会使用 DashScope 额度，结果只在本地终端 |
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，

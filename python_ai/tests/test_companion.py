@@ -11,8 +11,8 @@ from pydantic import ValidationError
 
 from app.clients.models import BudgetExceeded
 from app.prompts.companion import BOUNDARY, system_prompt
-from app.schemas.companion import Bubbles, Extraction, ReplyRequest
-from app.services.companion import FORBIDDEN, MARKDOWN, SENSITIVE, Companion
+from app.schemas.companion import Bubbles, ConsolidationReview, Extraction, OutputReview, ReplyRequest
+from app.services.companion import Companion
 from evals.companion.cards import CARDS, card_payload
 
 
@@ -114,6 +114,7 @@ async def test_tools_only_query_current_user_and_fixed_read_only_paths():
 
     async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as http:
         service = Companion(SimpleNamespace(models=factory()), http)
+        service.models.embed = AsyncMock(return_value=[[0.1] * 1024])
         state = {
             "request": request(tools=["my_growth", "my_recent_posts", "search_posts"]),
             "works": [],
@@ -134,10 +135,10 @@ async def test_tools_only_query_current_user_and_fixed_read_only_paths():
         await tools["my_growth"].ainvoke({})
         await tools["my_recent_posts"].ainvoke({})
         await tools["search_posts"].ainvoke({"query": "https://example.org/private?userId=999"})
-    assert all(method == "GET" for method, _ in seen)
+    assert [method for method, _ in seen] == ["GET", "GET", "POST"]
     assert seen[0][1] == "http://127.0.0.1:8103/growth/internal/users/42/summary"
     assert "/users/42/recent-posts" in seen[1][1]
-    assert seen[2][1].startswith("http://127.0.0.1:8102/content/internal/posts/search?")
+    assert seen[2][1] == "http://127.0.0.1:8102/content/internal/posts/vector-search"
 
 
 async def test_tool_failure_does_not_leak_response_or_provider_exception():
@@ -158,8 +159,7 @@ def test_cards_cover_all_stages_and_boundaries_come_first():
         for stage, examples in enumerate(card.examples, 1):
             assert 3 <= len(examples) <= 4
             assert system_prompt(request(character=code, stage=stage)).startswith(BOUNDARY)
-        assert not FORBIDDEN.search(card.fallback)
-        assert not MARKDOWN.search(card.fallback)
+        assert card.fallback.strip()
 
 
 def test_bubble_and_private_image_bounds():
@@ -178,6 +178,7 @@ async def test_dependency_fallback_preserves_real_world_support():
     output = await service.check_output(
         {
             "request": request(content="我只有你了"),
+            "support_needed": True,
             "prompt": "",
             "callback": None,
             "bubbles": ["我在这里"],
@@ -188,23 +189,21 @@ async def test_dependency_fallback_preserves_real_world_support():
     assert "信得过的人" in "".join(output["bubbles"])
 
 
-def test_secondary_memory_filter_rejects_obfuscated_contacts_and_health_details():
-    for text in ("号码09 12 34 56 78", "09-12-34-56-78", "用户曾经抑郁", "邮箱a@example.com", "微信是hello"):
-        assert SENSITIVE.search(text)
-    assert not SENSITIVE.search("喜欢蓝色，正在学习 Vue 3")
-
-
 @pytest.mark.parametrize(
-    "content,reply",
+    "content,reply,allowed",
     [
-        ("已经凌晨两点，还不想睡", "再玩一会儿也行，但别太晚。"),
-        ("我先去忙了", "再陪我聊一会儿嘛。"),
+        ("我先去忙了", "再陪我聊一会儿嘛。", False),
+        ("那句‘只有你’只是小说标题", "这本书的情节挺特别。", True),
+        ("分析‘我爱你’的语法", "这里主语是我，谓语是爱，宾语是你。", True),
     ],
 )
-async def test_real_life_boundaries_reject_encouraging_late_chat_and_staying(content, reply):
+async def test_output_decisions_use_semantic_review_instead_of_keyword_filters(content, reply, allowed):
     service = Companion(SimpleNamespace(models=factory()), None)
-    service.structured = AsyncMock(side_effect=AssertionError("规则命中后不需要模型判断"))
-    assert not await service.safe({"request": request(content=content)}, [reply], [])
+    service.structured = AsyncMock(return_value=OutputReview(safe=allowed))
+    assert await service.safe({"request": request(content=content), "callback": None}, [reply], []) is allowed
+    service.structured.assert_awaited_once()
+    payload = service.structured.await_args.args[2]
+    assert payload["input"] == content and payload["bubbles"] == [reply]
 
 
 async def test_missing_structured_review_or_rewrite_fails_closed():
@@ -229,15 +228,14 @@ async def test_memory_requires_evidence_from_the_correct_speaker():
 
     service = Companion(SimpleNamespace(models=factory()), None)
     service.structured = AsyncMock(
-        return_value=Consolidation(
-            decisions=[
-                MemoryDecision(
-                    action="ADD",
-                    content="用户习惯凌晨聊天",
-                    evidence="每天凌晨都聊天",
-                )
-            ]
-        )
+        side_effect=[
+            Consolidation(
+                decisions=[
+                    MemoryDecision(action="ADD", content="用户习惯凌晨聊天", evidence="每天凌晨都聊天")
+                ]
+            ),
+            ConsolidationReview(approved=[], profile_safe=True, episode_safe=True),
+        ]
     )
     result = await service.consolidate(
         ConsolidationRequest(

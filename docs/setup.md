@@ -56,9 +56,9 @@
 | `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_ACCESS_KEY_SECRET` | 阿里云短信 |
 | `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen 文本、向量和图像），只给 ai 服务用 |
 
-AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`：`CLASSIFIER_MODEL`、`WRITER_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`COVER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`RERANK_MODEL`、`BASE_URL`、`COVER_URL`、`RERANK_URL`、`STRUCTURED_METHOD`、`SPEECH_STRUCTURED_METHOD`、`CONCURRENCY`、`DAILY_TOKEN_LIMIT`、`TIMEZONE`。嘴默认使用普通 JSON 输出，不依赖 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
+AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`：`CLASSIFIER_MODEL`、`WRITER_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`COVER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`BASE_URL`、`COVER_URL`、`STRUCTURED_METHOD`、`SPEECH_STRUCTURED_METHOD`、`CONCURRENCY`、`DAILY_TOKEN_LIMIT`、`TIMEZONE`。嘴默认使用普通 JSON 输出，不依赖 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
 
-网关限流配置为 `REQUESTS_PER_MINUTE`、`TOKENS_PER_MINUTE`、`MODEL_QUEUE_SECONDS`、`CIRCUIT_SECONDS`；单轮和单用户每日预算为 `ROUND_TOKEN_LIMIT`、`USER_DAILY_TOKEN_LIMIT`。额度由 Redis 共享，本机并发限制单独保留。`INPUT_PRICE_PER_MILLION`、`OUTPUT_PRICE_PER_MILLION` 和 `CACHED_PRICE_RATIO` 用于估算费用；未配置单价时默认零，不能据此认定调用免费。
+网关限流配置为 `REQUESTS_PER_MINUTE`、`TOKENS_PER_MINUTE`、`MODEL_QUEUE_SECONDS`、`CIRCUIT_SECONDS`；单轮和单用户每日预算为 `ROUND_TOKEN_LIMIT`、`USER_DAILY_TOKEN_LIMIT`。全站每日 token 上限默认 50,000,000，由 `MENG_AI_DAILY_TOKEN_LIMIT` 覆盖；调整上限保留当天已用计数。额度由 Redis 共享，每次请求先原子预留输入估算与最大输出，再按实际用量结算；失败或用量缺失时保留预留量。跨日请求结算回原预算键，本机并发限制单独保留。`INPUT_PRICE_PER_MILLION`、`OUTPUT_PRICE_PER_MILLION` 和 `CACHED_PRICE_RATIO` 用于估算费用；未配置单价时默认零，不能据此认定调用免费。
 
 萌萌执行器端口为 `MENG_COMPANION_JOB_PORT`（默认 9107），只允许调度中心内部转发器访问。任务日志位于作品目录同级的 `companion-job-logs/`。服务本机的 `/actuator/metrics` 提供 `companion.*` 指标，包括首个气泡 P50/P95、降级、重写、token、缓存 token、估算费用和发件箱积压；指标不包含聊天正文。
 
@@ -77,7 +77,7 @@ SMTP 主机和端口、短信签名、各短信模板编号、手机号地区名
 | 基础包 | `com.pluchon.meng.common.core`、`com.pluchon.meng.common.web`、`com.pluchon.meng.api.user`、`com.pluchon.meng.gateway`、`com.pluchon.meng.user` |
 | 服务名 | `meng-gateway`、`meng-user`、`meng-content`、`meng-growth`、`meng-im`、`meng-companion` |
 | 服务端口 | 网关 8080，user 8101，content 8102，growth 8103，im 8104，ai 8106，companion 8107；均监听本机 |
-| 前端端口 | `front_user` 5173，`front_admin` 5174 |
+| 前端端口 | 当前仅 `front_user` 5173；管理端前端已移除 |
 | 中间件端口 | 见 `deploy/ports.env`。宿主机端口被占用时只改这里的映射 |
 | Nacos | namespace `meng-dev`；Group `MENG_GROUP`；Data ID `meng-common.yml`、`meng-gateway.yml`、`meng-user.yml`、`meng-content.yml`、`meng-growth.yml`、`meng-im.yml`、`meng-companion.yml` |
 | MySQL | 五个库 `meng_user`、`meng_content`、`meng_growth`、`meng_im`、`meng_companion`；各自 `meng_<域>_app` 独立账号，只授权自己的库，字符集 `utf8mb4` |

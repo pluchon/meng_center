@@ -62,7 +62,7 @@ async function streamCompanion(path, body, { signal, onEvent }) {
       method: 'POST',
       credentials: 'include',
       signal,
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream', ...headers() },
+      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json', ...headers() },
       body: JSON.stringify(body),
     })
   } catch {

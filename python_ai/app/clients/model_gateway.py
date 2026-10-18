@@ -49,16 +49,23 @@ return 1
 
 
 class ModelGateway:
-    def __init__(self, settings, redis):
+    def __init__(self, settings, redis, budget_prefix: str | None = None):
         self.settings, self.redis = settings, redis
+        self.budget_prefix = budget_prefix
 
-    async def acquire(self, model: str, estimate: int) -> None:
+    def daily_key(self) -> str:
+        if self.budget_prefix:
+            return self.budget_prefix
+        date = datetime.now(ZoneInfo(self.settings.timezone)).strftime("%Y%m%d")
+        return f"ai:tokens:{date}"
+
+    async def acquire(self, model: str, estimate: int) -> str:
+        budget_key = self.daily_key()
         current = CURRENT.get()
         if current and current.tokens + estimate > self.settings.round_token_limit:
             current.degraded = True
             raise BudgetExceeded
-        date = datetime.now(ZoneInfo(self.settings.timezone)).strftime("%Y%m%d")
-        if int(await self.redis.get(f"ai:tokens:{date}") or 0) >= self.settings.daily_token_limit:
+        if int(await self.redis.get(budget_key) or 0) >= self.settings.daily_token_limit:
             raise BudgetExceeded
         if await self.redis.exists(f"meng:ai:circuit:{model}"):
             raise RuntimeError("model circuit open")
@@ -73,22 +80,49 @@ class ModelGateway:
                 estimate,
             )
             if allowed:
-                return
+                # 每种预算都先原子预留，避免并行请求分别看到余额而共同超额。
+                # 评测预算按固定编号累计，不能通过重启或跨日重新获得已授权的额度。
+                reserved = await self.redis.eval(
+                    "local n=tonumber(redis.call('GET',KEYS[1]) or 0); "
+                    "if n+tonumber(ARGV[1])>tonumber(ARGV[2]) then return 0 end; "
+                    "redis.call('INCRBY',KEYS[1],ARGV[1]); "
+                    "if ARGV[3]=='daily' then redis.call('EXPIRE',KEYS[1],172800) end; return 1",
+                    1,
+                    budget_key,
+                    estimate,
+                    self.settings.daily_token_limit,
+                    "fixed" if self.budget_prefix else "daily",
+                )
+                if not reserved:
+                    raise BudgetExceeded
+                return budget_key
             if time.monotonic() >= deadline:
                 raise BudgetExceeded
             await asyncio.sleep(0.05)
 
-    async def record(self, model: str, role: str, usage: dict, elapsed: float) -> None:
+    async def record(
+        self,
+        model: str,
+        role: str,
+        usage: dict,
+        elapsed: float,
+        reserved: int = 0,
+        budget_key: str | None = None,
+    ) -> None:
+        # 跨过午夜的请求必须结算回预留时的预算键。
+        budget_key = budget_key or self.daily_key()
         input_tokens = int(usage.get("input_tokens", 0))
         output_tokens = int(usage.get("output_tokens", 0))
         cached = int(usage.get("input_token_details", {}).get("cache_read", 0))
-        total = input_tokens + output_tokens
+        total = input_tokens + output_tokens if "input_tokens" in usage else reserved
         cost = (
             (input_tokens - cached + cached * self.settings.cached_price_ratio)
             * self.settings.input_price_per_million
             + output_tokens * self.settings.output_price_per_million
         ) / 1_000_000
         record = {
+            "budgetKey": budget_key,
+            "accountedTokens": total,
             "role": role,
             "model": model,
             "input": input_tokens,
@@ -108,10 +142,13 @@ class ModelGateway:
                 "character": current.character if current else "",
             }
         )
-        if total:
-            date = datetime.now(ZoneInfo(self.settings.timezone)).strftime("%Y%m%d")
+        if total or reserved:
+            delta = total - reserved
             async with self.redis.pipeline(transaction=True) as pipe:
-                await pipe.incrby(f"ai:tokens:{date}", total).expire(f"ai:tokens:{date}", 172800).execute()
+                pipe.incrby(budget_key, delta)
+                if not self.budget_prefix:
+                    pipe.expire(budget_key, 172800)
+                await pipe.execute()
         if current:
             current.tokens += total
             current.calls.append(record)
@@ -144,7 +181,7 @@ class ModelGateway:
     ):
         start = time.monotonic()
         for attempt in range(2 if retry else 1):
-            await self.acquire(model, estimate)
+            budget_key = await self.acquire(model, estimate)
             try:
                 result = await call()
             except Exception as error:
@@ -153,7 +190,9 @@ class ModelGateway:
                     raise
                 await asyncio.sleep(0.15)
                 continue
-            await self.record(model, role, usage(result), time.monotonic() - start)
+            await self.record(
+                model, role, usage(result), time.monotonic() - start, reserved=estimate, budget_key=budget_key
+            )
             return result
 
     async def failure(self, model: str) -> None:
@@ -173,21 +212,21 @@ class GatewayChatOpenAI(ChatOpenAI):
         return self
 
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
-        from app.services.companion_context import tokens
-
         estimate = int(self.max_tokens or 1600)
         for message in messages:
+            estimate += 64
             if isinstance(message.content, str):
-                estimate += tokens(message.content)
+                estimate += len(message.content.encode("utf-8"))
             else:
                 estimate += sum(
-                    1024 if item.get("type") == "image_url" else tokens(item.get("text", ""))
+                    2048 if item.get("type") == "image_url" else len(item.get("text", "").encode("utf-8"))
                     for item in message.content
                     if isinstance(item, dict)
                 )
+        estimate += len(json.dumps(kwargs, ensure_ascii=False, default=str).encode("utf-8"))
         start = time.monotonic()
         for attempt in range(2):
-            await self._gateway.acquire(self.model_name, estimate)
+            budget_key = await self._gateway.acquire(self.model_name, estimate)
             try:
                 result = await super()._agenerate(messages, stop=stop, run_manager=run_manager, **kwargs)
             except Exception as error:
@@ -196,11 +235,13 @@ class GatewayChatOpenAI(ChatOpenAI):
                     raise
                 await asyncio.sleep(0.15)
                 continue
-            for generation in result.generations:
+            for index, generation in enumerate(result.generations):
                 await self._gateway.record(
                     self.model_name,
                     self._role,
                     generation.message.usage_metadata or {},
                     time.monotonic() - start,
+                    reserved=estimate if index == 0 else 0,
+                    budget_key=budget_key,
                 )
             return result

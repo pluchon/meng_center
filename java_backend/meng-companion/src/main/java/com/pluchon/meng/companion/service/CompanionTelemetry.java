@@ -1,9 +1,9 @@
 package com.pluchon.meng.companion.service;
 
+import com.pluchon.meng.companion.mapper.RuntimeMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import java.util.concurrent.TimeUnit;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 
@@ -14,23 +14,21 @@ public class CompanionTelemetry {
     private final MeterRegistry registry;
     private final Timer latency;
 
-    public CompanionTelemetry(MeterRegistry registry, JdbcTemplate jdbc) {
+    public CompanionTelemetry(MeterRegistry registry, RuntimeMapper runtime) {
         this.registry = registry;
         latency = Timer.builder("companion.first.bubble")
             .publishPercentileHistogram()
             .publishPercentiles(0.5, 0.95)
             .register(registry);
-        registry.gauge("companion.outbox.pending", jdbc, j ->
-            j.queryForObject(
-                "SELECT COUNT(*) FROM companion_outbox WHERE status='PENDING'",
-                Double.class
-            )
+        registry.gauge(
+            "companion.outbox.pending",
+            runtime,
+            RuntimeMapper::pendingOutboxCount
         );
-        registry.gauge("companion.feedback.today", jdbc, j ->
-            j.queryForObject(
-                "SELECT COUNT(*) FROM companion_feedback WHERE create_time>=UTC_DATE()",
-                Double.class
-            )
+        registry.gauge(
+            "companion.feedback.today",
+            runtime,
+            RuntimeMapper::todayFeedbackCount
         );
     }
 

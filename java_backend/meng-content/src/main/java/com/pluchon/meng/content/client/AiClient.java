@@ -5,12 +5,17 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
-@FeignClient(name = "meng-ai", contextId = "contentAi", url = "${meng.content.ai.url:}")
+@FeignClient(
+    name = "meng-ai",
+    contextId = "contentAi",
+    url = "${meng.content.ai.url:}"
+)
 // AI 计算接口与调用超时约束
 public interface AiClient {
-    tools.jackson.databind.json.JsonMapper JSON = tools.jackson.databind.json.JsonMapper.builder()
-        .findAndAddModules()
-        .build();
+    tools.jackson.databind.json.JsonMapper JSON =
+        tools.jackson.databind.json.JsonMapper.builder()
+            .findAndAddModules()
+            .build();
 
     private static Map<String, Object> output(Object value) {
         return JSON.convertValue(
@@ -34,6 +39,18 @@ public interface AiClient {
         @RequestBody AiComputation.EmbeddingsRequest body,
         feign.Request.Options options
     );
+
+    @PostMapping("/ai/internal/retrievals")
+    AiComputation.RetrievalResponse computeRetrievals(
+        @RequestBody AiComputation.RetrievalRequest body,
+        feign.Request.Options options
+    );
+
+    default AiComputation.RetrievalResponse retrieve(
+        AiComputation.RetrievalRequest body
+    ) {
+        return computeRetrievals(body, deadline(12000));
+    }
 
     @PostMapping("/ai/internal/tag-suggestions")
     AiComputation.TagsResponse computeTags(
@@ -76,7 +93,10 @@ public interface AiClient {
 
     default Map<String, Object> tags(Map<String, Object> body) {
         return output(
-            computeTags(JSON.convertValue(body, AiComputation.DraftRequest.class), deadline(8000))
+            computeTags(
+                JSON.convertValue(body, AiComputation.DraftRequest.class),
+                deadline(8000)
+            )
         );
     }
 

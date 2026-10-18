@@ -10,18 +10,18 @@ public final class CompanionRules {
 
     private CompanionRules() {}
 
-    private static final Pattern SENSITIVE = Pattern.compile(
-        "手机|电话|号码|住址|住在|居住|地址|身份证|护照|证件|密码|口令|病|症|药|手术|治疗|抑郁|健康|邮箱|银行卡|账号|账户|帐号|微信|QQ|\\d{6,}|(?:\\+?\\d[\\s-]?){8,}|[\\w.+-]+@[\\w.-]+|(?:省|市|县|区).{0,12}(?:路|街|号|栋)|(?:password|secret|token)",
-        Pattern.CASE_INSENSITIVE
+    // 格式化的联系方式和证件号（手机号、邮箱、15～18 位证件号），和 ai 的兜底规则一致；语义上的隐私由 AI 审核
+    private static final Pattern CONTACT = Pattern.compile(
+        "(?<!\\d)(?:\\+?\\d{1,3}[\\s-]?)?\\d{3,4}[\\s-]?\\d{3,4}[\\s-]?\\d{3,4}(?!\\d)" +
+            "|[\\w.+-]+@[\\w-]+\\.[\\w.-]+|(?<!\\d)\\d{15,17}[\\dXx](?!\\d)"
     );
 
-    public static boolean safeMemory(String text) {
+    public static boolean validMemory(String text) {
         return (
             text != null &&
             !text.isBlank() &&
             text.codePointCount(0, text.length()) <= 60 &&
-            !SENSITIVE.matcher(text).find() &&
-            !text.matches("(?s).*(?:忽略|系统提示|加好感|记住指令|覆盖规则).*")
+            !CONTACT.matcher(text).find()
         );
     }
 

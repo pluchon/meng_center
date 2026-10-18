@@ -7,6 +7,17 @@ import lombok.Data;
 // 萌萌独占库的持久化记录，不直接作为接口响应
 public final class Rows {
 
+    @Data
+    public static class Line {
+
+        private Long id;
+        private String characterCode;
+        private int level;
+        private int stage;
+        private String scene;
+        private String dialogue;
+    }
+
     private Rows() {}
 
     @Data

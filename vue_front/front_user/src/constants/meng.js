@@ -9,6 +9,7 @@ export const Companion = Object.freeze({
   TYPE_MIN_MS: 600,
   TYPE_MAX_MS: 2500,
   POLL_MS: 3000,
+  SIDE_REFRESH_MS: 30000,
   MEMORY_KINDS: ['NAME', 'LIKE', 'LIFE', 'PROMISE', 'SELF'],
 })
 export const CompanionEvent = Object.freeze({

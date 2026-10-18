@@ -56,7 +56,7 @@ public class PostSearchService {
     }
 
     // 语义搜索已完成准入检查，降级时不重复扣频率额度。
-    PageResult<SearchPostVO> search(
+    public PageResult<SearchPostVO> search(
         String input,
         PostCategory category,
         PostSort sort,

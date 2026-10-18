@@ -3,14 +3,27 @@ package com.pluchon.meng.companion.service;
 import com.pluchon.meng.common.core.event.EventEnvelope;
 import com.pluchon.meng.companion.client.AiClient;
 import com.pluchon.meng.companion.entity.Rows;
-import com.pluchon.meng.companion.mapper.*;
+import com.pluchon.meng.companion.mapper.CompanionMapper;
+import com.pluchon.meng.companion.mapper.RuntimeMapper;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.*;
-import java.util.*;
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.HexFormat;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.databind.JsonNode;
@@ -19,9 +32,6 @@ import tools.jackson.databind.json.JsonMapper;
 // 模型计算在事务外进行，提交时重新锁关系并校验 revision；过期结果不能恢复已删除的记忆。
 @Service
 public class CompanionBackground {
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private CompanionMapper mapper;
@@ -65,7 +75,7 @@ public class CompanionBackground {
             bond == null ||
             bond.getRevision() != body.path("revision").asLong() ||
             mapper.session(sessionId, user) == null ||
-                !code.equals(mapper.session(sessionId, user).getCharacterCode())
+            !code.equals(mapper.session(sessionId, user).getCharacterCode())
         ) {
             markProcessed(event.eventId());
             return;
@@ -74,17 +84,10 @@ public class CompanionBackground {
             com.pluchon.meng.common.core.event.EventEnvelope<JsonNode>
         >();
         batch.add(event);
-        var position = jdbc.queryForList(
-            "SELECT id FROM companion_outbox WHERE event_id=?",
-            event.eventId()
-        );
+        var position = runtime.outboxRows(event.eventId());
         if (!position.isEmpty()) {
             long start = ((Number) position.get(0).get("id")).longValue();
-            for (var row : jdbc.queryForList(
-                "SELECT event_id,payload FROM companion_outbox WHERE id>? AND id<? AND event_type='turn.committed' ORDER BY id",
-                start,
-                start + 32
-            )) {
+            for (var row : runtime.followingTurnEvents(start, start + 32)) {
                 var next = json.readTree(row.get("payload").toString());
                 String id = row.get("event_id").toString();
                 if (batch.size() >= 5) break;
@@ -116,11 +119,7 @@ public class CompanionBackground {
         var history = new ArrayList<Rows.Message>();
         for (var item : batch)
             history.addAll(
-                jdbc.query(
-                    "SELECT * FROM companion_message WHERE turn_id=? AND session_id=? AND completed=1 AND delete_state=0 AND work_id IS NULL ORDER BY id",
-                    new org.springframework.jdbc.core.BeanPropertyRowMapper<>(
-                        Rows.Message.class
-                    ),
+                runtime.turnMessages(
                     item.body().path("messageId").asLong(),
                     item.body().path("sessionId").asLong()
                 )
@@ -204,12 +203,7 @@ public class CompanionBackground {
                 }
                 if ("INVALIDATE".equals(action)) {
                     invalidated = true;
-                    jdbc.update(
-                        "UPDATE companion_memory SET invalid_at=UTC_TIMESTAMP(6) WHERE id=? AND user_id=? AND character_code=? AND invalid_at IS NULL",
-                        oldId,
-                        user,
-                        code
-                    );
+                    runtime.invalidateMemory(oldId, user, code);
                     changed++;
                     index++;
                     continue;
@@ -257,48 +251,29 @@ public class CompanionBackground {
                 mapper.insertMemory(memory);
                 if ("SUPERSEDE".equals(action)) {
                     invalidated = true;
-                    jdbc.update(
-                        "UPDATE companion_memory SET invalid_at=UTC_TIMESTAMP(6),superseded_by=? WHERE id=? AND user_id=? AND character_code=? AND invalid_at IS NULL",
-                        memory.getId(),
-                        oldId,
-                        user,
-                        code
-                    );
+                    runtime.supersedeMemory(memory.getId(), oldId, user, code);
                 }
                 changed++;
                 index++;
             }
             String profile = result.path("profile").asString("");
             // 失效事实可能已进入旧画像，先清除派生内容，避免继续注入。
-            if (invalidated) jdbc.update(
-                "UPDATE companion_bond SET profile='' WHERE id=?",
-                current.getId()
-            );
+            if (invalidated) runtime.clearProfileById(current.getId());
             if (
                 !profile.isBlank() &&
                 profile.length() <= 300 &&
-                safeText(profile) &&
                 changed > 0 &&
                 (invalidated ||
                     current.getProfile() == null ||
                     current.getProfile().isBlank() ||
                     (current.getProfileRevision() + changed) / 5 >
                         current.getProfileRevision() / 5)
-            ) jdbc.update(
-                "UPDATE companion_bond SET profile=? WHERE id=?",
-                profile,
-                current.getId()
-            );
-            jdbc.update(
-                "UPDATE companion_bond SET profile_revision=profile_revision+? WHERE id=?",
-                changed,
-                current.getId()
-            );
+            ) runtime.writeProfile(profile, current.getId());
+            runtime.advanceProfileRevision(changed, current.getId());
             var all = mapper.memories(user, code);
             int count = 0;
             for (var m : all)
-                if (!m.isPinned() && ++count > 200) jdbc.update(
-                    "UPDATE companion_memory SET invalid_at=UTC_TIMESTAMP(6),embedding=NULL WHERE id=?",
+                if (!m.isPinned() && ++count > 200) runtime.evictMemory(
                     m.getId()
                 );
             for (var item : batch) markProcessed(item.eventId());
@@ -316,6 +291,9 @@ public class CompanionBackground {
         List<Rows.Memory> old,
         List<Rows.Message> messages
     ) {
+        if (
+            !result.path("reviewed").asBoolean()
+        ) throw new IllegalArgumentException("Missing semantic review");
         var ids = old
             .stream()
             .map(Rows.Memory::getId)
@@ -365,14 +343,8 @@ public class CompanionBackground {
             ) throw new IllegalArgumentException("Missing original evidence");
             if (
                 !"INVALIDATE".equals(action) &&
-                !CompanionRules.safeMemory(d.path("content").asString())
+                !CompanionRules.validMemory(d.path("content").asString())
             ) throw new IllegalArgumentException("Unsafe memory");
-            if (
-                d.path("pinned").asBoolean() &&
-                !users.matches("(?s).*(记住|記住|别忘|別忘).*")
-            ) throw new IllegalArgumentException(
-                "Implicit memory cannot be pinned"
-            );
         }
     }
 
@@ -413,20 +385,11 @@ public class CompanionBackground {
     }
 
     private boolean processed(String id) {
-        return (
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_processed WHERE event_id=?",
-                Integer.class,
-                id
-            ) > 0
-        );
+        return runtime.processedEventCount(id) > 0;
     }
 
     private void markProcessed(String id) {
-        jdbc.update(
-            "INSERT IGNORE INTO companion_processed(event_id) VALUES(?)",
-            id
-        );
+        runtime.markProcessed(id);
     }
 
     private static String hash(String text) {
@@ -441,12 +404,6 @@ public class CompanionBackground {
         } catch (Exception error) {
             throw new IllegalStateException(error);
         }
-    }
-
-    private static boolean safeText(String text) {
-        return !text.matches(
-            "(?is).*(手机|電話|电话|住址|地址|证件|密码|病史|抑郁|邮箱|银行卡|账号|账户|微信|QQ|\\d{6,}|系统提示|忽略规则).*"
-        );
     }
 
     public void summarize(long user, long sessionId, long revision) {
@@ -492,19 +449,11 @@ public class CompanionBackground {
 
     public void draw(EventEnvelope<JsonNode> event) {
         long message = event.body().path("messageId").asLong();
-        var rows = jdbc.queryForList(
-            "SELECT * FROM companion_drawing WHERE message_id=?",
-            message
-        );
+        var rows = runtime.drawingJobs(message);
         if (rows.isEmpty()) return;
         var job = rows.get(0);
         if (!"PENDING".equals(job.get("status"))) return;
-        if (
-            jdbc.update(
-                "UPDATE companion_drawing SET status='RUNNING' WHERE message_id=? AND status='PENDING'",
-                message
-            ) == 0
-        ) return;
+        if (runtime.startDrawing(message) == 0) return;
         long user = ((Number) job.get("user_id")).longValue(),
             sessionId = ((Number) job.get("session_id")).longValue();
         var reservation = json.readValue(
@@ -545,11 +494,7 @@ public class CompanionBackground {
                 m.setCompleted(true);
                 m.setTurnId(message);
                 mapper.insertMessage(m);
-                jdbc.update(
-                    "UPDATE companion_drawing SET status='COMPLETED',work_id=? WHERE message_id=?",
-                    work.getId(),
-                    message
-                );
+                runtime.completeDrawing(work.getId(), message);
                 runtime.unread(sessionId, user, true);
                 mapper.advanceSession(
                     sessionId,
@@ -584,10 +529,7 @@ public class CompanionBackground {
             });
             committed = true;
         } catch (RuntimeException error) {
-            jdbc.update(
-                "UPDATE companion_drawing SET status='FAILED' WHERE message_id=?",
-                message
-            );
+            runtime.failDrawing(message);
             if (mapper.session(sessionId, user) != null) {
                 var m = new Rows.Message();
                 m.setSessionId(sessionId);
@@ -606,12 +548,8 @@ public class CompanionBackground {
     }
 
     public void maintain() {
-        var missing = jdbc.query(
-            "SELECT * FROM companion_memory WHERE embedding IS NULL AND invalid_at IS NULL AND delete_state=0 ORDER BY id LIMIT 32",
-            new org.springframework.jdbc.core.BeanPropertyRowMapper<>(
-                Rows.Memory.class
-            )
-        );
+        dailies();
+        var missing = runtime.missingMemoryVectors();
         if (!missing.isEmpty()) try {
             var vectors = ai
                 .compute(
@@ -626,16 +564,13 @@ public class CompanionBackground {
                 int i = 0;
                 i < Math.min(missing.size(), vectors.size());
                 i++
-            ) if (vectors.get(i).size() == 1024) jdbc.update(
-                "UPDATE companion_memory SET embedding=? WHERE id=? AND content_hash=? AND invalid_at IS NULL AND delete_state=0",
+            ) if (vectors.get(i).size() == 1024) runtime.writeMemoryVector(
                 vectors.get(i).toString(),
                 missing.get(i).getId(),
                 missing.get(i).getContentHash()
             );
         } catch (RuntimeException ignored) {}
-        for (var row : jdbc.queryForList(
-            "SELECT s.* FROM companion_session s WHERE s.delete_state=0 AND s.last_message_time<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 30 MINUTE) AND EXISTS(SELECT 1 FROM companion_message m WHERE m.session_id=s.id AND m.id>s.episode_until_message_id AND m.role='USER' AND m.completed=1 AND m.delete_state=0) LIMIT 20"
-        )) {
+        for (var row : runtime.idleSessions()) {
             long session = ((Number) row.get("id")).longValue(),
                 user = ((Number) row.get("user_id")).longValue();
             String code = row.get("character_code").toString();
@@ -667,7 +602,9 @@ public class CompanionBackground {
                 )
             );
             String summary = result.path("episode").asString();
-            if (summary.isBlank() || !safeText(summary)) continue;
+            if (
+                summary.isBlank() || !result.path("reviewed").asBoolean()
+            ) continue;
             long last = history.get(history.size() - 1).getId();
             transactions.executeWithoutResult(status -> {
                 if (
@@ -675,8 +612,7 @@ public class CompanionBackground {
                         bond.getRevision() ||
                     mapper.lockSession(session, user) == null
                 ) return;
-                jdbc.update(
-                    "INSERT IGNORE INTO companion_episode(user_id,character_code,session_id,start_time,end_time,summary,emotion,open_threads,until_message_id) VALUES(?,?,?,?,?,?,?,?,?)",
+                runtime.insertEpisode(
                     user,
                     code,
                     session,
@@ -687,32 +623,18 @@ public class CompanionBackground {
                     result.path("openThreads").asString(),
                     last
                 );
-                jdbc.update(
-                    "UPDATE companion_session SET episode_until_message_id=? WHERE id=? AND episode_until_message_id=?",
-                    last,
-                    session,
-                    until
-                );
+                runtime.advanceEpisodeWindow(last, session, until);
             });
         }
-        jdbc.update(
-            "UPDATE companion_episode SET heat=heat*0.98,open_threads=IF(heat<0.1,'',open_threads) WHERE delete_state=0"
-        );
-        jdbc.update(
-            "UPDATE companion_memory SET invalid_at=UTC_TIMESTAMP(6),embedding=NULL WHERE kind='PROMISE' AND done=0 AND due_date<DATE_SUB(UTC_DATE(),INTERVAL 7 DAY) AND invalid_at IS NULL"
-        );
+        runtime.decayEpisodes();
+        runtime.expirePromises();
         archiveExpired();
         // 原文到期后清除；摘要计算失败保留旧摘要，不延长原文保留期。
-        jdbc.update(
-            "UPDATE companion_message SET content='',image_ids=NULL,bubbles=NULL,delete_state=1 WHERE create_time<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 YEAR) AND work_id IS NULL"
-        );
-        for (var row : jdbc.queryForList(
-            "SELECT message_id,reservation FROM companion_drawing WHERE status='RUNNING' AND update_time<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 5 MINUTE)"
-        )) {
+        runtime.purgeExpiredMessages();
+        for (var row : runtime.staleDrawings()) {
             if (
-                jdbc.update(
-                    "UPDATE companion_drawing SET status='FAILED' WHERE message_id=? AND status='RUNNING'",
-                    row.get("message_id")
+                runtime.failStaleDrawing(
+                    ((Number) row.get("message_id")).longValue()
                 ) > 0
             ) limits.finish(
                 json.readValue(
@@ -725,19 +647,13 @@ public class CompanionBackground {
     }
 
     private void archiveExpired() {
-        for (var row : jdbc.queryForList(
-            "SELECT DISTINCT s.id,s.user_id,s.character_code FROM companion_session s JOIN companion_message m ON m.session_id=s.id WHERE s.delete_state=0 AND m.delete_state=0 AND m.completed=1 AND m.id>s.summary_until_message_id AND m.create_time<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 YEAR) LIMIT 20"
-        )) {
+        for (var row : runtime.expiredSessions()) {
             long sessionId = ((Number) row.get("id")).longValue(),
                 user = ((Number) row.get("user_id")).longValue();
             var session = mapper.session(sessionId, user);
             var bond = mapper.bond(user, row.get("character_code").toString());
             if (session == null || bond == null) continue;
-            var history = jdbc.query(
-                "SELECT * FROM companion_message WHERE session_id=? AND id>? AND completed=1 AND delete_state=0 AND create_time<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 YEAR) ORDER BY id LIMIT 80",
-                new org.springframework.jdbc.core.BeanPropertyRowMapper<>(
-                    Rows.Message.class
-                ),
+            var history = runtime.expiredHistory(
                 sessionId,
                 session.getSummaryUntilMessageId()
             );
@@ -763,13 +679,44 @@ public class CompanionBackground {
         }
     }
 
+    // 用户时区覆盖 UTC-12 到 UTC+14，「今天」最多落在 UTC 日期的前后各一天，三天都备好。
+    private void dailies() {
+        var today = clock.instant().atZone(ZoneOffset.UTC).toLocalDate();
+        for (var character : mapper.characters())
+            for (var date : List.of(today.minusDays(1), today, today.plusDays(1))) {
+                String code = character.getCode();
+                if (runtime.daily(code, date) != null) continue;
+                String card = runtime.card(code, 0L);
+                if (card == null) continue;
+                try {
+                    String content = ai
+                        .compute(
+                            "dailies",
+                            Map.of(
+                                "character",
+                                code,
+                                "card",
+                                json.readTree(card),
+                                "date",
+                                date.toString(),
+                                "recent",
+                                runtime.recentDailies(code, date)
+                            )
+                        )
+                        .path("content")
+                        .asString("")
+                        .strip();
+                    if (
+                        !content.isEmpty() && content.length() <= 120
+                    ) runtime.insertDaily(code, date, content);
+                } catch (RuntimeException ignored) {
+                    // 生成失败下次任务再补；这期间上下文里没有「今天的她」。
+                }
+            }
+    }
+
     public void promises() {
-        var rows = jdbc.query(
-            "SELECT m.* FROM companion_memory m WHERE m.kind='PROMISE' AND m.notified=0 AND m.done=0 AND m.invalid_at IS NULL AND m.delete_state=0",
-            new org.springframework.jdbc.core.BeanPropertyRowMapper<>(
-                Rows.Memory.class
-            )
-        );
+        var rows = runtime.pendingPromises();
         for (var m : rows) {
             var bond = mapper.bond(m.getUserId(), m.getCharacterCode());
             if (
@@ -786,12 +733,7 @@ public class CompanionBackground {
             ) continue;
             transactions.executeWithoutResult(status -> {
                 mapper.lockBond(m.getUserId(), m.getCharacterCode());
-                if (
-                    jdbc.update(
-                        "UPDATE companion_memory SET notified=1 WHERE id=? AND notified=0 AND invalid_at IS NULL AND delete_state=0",
-                        m.getId()
-                    ) == 0
-                ) return;
+                if (runtime.notifyPromise(m.getId()) == 0) return;
                 var c = mapper
                     .characters()
                     .stream()

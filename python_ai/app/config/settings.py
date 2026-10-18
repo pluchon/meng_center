@@ -14,8 +14,6 @@ class Settings(BaseSettings):
     companion_model: str = "qwen3.8-flash"
     companion_temperature: float = Field(default=0.85, ge=0.8, le=0.9)
     brain_model: str = "qwen3.8-flash"
-    rerank_model: str = "qwen3-rerank"
-    rerank_url: str = "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
     requests_per_minute: int = Field(default=1200, ge=1)
     tokens_per_minute: int = Field(default=1_000_000, ge=1)
     round_token_limit: int = Field(default=24000, ge=1000)
@@ -33,7 +31,7 @@ class Settings(BaseSettings):
     structured_method: str = "function_calling"
     speech_structured_method: str = "json_mode"
     concurrency: int = Field(default=4, ge=1, le=32)
-    daily_token_limit: int = Field(default=1_000_000, ge=1)
+    daily_token_limit: int = Field(default=50_000_000, ge=1)
     timezone: str = "Asia/Taipei"
     redis_host: str = "127.0.0.1"
     redis_port: int = Field(default=16379, validation_alias="MENG_REDIS_PORT")

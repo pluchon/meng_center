@@ -159,10 +159,9 @@ public class AiClient {
                 HttpResponse.BodyHandlers.ofString()
             );
             if (response.statusCode() != 200) return null;
-            String summary = json
-                .readTree(response.body())
-                .path("summary")
-                .asString("");
+            var result = json.readTree(response.body());
+            if (!result.path("reviewed").asBoolean()) return null;
+            String summary = result.path("summary").asString("");
             return summary.isBlank() || summary.length() > 3000
                 ? null
                 : summary;
@@ -176,9 +175,12 @@ public class AiClient {
 
     public JsonNode compute(String operation, Object body) {
         if (
-            !java.util.Set.of("consolidations", "embeddings").contains(
-                operation
-            )
+            !java.util.Set.of(
+                "consolidations",
+                "dailies",
+                "embeddings",
+                "memory-reviews"
+            ).contains(operation)
         ) throw new IllegalArgumentException("Unknown computation");
         try {
             var request = HttpRequest.newBuilder(endpoint(operation))

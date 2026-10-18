@@ -54,7 +54,7 @@ public class CompanionRuntimeTest {
         source.setURL(
             "jdbc:h2:mem:companion" +
                 UUID.randomUUID() +
-                ";MODE=MySQL;DB_CLOSE_DELAY=-1;NON_KEYWORDS=LEVEL,DATE"
+                ";MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE;NON_KEYWORDS=LEVEL,DATE"
         );
         jdbc = new JdbcTemplate(source);
         jdbc.execute(
@@ -86,22 +86,6 @@ public class CompanionRuntimeTest {
                 } else jdbc.execute(value);
             }
         }
-        String seed = new ClassPathResource(
-            "db/migration/V20261017003__seed_companion_cards.sql"
-        ).getContentAsString(StandardCharsets.UTF_8);
-        var matcher = java.util.regex.Pattern.compile(
-            "VALUES\\('([^']+)','([^']+)',CONVERT\\(0x([a-f0-9]+) USING utf8mb4\\),TRUE\\)"
-        ).matcher(seed);
-        while (matcher.find())
-            jdbc.update(
-                "INSERT INTO companion_card(character_code,version,content,active) VALUES(?,?,?,TRUE)",
-                matcher.group(1),
-                matcher.group(2),
-                new String(
-                    HexFormat.of().parseHex(matcher.group(3)),
-                    StandardCharsets.UTF_8
-                )
-            );
         var configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CompanionMapper.class);
@@ -118,13 +102,22 @@ public class CompanionRuntimeTest {
         var transactions = new TransactionTemplate(
             new DataSourceTransactionManager(source)
         );
+        var catalog = new CompanionCatalog();
+        inject(catalog, "runtime", runtime);
+        transactions.executeWithoutResult(status -> {
+            try {
+                catalog.run(null);
+            } catch (Exception error) {
+                throw new IllegalStateException(error);
+            }
+        });
         ai = mock(AiClient.class);
         limits = mock(CompanionLimits.class);
         outbox = spy(new CompanionOutbox());
         var redis = mock(
             org.springframework.data.redis.core.StringRedisTemplate.class
         );
-        inject(outbox, "jdbc", jdbc, "limits", limits, "redis", redis);
+        inject(outbox, "runtime", runtime, "limits", limits, "redis", redis);
         doNothing().when(outbox).enqueue(anyString(), anyString(), any());
         var clock = Clock.fixed(
             Instant.parse("2026-10-17T04:00:00Z"),
@@ -139,8 +132,6 @@ public class CompanionRuntimeTest {
             runtime,
             "ai",
             ai,
-            "jdbc",
-            jdbc,
             "clock",
             clock
         );
@@ -153,14 +144,16 @@ public class CompanionRuntimeTest {
             runtime,
             "context",
             context,
-            "jdbc",
-            jdbc,
             "redis",
             redis,
             "clock",
             clock,
             "properties",
-            new CompanionProperties()
+            new CompanionProperties(),
+            "ai",
+            ai,
+            "transactions",
+            transactions
         );
         executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
@@ -446,8 +439,6 @@ public class CompanionRuntimeTest {
         var service = new CompanionBackground();
         inject(
             service,
-            "jdbc",
-            jdbc,
             "mapper",
             ReflectionTestUtils.getField(replies, "mapper"),
             "runtime",
@@ -477,7 +468,7 @@ public class CompanionRuntimeTest {
         replies.send(41, 1, send("fact", "喜欢蓝色"), "Asia/Taipei", "test");
         until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
         var result = json.readTree(
-            "{\"decisions\":[{\"action\":\"ADD\",\"kind\":\"LIKE\",\"content\":\"喜欢蓝色\",\"evidence\":\"喜欢蓝色\",\"keywords\":[\"颜色\"],\"importance\":6,\"pinned\":false}],\"profile\":\"喜欢蓝色\"}"
+            "{\"reviewed\":true,\"decisions\":[{\"action\":\"ADD\",\"kind\":\"LIKE\",\"content\":\"喜欢蓝色\",\"evidence\":\"喜欢蓝色\",\"keywords\":[\"颜色\"],\"importance\":6,\"pinned\":false}],\"profile\":\"喜欢蓝色\"}"
         );
         when(ai.compute(eq("consolidations"), any())).thenReturn(result);
         when(ai.compute(eq("embeddings"), any())).thenReturn(
@@ -594,7 +585,7 @@ public class CompanionRuntimeTest {
         );
         when(ai.compute(eq("consolidations"), any())).thenReturn(
             json.readTree(
-                "{\"decisions\":[{\"action\":\"INVALIDATE\",\"oldId\":" +
+                "{\"reviewed\":true,\"decisions\":[{\"action\":\"INVALIDATE\",\"oldId\":" +
                     old +
                     ",\"kind\":\"LIKE\",\"evidence\":\"不再喜欢蓝色\"}],\"profile\":\"\"}"
             )
@@ -717,7 +708,7 @@ public class CompanionRuntimeTest {
             CompanionContext.zone("America/New_York")
         );
         var decision = json.readTree(
-            "{\"decisions\":[{\"action\":\"INVALIDATE\",\"oldId\":99,\"kind\":\"LIFE\",\"evidence\":\"我改主意了\"}]}"
+            "{\"reviewed\":true,\"decisions\":[{\"action\":\"INVALIDATE\",\"oldId\":99,\"kind\":\"LIFE\",\"evidence\":\"我改主意了\"}]}"
         );
         assertThrows(IllegalArgumentException.class, () ->
             CompanionBackground.validateDecisions(
@@ -731,6 +722,180 @@ public class CompanionRuntimeTest {
             CompanionContext.cosine(
                 json.readTree("[0,0]"),
                 json.readTree("[1,0]")
+            )
+        );
+    }
+
+    @Test
+    void readableCatalogIsIdempotentAndRetrievesSceneExamples()
+        throws Exception {
+        var runtime = (RuntimeMapper) ReflectionTestUtils.getField(
+            replies,
+            "runtime"
+        );
+        var catalog = new CompanionCatalog();
+        inject(catalog, "runtime", runtime);
+        catalog.run(null);
+        assertEquals(
+            3,
+            jdbc.queryForObject(
+                "SELECT COUNT(*) FROM companion_card",
+                Integer.class
+            )
+        );
+        assertEquals(
+            180,
+            jdbc.queryForObject(
+                "SELECT COUNT(*) FROM companion_line",
+                Integer.class
+            )
+        );
+        assertEquals(
+            45,
+            jdbc
+                .queryForList(
+                    "SELECT character_code,level,stage,COUNT(*) FROM companion_line GROUP BY character_code,level,stage HAVING COUNT(*)>=3"
+                )
+                .size()
+        );
+        var bond = new com.pluchon.meng.companion.entity.Rows.Bond();
+        bond.setCharacterCode("TSUNDERE");
+        bond.setLevel(2);
+        bond.setStage(1);
+        var context = (CompanionContext) ReflectionTestUtils.getField(
+            service,
+            "context"
+        );
+        var examples = context.examples(bond, context.card(41, "TSUNDERE"));
+        assertEquals(4, examples.size());
+        assertTrue(
+            examples
+                .stream()
+                .anyMatch(item ->
+                    "作业写不动".equals(
+                        item.path("dialogue").path("user").asString()
+                    )
+                )
+        );
+        jdbc.update(
+            "UPDATE companion_card SET active=FALSE WHERE character_code='NEKO'"
+        );
+        catalog.run(null);
+        assertEquals(
+            0,
+            jdbc.queryForObject(
+                "SELECT COUNT(*) FROM companion_card WHERE character_code='NEKO' AND active=TRUE",
+                Integer.class
+            )
+        );
+        jdbc.update(
+            "UPDATE companion_card SET content='{}' WHERE character_code='NEKO'"
+        );
+        assertThrows(IllegalStateException.class, () -> catalog.run(null));
+    }
+
+    @Test
+    void fullRolloutRetiresOlderCardsButPartialRolloutKeepsFallback()
+        throws Exception {
+        var runtime = (RuntimeMapper) ReflectionTestUtils.getField(
+            replies,
+            "runtime"
+        );
+        jdbc.update(
+            "INSERT INTO companion_card(id,character_code,version,content,active,rollout_percent) VALUES(-1,'TSUNDERE','legacy','{\"version\":\"legacy\"}',TRUE,100)"
+        );
+        jdbc.update(
+            "UPDATE companion_card SET rollout_percent=50 WHERE character_code='TSUNDERE' AND version<>'legacy'"
+        );
+        var catalog = new CompanionCatalog();
+        inject(catalog, "runtime", runtime);
+        catalog.run(null);
+        assertEquals(
+            "legacy",
+            json
+                .readTree(runtime.card("TSUNDERE", 77))
+                .path("version")
+                .asString()
+        );
+        assertNotEquals(
+            "legacy",
+            json
+                .readTree(runtime.card("TSUNDERE", 41))
+                .path("version")
+                .asString()
+        );
+        jdbc.update(
+            "UPDATE companion_card SET rollout_percent=100 WHERE character_code='TSUNDERE' AND version<>'legacy'"
+        );
+        catalog.run(null);
+        assertEquals(
+            0,
+            jdbc.queryForObject(
+                "SELECT COUNT(*) FROM companion_card WHERE version='legacy' AND active=TRUE",
+                Integer.class
+            )
+        );
+        assertNotEquals(
+            "legacy",
+            json
+                .readTree(runtime.card("TSUNDERE", 77))
+                .path("version")
+                .asString()
+        );
+    }
+
+    @Test
+    void unreviewedMemoryBatchCannotBeWritten() {
+        assertThrows(IllegalArgumentException.class, () ->
+            CompanionBackground.validateDecisions(
+                json.readTree("{\"decisions\":[]}"),
+                List.of(),
+                List.of()
+            )
+        );
+    }
+
+    @Test
+    void manualMemoryEditsRequireSemanticApprovalAndOwnership() {
+        jdbc.update(
+            "INSERT INTO companion_memory(id,user_id,character_code,content,content_hash,source_message_id) VALUES(9001,41,'NEKO','喜欢蓝色',REPEAT('a',64),1)"
+        );
+        var edit = new CompanionDTO.Memory("研究电话号码脱敏", null);
+        assertThrows(
+            com.pluchon.meng.common.core.error.BusinessException.class,
+            () -> service.editMemory(42, 9001, edit)
+        );
+        verify(ai, never()).compute(eq("memory-reviews"), any());
+        when(ai.compute(eq("memory-reviews"), any())).thenReturn(
+            json.readTree("{\"safe\":true}")
+        );
+        assertThrows(
+            com.pluchon.meng.common.core.error.BusinessException.class,
+            () -> service.editMemory(41, 9001, edit)
+        );
+        when(ai.compute(eq("memory-reviews"), any())).thenReturn(
+            json.readTree("{\"safe\":false,\"reviewed\":true}")
+        );
+        assertThrows(
+            com.pluchon.meng.common.core.error.BusinessException.class,
+            () -> service.editMemory(41, 9001, edit)
+        );
+        assertEquals(
+            "喜欢蓝色",
+            jdbc.queryForObject(
+                "SELECT content FROM companion_memory WHERE id=9001",
+                String.class
+            )
+        );
+        when(ai.compute(eq("memory-reviews"), any())).thenReturn(
+            json.readTree("{\"safe\":true,\"reviewed\":true}")
+        );
+        service.editMemory(41, 9001, edit);
+        assertEquals(
+            "研究电话号码脱敏",
+            jdbc.queryForObject(
+                "SELECT content FROM companion_memory WHERE id=9001",
+                String.class
             )
         );
     }

@@ -7,8 +7,10 @@ from fastapi.responses import Response, StreamingResponse
 
 from app.schemas.companion import (
     ConsolidationRequest,
+    DailyRequest,
     DrawingRequest,
     EmbeddingRequest,
+    MemoryReviewRequest,
     ReplyRequest,
     SummaryRequest,
 )
@@ -38,6 +40,16 @@ async def consolidations(body: ConsolidationRequest, request: Request):
 @router.post("/embeddings")
 async def embeddings(body: EmbeddingRequest, request: Request):
     return await request.app.state.companion.embeddings(body)
+
+
+@router.post("/dailies")
+async def dailies(body: DailyRequest, request: Request):
+    return await request.app.state.companion.daily(body)
+
+
+@router.post("/memory-reviews")
+async def memory_reviews(body: MemoryReviewRequest, request: Request):
+    return await request.app.state.companion.review_memory(body)
 
 
 @router.post("/drawings")

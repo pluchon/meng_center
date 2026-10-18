@@ -4,15 +4,26 @@ import com.pluchon.meng.companion.client.AiClient;
 import com.pluchon.meng.companion.entity.Rows;
 import com.pluchon.meng.companion.mapper.CompanionMapper;
 import com.pluchon.meng.companion.mapper.RuntimeMapper;
-import java.time.*;
-import java.util.*;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-// 只组装本人和当前角色的数据；向量服务不可用时退回本地重要度与关键词排序。
+// 只组装本人和当前角色的数据；向量用于候选召回，相关性由 AI agent 判断。
 @Service
 public class CompanionContext {
 
@@ -24,9 +35,6 @@ public class CompanionContext {
 
     @Autowired
     private AiClient ai;
-
-    @Autowired
-    private JdbcTemplate jdbc;
 
     @Autowired
     private Clock clock;
@@ -138,21 +146,9 @@ public class CompanionContext {
                     .get(0);
             } catch (RuntimeException ignored) {}
             final JsonNode q = vector;
-            if (query.contains("上个月") || query.contains("上個月")) {
-                var first = date.withDayOfMonth(1).minusMonths(1);
-                other.removeIf(
-                    m ->
-                        m.getValidFrom() != null &&
-                        (m.getValidFrom().toLocalDate().isBefore(first) ||
-                            !m
-                                .getValidFrom()
-                                .toLocalDate()
-                                .isBefore(first.plusMonths(1)))
-                );
-            }
             other.sort(
                 Comparator.comparingDouble((Rows.Memory m) ->
-                    score(m, query, q)
+                    score(m, q)
                 ).reversed()
             );
             chosen = new ArrayList<>(
@@ -163,7 +159,8 @@ public class CompanionContext {
             .stream()
             .map(this::memory)
             .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        var selected = new ArrayList<>(chosen);
+        var selected = new ArrayList<Rows.Memory>();
+        if (fits) selected.addAll(chosen);
         if (!fits && !chosen.isEmpty()) {
             try {
                 var ranked = compute
@@ -181,13 +178,21 @@ public class CompanionContext {
                     .path("ranked");
                 var order = new ArrayList<Rows.Memory>();
                 var seen = new HashSet<Integer>();
-                for (var i : ranked)
+                if (!ranked.isArray()) throw new IllegalArgumentException(
+                    "Missing agent retrieval selection"
+                );
+                for (var i : ranked) {
                     if (
-                        i.asInt() >= 0 &&
-                        i.asInt() < chosen.size() &&
-                        seen.add(i.asInt())
-                    ) order.add(chosen.get(i.asInt()));
-                if (!order.isEmpty()) selected = order;
+                        !i.isIntegralNumber() ||
+                        i.asInt() < 0 ||
+                        i.asInt() >= chosen.size() ||
+                        !seen.add(i.asInt())
+                    ) throw new IllegalArgumentException(
+                        "Invalid agent retrieval selection"
+                    );
+                    order.add(chosen.get(i.asInt()));
+                }
+                selected = order;
             } catch (RuntimeException ignored) {}
             selected = new ArrayList<>(
                 selected.subList(0, Math.min(5, selected.size()))
@@ -198,11 +203,7 @@ public class CompanionContext {
             .subList(15, candidates.size())
             .clear();
         // 回忆包可以包含未注入慢变层的候选；只有实际带入的事实才更新使用时间。
-        for (var episode : jdbc.queryForList(
-            "SELECT id,summary,heat FROM companion_episode WHERE user_id=? AND character_code=? AND delete_state=0 ORDER BY heat DESC,end_time DESC LIMIT 3",
-            user,
-            code
-        )) {
+        for (var episode : runtime.recallEpisodes(user, code)) {
             candidates.add(
                 0,
                 Map.of(
@@ -214,26 +215,13 @@ public class CompanionContext {
                     episode.get("summary")
                 )
             );
-            jdbc.update(
-                "UPDATE companion_episode SET heat=heat+1 WHERE id=? AND user_id=? AND character_code=?",
-                episode.get("id"),
+            runtime.touchEpisode(
+                ((Number) episode.get("id")).longValue(),
                 user,
                 code
             );
         }
-        var oldMessages = jdbc.queryForList(
-            "SELECT m.id,m.content FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=? AND s.character_code=? AND s.delete_state=0 AND m.delete_state=0 AND m.completed=1 AND m.work_id IS NULL AND m.kind='TEXT' ORDER BY m.id DESC LIMIT 100",
-            user,
-            code
-        );
-        oldMessages.sort(
-            Comparator.comparingLong((Map<String, Object> m) ->
-                query
-                    .codePoints()
-                    .filter(c -> m.get("content").toString().indexOf(c) >= 0)
-                    .count()
-            ).reversed()
-        );
+        var oldMessages = runtime.recallMessages(user, code);
         for (var m : oldMessages.subList(0, Math.min(2, oldMessages.size())))
             candidates.add(
                 Map.of(
@@ -252,31 +240,26 @@ public class CompanionContext {
             candidates.subList(0, Math.min(20, candidates.size())),
             stable.stream().map(Rows.Memory::getId).toList(),
             due,
-            stable
-                .stream()
-                .filter(
-                    m ->
-                        m.getMentionedAt() == null ||
-                        m
-                            .getMentionedAt()
-                            .isBefore(
-                                LocalDateTime.ofInstant(
-                                    clock.instant(),
-                                    ZoneOffset.UTC
-                                ).minusDays(3)
-                            )
-                )
-                .filter(
-                    m ->
-                        query
-                            .codePoints()
-                            .distinct()
-                            .filter(c -> m.getContent().indexOf(c) >= 0)
-                            .count() >= 2
-                )
-                .findFirst()
-                .map(this::memory)
-                .orElse(Map.of()),
+            Map.of(
+                "candidates",
+                stable
+                    .stream()
+                    .filter(
+                        m ->
+                            m.getMentionedAt() == null ||
+                            m
+                                .getMentionedAt()
+                                .isBefore(
+                                    LocalDateTime.ofInstant(
+                                        clock.instant(),
+                                        ZoneOffset.UTC
+                                    ).minusDays(3)
+                                )
+                    )
+                    .limit(20)
+                    .map(this::memory)
+                    .toList()
+            ),
             usedTokens[0]
         );
     }
@@ -287,6 +270,10 @@ public class CompanionContext {
         value.put("kind", m.getKind());
         value.put("content", m.getContent());
         value.put("pinned", m.isPinned());
+        if (m.getValidFrom() != null) value.put(
+            "validFrom",
+            m.getValidFrom().toString() + "Z"
+        );
         if (m.getDueDate() != null) value.put(
             "dueDate",
             m.getDueDate().toString()
@@ -294,12 +281,7 @@ public class CompanionContext {
         return value;
     }
 
-    private double score(Rows.Memory memory, String query, JsonNode q) {
-        long overlap = query
-            .codePoints()
-            .distinct()
-            .filter(c -> memory.getContent().indexOf(c) >= 0)
-            .count();
+    private double score(Rows.Memory memory, JsonNode q) {
         double similarity = 0;
         if (q != null && memory.getEmbedding() != null) similarity = cosine(
             q,
@@ -319,10 +301,7 @@ public class CompanionContext {
                       ).toDays()
                   );
         return (
-            overlap * 0.3 +
-            similarity * 4 +
-            memory.getImportance() * 0.1 +
-            1d / (1 + age / 30d)
+            similarity * 4 + memory.getImportance() * 0.1 + 1d / (1 + age / 30d)
         );
     }
 
@@ -405,11 +384,8 @@ public class CompanionContext {
         return result;
     }
 
-    public List<JsonNode> examples(
-        Rows.Bond bond,
-        String input,
-        JsonNode card
-    ) {
+    public List<JsonNode> examples(Rows.Bond bond, JsonNode card) {
+        // 这里只限定角色、阶段、档位与版本；场景含义和示例相关性由 AI 判断。
         return runtime
             .lines(
                 bond.getCharacterCode(),
@@ -420,34 +396,20 @@ public class CompanionContext {
                     .asString(card.path("version").asString())
             )
             .stream()
-            .map(json::readTree)
-            .sorted(
-                Comparator.comparingLong((JsonNode n) ->
-                    input
-                        .codePoints()
-                        .filter(c -> n.path("user").asString().indexOf(c) >= 0)
-                        .count()
-                ).reversed()
-            )
-            .limit(3)
-            .sorted(Comparator.comparing(n -> n.path("user").asString()))
+            .map(line -> {
+                var value = json.createObjectNode();
+                value.put("id", line.getId());
+                value.put("scene", line.getScene());
+                value.set("dialogue", json.readTree(line.getDialogue()));
+                return (JsonNode) value;
+            })
             .toList();
     }
 
+    // 「今天的她」由后台任务按日期生成；还没生成时不放这一项，不用固定句子顶替。
     public String daily(String code, String zone) {
         var date = clock.instant().atZone(ZoneId.of(zone)).toLocalDate();
-        jdbc.update(
-            "INSERT IGNORE INTO companion_daily(character_code,date,content) VALUES(?,?,?)",
-            code,
-            date,
-            "今天也在萌部落，想听听大家最近的故事。"
-        );
-        return jdbc.queryForObject(
-            "SELECT content FROM companion_daily WHERE character_code=? AND date=?",
-            String.class,
-            code,
-            date
-        );
+        return Objects.requireNonNullElse(runtime.daily(code, date), "");
     }
 
     public static String zone(String zone) {

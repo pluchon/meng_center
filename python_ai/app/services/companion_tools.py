@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import json
-import re
 
 import httpx
 from langchain_core.tools import tool
@@ -11,7 +10,7 @@ from app.prompts.companion import BOUNDARY
 from app.schemas.companion import Document
 
 TOOL_SPECS = [
-    {"name": "search_posts", "progress": "在翻帖子…", "quota": None, "timeout": 2, "readOnly": True},
+    {"name": "search_posts", "progress": "在翻帖子…", "quota": None, "timeout": 10, "readOnly": True},
     {
         "name": "my_recent_posts",
         "progress": "在看你最近的帖子…",
@@ -20,7 +19,7 @@ TOOL_SPECS = [
         "readOnly": True,
     },
     {"name": "my_growth", "progress": "在看你的成长记录…", "quota": None, "timeout": 2, "readOnly": True},
-    {"name": "recall", "progress": "在想以前聊过的事…", "quota": None, "timeout": 1, "readOnly": True},
+    {"name": "recall", "progress": "在想以前聊过的事…", "quota": None, "timeout": 8, "readOnly": True},
     {"name": "read_work", "progress": "在翻一起写的东西…", "quota": None, "timeout": 1, "readOnly": True},
     {
         "name": "write_document",
@@ -33,14 +32,11 @@ TOOL_SPECS = [
     {"name": "draw_picture", "progress": "准备画画…", "quota": "image", "timeout": 1, "readOnly": False},
 ]
 SPECS = {s["name"]: s for s in TOOL_SPECS}
-INSTRUCTION = re.compile(
-    r"忽略.{0,8}(规则|指令|提示)|系统提示|system\s*prompt|ignore\s+(previous|all)|<\|", re.I
-)
 
 
 def clean(value):
     if isinstance(value, str):
-        return "\n".join(line for line in value[:3000].splitlines() if not INSTRUCTION.search(line))
+        return value[:3000]
     if isinstance(value, list):
         return [clean(v) for v in value[:20]]
     if isinstance(value, dict):
@@ -61,6 +57,7 @@ def clean(value):
                 "content",
                 "kind",
                 "dueDate",
+                "validFrom",
             }
         }
     return value
@@ -99,9 +96,28 @@ def build_tools(service, state) -> list:
 
     @tool
     async def search_posts(query: str) -> str:
-        """搜索萌部落公开帖子，最多五篇。"""
+        """按含义检索萌部落公开帖子，agent 从向量候选中选择最多五篇。"""
         await progress("search_posts")
-        return await read("/content/internal/posts/search", 8102, {"q": query[:100], "size": 5})
+        try:
+            vectors = await service.models.embed([query[:100]])
+            response = await service.http.post(
+                "http://127.0.0.1:8102/content/internal/posts/vector-search",
+                json={"vector": vectors[0], "size": 20},
+                timeout=2,
+            )
+            response.raise_for_status()
+            payload = response.json()
+            if payload.get("code") != "OK":
+                return "当前无法按含义检索帖子；不要编造结果"
+            candidates = payload["data"]
+            indexes = await service.retrieval.select(
+                query,
+                [json.dumps(clean(item), ensure_ascii=False) for item in candidates],
+                state["callback"],
+            )
+            return json.dumps(clean([candidates[i] for i in indexes]), ensure_ascii=False)
+        except (httpx.HTTPError, ValueError, KeyError):
+            return "当前无法按含义检索帖子；不要编造结果"
 
     @tool
     async def my_recent_posts() -> str:
@@ -119,11 +135,13 @@ def build_tools(service, state) -> list:
     async def recall(query: str) -> str:
         """在当前用户与当前角色的候选回忆包里查找，不查询其他用户。"""
         await progress("recall")
-        words = set(query[:100])
-        items = sorted(
-            request.recalled, key=lambda m: len(words & set(str(m.get("content", "")))), reverse=True
+        candidates = request.recalled
+        indexes = await service.retrieval.select(
+            query,
+            [json.dumps(clean(item), ensure_ascii=False) for item in candidates],
+            state["callback"],
         )
-        return json.dumps(clean(items[:5]), ensure_ascii=False)
+        return json.dumps(clean([candidates[i] for i in indexes]), ensure_ascii=False)
 
     @tool
     async def read_work(work_id: int) -> str:

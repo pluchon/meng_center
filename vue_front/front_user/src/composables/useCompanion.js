@@ -12,6 +12,7 @@ import { companionArt } from '@/constants/companionArt'
 import { RouteName } from '@/router/names'
 import { useCompanionStore } from '@/stores/companion'
 import { useUserStore } from '@/stores/user'
+import { useImStore } from '@/stores/im'
 import { useCompanionResource } from './useCompanionResource'
 import { usePostTime } from './usePostTime'
 import { notifyFailure } from './useFailureNotice'
@@ -23,7 +24,8 @@ export function useCompanion() {
     router = useRouter(),
     route = useRoute()
   const usage = useCompanionStore(),
-    user = useUserStore()
+    user = useUserStore(),
+    im = useImStore()
   const characters = useCompanionResource(
     (signal) => companionApi.characters({ signal, silent: true }),
     [],
@@ -44,6 +46,7 @@ export function useCompanion() {
   const loading = ref(false),
     historyLoading = ref(false),
     sideLoading = ref(false),
+    sideReady = ref(false),
     sideError = ref(null),
     loadError = ref(null)
   const sending = ref(false),
@@ -60,10 +63,13 @@ export function useCompanion() {
     sideClosed = ref(false)
   const log = ref(null),
     dialog = ref(''),
+    dialogCharacter = ref(''),
     dialogWorkId = ref(null),
     stageNotice = ref(null),
     hotlines = ref([])
   let generation = 0,
+    sideRequest = 0,
+    lastSideRefresh = 0,
     readController,
     sendController,
     active = true,
@@ -121,7 +127,9 @@ export function useCompanion() {
   const stages = computed(() => tm('meng.stages'))
   const failedText = computed(() => sendError.value?.message || t('meng.failed'))
   const topicFull = computed(() => sessionTotal.value >= Companion.SESSION_LIMIT)
-  const drawing = computed(() => !!sessionList.value.find((s) => String(s.id) === String(sessionId.value))?.drawing)
+  const drawing = computed(
+    () => !!sessionList.value.find((s) => String(s.id) === String(sessionId.value))?.drawing,
+  )
   function bottom(force = false) {
     const element = log.value
     if (!force && element && element.scrollHeight - element.clientHeight - element.scrollTop > 120)
@@ -160,18 +168,24 @@ export function useCompanion() {
   }
   async function loadSide(token = generation, signal = readController?.signal) {
     const current = code.value
+    if (!current || !active) return
+    const request = ++sideRequest
     sideLoading.value = true
     const results = await Promise.allSettled([
       companionApi.memories(current, { signal, silent: true }),
       companionApi.works({ character: current, page: 1, size: 3 }, { signal, silent: true }),
       usage.load(),
     ])
-    if (token !== generation || !active) return
+    if (token !== generation || request !== sideRequest || !active) return
     sideLoading.value = false
     sideError.value =
-      results.find((r) => r.status === 'rejected' && !r.reason.cancelled)?.reason || null
+      results.slice(0, 2).find((r) => r.status === 'rejected' && !r.reason.cancelled)?.reason ||
+      null
     if (results[0].status === 'fulfilled') memories.value = results[0].value
     if (results[1].status === 'fulfilled') recentWorks.value = results[1].value.records
+    if (results[0].status === 'fulfilled' && results[1].status === 'fulfilled')
+      sideReady.value = true
+    lastSideRefresh = Date.now()
   }
   async function selectSession(id) {
     const scope = generation
@@ -253,12 +267,17 @@ export function useCompanion() {
       page = more ? sessionPage.value + 1 : 1
     const result = await companionApi.sessions(
       current,
-      { page, size: more ? Companion.PAGE_SIZE : Math.max(Companion.PAGE_SIZE, sessionList.value.length) },
+      {
+        page,
+        size: more ? Companion.PAGE_SIZE : Math.max(Companion.PAGE_SIZE, sessionList.value.length),
+      },
       { signal: readController?.signal, silent: true },
     )
     if (token !== generation || !active) return
     sessionList.value = more ? sessionList.value.concat(result.records) : result.records
-    sessionPage.value = more ? page : Math.max(1, Math.ceil(result.records.length / Companion.PAGE_SIZE))
+    sessionPage.value = more
+      ? page
+      : Math.max(1, Math.ceil(result.records.length / Companion.PAGE_SIZE))
     sessionTotal.value = result.total
   }
   async function loadEarlier() {
@@ -296,6 +315,9 @@ export function useCompanion() {
     memories.value = []
     recentWorks.value = []
     sideLoading.value = false
+    sideReady.value = false
+    sideError.value = null
+    lastSideRefresh = 0
     loadError.value = null
     sendError.value = null
     loading.value = true
@@ -541,9 +563,12 @@ export function useCompanion() {
     selectedWork.value = work
     dialog.value = ''
   }
-  async function poll() {
+  // 只有回复生成中或画图未完成时才短轮询；其余靠页面重新可见和消息域推送的萌萌通知触发刷新。
+  const busy = () => sessionList.value.some((s) => s.generating || s.drawing)
+  async function poll(force = false) {
     if (!active || !user.loggedIn || !chatting.value || document.hidden || polling || loading.value)
       return
+    if (!force && !busy()) return
     polling = true
     const token = generation
     try {
@@ -552,7 +577,8 @@ export function useCompanion() {
         await refreshCurrent(token)
         typing.value = !!sessionList.value.find((s) => String(s.id) === String(sessionId.value))
           ?.generating
-        await loadSide(token)
+        if (Date.now() - lastSideRefresh >= Companion.SIDE_REFRESH_MS && !sideLoading.value)
+          await loadSide(token)
       }
     } catch {
       /* 保留当前画面，后续轮询继续恢复。 */
@@ -560,11 +586,15 @@ export function useCompanion() {
       polling = false
     }
   }
-  const pollTimer = setInterval(poll, Companion.POLL_MS)
+  const pollTimer = setInterval(() => void poll(), Companion.POLL_MS)
   const visible = () => {
-    if (!document.hidden) void poll()
+    if (!document.hidden) void poll(true)
   }
   document.addEventListener('visibilitychange', visible)
+  const stopNoticeWatch = watch(
+    () => im.revision,
+    () => void poll(true),
+  )
   async function addImages(files) {
     if (uploading.value || inputDisabled.value) return
     uploading.value = true
@@ -638,16 +668,20 @@ export function useCompanion() {
       } else await loadSessions()
     }, message)
   }
-  function openDialog(kind, workId = null) {
+  function openDialog(kind, workId = null, characterCode = code.value || Companion.CHARACTERS[0]) {
     dialogWorkId.value = workId
+    dialogCharacter.value = characterCode
     dialog.value = kind
   }
-  // 首页没有当前角色时（作品柜）弹窗用第一个角色的主题色
-  const modalCode = computed(() => code.value || Companion.CHARACTERS[0])
-  // 首页卡片的「我们的关系」先进入这个角色的聊天，再在聊天上打开关系弹窗
-  async function openBond(c) {
-    if (c !== code.value) await goChat(c)
-    openDialog('bond')
+  // 弹窗的角色独立于聊天路由，首页可以直接查看每位角色的关系。
+  const modalCode = computed(
+    () =>
+      (stageNotice.value ? code.value : dialogCharacter.value) ||
+      code.value ||
+      Companion.CHARACTERS[0],
+  )
+  function openBond(c) {
+    openDialog('bond', null, c)
   }
   const stopUserWatch = watch(
     () => user.current?.id,
@@ -659,6 +693,10 @@ export function useCompanion() {
       messages.value = []
       memories.value = []
       recentWorks.value = []
+      sideReady.value = false
+      sideError.value = null
+      dialog.value = ''
+      dialogCharacter.value = ''
       usage.clear()
       drafts.clear()
     },
@@ -682,6 +720,7 @@ export function useCompanion() {
     clearInterval(cooldownTimer)
     clearInterval(pollTimer)
     document.removeEventListener('visibilitychange', visible)
+    stopNoticeWatch()
     envelopes.clear()
   })
   return reactive({
@@ -711,6 +750,7 @@ export function useCompanion() {
     loading,
     historyLoading,
     sideLoading,
+    sideReady,
     sideError,
     loadError,
     sending,

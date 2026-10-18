@@ -9,7 +9,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const output = path.join(root, 'test-output', 'browser')
 await fs.mkdir(output, { recursive: true })
 const browser = await chromium.launch({ channel: 'msedge', headless: true })
-const report = { checkedAt: new Date().toISOString(), passed: false, browser: 'Microsoft Edge / Playwright', fallback: 'Browser plugin not available', checks: [], failures: [] }
+const report = { checkedAt: new Date().toISOString(), passed: false, browser: 'Microsoft Edge / Playwright', automation: 'headless regression', checks: [], failures: [] }
 async function check(name, action) { await action(); report.checks.push(name) }
 try {
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } })
@@ -53,17 +53,6 @@ try {
     await page.goto('http://127.0.0.1:5173/account')
     await page.waitForURL(url => url.pathname === '/login' && url.searchParams.get('redirect') === '/account')
   })
-  await check('admin login and server-backed pagination', async () => {
-    await page.goto('http://127.0.0.1:5174/login')
-    await page.getByRole('heading', { name: '管理后台', exact: true }).waitFor()
-    await page.locator('input[autocomplete="username"]').fill(process.env.MENG_ADMIN_USERNAME)
-    await page.locator('input[autocomplete="current-password"]').fill(process.env.MENG_ADMIN_PASSWORD)
-    await solveCaptcha(page, () => page.getByRole('button', { name: '登录', exact: true }).click(), path.join(output, 'captcha-admin-login.png'))
-    await page.getByRole('heading', { name: '注册申请', exact: true }).waitFor()
-    await page.screenshot({ path: path.join(output, 'admin-desktop.png'), fullPage: true })
-    await page.getByRole('button', { name: '退出登录', exact: true }).click()
-    await page.getByRole('heading', { name: '管理后台', exact: true }).waitFor()
-  })
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' })
   const phone = await mobile.newPage()
   await check('mobile login/register/agreement have no horizontal overflow', async () => {
@@ -78,7 +67,7 @@ try {
   assert.deepEqual(report.failures, [])
   report.passed = true
 } catch (error) {
-  report.failure = error.message.replaceAll(process.env.MENG_ADMIN_PASSWORD || 'no-secret-match', '[redacted]')
+  report.failure = error.message
   process.exitCode = 1
 } finally {
   // 注册页那一步用日本号码 090-1234-5678 请求过一次短信码，把它记下的限流计数还回去

@@ -1,18 +1,7 @@
 <template>
   <CommunityLayout class="meng-layout">
+    <ShapeGrid />
     <div class="meng-page">
-      <img
-        :src="cloud"
-        alt=""
-        class="meng-cloud cloud-left"
-        aria-hidden="true"
-      >
-      <img
-        :src="cloud"
-        alt=""
-        class="meng-cloud cloud-right"
-        aria-hidden="true"
-      >
       <MengState
         v-if="(characters.loading && !characters.data.length) || characters.error"
         :error="characters.error"

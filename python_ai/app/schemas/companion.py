@@ -45,7 +45,7 @@ class ReplyRequest(Schema):
     card: dict = Field(default_factory=dict)
     profile: str = Field(default="", max_length=300)
     recalled: list[dict] = Field(default_factory=list, max_length=20)
-    examples: list[dict] = Field(default_factory=list, max_length=3)
+    examples: list[dict] = Field(default_factory=list, max_length=30)
     works: list[dict] = Field(default_factory=list, max_length=30)
     due: list[dict] = Field(default_factory=list, max_length=1)
     daily: str = Field(default="", max_length=300)
@@ -72,7 +72,11 @@ class ReplyRequest(Schema):
 class InputReview(Schema):
     label: Label
     needs_tools: bool = False
-    scene: str = Field(default="CHAT", max_length=30)
+    scene: Literal["CHAT", "PRAISE", "WORK", "COMFORT", "REST", "GOODBYE", "GREETING"] = "CHAT"
+    example_ids: list[int] = Field(default_factory=list, max_length=3)
+    support_needed: bool = False
+    identity_question: bool = False
+    shared_memory_id: int | None = None
 
 
 class Bubbles(Schema):
@@ -143,6 +147,21 @@ class Consolidation(Schema):
     open_threads: str = Field(default="", max_length=300)
 
 
+class MemoryApproval(Schema):
+    index: int = Field(ge=0, le=19)
+    pinned: bool = False
+
+
+class ConsolidationReview(Schema):
+    approved: list[MemoryApproval] = Field(max_length=20)
+    profile_safe: bool
+    episode_safe: bool
+
+
+class SummaryReview(Schema):
+    safe: bool
+
+
 class EmbeddingRequest(Schema):
     texts: list[str] = Field(default_factory=list, max_length=32)
     query: str = Field(default="", max_length=1000)
@@ -159,6 +178,12 @@ class DrawingRequest(Schema):
 
 class OutputReview(Schema):
     safe: bool
+
+
+class MemoryReviewRequest(Schema):
+    user_id: int = Field(gt=0)
+    character: str
+    content: str = Field(min_length=1, max_length=60)
 
 
 class Extraction(Schema):
@@ -185,3 +210,14 @@ class SummaryRequest(Schema):
 
 class SessionSummary(Schema):
     summary: str = Field(min_length=1, max_length=3000)
+
+
+class DailyRequest(Schema):
+    character: Character
+    card: dict
+    date: date
+    recent: list[str] = Field(default_factory=list, max_length=7)
+
+
+class DailyState(Schema):
+    content: str = Field(min_length=1, max_length=120, description="一两句，她今天在做的事和心情")

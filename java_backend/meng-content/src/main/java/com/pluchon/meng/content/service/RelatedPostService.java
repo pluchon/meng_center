@@ -5,6 +5,8 @@ import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.web.context.UserContext;
+import com.pluchon.meng.content.client.AiClient;
+import com.pluchon.meng.content.client.AiComputation;
 import com.pluchon.meng.content.controller.vo.PostFeedVO;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.mapper.PostMapper;
@@ -49,18 +51,18 @@ public class RelatedPostService {
     private JdbcTemplate jdbc;
 
     // 复用 JSON 编解码器
-    private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();
+    private final JsonMapper json = JsonMapper.builder()
+        .findAndAddModules()
+        .build();
 
-    // 相关帖子总数上限、每位作者最多几篇、相似度下限的默认值
-    private static final int MAX_RELATED = 50;
+    // 限制候选总数与每位作者的展示数量。
+    private static final int MAX_RELATED = 20;
     private static final int PER_AUTHOR = 3;
-    private static final double MIN_SIMILARITY = 0.42;
 
-    // 动态配置读取
     @Autowired
-    private org.springframework.core.env.Environment environment;
+    private AiClient ai;
 
-    // 优先向量召回，不足 5 篇时按标签与分类补齐；总数最多 50 篇，由后端分页
+    // 向量提供公开候选，由 agent 判断与源帖的相关性；AI 不可用时按向量相似度返回，不按标签补齐。
     public PageResult<PostFeedVO> related(long id, long page, long size) {
         var post = posts.selectById(id);
         if (
@@ -72,60 +74,142 @@ public class RelatedPostService {
         List<Long> ids = null;
         try {
             String cached = redis.opsForValue().get(key);
-            if (cached != null) ids = json.readValue(
-                cached,
-                new tools.jackson.core.type.TypeReference<List<Long>>() {}
-            );
+            if (cached != null) {
+                var entry = json.readTree(cached);
+                if ("agent-v1".equals(entry.path("source").asString())) ids =
+                    json.convertValue(
+                        entry.path("ids"),
+                        new tools.jackson.core.type.TypeReference<
+                            List<Long>
+                        >() {}
+                    );
+            }
         } catch (RuntimeException ignored) {}
         if (ids == null) {
             var selected = new ArrayList<Long>();
             var perAuthor = new HashMap<Long, Integer>();
-            double minimum = environment.getProperty(
-                "meng.content.related.min-similarity",
-                Double.class,
-                MIN_SIMILARITY
-            );
+            boolean degraded = false;
             try {
                 var doc = vectors.get(id);
-                if (doc != null) for (var hit : vectors.nearest(doc.vector(), null, 180, 120))
-                    if (
-                        hit.document().id() != id &&
-                        hit.similarity() >= minimum &&
-                        perAuthor.merge(hit.document().authorId(), 1, Integer::sum) <= PER_AUTHOR
-                    ) {
-                        selected.add(hit.document().id());
-                        if (selected.size() == MAX_RELATED) break;
-                    }
-            } catch (Exception ignored) {}
-            if (selected.size() < 5) {
-                var fallback = jdbc.queryForList(
-                    "SELECT p.id,p.author_id FROM post p LEFT JOIN post_tag t ON t.post_id=p.id AND t.tag_id IN (SELECT tag_id FROM post_tag WHERE post_id=?) WHERE p.id<>? AND p.delete_state=0 AND p.review_state='NORMAL' AND (p.category=? OR t.tag_id IS NOT NULL) GROUP BY p.id,p.author_id,p.hot_score ORDER BY COUNT(t.tag_id) DESC,p.hot_score DESC,p.id DESC LIMIT 50",
-                    id,
-                    id,
-                    post.getCategory().name()
-                );
-                for (var row : fallback) {
-                    long candidate = ((Number) row.get("id")).longValue();
-                    long author = ((Number) row.get("author_id")).longValue();
-                    if (
-                        !selected.contains(candidate) &&
-                        perAuthor.merge(author, 1, Integer::sum) <= PER_AUTHOR
-                    ) {
-                        selected.add(candidate);
-                        if (selected.size() == 5) break;
+                if (doc != null) {
+                    var nearest = vectors
+                        .nearest(doc.vector(), null, 0, 21)
+                        .stream()
+                        .filter(hit -> hit.document().id() != id)
+                        .limit(MAX_RELATED)
+                        .map(hit -> hit.document().id())
+                        .toList();
+                    var visible = new HashMap<Long, PostEntity>();
+                    if (!nearest.isEmpty()) posts
+                        .selectByIds(nearest)
+                        .stream()
+                        .filter(
+                            item ->
+                                "NORMAL".equals(item.getReviewState().name()) &&
+                                Integer.valueOf(0).equals(item.getDeleteState())
+                        )
+                        .forEach(item -> visible.put(item.getId(), item));
+                    var candidates = nearest
+                        .stream()
+                        .map(visible::get)
+                        .filter(Objects::nonNull)
+                        .toList();
+                    if (!candidates.isEmpty()) {
+                        List<PostEntity> ranked;
+                        try {
+                            var query =
+                                "选择与这篇帖子的主题、经历或问题真正相关的帖子：" +
+                                post.getTitle() +
+                                "\n" +
+                                Objects.toString(post.getSummary(), "");
+                            var result = ai.retrieve(
+                                new AiComputation.RetrievalRequest(
+                                    query,
+                                    candidates
+                                        .stream()
+                                        .map(
+                                            item ->
+                                                item.getTitle() +
+                                                "\n" +
+                                                Objects.toString(
+                                                    item.getSummary(),
+                                                    ""
+                                                )
+                                        )
+                                        .toList(),
+                                    MAX_RELATED,
+                                    UserContext.require().userId()
+                                )
+                            );
+                            if (
+                                result == null ||
+                                result.ranked() == null ||
+                                new HashSet<>(result.ranked()).size() !=
+                                    result.ranked().size() ||
+                                result
+                                    .ranked()
+                                    .stream()
+                                    .anyMatch(
+                                        index ->
+                                            index == null ||
+                                            index < 0 ||
+                                            index >= candidates.size()
+                                    )
+                            ) throw new IllegalStateException(
+                                "Invalid related agent selection"
+                            );
+                            ranked = result
+                                .ranked()
+                                .stream()
+                                .map(candidates::get)
+                                .toList();
+                        } catch (Exception agentUnavailable) {
+                            // AI 不可用时按向量相似度的顺序返回，不写缓存，下次请求再交给 agent
+                            ranked = candidates;
+                            degraded = true;
+                        }
+                        for (var item : ranked) {
+                            if (
+                                perAuthor.merge(
+                                    item.getAuthorId(),
+                                    1,
+                                    Integer::sum
+                                ) <= PER_AUTHOR
+                            ) selected.add(item.getId());
+                        }
                     }
                 }
+            } catch (Exception vectorUnavailable) {
+                // 向量索引也不可用时相关帖子留空，不影响详情页其他部分
+                selected.clear();
+                degraded = true;
             }
             ids = selected;
-            try {
-                redis.opsForValue().set(key, json.writeValueAsString(ids), Duration.ofHours(1));
+            if (!degraded) try {
+                redis
+                    .opsForValue()
+                    .set(
+                        key,
+                        json.writeValueAsString(
+                            Map.of("source", "agent-v1", "ids", ids)
+                        ),
+                        Duration.ofHours(1)
+                    );
             } catch (RuntimeException ignored) {}
         }
         long safeSize = Math.min(10, Math.max(1, size));
         long safePage = Math.max(1, page);
         int start = (int) Math.min(ids.size(), (safePage - 1) * safeSize);
-        var slice = ids.subList(start, (int) Math.min(ids.size(), start + safeSize));
-        if (slice.isEmpty()) return new PageResult<>(List.of(), ids.size(), safePage, safeSize);
+        var slice = ids.subList(
+            start,
+            (int) Math.min(ids.size(), start + safeSize)
+        );
+        if (slice.isEmpty()) return new PageResult<>(
+            List.of(),
+            ids.size(),
+            safePage,
+            safeSize
+        );
         var rows = new HashMap<Long, PostEntity>();
         posts
             .selectByIds(slice)
@@ -133,7 +217,9 @@ public class RelatedPostService {
             .filter(p -> "NORMAL".equals(p.getReviewState().name()))
             .forEach(p -> rows.put(p.getId(), p));
         return new PageResult<>(
-            feed.hydrate(slice.stream().map(rows::get).filter(Objects::nonNull).toList()),
+            feed.hydrate(
+                slice.stream().map(rows::get).filter(Objects::nonNull).toList()
+            ),
             ids.size(),
             safePage,
             safeSize
@@ -155,16 +241,22 @@ public class RelatedPostService {
             String cached = redis.opsForValue().get(key);
             if (cached != null) all = json.readValue(
                 cached,
-                new tools.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}
+                new tools.jackson.core.type.TypeReference<
+                    List<Map<String, Object>>
+                >() {}
             );
         } catch (RuntimeException ignored) {}
         if (all == null) {
             all = json.convertValue(
                 buildAuthors(user),
-                new tools.jackson.core.type.TypeReference<List<Map<String, Object>>>() {}
+                new tools.jackson.core.type.TypeReference<
+                    List<Map<String, Object>>
+                >() {}
             );
             try {
-                redis.opsForValue().set(key, json.writeValueAsString(all), AUTHORS_TTL);
+                redis
+                    .opsForValue()
+                    .set(key, json.writeValueAsString(all), AUTHORS_TTL);
             } catch (RuntimeException ignored) {}
         }
         Set<Long> following;
@@ -176,13 +268,21 @@ public class RelatedPostService {
         final var followed = following;
         var remaining = all
             .stream()
-            .filter(item ->
-                !followed.contains(((Number) ((Map<?, ?>) item.get("author")).get("id")).longValue())
+            .filter(
+                item ->
+                    !followed.contains(
+                        (
+                            (Number) ((Map<?, ?>) item.get("author")).get("id")
+                        ).longValue()
+                    )
             )
             .toList();
         int start = (int) Math.min(remaining.size(), (safePage - 1) * safeSize);
         return new PageResult<>(
-            remaining.subList(start, (int) Math.min(remaining.size(), start + safeSize)),
+            remaining.subList(
+                start,
+                (int) Math.min(remaining.size(), start + safeSize)
+            ),
             remaining.size(),
             safePage,
             safeSize
@@ -207,7 +307,12 @@ public class RelatedPostService {
             );
         try {
             var vector = recommendations.readVector(user);
-            if (!vector.isEmpty()) for (var hit : vectors.nearest(vector, null, 30, 50))
+            if (!vector.isEmpty()) for (var hit : vectors.nearest(
+                vector,
+                null,
+                30,
+                50
+            ))
                 counts.putIfAbsent(hit.document().authorId(), 0L);
         } catch (Exception ignored) {}
         for (var row : jdbc.queryForList(
@@ -218,7 +323,10 @@ public class RelatedPostService {
         counts.remove(user);
         var topics = new HashMap<Long, String>();
         if (!counts.isEmpty()) {
-            String placeholders = String.join(",", Collections.nCopies(counts.size(), "?"));
+            String placeholders = String.join(
+                ",",
+                Collections.nCopies(counts.size(), "?")
+            );
             for (var row : jdbc.queryForList(
                 "SELECT p.author_id,f.topics FROM post p JOIN post_ai_feature f ON f.post_id=p.id AND f.delete_state=0 WHERE p.author_id IN (" +
                     placeholders +
@@ -249,7 +357,11 @@ public class RelatedPostService {
             String topic = topics.get(entry.getKey());
             item.put(
                 "reason",
-                entry.getValue() > 0 ? "INTERACTION" : topic == null ? "HOT" : "TOPIC"
+                entry.getValue() > 0
+                    ? "INTERACTION"
+                    : topic == null
+                      ? "HOT"
+                      : "TOPIC"
             );
             if (topic != null) item.put("topic", topic);
             output.add(item);
@@ -271,7 +383,9 @@ public class RelatedPostService {
     private com.pluchon.meng.content.client.UserClient users;
 
     // 批量读取公开作者资料
-    private Map<Long, com.pluchon.meng.api.user.vo.PublicUserVO> feedAuthors(List<Long> ids) {
+    private Map<Long, com.pluchon.meng.api.user.vo.PublicUserVO> feedAuthors(
+        List<Long> ids
+    ) {
         return ids.isEmpty() ? Map.of() : authorService.batch(ids);
     }
 }

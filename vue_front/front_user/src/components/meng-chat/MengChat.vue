@@ -461,12 +461,12 @@
           </p>
         </section>
         <MengState
-          v-if="sideLoading && !recentWorks.length && !memories.length"
+          v-if="sideLoading && !sideReady"
           loading
           compact
         />
         <MengState
-          v-else-if="sideError"
+          v-else-if="sideError && !sideReady"
           :error="sideError"
           compact
           @retry="loadSide()"

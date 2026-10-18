@@ -11,7 +11,19 @@ public final class AiComputation {
 
     public record EmbeddingsRequest(List<String> texts) {}
 
-    public record EmbeddingsResponse(List<List<Float>> vectors, String modelVersion) {}
+    public record EmbeddingsResponse(
+        List<List<Float>> vectors,
+        String modelVersion
+    ) {}
+
+    public record RetrievalRequest(
+        String query,
+        List<String> candidates,
+        int limit,
+        long userId
+    ) {}
+
+    public record RetrievalResponse(List<Integer> ranked, long tokens) {}
 
     public record DraftRequest(
         String category,
@@ -24,7 +36,11 @@ public final class AiComputation {
 
     public record TagsResponse(List<Tag> tags) {}
 
-    public record Inspiration(String angle, String explanation, String opening) {}
+    public record Inspiration(
+        String angle,
+        String explanation,
+        String opening
+    ) {}
 
     public record InspirationsResponse(List<Inspiration> inspirations) {}
 

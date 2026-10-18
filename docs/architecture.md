@@ -32,7 +32,7 @@
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
 | 模型 | DashScope：Qwen3.8 Flash、Qwen3.7 Embedding Flash、Qwen Image 3.0 标准版 | 文本与向量走 OpenAI 兼容接口，千问同步生图；型号靠配置切换，见 [ai.md](ai.md) |
-| 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 用户端和管理端各一个项目，见 [frontend.md](frontend.md) |
+| 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 当前只保留用户端项目；管理端仅保留文档规格，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 
 ## 3. 仓库结构
@@ -44,8 +44,7 @@ meng_center/
 ├── java_backend/    Java 后端（Maven 多模块）
 ├── python_ai/       Python AI 服务 meng-ai
 └── vue_front/       前端
-    ├── front_user/   用户端
-    └── front_admin/  管理端
+    └── front_user/   用户端；管理端实现已移除
 ```
 
 Maven groupId 和 Java 基础包名都是 `com.pluchon.meng`。
@@ -121,7 +120,7 @@ java_backend/
 | ai（Python） | 萌萌的对话图；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
-  网关统一校验管理员角色，Service 再校验一次。管理端是单独的 Vue 项目，目前只有注册审核。
+  网关统一校验管理员角色，Service 再校验一次。管理端前端已移除，管理员接口仍在，规格保留在文档里。
 - **定时任务**：xxl-job。调度中心是一个独立的容器，执行器嵌在有任务的域服务里，任务写在拥有那份数据的域。不设独立的定时任务服务，也不再用 Spring 的 `@Scheduled`。
   - 调度中心用官方镜像 3.5.0，按摘要固定。低于 3.4.0 的版本有已公开的安全漏洞，不用。
     它只监听本机；容器内端口是 8080，和网关相同，宿主机端口另取并写在 `deploy/ports.env`。容器时区设为 Asia/Taipei，任务的 cron 按这个时区理解。
@@ -203,7 +202,7 @@ java_backend/
 - 链路追踪（要上就用 Zipkin）、Sentinel（有证据再上，不部署控制台）。
 - 抽奖的具体玩法。
 - 封禁、第三方登录。
-- 管理端除注册审核以外的页面：举报处理、帖子管理、AI 审核复核。AI 审核的结论和管理员接口见 [ai.md](ai.md) 第 12 节。
+- 管理端前端（注册审核、举报处理、帖子管理、AI 审核复核的页面）。AI 审核的结论和管理员接口见 [ai.md](ai.md) 第 12 节。
 
 ### 待定
 
