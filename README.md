@@ -6,6 +6,10 @@
 
 这是一个兴趣项目，也是几种技术放在一起的练习，所以首要目标是好维护、好扩展：服务按业务域拆分，同步调用只保留少数几条固定方向，其余都走事件。
 
+## 演示视频
+
+[meng_center_demo.mp4](meng_center_demo.mp4)，92 秒：注册审核、主页、发帖、语义搜索、创作中心、成长、消息、个人中心，再到萌萌的三个角色、聊天、记忆、语气档位，最后是架构和一次发帖的事件流。
+
 ## 功能
 
 ### 账号与审核
@@ -79,7 +83,7 @@ flowchart TD
 
 消息中心分私信、评论、喜欢和系统四个标签页。私信支持文字、表情、图片、已读回执、撤回和在线状态，也可以屏蔽对方。导航栏的未读数通过一条 WebSocket 实时更新。
 
-![消息中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/20261018120154778.png)
+![消息中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/20261018121851354.png)
 
 ### 个人中心
 
@@ -299,7 +303,8 @@ meng_center/
 ├── java_backend/    Java 后端，Maven 多模块
 ├── python_ai/       AI 服务
 ├── vue_front/       用户端
-└── verification/    联调、压测和浏览器验证脚本
+├── verification/    联调、压测和浏览器验证脚本
+└── meng_center_demo.mp4  演示视频
 ```
 
 Java 模块的布局是：每个业务域一个 server 模块放在顶层，所有域对外的契约集中在 `meng-api`。
