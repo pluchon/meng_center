@@ -103,7 +103,7 @@ public class AiAdminService {
     public List<Map<String, Object>> list() {
         admin();
         return jdbc.queryForList(
-            "SELECT 'POST' kind,post_id id,verdict,labels,reason,model_version FROM post_ai_feature WHERE verdict<>'PASS' AND delete_state=0 UNION ALL SELECT 'COMMENT',comment_id,verdict,labels,reason,model_version FROM comment_ai_review WHERE verdict<>'PASS' AND delete_state=0 LIMIT 100"
+            "SELECT 'POST' kind,post_id id,verdict,labels,reason,model_version FROM post_ai_feature WHERE (verdict<>'PASS' OR (analyze_state='FAILED' AND retry_count>=3)) AND delete_state=0 UNION ALL SELECT 'COMMENT',comment_id,verdict,labels,reason,model_version FROM comment_ai_review WHERE verdict<>'PASS' AND delete_state=0 LIMIT 100"
         );
     }
 

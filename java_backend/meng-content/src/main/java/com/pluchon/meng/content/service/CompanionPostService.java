@@ -37,6 +37,7 @@ public class CompanionPostService {
                 .anyMatch(value -> value == null || !Float.isFinite(value))
         ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         try {
+            if(!vectors.encodingReady()) throw new BusinessException(com.pluchon.meng.content.entity.enums.AiErrorCode.UNAVAILABLE);
             var ids = vectors
                 .nearest(query.vector(), null, 0, query.size())
                 .stream()
@@ -62,6 +63,12 @@ public class CompanionPostService {
                 com.pluchon.meng.content.entity.enums.AiErrorCode.UNAVAILABLE
             );
         }
+    }
+
+    public CompanionPostContract.Detail read(long id) {
+        var post=mapper.read(id);
+        if(post==null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        return post;
     }
 
     public List<CompanionPostContract.Post> recent(long user, int size) {

@@ -62,7 +62,8 @@ public class CompanionRuntimeTest {
         );
         for (String file : List.of(
             "V20261017001__create_companion.sql",
-            "V20261017002__companion_runtime.sql"
+            "V20261017002__companion_runtime.sql",
+            "V20261025001__companion_runtime_v2.sql"
         )) {
             String sql = new ClassPathResource(
                 "db/migration/" + file
@@ -90,6 +91,8 @@ public class CompanionRuntimeTest {
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CompanionMapper.class);
         configuration.addMapper(RuntimeMapper.class);
+        configuration.addMapper(RuntimeV2Mapper.class);
+
         var factory = new SqlSessionFactoryBean();
         factory.setDataSource(source);
         factory.setConfiguration(configuration);
@@ -97,6 +100,9 @@ public class CompanionRuntimeTest {
             Objects.requireNonNull(factory.getObject())
         );
         var mapper = session.getMapper(CompanionMapper.class);
+        var state = session.getMapper(
+            com.pluchon.meng.companion.mapper.RuntimeV2Mapper.class
+        );
         var runtime = spy(session.getMapper(RuntimeMapper.class));
         doReturn(null).when(runtime).feeling(anyLong());
         var transactions = new TransactionTemplate(
@@ -135,7 +141,20 @@ public class CompanionRuntimeTest {
             "clock",
             clock
         );
+        var v2 = new CompanionRuntimeV2();
+        inject(
+            v2,
+            "state",
+            state,
+            "mapper",
+            mapper,
+            "clock",
+            clock,
+            "properties",
+            new CompanionProperties()
+        );
         service = new CompanionService();
+        inject(service, "v2", v2);
         inject(
             service,
             "mapper",
@@ -163,6 +182,7 @@ public class CompanionRuntimeTest {
         executor.setAwaitTerminationSeconds(6);
         executor.initialize();
         replies = new ReplyService();
+        inject(replies, "v2", v2);
         inject(replies, "telemetry", mock(CompanionTelemetry.class));
         inject(
             replies,
@@ -207,7 +227,7 @@ public class CompanionRuntimeTest {
                 41,
                 "2026-10-17",
                 "r",
-                List.of("message", "document", "image"),
+                List.of("message", "toy", "image"),
                 true
             )
         );
@@ -288,7 +308,7 @@ public class CompanionRuntimeTest {
     }
 
     private CompanionDTO.Send send(String id, String text) {
-        return new CompanionDTO.Send(id, text, List.of(), null);
+        return new CompanionDTO.Send(id, text, List.of());
     }
 
     private void until(java.util.function.BooleanSupplier condition)
@@ -387,6 +407,137 @@ public class CompanionRuntimeTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
+    void exposedSnapshotNewAndDueMemoriesAreAllowedOutsideRecallCandidates()
+        throws Exception {
+        var before = LocalDateTime.of(2026, 10, 17, 3, 0);
+        for (int i = 0; i < 16; i++) jdbc.update(
+            "INSERT INTO companion_memory(user_id,character_code,kind,content,content_hash,importance,valid_from,source_message_id) VALUES(41,'NEKO','LIKE',?,?,10,?,1)",
+            "旧喜好" + i,
+            "old-" + i,
+            before
+        );
+        jdbc.update(
+            "UPDATE companion_session SET context_snapshot=?,snapshot_time=? WHERE id=1",
+            "{\"profile\":\"\",\"memories\":[{\"id\":90002,\"content\":\"曾经喜欢绿色\",\"kind\":\"LIKE\"}]}",
+            before.plusMinutes(30)
+        );
+        jdbc.update(
+            "INSERT INTO companion_memory(id,user_id,character_code,kind,content,content_hash,importance,valid_from,source_message_id) VALUES(90002,41,'NEKO','LIKE','曾经喜欢绿色','snapshot-green',1,?,1)",
+            before
+        );
+        jdbc.update(
+            "INSERT INTO companion_memory(id,user_id,character_code,kind,content,content_hash,importance,valid_from,due_date,source_message_id) VALUES(90003,41,'NEKO','PROMISE','今天看展览','due-exhibition',1,?,'2026-10-17',1)",
+            before
+        );
+        jdbc.update(
+            "INSERT INTO companion_memory(id,user_id,character_code,kind,content,content_hash,importance,valid_from,source_message_id) VALUES(90001,41,'NEKO','LIKE','喜欢蓝色','new-blue',1,?,1)",
+            before.plusMinutes(45)
+        );
+        record("[]");
+        release.countDown();
+        replies.send(
+            41,
+            1,
+            send("new-memory", "聊点别的"),
+            "Asia/Taipei",
+            "test"
+        );
+        until(() -> !requests.isEmpty() && locks.isEmpty());
+        assertTrue(
+            ((List<Long>) requests.get(0).get("memoryIds")).containsAll(
+                List.of(90001L, 90002L, 90003L)
+            )
+        );
+        assertFalse(
+            ((List<Map<String, Object>>) requests.get(0).get("recalled"))
+                .stream()
+                .anyMatch(m ->
+                    List.of(90001L, 90002L, 90003L).contains(m.get("id"))
+                )
+        );
+        assertTrue(
+            ((List<Map<String, Object>>) requests.get(0).get("newMemories"))
+                .stream()
+                .anyMatch(m -> Long.valueOf(90001).equals(m.get("id")))
+        );
+        assertEquals(
+            90003L,
+            ((List<Map<String, Object>>) requests.get(0).get("due"))
+                .get(0)
+                .get("id")
+        );
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void acknowledgmentHasValidJsonMetricsAndDoesNotBlockFinalReply()
+        throws Exception {
+        when(ai.reply(anyMap(), any())).thenAnswer(invocation -> {
+            var progress = (java.util.function.BiConsumer<
+                String,
+                JsonNode
+            >) invocation.getArgument(1);
+            progress.accept(
+                "status",
+                json.valueToTree(
+                    Map.of("kind", "ACK", "content", "准备查一查。")
+                )
+            );
+            return result("[]");
+        });
+        replies.send(
+            41,
+            1,
+            send("valid-ack", "看看最近的消息"),
+            "Asia/Taipei",
+            "test"
+        );
+        until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
+        assertEquals(2, count("role='CHARACTER'"));
+        var metrics = json.readTree(
+            jdbc.queryForObject(
+                "SELECT metrics FROM companion_message WHERE prompt_version='ack-v2'",
+                String.class
+            )
+        );
+        assertTrue(metrics.isObject());
+        assertTrue(metrics.path("ack").asBoolean());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void clearingMemoryAlsoRejectsAnInflightAcknowledgment() throws Exception {
+        when(ai.reply(anyMap(), any())).thenAnswer(invocation -> {
+            entered.countDown();
+            assertTrue(release.await(5, TimeUnit.SECONDS));
+            var progress = (java.util.function.BiConsumer<
+                String,
+                JsonNode
+            >) invocation.getArgument(1);
+            progress.accept(
+                "status",
+                json.valueToTree(
+                    Map.of("kind", "ACK", "content", "准备查一查。")
+                )
+            );
+            return result("[]");
+        });
+        replies.send(
+            41,
+            1,
+            send("reset-ack", "看看最近的消息"),
+            "Asia/Taipei",
+            "test"
+        );
+        assertTrue(entered.await(5, TimeUnit.SECONDS));
+        service.clearMemories(41, "NEKO");
+        release.countDown();
+        until(() -> count("turn_state='FAILED'") == 1 && locks.isEmpty());
+        assertEquals(0, count("role='CHARACTER'"));
+    }
+
+    @Test
     void regenerationReplacesOneRoundWithoutRepeatingAffection()
         throws Exception {
         record("[]");
@@ -458,7 +609,89 @@ public class CompanionRuntimeTest {
             "clock",
             Clock.fixed(Instant.parse("2026-10-17T04:00:00Z"), ZoneOffset.UTC)
         );
+        var v2 = ReflectionTestUtils.getField(replies, "v2");
+        inject(
+            service,
+            "v2",
+            v2,
+            "state",
+            ReflectionTestUtils.getField(v2, "state")
+        );
         return service;
+    }
+
+    @Test
+    void reactionOnlyCommitsUserTurnWithoutEmptyCharacterMessage()
+        throws Exception {
+        jdbc.update("UPDATE companion_bond SET character_code='GENKI'");
+        jdbc.update("UPDATE companion_session SET character_code='GENKI'");
+        var response = (tools.jackson.databind.node.ObjectNode) result("[]");
+        response.set("bubbles", json.createArrayNode());
+        response.put("reaction", "好耶");
+        when(ai.reply(anyMap(), any())).thenReturn(response);
+        replies.send(
+            41,
+            1,
+            send("reaction-only", "事情已经做好了"),
+            "Asia/Taipei",
+            "test"
+        );
+        until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
+        assertEquals(
+            "好耶",
+            jdbc.queryForObject(
+                "SELECT reaction FROM companion_message WHERE role='USER'",
+                String.class
+            )
+        );
+        assertEquals(0, count("role='CHARACTER' AND content=''"));
+    }
+
+    @Test
+    void bitEvictionUsesRecencyInsteadOfImportance() {
+        for (int i = 0; i < 7; i++) jdbc.update(
+            "INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id,kind,importance,last_used_time) VALUES(41,'NEKO',?,?,1,'BIT',?,?)",
+            "共同梗" + i,
+            "bit-" + i,
+            10 - i,
+            LocalDateTime.of(2026, 10, 1 + i, 0, 0)
+        );
+        var v2 = ReflectionTestUtils.getField(replies, "v2");
+        var state = (RuntimeV2Mapper) ReflectionTestUtils.getField(v2, "state");
+        var ids = state.excessBits(41, "NEKO");
+        assertEquals(2, ids.size());
+        for (long id : ids)
+            assertTrue(
+                jdbc.queryForObject(
+                    "SELECT importance FROM companion_memory WHERE id=?",
+                    Integer.class,
+                    id
+                ) >= 9
+            );
+    }
+
+    @Test
+    void reactionWindowCountsCommittedRoundsInsteadOfQueuedMessages() {
+        jdbc.update(
+            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state,reaction) VALUES(1,'USER','第一轮',100,'COMMITTED','好耶')"
+        );
+        for (int i = 0; i < 5; i++) jdbc.update(
+            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state) VALUES(1,'USER','同一轮排队输入',200,'COMMITTED')"
+        );
+        for (int i = 0; i < 5; i++) jdbc.update(
+            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state) VALUES(1,'USER','失败输入',?,'FAILED')",
+            300 + i
+        );
+        var runtime = (RuntimeMapper) ReflectionTestUtils.getField(
+            replies,
+            "runtime"
+        );
+        assertEquals(1, runtime.recentReactions(1));
+        for (int i = 0; i < 4; i++) jdbc.update(
+            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state) VALUES(1,'USER','后续完成轮次',?,'COMMITTED')",
+            400 + i
+        );
+        assertEquals(0, runtime.recentReactions(1));
     }
 
     @Test

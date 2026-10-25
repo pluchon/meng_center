@@ -8,8 +8,12 @@ if (-not $MavenPath) {
 }
 if (-not (Test-Path -LiteralPath $MavenPath)) { throw 'IDEA Maven command not found.' }
 $projectRoot = Split-Path $PSScriptRoot -Parent
-& $MavenPath -B -ntp -f (Join-Path $projectRoot 'java_backend/pom.xml') test
-if ($LASTEXITCODE -ne 0) { throw 'Backend tests failed.' }
+$priorMavenOptions = $env:MAVEN_OPTS
+try {
+    if (-not $env:MAVEN_OPTS) { $env:MAVEN_OPTS = '-Xms64m -Xmx384m -XX:MaxMetaspaceSize=256m -XX:ActiveProcessorCount=2' }
+    & $MavenPath -B -ntp -f (Join-Path $projectRoot 'java_backend/pom.xml') '-DforkCount=1' '-DargLine=-Xms32m -Xmx256m -XX:MaxMetaspaceSize=192m -XX:ActiveProcessorCount=2' test
+    if ($LASTEXITCODE -ne 0) { throw 'Backend tests failed.' }
+} finally { $env:MAVEN_OPTS = $priorMavenOptions }
 $suites = @(Get-ChildItem (Join-Path $projectRoot 'java_backend') -Recurse -File -Filter 'TEST-*.xml' |
     Where-Object FullName -Match '[\\/]target[\\/]surefire-reports[\\/]' | ForEach-Object {
         [xml] $suite = Get-Content -LiteralPath $_.FullName -Raw

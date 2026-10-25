@@ -52,6 +52,7 @@ class SemanticRetrievalTest {
 
     @BeforeEach
     void setup() throws Exception {
+        when(vectors.encodingReady()).thenReturn(true);
         UserContext.bind(new RequestIdentity(42, "USER", "fixture"));
         var redis = mock(StringRedisTemplate.class);
         @SuppressWarnings("unchecked")
@@ -96,7 +97,7 @@ class SemanticRetrievalTest {
     @Test
     void agentChoosesByMeaningAfterVisibilityChecks() {
         when(ai.retrieve(any())).thenReturn(
-            new AiComputation.RetrievalResponse(List.of(1), 30)
+            new AiComputation.RetrievalResponse(List.of(1), List.of(0.9), true)
         );
         var result = service.search("A quiet moment outside", null, 1, 10);
         assertEquals(1, result.total());
@@ -112,7 +113,7 @@ class SemanticRetrievalTest {
     @Test
     void agentCanRejectAllCandidatesWithoutFillingResults() {
         when(ai.retrieve(any())).thenReturn(
-            new AiComputation.RetrievalResponse(List.of(), 30)
+            new AiComputation.RetrievalResponse(List.of(), List.of(), true)
         );
         assertEquals(0, service.search("水星地形", null, 1, 10).total());
         verify(feed).hydrate(List.of());
@@ -122,7 +123,7 @@ class SemanticRetrievalTest {
     void invalidAgentDecisionsFallBackToKeywordSearch() {
         for (var ranked : List.of(List.of(2), List.of(0, 0), List.of(-1))) {
             when(ai.retrieve(any())).thenReturn(
-                new AiComputation.RetrievalResponse(ranked, 30)
+                new AiComputation.RetrievalResponse(ranked, java.util.Collections.nCopies(ranked.size(),0.9), true)
             );
             var result = service.search("查询", null, 1, 10);
             assertFalse(result.semantic());

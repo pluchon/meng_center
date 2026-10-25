@@ -42,6 +42,8 @@ public class CompanionService {
     @Autowired
     private CompanionContext context;
 
+    @Autowired private CompanionRuntimeV2 v2;
+
     @Autowired
     private AiClient ai;
 
@@ -116,7 +118,8 @@ public class CompanionService {
             List.copyOf(names),
             sessions.isEmpty() ? null : sessions.get(0).getLastMessageTime(),
             bond == null ? 2 : bond.getLevel(),
-            levelNames(user, c.getCode())
+            levelNames(user, c.getCode()),
+            v2.status(c.getCode(), clock.instant().atZone(zone).toLocalDate())
         );
     }
 
@@ -177,6 +180,11 @@ public class CompanionService {
                 .get(bond.getStage() - 1)
                 .asString()
         );
+        try {
+            var generated = ai.compute("openings", Map.of("card",context.card(user,code), "stage",bond.getStage(),
+                "level",bond.getLevel(), "daily",context.daily(code,bond.getTimeZone()))).path("opening").asString();
+            if (!generated.isBlank() && generated.length()<=500) opening.setContent(generated);
+        } catch (RuntimeException ignored) { }
         opening.setBubbles(
             json.writeValueAsString(List.of(opening.getContent()))
         );
@@ -281,6 +289,7 @@ public class CompanionService {
     }
 
     private void clearDerived(long user, String code) {
+        v2.invalidate(user,code);
         runtime.clearProfile(user, code);
         runtime.clearEpisodes(user, code);
         redis.delete("meng:companion:memo:" + user + ":" + code);

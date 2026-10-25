@@ -18,6 +18,11 @@ from app.schemas.companion import (
 router = APIRouter(prefix="/ai/internal/companion")
 
 
+@router.post("/openings")
+async def openings(body: dict, request: Request):
+    return await request.app.state.companion.opening(body)
+
+
 @router.post("/replies")
 async def replies(body: ReplyRequest, request: Request):
     async def events():

@@ -4,6 +4,7 @@
     :title="t('auth.captcha.title')"
     width="min(400px, 92vw)"
     class="meng-captcha-dialog"
+    append-to-body
     align-center
     :close-on-click-modal="false"
     @closed="cancel"

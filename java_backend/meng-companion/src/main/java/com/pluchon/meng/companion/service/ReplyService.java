@@ -64,6 +64,9 @@ public class ReplyService {
     @Autowired
     private CompanionTelemetry telemetry;
 
+    @Autowired private CompanionRuntimeV2 v2;
+    @Autowired private PrivateImages privateImages;
+
     private final JsonMapper json = JsonMapper.builder()
         .findAndAddModules()
         .build();
@@ -143,7 +146,7 @@ public class ReplyService {
         String zone,
         String ip
     ) {
-        return send(user, sessionId, body, zone, ip, null);
+        return send(user, sessionId, body, zone, ip, null, false);
     }
 
     private DeferredResult<ResponseEntity<?>> send(
@@ -152,7 +155,8 @@ public class ReplyService {
         CompanionDTO.Send body,
         String zone,
         String ip,
-        Long regenerates
+        Long regenerates,
+        boolean poke
     ) {
         String timeZone = CompanionContext.zone(zone);
         var submitted = transactions.execute(status -> {
@@ -167,10 +171,7 @@ public class ReplyService {
             if (previous != null) {
                 if (
                     !Objects.equals(previous.getContent(), text) ||
-                    !Objects.equals(
-                        previous.getRequestWorkId(),
-                        body.workId()
-                    ) ||
+                    !Objects.equals(previous.getKind(), poke ? "POKE" : "TEXT") ||
                     !json
                         .readTree(previous.getImageIds())
                         .equals(json.valueToTree(body.imageIds()))
@@ -195,7 +196,7 @@ public class ReplyService {
                 if (
                     mapper.image(image, user) == null
                 ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
-            contexts.works(user, session, body.workId());
+            if (poke) limits.checkPoke(user);
             runtime.zone(user, session.getCharacterCode(), timeZone);
             var message = new Rows.Message();
             message.setSessionId(sessionId);
@@ -204,7 +205,7 @@ public class ReplyService {
             message.setImageIds(json.writeValueAsString(body.imageIds()));
             message.setClientMessageId(body.clientMessageId());
             message.setTurnState("RECEIVED");
-            message.setRequestWorkId(body.workId());
+            message.setKind(poke ? "POKE" : "TEXT");
             message.setRequestRevision(bond.getRevision());
             message.setTimeZone(timeZone);
             message.setRegeneratesMessageId(regenerates);
@@ -220,6 +221,11 @@ public class ReplyService {
                     : submitted.getTurnId()
             ))
                 replay(channel, user, message);
+            long committedTurn = submitted.getTurnId() == null ? submitted.getId() : submitted.getTurnId();
+            for (var message : runtime.turnMessages(sessionId, committedTurn)) {
+                if ("USER".equals(message.getRole()) && message.getReaction() != null && !message.getReaction().isBlank())
+                    channel.event("reaction", Map.of("messageId", message.getId(), "emoji", message.getReaction()));
+            }
             channel.done(limits.usage(user, timeZone));
             return channel.response;
         }
@@ -253,7 +259,7 @@ public class ReplyService {
             "work",
             companion.work(user, message.getWorkId())
         );
-        else channel.event("bubble", CompanionConverter.message(message));
+        else channel.event("bubble", CompanionConverter.message(message, true));
     }
 
     private int kick(long sessionId) {
@@ -299,8 +305,7 @@ public class ReplyService {
         Rows.Bond bond,
         List<Rows.Message> inputs,
         String content,
-        List<String> images,
-        Long work
+        List<String> images
     ) {}
 
     private Prepared prepare(long user, long sessionId) {
@@ -314,16 +319,12 @@ public class ReplyService {
             var inputs = new ArrayList<Rows.Message>();
             var images = new ArrayList<String>();
             var text = new StringBuilder();
-            Long work = null;
             for (var input : runtime.pending(sessionId)) {
                 var ids = json.readTree(input.getImageIds());
                 if (
                     !inputs.isEmpty() &&
                     (text.length() + input.getContent().length() + 1 > 1000 ||
-                        images.size() + ids.size() > 3 ||
-                        (work != null &&
-                            input.getRequestWorkId() != null &&
-                            !work.equals(input.getRequestWorkId())))
+                        images.size() + ids.size() > 3)
                 ) break;
                 if (input.getRequestRevision() != bond.getRevision()) {
                     runtime.state(input.getId(), input.getId(), "FAILED");
@@ -338,8 +339,6 @@ public class ReplyService {
                     );
                     images.add(outbox.thumbnail(file));
                 }
-                if (input.getRequestWorkId() != null) work =
-                    input.getRequestWorkId();
                 inputs.add(input);
             }
             if (inputs.isEmpty()) return null;
@@ -351,8 +350,7 @@ public class ReplyService {
                 bond,
                 List.copyOf(inputs),
                 text.toString(),
-                List.copyOf(images),
-                work
+                List.copyOf(images)
             );
         });
     }
@@ -384,7 +382,21 @@ public class ReplyService {
             runtime.groupState(turn, "GENERATING");
             var current = prepared;
             JsonNode result = ai.reply(request, (type, data) ->
-                broadcast(current, type, data)
+                { if ("status".equals(type) && "ACK".equals(data.path("kind").asString())) {
+                    String content=data.path("content").asString();
+                    if(content.isBlank() || content.length()>500) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                    var message=transactions.execute(status -> {
+                        var liveBond = mapper.lockBond(user, current.session().getCharacterCode());
+                        var live = mapper.lockSession(sessionId, user);
+                        if (live == null || liveBond == null || liveBond.getRevision() != current.bond().getRevision())
+                            throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                        var fake=json.createObjectNode().put("promptVersion","ack-v2").put("model","speech");
+                        fake.putObject("metrics").put("ack",true);
+                        var stored=character(sessionId,current.inputs().get(0).getId(),content,"PASS",0,fake);
+                        mapper.advanceSession(sessionId,"",1,now()); return stored;
+                    });
+                    broadcast(current,"bubble",json.valueToTree(CompanionConverter.message(message,true)));
+                } else broadcast(current,type,data); }
             );
             if (!limits.locked(sessionId, token)) throw new BusinessException(
                 CompanionError.AI_UNAVAILABLE
@@ -413,7 +425,12 @@ public class ReplyService {
             var used = new ArrayList<String>();
             if (billable) {
                 used.add("message");
-                if (!result.path("works").isEmpty()) used.add("document");
+                if (!result.path("works").isEmpty()) used.add("toy");
+                for(var entry:List.of("web","webImage")) {
+                    int countUsed=0;
+                    for(var tool:result.path("toolUsage")) if(entry.equals(tool.path("kind").asString()) && tool.path("success").asBoolean()) countUsed++;
+                    for(var kind:reservation.kinds()) if(kind.startsWith(entry+":" ) && countUsed-->0) used.add(kind);
+                }
             }
             boolean drawing = !result.path("drawings").isEmpty();
             var finish = new CompanionLimits.Reservation(
@@ -544,7 +561,7 @@ public class ReplyService {
         request.put(
             "mood",
             "当地时间：" +
-                local.toLocalDateTime() +
+                local.toLocalDateTime() + "，星期" + "一二三四五六日".charAt(local.getDayOfWeek().getValue()-1) + "；今天："+v2.calendar(p.bond(),local.toLocalDate()) +
                 "；上次聊天（UTC）：" +
                 p.bond().getLastChatTime() +
                 (limits.restReminder(user, zone)
@@ -553,10 +570,20 @@ public class ReplyService {
         );
         request.put("timeZone", zone);
         request.put("turnId", p.inputs().get(0).getId().toString());
-        request.put("memories", memories.stable());
-        request.put("memoryItems", memories.items());
-        request.put("sharedMemory", memories.shared());
-        request.put("priorTokens", memories.tokens());
+        var snapshot = v2.snapshot(session,p.bond(),false);
+        request.put("contextSnapshot", snapshot);
+        request.put("threads",session.getThreads()==null?List.of():json.readTree(session.getThreads()));
+        request.put("poke", "POKE".equals(p.inputs().get(0).getKind()));
+        var nowMemories = mapper.memories(user,session.getCharacterCode());
+        var newMemories=nowMemories.stream().filter(m -> session.getSnapshotTime()!=null &&
+            m.getValidFrom()!=null && m.getValidFrom().isAfter(session.getSnapshotTime())).map(m -> Map.of(
+                "id",m.getId(),"content",m.getContent(),"kind",m.getKind())).toList();
+        request.put("newMemories",newMemories);
+        var enabledControls = new ArrayList<>(controls(user,session,card,p.bond().getStage(),zone));
+        if (p.inputs().get(0).getRegeneratesMessageId() != null) enabledControls.remove("reaction");
+        request.put("controls", enabledControls);
+        request.put("toolLimits",limits.toolLimits(reservation));
+        request.put("spontaneousAllowed",limits.controlAvailable(user,zone,"spontaneous"));
         request.put("profile", p.bond().getProfile());
         request.put("recalled", memories.recalled());
         request.put("due", memories.due());
@@ -567,7 +594,6 @@ public class ReplyService {
             Objects.requireNonNullElse(runtime.feeling(session.getId()), "平静")
         );
         request.put("recentReplies", runtime.recentReplies(session.getId()));
-        request.put("works", contexts.works(user, session, p.work()));
         request.put("summary", session.getSummary());
         request.put("history", turns(rows));
         request.put(
@@ -579,15 +605,16 @@ public class ReplyService {
         request.put("messageAllowed", reservation.messageAllowed());
         if (p.inputs().get(0).getRegeneratesMessageId() != null) request.put(
             "tools",
-            List.of(
-                "search_posts",
-                "my_recent_posts",
-                "my_growth",
-                "recall",
-                "read_work"
-            )
+            List.of("search_posts", "read_post", "my_recent_posts", "my_growth", "recall")
         );
-        request.put("memoryIds", memories.used());
+        var allowedMemoryIds=new java.util.HashSet<Long>(memories.used());
+        for (var memory : snapshot.path("memories"))
+            if (memory.path("id").isIntegralNumber()) allowedMemoryIds.add(memory.path("id").asLong());
+        newMemories.forEach(m -> allowedMemoryIds.add(((Number)m.get("id")).longValue()));
+        memories.due().forEach(m -> allowedMemoryIds.add(((Number)m.get("id")).longValue()));
+        memories.recalled().stream().map(m -> m.get("id")).filter(id -> id instanceof Number)
+            .forEach(id -> allowedMemoryIds.add(((Number)id).longValue()));
+        request.put("memoryIds",List.copyOf(allowedMemoryIds));
         return request;
     }
 
@@ -608,7 +635,7 @@ public class ReplyService {
             ) {
                 var previous = turns.remove(turns.size() - 1);
                 String content =
-                    previous.get("content") + "\n" + message.getContent();
+                    previous.get("content") + "\n" + (message.getContent() + (message.isRetracted()?"（发出后撤回了）":""));
                 turns.add(
                     Map.of(
                         "role",
@@ -622,13 +649,11 @@ public class ReplyService {
                     "role",
                     message.getRole(),
                     "content",
-                    message.getContent()
+                    (message.getContent() + (message.isRetracted()?"（发出后撤回了）":""))
                 )
             );
         }
-        return turns.size() > 80
-            ? turns.subList(turns.size() - 80, turns.size())
-            : turns;
+        return turns;
     }
 
     private List<Map<String, Object>> persist(
@@ -657,7 +682,9 @@ public class ReplyService {
             ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
             var bubbles = result.path("bubbles");
             if (
-                !bubbles.isArray() || bubbles.isEmpty() || bubbles.size() > 3
+                !bubbles.isArray() || bubbles.size() > 3 ||
+                (bubbles.isEmpty() && (result.path("reaction").asString("").isBlank() ||
+                    p.inputs().get(0).getRegeneratesMessageId() != null))
             ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
             boolean normal = List.of("PASS", "ROMANCE_PUSH").contains(label);
             boolean billable = result.path("billable").asBoolean(true);
@@ -692,6 +719,9 @@ public class ReplyService {
             int count = p.inputs().size();
             for (var input : p.inputs())
                 mapper.completeMessage(input.getId(), label);
+            boolean retract = result.path("retractIndex").isIntegralNumber() && bond.getStage()>=3 &&
+                contexts.card(user,session.getCharacterCode()).path("quirks").path("retract").asBoolean() &&
+                limits.useControl(user,p.inputs().get(0).getTimeZone(),"retract");
             int index = 0;
             for (var bubble : bubbles) {
                 String text = bubble.asString();
@@ -706,12 +736,13 @@ public class ReplyService {
                     index++ == 0 ? delta : 0,
                     result
                 );
+                v2.metadata(message,result,retract && result.path("retractIndex").asInt()==index-1);
                 output.add(
                     Map.of(
                         "event",
                         "bubble",
                         "data",
-                        CompanionConverter.message(message)
+                        CompanionConverter.message(message, true)
                     )
                 );
                 count++;
@@ -724,14 +755,7 @@ public class ReplyService {
             );
             String sticker = result.path("sticker").asString("");
             if (!sticker.isBlank()) {
-                boolean allowed = false;
-                for (var id : contexts
-                    .card(user, session.getCharacterCode())
-                    .path("stickers"))
-                    if (sticker.equals(id.asString())) allowed = true;
-                if (!allowed) throw new BusinessException(
-                    CompanionError.AI_UNAVAILABLE
-                );
+                if (!sticker.matches("[^\\s\\[\\]]{1,12}")) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
                 var m = character(session.getId(), turn, "", label, 0, result);
                 m.setKind("STICKER");
                 m.setSticker(sticker);
@@ -741,7 +765,7 @@ public class ReplyService {
                         "event",
                         "bubble",
                         "data",
-                        CompanionConverter.message(m)
+                        CompanionConverter.message(m, true)
                     )
                 );
                 count++;
@@ -757,8 +781,8 @@ public class ReplyService {
             ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
             for (var node : result.path("works")) {
                 if (
-                    !r.kinds().contains("document") ||
-                    !"DOCUMENT".equals(node.path("kind").asString())
+                    !r.kinds().contains("toy") ||
+                    !"TOY".equals(node.path("kind").asString())
                 ) throw new BusinessException(
                     CompanionError.COMPANION_QUOTA_EXCEEDED
                 );
@@ -766,31 +790,15 @@ public class ReplyService {
                 work.setUserId(user);
                 work.setCharacterCode(session.getCharacterCode());
                 work.setSessionId(session.getId());
-                work.setKind("DOCUMENT");
+                work.setKind("TOY");
                 work.setTitle(node.path("title").asString());
                 work.setBody(node.path("body").asString());
                 if (
                     work.getTitle().isBlank() ||
                     work.getTitle().length() > 80 ||
                     work.getBody().isBlank() ||
-                    work.getBody().length() > 20000
+                    work.getBody().getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 20000
                 ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-                if (
-                    !node.path("parentId").isNull() &&
-                    node.path("parentId").asLong() > 0
-                ) {
-                    var parent = companion.requireWork(
-                        user,
-                        node.path("parentId").asLong()
-                    );
-                    if (
-                        !parent
-                            .getCharacterCode()
-                            .equals(session.getCharacterCode()) ||
-                        !"DOCUMENT".equals(parent.getKind())
-                    ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
-                    work.setParentId(parent.getId());
-                }
                 mapper.insertWork(work);
                 var m = character(
                     session.getId(),
@@ -811,7 +819,27 @@ public class ReplyService {
                     )
                 );
             }
+            if(result.path("images").size()>2) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            for(var image:result.path("images")) {
+                long imageId = privateImages.web(user,image);
+                var m = character(session.getId(),turn,image.path("caption").asString(),label,0,result);
+                runtime.webMessage(m.getId(),json.writeValueAsString(List.of(imageId)));
+                m.setKind("IMAGE"); m.setImageIds(json.writeValueAsString(List.of(imageId)));
+                v2.metadata(m,result,false); count++;
+                output.add(Map.of("event","bubble","data",CompanionConverter.message(m,true)));
+            }
+            if(result.path("threads").isArray()) v2.threads(session.getId(),user,result.path("threads"));
+            if(!result.path("reaction").isNull() && !result.path("reaction").asString().isBlank()) {
+                if (!controls(user,session,contexts.card(user,session.getCharacterCode()),bond.getStage(),p.inputs().get(0).getTimeZone()).contains("reaction"))
+                    throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                String emotion = result.path("reaction").asString();
+                long target = p.inputs().get(p.inputs().size()-1).getId();
+                v2.reaction(target,session.getId(),emotion);
+                output.add(Map.of("event","reaction","data",Map.of("messageId",target,"emoji",emotion)));
+            }
             for (var drawing : result.path("drawings")) {
+                if(drawing.path("spontaneous").asBoolean() && !limits.useControl(user,p.inputs().get(0).getTimeZone(),"spontaneous"))
+                    throw new BusinessException(CompanionError.COMPANION_QUOTA_EXCEEDED);
                 if (!r.kinds().contains("image")) throw new BusinessException(
                     CompanionError.COMPANION_QUOTA_EXCEEDED
                 );
@@ -871,7 +899,7 @@ public class ReplyService {
                             "stageName",
                             name,
                             "message",
-                            CompanionConverter.message(m)
+                            CompanionConverter.message(m, true)
                         )
                     )
                 );
@@ -1011,13 +1039,23 @@ public class ReplyService {
             new CompanionDTO.Send(
                 "regenerate-" + id,
                 original.getContent(),
-                images,
-                null
+                images
             ),
             zone,
             ip,
-            id
+            id, false
         );
+    }
+
+    public DeferredResult<ResponseEntity<?>> poke(long user,long session,CompanionDTO.Poke body,String zone,String ip) {
+        return send(user,session,new CompanionDTO.Send(body.clientMessageId(),"拍了拍你的肩膀",List.of()),zone,ip,null,true);
+    }
+
+    private List<String> controls(long user,Rows.Session session,JsonNode card,int stage,String zone) {
+        var result = new ArrayList<String>(); result.add("sticker");
+        if(stage>=3 && card.path("quirks").path("retract").asBoolean() && limits.controlAvailable(user,zone,"retract")) result.add("retract");
+        if(card.path("quirks").path("reaction").asBoolean() && runtime.recentReactions(session.getId())==0) result.add("reaction");
+        return result;
     }
 
     private LocalDateTime now() {

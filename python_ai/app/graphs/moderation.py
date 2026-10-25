@@ -7,9 +7,10 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 from langgraph.types import Send
 
-from app.chains.structured import build_chain
 from app.graphs.post_analysis import RETRY, Context, moderate_image
-from app.schemas.models import Moderation, ModerationInput
+from app.runtime.safety.escalate import confirm
+from app.runtime.tasks.registry import payload
+from app.schemas.models import ModerationInput
 
 
 class State(TypedDict, total=False):
@@ -21,10 +22,10 @@ class State(TypedDict, total=False):
 async def text(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     factory = runtime.context.models
     item = state["item"]
-    chain = build_chain(factory.classifier, Moderation, "moderate", factory.settings.structured_method)
-    async with factory.semaphores["classifier"]:
+    chain = factory.task_chains["moderate"]
+    async with factory.semaphores["judge"]:
         review = await chain.ainvoke(
-            {"payload": item.model_dump_json(exclude={"image_thumbs", "avatar_thumb"})},
+            {"payload": payload(item, {"image_thumbs", "avatar_thumb"})},
             config={
                 "callbacks": [runtime.context.callback],
                 "run_name": "text-moderation",
@@ -32,6 +33,9 @@ async def text(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
                 "metadata": {"comment_id": item.comment_id, "user_id": item.user_id},
             },
         )
+    review = await confirm(
+        factory, review, payload(item, {"image_thumbs", "avatar_thumb"}), runtime.context.callback
+    )
     return {"reviews": [review.model_dump(mode="json")]}
 
 

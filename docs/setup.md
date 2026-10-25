@@ -54,11 +54,15 @@
 | `MENG_ADMIN_USERNAME`、`MENG_ADMIN_PASSWORD` | 首个管理员账号，只在初始化时读取 |
 | `MAIL_USERNAME`、`MAIL_PASSWORD` | SMTP 发信账号 |
 | `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_ACCESS_KEY_SECRET` | 阿里云短信 |
-| `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen 文本、向量和图像），只给 ai 服务用 |
+| `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen 文本、向量、重排和图像），只给 ai 服务用 |
+| `DEEPSEEK_API_KEY` | DeepSeek 官方（V4.1 Flash 1017 与 V4 Pro 角色说话），只给 ai 服务用 |
+| `TAVILY_API_KEY` | Tavily 联网搜索、读链接、搜图，只给 ai 服务用 |
 
-AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`：`CLASSIFIER_MODEL`、`WRITER_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`COVER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`BASE_URL`、`COVER_URL`、`STRUCTURED_METHOD`、`SPEECH_STRUCTURED_METHOD`、`CONCURRENCY`、`DAILY_TOKEN_LIMIT`、`TIMEZONE`。嘴默认使用普通 JSON 输出，不依赖 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
+AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`。模型按用途配置：`AGENT_MODEL`、`SPEECH_MODEL`（默认 `deepseek-flash`，对应官方 DeepSeek V4.1 Flash 1017；DeepSeek 使用 `DEEPSEEK_API_KEY`，Qwen 降级使用 `DASHSCOPE_API_KEY`）、`JUDGE_MODEL`、`REVIEW_MODEL`、`WRITER_MODEL`、`TOY_MODEL`、`ASSIST_MODEL`、`MEMORY_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`RERANK_MODEL`、`COVER_MODEL`，每个用途的温度、超时和降级链见 [AI 公共运行时](ai-runtime.md)第 2 节；旧的 `CLASSIFIER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`SPEECH_STRUCTURED_METHOD`、`DAILY_TOKEN_LIMIT` 删除。其余：`BASE_URL`、`EMBEDDING_URL`、`RERANK_URL`（都是 DashScope 原生接口）、`COVER_URL`、`STRUCTURED_METHOD`（判断类的结构化输出方式）、`TAVILY_DAILY_CREDITS`（默认 300）、`CONCURRENCY`、`TIMEZONE`。嘴输出纯文本，不依赖 JSON 和 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
 
-网关限流配置为 `REQUESTS_PER_MINUTE`、`TOKENS_PER_MINUTE`、`MODEL_QUEUE_SECONDS`、`CIRCUIT_SECONDS`；单轮和单用户每日预算为 `ROUND_TOKEN_LIMIT`、`USER_DAILY_TOKEN_LIMIT`。全站每日 token 上限默认 50,000,000，由 `MENG_AI_DAILY_TOKEN_LIMIT` 覆盖；调整上限保留当天已用计数。额度由 Redis 共享，每次请求先原子预留输入估算与最大输出，再按实际用量结算；失败或用量缺失时保留预留量。跨日请求结算回原预算键，本机并发限制单独保留。`INPUT_PRICE_PER_MILLION`、`OUTPUT_PRICE_PER_MILLION` 和 `CACHED_PRICE_RATIO` 用于估算费用；未配置单价时默认零，不能据此认定调用免费。
+AI 启动时读取 `MENG_GROUP/meng-ai.yml`，文件采用 JSON 兼容的 YAML 格式。`model_overrides` 按用途覆盖温度、超时、降级链和 `context_tokens`；上下文限制取配置值与 600K 的较小值，配置值应符合实际模型窗口。`speculative`（环境变量 `MENG_AI_SPECULATIVE`，默认 `true`）控制嘴是否和主 agent 并行预生成；关闭后嘴等待主 agent。`cover_model`（`MENG_AI_COVER_MODEL`）默认 `qwen-image-3.0-pro`，萌萌画图与 AI 封面共用。修改后重启 AI 服务。`meng-companion.yml` 的 `holidays` 支持 `MM-DD` 和 `YYYY-MM-DD`，按用户当地日期读取。
+
+网关限流配置为 `REQUESTS_PER_MINUTE`、`TOKENS_PER_MINUTE`、`MODEL_QUEUE_SECONDS`、`CIRCUIT_SECONDS`，只保护模型账号的每分钟额度，本机并发限制单独保留。不设 token 上限：`ROUND_TOKEN_LIMIT`、`USER_DAILY_TOKEN_LIMIT`、`DAILY_TOKEN_LIMIT` 及其预算预留与结算都删除（[AI 公共运行时](ai-runtime.md)第 2.1 节）；用量照常按用户、功能记录。`INPUT_PRICE_PER_MILLION`、`OUTPUT_PRICE_PER_MILLION` 和 `CACHED_PRICE_RATIO` 用于估算费用；未配置单价时默认零，不能据此认定调用免费。
 
 萌萌执行器端口为 `MENG_COMPANION_JOB_PORT`（默认 9107），只允许调度中心内部转发器访问。任务日志位于作品目录同级的 `companion-job-logs/`。服务本机的 `/actuator/metrics` 提供 `companion.*` 指标，包括首个气泡 P50/P95、降级、重写、token、缓存 token、估算费用和发件箱积压；指标不包含聊天正文。
 
@@ -79,7 +83,7 @@ SMTP 主机和端口、短信签名、各短信模板编号、手机号地区名
 | 服务端口 | 网关 8080，user 8101，content 8102，growth 8103，im 8104，ai 8106，companion 8107；均监听本机 |
 | 前端端口 | 当前仅 `front_user` 5173；管理端前端已移除 |
 | 中间件端口 | 见 `deploy/ports.env`。宿主机端口被占用时只改这里的映射 |
-| Nacos | namespace `meng-dev`；Group `MENG_GROUP`；Data ID `meng-common.yml`、`meng-gateway.yml`、`meng-user.yml`、`meng-content.yml`、`meng-growth.yml`、`meng-im.yml`、`meng-companion.yml` |
+| Nacos | namespace `meng-dev`；Group `MENG_GROUP`；Data ID `meng-common.yml`、`meng-gateway.yml`、`meng-user.yml`、`meng-content.yml`、`meng-growth.yml`、`meng-im.yml`、`meng-companion.yml`、`meng-ai.yml` |
 | MySQL | 五个库 `meng_user`、`meng_content`、`meng_growth`、`meng_im`、`meng_companion`；各自 `meng_<域>_app` 独立账号，只授权自己的库，字符集 `utf8mb4` |
 | 数据库迁移 | Flyway，脚本放各服务自己的 `db/migration`，只前进、不改历史文件 |
 | Redis | 键统一加前缀 `meng:` |

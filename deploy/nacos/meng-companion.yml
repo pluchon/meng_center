@@ -32,12 +32,20 @@ meng.companion:
   first-chat-gain: 10
   message-daily: 200
   message-minute: 10
-  document-daily: 10
-  document-minute: 2
+  toy-daily: 5
+  toy-minute: 1
+  web-daily: 30
+  web-minute: 3
+  web-image-daily: 10
+  web-image-minute: 2
   image-daily: 3
   image-minute: 1
   concurrent-turns: 2
   ip-minute: 60
+  holidays:
+    "01-01": 元旦
+    "05-01": 劳动节
+    "10-01": 国庆节
   hotlines:
     - region: TW
       name: 1925安心專線

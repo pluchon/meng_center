@@ -14,6 +14,17 @@ public interface CompanionPostContract {
 
     record VectorQuery(List<Float> vector, int size) {}
 
+    record Detail(
+        long id,
+        String title,
+        String content,
+        String authorNickname,
+        java.time.LocalDateTime createTime
+    ) {}
+
+    @GetMapping("/content/internal/posts/{id}")
+    ApiResponse<Detail> read(@PathVariable long id);
+
     @PostMapping("/content/internal/posts/vector-search")
     ApiResponse<List<Post>> vectorSearch(@RequestBody VectorQuery query);
 

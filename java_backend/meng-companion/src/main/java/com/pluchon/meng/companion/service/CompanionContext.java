@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
-// 只组装本人和当前角色的数据；向量用于候选召回，相关性由 AI agent 判断。
+// 只组装本人和当前角色的数据；向量用于候选召回，相关性由原生 rerank 判断。
 @Service
 public class CompanionContext {
 
@@ -73,195 +73,29 @@ public class CompanionContext {
         String zone,
         String turn
     ) {
-        int[] usedTokens = { 0 };
-        java.util.function.Function<Map<String, Object>, JsonNode> compute =
-            data -> {
-                var payload = new LinkedHashMap<String, Object>(data);
-                payload.put("userId", user);
-                payload.put("character", code);
-                payload.put("timeZone", zone);
-                payload.put("turnId", turn);
-                var response = ai.compute("embeddings", payload);
-                usedTokens[0] += Math.max(0, response.path("tokens").asInt());
-                return response;
-            };
-        String cacheKey = "meng:companion:memo:" + user + ":" + code;
-        var all = new ArrayList<Rows.Memory>();
-        try {
-            String cached = redis.opsForValue().get(cacheKey);
-            if (cached != null) all.addAll(
-                Arrays.asList(json.readValue(cached, Rows.Memory[].class))
-            );
-            else {
-                all.addAll(mapper.memories(user, code));
-                redis
-                    .opsForValue()
-                    .set(
-                        cacheKey,
-                        json.writeValueAsString(all),
-                        Duration.ofHours(1)
-                    );
-            }
-        } catch (RuntimeException ignored) {
-            all = new ArrayList<>(mapper.memories(user, code));
+        var all = new ArrayList<>(mapper.memories(user, code));
+        var stable = all.stream().filter(m -> m.isPinned() || "SELF".equals(m.getKind()) || "BIT".equals(m.getKind())).toList();
+        JsonNode vector = null;
+        if (all.size()>20) try {
+            vector = ai.compute("embeddings",Map.of("texts",List.of(query),"textType","query")).path("vectors").get(0);
+        } catch (RuntimeException ignored) { }
+        final JsonNode q = vector;
+        all.sort(Comparator.comparingDouble((Rows.Memory m) -> score(m,q)).reversed());
+        var candidates = new ArrayList<Map<String,Object>>();
+        all.stream().limit(15).map(this::memory).forEach(candidates::add);
+        for(var episode:runtime.recallEpisodes(user,code)) {
+            var item = new LinkedHashMap<String,Object>();
+            item.put("id","episode-"+episode.get("id")); item.put("kind","EPISODE"); item.put("content",episode.get("summary"));
+            candidates.add(item);
         }
+        runtime.recallMessages(user,code).stream().limit(2).forEach(m -> candidates.add(Map.of(
+            "id","message-"+m.get("id"),"kind","MESSAGE","content",m.get("content"))));
         var date = clock.instant().atZone(ZoneId.of(zone)).toLocalDate();
-        var due = all
-            .stream()
-            .filter(
-                m ->
-                    "PROMISE".equals(m.getKind()) &&
-                    !m.isDone() &&
-                    m.getDueDate() != null &&
-                    !m.getDueDate().isAfter(date) &&
-                    !m.getDueDate().isBefore(date.minusDays(2))
-            )
-            .limit(1)
-            .map(this::memory)
-            .toList();
-        var stable = new ArrayList<Rows.Memory>();
-        var other = new ArrayList<Rows.Memory>();
-        for (var m : all) {
-            if (m.isPinned() || "SELF".equals(m.getKind())) stable.add(m);
-            else if (!"PROMISE".equals(m.getKind())) other.add(m);
-        }
-        boolean fits =
-            stable
-                .stream()
-                .mapToInt(m -> m.getContent().length())
-                .sum() +
-                other
-                    .stream()
-                    .mapToInt(m -> m.getContent().length())
-                    .sum() <=
-            800;
-        List<Rows.Memory> chosen;
-        if (fits) chosen = other;
-        else {
-            JsonNode vector = null;
-            try {
-                vector = compute
-                    .apply(Map.of("texts", List.of(query)))
-                    .path("vectors")
-                    .get(0);
-            } catch (RuntimeException ignored) {}
-            final JsonNode q = vector;
-            other.sort(
-                Comparator.comparingDouble((Rows.Memory m) ->
-                    score(m, q)
-                ).reversed()
-            );
-            chosen = new ArrayList<>(
-                other.subList(0, Math.min(20, other.size()))
-            );
-        }
-        var candidates = chosen
-            .stream()
-            .map(this::memory)
-            .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
-        var selected = new ArrayList<Rows.Memory>();
-        if (fits) selected.addAll(chosen);
-        if (!fits && !chosen.isEmpty()) {
-            try {
-                var ranked = compute
-                    .apply(
-                        Map.of(
-                            "query",
-                            query,
-                            "candidates",
-                            chosen
-                                .stream()
-                                .map(Rows.Memory::getContent)
-                                .toList()
-                        )
-                    )
-                    .path("ranked");
-                var order = new ArrayList<Rows.Memory>();
-                var seen = new HashSet<Integer>();
-                if (!ranked.isArray()) throw new IllegalArgumentException(
-                    "Missing agent retrieval selection"
-                );
-                for (var i : ranked) {
-                    if (
-                        !i.isIntegralNumber() ||
-                        i.asInt() < 0 ||
-                        i.asInt() >= chosen.size() ||
-                        !seen.add(i.asInt())
-                    ) throw new IllegalArgumentException(
-                        "Invalid agent retrieval selection"
-                    );
-                    order.add(chosen.get(i.asInt()));
-                }
-                selected = order;
-            } catch (RuntimeException ignored) {}
-            selected = new ArrayList<>(
-                selected.subList(0, Math.min(5, selected.size()))
-            );
-        }
-        stable.addAll(selected);
-        if (candidates.size() > 15) candidates
-            .subList(15, candidates.size())
-            .clear();
-        // 回忆包可以包含未注入慢变层的候选；只有实际带入的事实才更新使用时间。
-        for (var episode : runtime.recallEpisodes(user, code)) {
-            candidates.add(
-                0,
-                Map.of(
-                    "id",
-                    "episode-" + episode.get("id"),
-                    "kind",
-                    "EPISODE",
-                    "content",
-                    episode.get("summary")
-                )
-            );
-            runtime.touchEpisode(
-                ((Number) episode.get("id")).longValue(),
-                user,
-                code
-            );
-        }
-        var oldMessages = runtime.recallMessages(user, code);
-        for (var m : oldMessages.subList(0, Math.min(2, oldMessages.size())))
-            candidates.add(
-                Map.of(
-                    "id",
-                    "message-" + m.get("id"),
-                    "kind",
-                    "MESSAGE",
-                    "content",
-                    m.get("content")
-                )
-            );
-        var texts = stable.stream().map(Rows.Memory::getContent).toList();
-        return new Memories(
-            texts,
-            stable.stream().map(this::memory).toList(),
-            candidates.subList(0, Math.min(20, candidates.size())),
-            stable.stream().map(Rows.Memory::getId).toList(),
-            due,
-            Map.of(
-                "candidates",
-                stable
-                    .stream()
-                    .filter(
-                        m ->
-                            m.getMentionedAt() == null ||
-                            m
-                                .getMentionedAt()
-                                .isBefore(
-                                    LocalDateTime.ofInstant(
-                                        clock.instant(),
-                                        ZoneOffset.UTC
-                                    ).minusDays(3)
-                                )
-                    )
-                    .limit(20)
-                    .map(this::memory)
-                    .toList()
-            ),
-            usedTokens[0]
-        );
+        var due = all.stream().filter(m -> "PROMISE".equals(m.getKind()) && !m.isDone() && m.getDueDate()!=null &&
+            !m.getDueDate().isAfter(date) && !m.getDueDate().isBefore(date.minusDays(2))).limit(1).map(this::memory).toList();
+        return new Memories(stable.stream().map(Rows.Memory::getContent).toList(),
+            stable.stream().map(this::memory).toList(), candidates.subList(0,Math.min(20,candidates.size())),
+            stable.stream().map(Rows.Memory::getId).toList(),due,Map.of(),0);
     }
 
     private Map<String, Object> memory(Rows.Memory m) {
@@ -322,70 +156,8 @@ public class CompanionContext {
         return aa == 0 || bb == 0 ? 0 : sum / Math.sqrt(aa * bb);
     }
 
-    public List<Map<String, Object>> works(
-        long user,
-        Rows.Session session,
-        Long selected
-    ) {
-        var works = mapper.works(user, session.getCharacterCode(), 0, 20);
-        Rows.Work full =
-            selected == null
-                ? works
-                      .stream()
-                      .filter(
-                          w ->
-                              w.getSessionId().equals(session.getId()) &&
-                              "DOCUMENT".equals(w.getKind())
-                      )
-                      .findFirst()
-                      .orElse(null)
-                : mapper.work(selected, user);
-        if (
-            selected != null &&
-            (full == null ||
-                !session.getCharacterCode().equals(full.getCharacterCode()) ||
-                !"DOCUMENT".equals(full.getKind()))
-        ) throw new com.pluchon.meng.common.core.error.BusinessException(
-            com.pluchon.meng.common.core.error.CommonErrorCode.NOT_FOUND
-        );
-        var result = new ArrayList<Map<String, Object>>();
-        for (var work : works)
-            result.add(
-                Map.of(
-                    "id",
-                    work.getId(),
-                    "title",
-                    work.getTitle(),
-                    "summary",
-                    work.getBody() == null
-                        ? ""
-                        : work
-                              .getBody()
-                              .substring(
-                                  0,
-                                  Math.min(120, work.getBody().length())
-                              )
-                )
-            );
-        if (full != null) {
-            long id = full.getId();
-            result.removeIf(w -> w.get("id").equals(id));
-            result.add(
-                Map.of(
-                    "id",
-                    id,
-                    "title",
-                    full.getTitle(),
-                    "body",
-                    full.getBody()
-                )
-            );
-        }
-        return result;
-    }
-
     public List<JsonNode> examples(Rows.Bond bond, JsonNode card) {
-        // 这里只限定角色、阶段、档位与版本；场景含义和示例相关性由 AI 判断。
+        // 同一角色、阶段、档位使用整组示例，Python 按场景固定排序。
         return runtime
             .lines(
                 bond.getCharacterCode(),

@@ -56,12 +56,10 @@ public class PostVectorIndex {
                 .value()
         ) return;
         String name = ALIAS + "_blue";
-        if (
-            !client
-                .indices()
-                .exists(i -> i.index(name))
-                .value()
-        ) create(name);
+        if (!client.indices().exists(i -> i.index(name)).value()) {
+            create(name);
+            redis.opsForValue().set("content:vector:encoding","doc-v1");
+        }
         client.indices().putAlias(a -> a.index(name).name(ALIAS));
     }
 
@@ -218,6 +216,8 @@ public class PostVectorIndex {
                 "content:vector:active",
                 target + ":" + java.util.UUID.randomUUID()
             );
+        String model=redis.opsForValue().get(BUILDING+":model");
+        if(model!=null && model.endsWith(":doc-v1")) redis.opsForValue().set("content:vector:encoding","doc-v1");
         redis.delete(java.util.List.of(BUILDING, PENDING, BUILDING + ":model"));
     }
 
@@ -232,6 +232,10 @@ public class PostVectorIndex {
             "Vector reindex rejected"
         );
         finishIssuing();
+    }
+
+    public boolean encodingReady() {
+        return "doc-v1".equals(redis.opsForValue().get("content:vector:encoding"));
     }
 
     // 按时间、分类和审核结论做近邻召回

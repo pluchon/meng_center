@@ -36,7 +36,7 @@ VALUES('meng-content','内容服务',0,CONVERT(0x${tokenHex} USING utf8mb4),NOW(
 ON DUPLICATE KEY UPDATE access_token=VALUES(access_token),update_time=NOW();
 SET @group=(SELECT id FROM xxl_job_group WHERE app_name='meng-content');
 "@
-    foreach($job in @(@{handler='contentHotRebuild';cron='0 0 4 * * ?';timeout=600},@{handler='contentSearchRebuild';cron='0 10 4 * * ?';timeout=1800},@{handler='contentAiOutboxDispatch';cron='0 * * * * ?';timeout=55},@{handler='contentRecProfileRebuild';cron='0 20 4 * * ?';timeout=1800},@{handler='contentRecLogClean';cron='0 30 4 * * ?';timeout=600},@{handler='contentRecRankerTrain';cron='0 0 5 ? * MON';timeout=180})) {
+    foreach($job in @(@{handler='contentHotRebuild';cron='0 0 4 * * ?';timeout=600},@{handler='contentSearchRebuild';cron='0 10 4 * * ?';timeout=1800},@{handler='contentAiReanalyzeFailed';cron='0 0 * * * ?';timeout=180},@{handler='contentAiOutboxDispatch';cron='0 * * * * ?';timeout=55},@{handler='contentRecProfileRebuild';cron='0 20 4 * * ?';timeout=1800},@{handler='contentRecLogClean';cron='0 30 4 * * ?';timeout=600},@{handler='contentRecRankerTrain';cron='0 0 5 ? * MON';timeout=180})) {
         $handler=$job.handler;$cron=$job.cron;$timeout=$job.timeout
         $sql+=@"
 INSERT INTO xxl_job_info(job_group,name,author,schedule_type,schedule_conf,misfire_strategy,executor_route_strategy,executor_handler,executor_block_strategy,executor_timeout,executor_fail_retry_count,glue_type,trigger_status,add_time,update_time,glue_updatetime)

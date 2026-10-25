@@ -52,6 +52,9 @@ export const companionBlob = (id) =>
 export async function sendCompanionMessage(id, body, { signal, onEvent }) {
   return streamCompanion(root + '/sessions/' + id + '/messages', body, { signal, onEvent })
 }
+export async function pokeCompanion(id, body, options) {
+  return streamCompanion(root + '/sessions/' + id + '/pokes', body, options)
+}
 export async function regenerateCompanionMessage(id, options) {
   return streamCompanion(root + '/messages/' + id + '/regeneration', null, options)
 }
@@ -62,7 +65,11 @@ async function streamCompanion(path, body, { signal, onEvent }) {
       method: 'POST',
       credentials: 'include',
       signal,
-      headers: { 'Content-Type': 'application/json', Accept: 'text/event-stream, application/json', ...headers() },
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream, application/json',
+        ...headers(),
+      },
       body: JSON.stringify(body),
     })
   } catch {

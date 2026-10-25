@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from uuid import NAMESPACE_URL, uuid5
 from zoneinfo import ZoneInfo
 
@@ -10,7 +11,6 @@ import aio_pika
 from aio_pika.abc import AbstractIncomingMessage
 from pydantic import ValidationError
 
-from app.clients.models import BudgetExceeded
 from app.config.settings import Settings
 from app.schemas.models import Event, ModerationInput, PostInput
 from app.services.assistant import Assistant
@@ -47,18 +47,22 @@ class Consumers:
             virtualhost="meng",
         )
         self.channel = await self.connection.channel(publisher_confirms=True, on_return_raises=True)
-        await self.channel.set_qos(prefetch_count=settings.concurrency)
+        await self.channel.set_qos(prefetch_count=settings.concurrency, global_=True)
         for domain in ("content", "user", "ai"):
             self.exchanges[domain] = await self.channel.declare_exchange(
                 f"meng.{domain}.topic",
                 aio_pika.ExchangeType.TOPIC,
                 durable=True,
             )
+        self.batch_channel = await self.connection.channel(publisher_confirms=True, on_return_raises=True)
+        await self.batch_channel.set_qos(prefetch_count=1)
+        self.realtime_queues = []
         for route, (domain, _) in ROUTES.items():
+            channel = self.batch_channel if route == "post.analysis-requested" else self.channel
             name = "meng.ai." + route
-            dead = await self.channel.declare_queue(name + ".dead", durable=True)
+            dead = await channel.declare_queue(name + ".dead", durable=True)
             await dead.bind(self.exchanges["ai"], routing_key=route + ".dead")
-            queue = await self.channel.declare_queue(
+            queue = await channel.declare_queue(
                 name,
                 durable=True,
                 arguments={
@@ -68,7 +72,7 @@ class Consumers:
             )
             await queue.bind(self.exchanges[domain], routing_key=route)
             for suffix, delay in (("retry1", 2000), ("retry2", 8000), ("retry3", 32000)):
-                await self.channel.declare_queue(
+                await channel.declare_queue(
                     name + "." + suffix,
                     durable=True,
                     arguments={
@@ -77,15 +81,31 @@ class Consumers:
                         "x-dead-letter-routing-key": route,
                     },
                 )
-            await self.channel.declare_queue(
-                name + ".budget",
-                durable=True,
-                arguments={
-                    "x-dead-letter-exchange": f"meng.{domain}.topic",
-                    "x-dead-letter-routing-key": route,
-                },
-            )
-            await queue.consume(self.handle)
+            if route != "post.analysis-requested":
+                self.realtime_queues.append(queue)
+            if route == "post.analysis-requested":
+                self.batch_task = asyncio.create_task(self.batch(queue))
+            else:
+                await queue.consume(self.handle)
+
+    async def batch(self, queue):
+        while True:
+            try:
+                backlogged = False
+                for realtime in self.realtime_queues:
+                    status = await self.channel.declare_queue(realtime.name, passive=True)
+                    backlogged |= bool(status.declaration_result.message_count)
+                if backlogged:
+                    await asyncio.sleep(0.25)
+                    continue
+                message = await queue.get(fail=False, timeout=1)
+                if message is None:
+                    await asyncio.sleep(0.1)
+                else:
+                    await self.handle(message)
+            except Exception as error:
+                LOG.warning("batch_poll_failed type=%s", type(error).__name__)
+                await asyncio.sleep(1)
 
     async def handle(self, message: AbstractIncomingMessage) -> None:
         event = None
@@ -126,11 +146,7 @@ class Consumers:
         except Exception as error:
             route = event.event_type if event else message.routing_key
             attempts = int((message.headers or {}).get("meng-attempt", 0))
-            if isinstance(error, BudgetExceeded):
-                now = datetime.now(ZoneInfo(self.settings.timezone))
-                tomorrow = now.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1)
-                suffix, expiration = "budget", tomorrow - now
-            elif attempts < 3:
+            if attempts < 3:
                 suffix, expiration = f"retry{attempts + 1}", None
                 attempts += 1
             else:
@@ -164,5 +180,9 @@ class Consumers:
                 await message.nack(requeue=True)
 
     async def close(self) -> None:
+        task = getattr(self, "batch_task", None)
+        if task:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
         if self.connection:
             await self.connection.close()

@@ -46,7 +46,7 @@ public interface RuntimeMapper {
     List<Rows.Message> pending(long session);
 
     @Select(
-        "SELECT * FROM companion_message WHERE session_id=#{session} AND turn_id=#{turn} AND role='CHARACTER' AND completed=1 AND delete_state=0 ORDER BY id"
+        "SELECT * FROM companion_message WHERE session_id=#{session} AND turn_id=#{turn} AND role='CHARACTER' AND completed=1 AND delete_state=0 AND (turn_id IS NULL OR role='USER' OR EXISTS(SELECT 1 FROM companion_message u WHERE u.id=companion_message.turn_id AND u.turn_state='COMMITTED')) ORDER BY id"
     )
     List<Rows.Message> replies(
         @Param("session") long session,
@@ -127,7 +127,7 @@ public interface RuntimeMapper {
     void expireTurns();
 
     @Select(
-        "SELECT * FROM companion_message WHERE session_id=#{session} AND id>#{after} AND completed=1 AND delete_state=0 ORDER BY id LIMIT 100"
+        "SELECT * FROM companion_message WHERE session_id=#{session} AND id>#{after} AND completed=1 AND delete_state=0 AND (turn_id IS NULL OR role='USER' OR EXISTS(SELECT 1 FROM companion_message u WHERE u.id=companion_message.turn_id AND u.turn_state='COMMITTED')) ORDER BY id"
     )
     List<Rows.Message> window(
         @Param("session") long session,
@@ -246,12 +246,12 @@ public interface RuntimeMapper {
     int failDrawing(@Param("message") long message);
 
     @Select(
-        "SELECT * FROM companion_memory WHERE embedding IS NULL AND invalid_at IS NULL AND delete_state=0 ORDER BY id LIMIT 32"
+        "SELECT * FROM companion_memory WHERE (embedding IS NULL OR embedding_version IS NULL OR embedding_version<>'doc-v1') AND invalid_at IS NULL AND delete_state=0 ORDER BY id LIMIT 32"
     )
     List<Rows.Memory> missingMemoryVectors();
 
     @Update(
-        "UPDATE companion_memory SET embedding=#{vector} WHERE id=#{id} AND content_hash=#{hash} AND invalid_at IS NULL AND delete_state=0"
+        "UPDATE companion_memory SET embedding=#{vector},embedding_version='doc-v1' WHERE id=#{id} AND content_hash=#{hash} AND invalid_at IS NULL AND delete_state=0"
     )
     int writeMemoryVector(
         @Param("vector") String vector,
@@ -404,7 +404,7 @@ public interface RuntimeMapper {
     );
 
     @Select(
-        "SELECT * FROM companion_outbox WHERE status='PENDING' AND delete_state=0 ORDER BY id LIMIT 100"
+        "SELECT * FROM companion_outbox WHERE status='PENDING' AND delete_state=0 ORDER BY id"
     )
     @Results(
         @Result(
@@ -614,4 +614,14 @@ public interface RuntimeMapper {
         @Param("code") String code,
         @Param("version") String version
     );
+
+    @Update(
+        "UPDATE companion_message SET kind='IMAGE',image_ids=#{images} WHERE id=#{id}"
+    )
+    int webMessage(@Param("id") long id, @Param("images") String images);
+
+    @Select(
+        "SELECT COUNT(*) FROM (SELECT MAX(CASE WHEN reaction IS NULL THEN 0 ELSE 1 END) reacted FROM companion_message WHERE session_id=#{session} AND role='USER' AND turn_state='COMMITTED' AND delete_state=0 GROUP BY COALESCE(turn_id,id) ORDER BY MAX(id) DESC LIMIT 5) recent WHERE reacted=1"
+    )
+    int recentReactions(long session);
 }

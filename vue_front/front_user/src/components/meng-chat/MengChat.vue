@@ -184,7 +184,6 @@
               :title="m.content"
               :item="recentWorks.find((w) => w.id === m.workId)"
               @open="openDialog('works', $event)"
-              @revise="revise"
             />
             <div
               v-else
@@ -200,8 +199,15 @@
                 class="bubble-avatar"
                 :src="avatar(code)"
                 alt=""
+                role="button"
+                tabindex="0"
+                :aria-label="t('meng.poke')"
+                :title="t('meng.pokeHint')"
                 width="34"
                 height="34"
+                @dblclick="poke"
+                @keydown.enter.prevent="poke"
+                @keydown.space.prevent="poke"
               >
               <div class="message-bubble">
                 <img
@@ -212,9 +218,49 @@
                   width="112"
                   height="112"
                 >
-                <p v-else-if="m.content">
-                  {{ m.content }}
+                <p
+                  v-if="m.retracted"
+                  class="retracted-note"
+                >
+                  {{ t('meng.retracted') }}
                 </p>
+                <p
+                  v-else-if="m.kind === 'POKE'"
+                  class="poke-note"
+                >
+                  {{ t('meng.poked') }}
+                </p>
+                <p v-else-if="m.content">
+                  <span
+                    v-for="(part, partIndex) in actionSegments(m.content)"
+                    :key="partIndex"
+                    :class="{ 'character-action': part.action }"
+                  >{{ part.text }}</span>
+                </p>
+                <div
+                  v-if="m.reaction"
+                  class="message-reaction"
+                >
+                  <img
+                    v-if="stickerImage(m.reaction)"
+                    :src="stickerImage(m.reaction)"
+                    :alt="m.reaction"
+                    width="28"
+                    height="28"
+                  ><span v-else>{{ m.reaction }}</span>
+                </div>
+                <div
+                  v-if="safeSources(m).length"
+                  class="message-sources"
+                >
+                  <a
+                    v-for="source in safeSources(m)"
+                    :key="source.url"
+                    :href="source.url"
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                  >{{ t('meng.source', { site: source.site }) }}</a>
+                </div>
                 <div
                   v-if="m.imageIds?.length"
                   class="message-images"
@@ -251,7 +297,7 @@
                 >
                   <button
                     type="button"
-                    :disabled="!!feedbackBusy || sending || m.canRegenerate===false"
+                    :disabled="!!feedbackBusy || sending || m.canRegenerate === false"
                     @click="regenerate(m)"
                   >
                     {{ t('meng.regenerate') }}
@@ -270,6 +316,7 @@
           <div
             v-if="typing"
             class="typing-row"
+            :class="{ hesitant }"
             role="status"
             :aria-label="t('meng.typing', { name: character.name })"
           >
@@ -320,18 +367,6 @@
         @dragover.prevent
         @drop="dropImages"
       >
-        <div
-          v-if="selectedWork"
-          class="selected-work"
-        >
-          <span>{{ t('meng.revising', { title: selectedWork.title }) }}</span><button
-            type="button"
-            :aria-label="t('meng.cancelEdit')"
-            @click="selectedWork = null"
-          >
-            <IconX />
-          </button>
-        </div>
         <p
           v-if="cooldownSeconds"
           class="rest-reminder"
@@ -452,7 +487,7 @@
         >
           <h2><IconClock />{{ t('meng.today') }}</h2>
           <div class="usage-chips">
-            <span>{{ t('meng.messages', { count: usage.usage.messages }) }}</span><span class="violet">{{ t('meng.documents', { count: usage.usage.documents }) }}</span><span class="pink">{{ t('meng.images', { count: usage.usage.images }) }}</span>
+            <span>{{ t('meng.messages', { count: usage.usage.messages }) }}</span><span class="violet">{{ t('meng.toys', { count: usage.usage.toys }) }}</span><span class="pink">{{ t('meng.images', { count: usage.usage.images }) }}</span>
           </div>
           <p class="chat-duration">
             <IconClock />{{
@@ -495,9 +530,9 @@
               type="button"
               @click="openDialog('works', w.id)"
             >
-              <component :is="w.kind === 'DOCUMENT' ? IconFileText : IconPhoto" /><span><strong>{{ w.title }}</strong><small>{{
+              <component :is="w.kind === 'IMAGE' ? IconPhoto : IconFileText" /><span><strong>{{ w.title }}</strong><small>{{
                 t('meng.meta', {
-                  kind: t(w.kind === 'DOCUMENT' ? 'meng.document' : 'meng.image'),
+                  kind: t(w.kind === 'TOY' ? 'meng.toy' : w.kind === 'DOCUMENT' ? 'meng.document' : 'meng.image'),
                   when: date(w.createTime),
                 })
               }}</small></span>

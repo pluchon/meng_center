@@ -12,6 +12,13 @@ from pydantic.alias_generators import to_camel
 class Schema(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, extra="ignore")
 
+    @classmethod
+    def compact_tool_schema(cls):
+        schema = cls.model_json_schema(by_alias=True)
+        for field in schema.get("properties", {}).values():
+            field.pop("default", None)
+        return schema
+
 
 class Verdict(StrEnum):
     PASS = "PASS"
@@ -20,9 +27,9 @@ class Verdict(StrEnum):
 
 
 class Moderation(Schema):
+    reason: str = Field(default="", max_length=200)
     verdict: Verdict
     labels: list[str] = Field(default_factory=list, max_length=20)
-    reason: str = Field(default="", max_length=200)
 
 
 class Understanding(Moderation):
@@ -137,6 +144,7 @@ class CoverPlan(Schema):
 
 
 class EmbeddingsRequest(Schema):
+    text_type: Literal["document", "query"]
     texts: list[Annotated[str, Field(min_length=1, max_length=6000)]] = Field(min_length=1, max_length=10)
 
 
@@ -174,6 +182,7 @@ class Image(Schema):
 
 
 class PostInput(Schema):
+    tag_candidates: list[str] = Field(default_factory=list, max_length=50)
     post_id: int
     author_id: int
     version: str
@@ -186,6 +195,8 @@ class PostInput(Schema):
 
 
 class ModerationInput(Schema):
+    post_title: str = Field(default="", max_length=200)
+    excerpt: str = Field(default="", max_length=3000)
     comment_id: int | None = None
     user_id: int | None = None
     version: str = ""

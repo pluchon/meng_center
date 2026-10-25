@@ -6,6 +6,10 @@
 
 这是一个兴趣项目，也是几种技术放在一起的练习，所以首要目标是好维护、好扩展：服务按业务域拆分，同步调用只保留少数几条固定方向，其余都走事件。
 
+## 演示视频
+
+[meng_center_demo.mp4](meng_center_demo.mp4)，92 秒：注册审核、主页、发帖、语义搜索、创作中心、成长、消息、个人中心，再到萌萌的三个角色、聊天、记忆、语气档位，最后是架构和一次发帖的事件流。
+
 ## 功能
 
 ### 账号与审核
@@ -79,7 +83,7 @@ flowchart TD
 
 消息中心分私信、评论、喜欢和系统四个标签页。私信支持文字、表情、图片、已读回执、撤回和在线状态，也可以屏蔽对方。导航栏的未读数通过一条 WebSocket 实时更新。
 
-![消息中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/20261018120154778.png)
+![消息中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/20261018121851354.png)
 
 ### 个人中心
 
@@ -91,7 +95,7 @@ flowchart TD
 
 萌萌是三个 AI 角色：白濑凛（傲娇）、日向小葵（元气）、奶糖（猫娘）。形象是琪露诺的三种打扮，属于同人二创。每个角色有五个关系阶段，从初识到羁绊，关系最高到好友，不会发展成恋人。
 
-聊天时角色会记住用户说过的事，可以查帖子、写文档、画图。每个角色有三档语气，用户自己选，例如奶糖是正常、撒娇、撒娇卖萌。记忆按角色分开，跟凛说过的事，小葵不知道。
+聊天时角色会记住用户说过的事，会自己去查不懂的事、找图、按心情画画、做能在聊天里运行的小玩意、找帖子。每个角色有三档语气，用户自己选，例如奶糖是正常、撒娇、撒娇卖萌。记忆按角色分开，跟凛说过的事，小葵不知道。
 
 ![萌萌首页](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/20261018120159934.png)
 
@@ -202,15 +206,15 @@ sequenceDiagram
     C->>C: 校验额度与冷却，加会话锁，保存用户消息
     C->>C: 组装上下文：角色卡、档位、记忆、摘要、历史
     C->>A: 内部流式请求
-    A->>M: 输入审核，判断场景并选示例
+    A->>M: 主 agent 判断输入与场景
     alt 危机信号
         A-->>C: 固定的安全回复
     else 需要工具
-        A->>M: 规划并调用工具
+        A->>M: 并行调用固定工具，再调用 respond
     end
-    A->>M: 生成两个候选回复
+    A->>M: DeepSeek 按指令生成一次纯文本回复
     A->>M: 安全判定，人设分和人机味分
-    A-->>C: 选中的气泡、好感建议、心情
+    A-->>C: 通过检查的气泡、好感建议、心情
     C->>C: 同一个事务保存气泡、作品、好感，写发件箱
     C-->>F: 依次发送气泡
     C-->>F: done，附带剩余次数
@@ -247,7 +251,7 @@ flowchart TD
 | 事实 | 称呼、喜好、近况、约定、角色自己说过的设定；被取代的事实标记失效，不删除 |
 | 回忆卡 | 一段聊天结束后的小结，按相关度检索出少量放进上下文 |
 | 会话摘要 | 当前话题中较早部分的压缩 |
-| 最近对话 | 按 token 预算取，攒够一段后一次性压缩 |
+| 最近对话 | 下发当前窗口全部历史；空闲 30 分钟且超过约 8K token 时压缩，600K 时强制压缩 |
 
 约定提醒按用户的时区换算日期。网页不能操作系统闹钟，所以提醒有三层：下次来聊天时角色自然问起，到期当天发一条站内通知，聊天里也可以下载日历文件。不做浏览器推送。
 
@@ -285,7 +289,7 @@ flowchart TB
 |---|---|
 | 后端 | JDK 17，Spring Boot 4.0，Spring Cloud 2025.1，Spring Cloud Alibaba，MyBatis-Plus，Flyway |
 | AI 服务 | Python 3.12，FastAPI，LangChain 1.x，LangGraph 1.x，使用 uv 管理依赖 |
-| 模型 | 阿里云百炼：Qwen3.8 Flash（对话与判断）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen Image 3.0（生图） |
+| 模型 | 阿里云百炼：DeepSeek V4.1 Flash（萌萌说话）、Qwen3.8 Flash / Max（判断、agent 与写作）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen3.7 Rerank（重排）、Qwen Image 3.0 Pro（生图）；联网搜索用 Tavily |
 | 中间件 | MySQL 8、Redis、RabbitMQ、Elasticsearch、Nacos、xxl-job |
 | 前端 | Vue 3，vue-router，Pinia，Axios，Element Plus，SCSS，构建用 Vite |
 | 部署 | Docker Compose 启动本地中间件；业务服务以 JAR 和 uvicorn 在本机运行 |
@@ -299,7 +303,8 @@ meng_center/
 ├── java_backend/    Java 后端，Maven 多模块
 ├── python_ai/       AI 服务
 ├── vue_front/       用户端
-└── verification/    联调、压测和浏览器验证脚本
+├── verification/    联调、压测和浏览器验证脚本
+└── meng_center_demo.mp4  演示视频
 ```
 
 Java 模块的布局是：每个业务域一个 server 模块放在顶层，所有域对外的契约集中在 `meng-api`。
@@ -376,6 +381,7 @@ npm run dev
 | [内容域](docs/content.md) | 帖子、评论、配图、热榜、搜索、收藏夹 |
 | [成长域](docs/growth.md) | 签到、经验、等级、积分 |
 | [消息域](docs/im.md) | 私信、通知、实时连接 |
+| [AI 公共运行时](docs/ai-runtime.md) | 萌萌和站内 AI 共用：模型、上下文与缓存、去 AI 味、工具与联网、检索、安全 |
 | [AI 域](docs/ai.md) | 帖子理解、推荐、语义搜索、发帖页 AI 入口、成长总结、审核 |
 | [萌萌](docs/meng.md) | 角色、好感度、记忆、对话链路、作品、关系界限与安全、页面 |
 | [前端规范](docs/frontend.md) | 目录、三文件拆分、不硬编码的做法、检查工具 |

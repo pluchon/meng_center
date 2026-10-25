@@ -47,7 +47,7 @@ class AiResultTest {
             "SUCCESS",
             true,
             List.of()
-        );
+        , "SUCCESS");
     }
 
     private PostEntity post() {
@@ -104,7 +104,7 @@ class AiResultTest {
             "SUCCESS",
             true,
             List.of()
-        );
+        , "SUCCESS");
         assertThrows(IllegalArgumentException.class, () -> service.post("event-bad", invalid));
         verifyNoInteractions(posts, jdbc, vectors);
     }
@@ -161,7 +161,7 @@ class AiResultTest {
             "SUCCESS",
             false,
             List.of()
-        );
+        , "SUCCESS");
         service.post("text-edit", edited);
         verify(vectors).write(eq(post), anyList(), anyList(), eq(3), eq("BLOCK"), anyString());
     }

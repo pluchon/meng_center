@@ -25,4 +25,5 @@ public class CompanionPostController implements CompanionPostContract {
     public ApiResponse<List<Post>> recent(long id, int size) {
         return ApiResponse.success(service.recent(id, size));
     }
+    @Override public ApiResponse<Detail> read(long id) { return ApiResponse.success(service.read(id)); }
 }

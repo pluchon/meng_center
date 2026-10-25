@@ -9,6 +9,7 @@ from langchain_core.runnables import Runnable, RunnableConfig, RunnableLambda
 from pydantic import BaseModel, ValidationError
 
 from app.prompts.templates import SAFETY, TASKS
+from app.runtime.safety.policy import POLICY
 
 
 def limited(chain: Runnable, semaphore: asyncio.Semaphore) -> Runnable:
@@ -29,7 +30,10 @@ def structured(model: Runnable, schema: type[BaseModel], method: str) -> Runnabl
 def build_chain(model: Runnable, schema: type[BaseModel], task: str, method: str) -> Runnable:
     prompt = ChatPromptTemplate.from_messages(
         [
-            ("system", SAFETY + "\n" + TASKS[task]),
+            (
+                "system",
+                (POLICY if task in {"understand", "moderate", "cover"} else SAFETY) + "\n" + TASKS[task],
+            ),
             ("human", "<input>\n{payload}\n</input>"),
         ]
     )

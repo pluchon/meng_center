@@ -79,6 +79,9 @@ public class CompanionCatalog implements ApplicationRunner {
                 card.path("levels").size() != 3 ||
                 card.path("name").asString().isBlank()
             ) throw new IllegalArgumentException("Incomplete companion card");
+            for (String field : Set.of("profile","brief","voice","tics","kaomoji","knowledge","quirks","fallback","refusal","crisis","stageLines")) {
+                if (!card.has(field)) throw new IllegalArgumentException("Incomplete companion v2 card: "+field);
+            }
             card.put("version", version);
             card.put("lineVersion", version);
             var lines = new LinkedHashMap<String, JsonNode>();

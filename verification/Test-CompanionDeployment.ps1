@@ -5,6 +5,9 @@ $repoRoot=Split-Path $PSScriptRoot -Parent
 $catalog=Get-Content -LiteralPath "$repoRoot/java_backend/meng-companion/src/main/resources/companion/catalog.json" -Raw | ConvertFrom-Json
 $catalogVersion=$catalog.version
 if($catalogVersion -notmatch '^[a-zA-Z0-9._-]{1,80}$'){throw 'Invalid companion catalog version.'}
+$emotions=Get-Content -LiteralPath "$repoRoot/java_backend/meng-content/src/main/resources/emotion/catalog.json" -Raw | ConvertFrom-Json
+$emotionVersion=$emotions.version
+if($emotionVersion -notmatch '^[a-zA-Z0-9._-]{1,80}$'){throw 'Invalid emotion catalog version.'}
 foreach($service in @(@{name='meng-im';port=8104},@{name='meng-companion';port=8107},@{name='meng-ai';port=8106})){
     $health=Invoke-RestMethod "http://127.0.0.1:$($service.port)/actuator/health" -TimeoutSec 5
     if($health.status -ne 'UP'){throw "$($service.name) is not healthy."}
@@ -32,16 +35,18 @@ $priorPassword=$env:MYSQL_PWD
 try{
     $env:MYSQL_PWD=$env:MYSQL_ROOT_PASSWORD
     $sql=@"
-SELECT IF((SELECT COUNT(*) FROM meng_companion.flyway_schema_history WHERE version IN ('20261017002','20261017003') AND success=1)=2,'OK','FAIL companion migrations');
+SELECT IF((SELECT COUNT(*) FROM meng_companion.flyway_schema_history WHERE version IN ('20261017002','20261017003','20261023001','20261023002','20261023003','20261025001') AND success=1)=6,'OK','FAIL companion migrations');
 SELECT IF((SELECT COUNT(*) FROM meng_im.flyway_schema_history WHERE version='20261017001' AND success=1)=1,'OK','FAIL IM migration');
 SELECT IF((SELECT COUNT(*) FROM meng_companion.companion_card WHERE version='${catalogVersion}' AND active=1)=3,'OK','FAIL catalog cards');
 SELECT IF((SELECT COUNT(*) FROM meng_companion.companion_card old JOIN meng_companion.companion_card current_card ON current_card.character_code=old.character_code AND current_card.id>old.id WHERE old.active=1 AND current_card.active=1 AND current_card.rollout_percent=100 AND current_card.delete_state=0)=0,'OK','FAIL stale active cards');
 SELECT IF((SELECT COUNT(*) FROM (SELECT character_code,level,stage FROM meng_companion.companion_line WHERE version='${catalogVersion}' AND enabled=1 AND delete_state=0 GROUP BY character_code,level,stage HAVING COUNT(*)>=3) coverage)=45,'OK','FAIL scene coverage');
 SELECT IF((SELECT COUNT(DISTINCT j.executor_handler) FROM xxl_job.xxl_job_info j JOIN xxl_job.xxl_job_group g ON g.id=j.job_group WHERE g.app_name='meng-companion' AND j.trigger_status=1 AND j.executor_handler IN ('companionOutboxDispatch','companionMemoryMaintain','companionPromiseNotify'))=3,'OK','FAIL companion jobs');
 SELECT IF((SELECT COUNT(*) FROM xxl_job.xxl_job_registry WHERE registry_group='EXECUTOR' AND registry_key='meng-companion' AND update_time>DATE_SUB(NOW(),INTERVAL 90 SECOND))>0,'OK','FAIL executor registry');
+SELECT IF((SELECT COUNT(*) FROM meng_content.flyway_schema_history WHERE version='20261023001' AND success=1)=1,'OK','FAIL content runtime migration');
+SELECT IF((SELECT COUNT(*) FROM meng_content.emotion WHERE catalog_version='${emotionVersion}' AND delete_state=0)=24,'OK','FAIL emotion catalog');
 "@
     $checks=@($sql | & docker exec -i -e MYSQL_PWD $mysqlId mysql -uroot --batch --skip-column-names)
     if($LASTEXITCODE -ne 0){throw 'Deployment database assertions could not execute.'}
-    if(@($checks | Where-Object {$_ -ne 'OK'}).Count -or $checks.Count -ne 7){throw "Deployment assertions failed: $($checks -join ', ')"}
+    if(@($checks | Where-Object {$_ -ne 'OK'}).Count -or $checks.Count -ne 9){throw "Deployment assertions failed: $($checks -join ', ')"}
     Write-Output "Flyway migrations, catalog $catalogVersion, 45 scene groups and three registered jobs verified."
 } finally {$env:MYSQL_PWD=$priorPassword}

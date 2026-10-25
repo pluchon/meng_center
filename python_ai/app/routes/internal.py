@@ -28,10 +28,10 @@ async def retrievals(body: RetrievalRequest, request: Request) -> dict:
 async def embeddings(body: EmbeddingsRequest, request: Request) -> dict:
     models = request.app.state.assistant.models
     async with models.usage():
-        vectors = await models.embed(body.texts)
+        vectors = await models.embed(body.texts, body.text_type)
     return {
         "vectors": vectors,
-        "modelVersion": f"{models.settings.embedding_model}:{models.settings.embedding_dimensions}",
+        "modelVersion": f"{models.settings.embedding_model}:{models.settings.embedding_dimensions}:doc-v1",
     }
 
 

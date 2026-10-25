@@ -14,11 +14,12 @@ from redis.asyncio import Redis
 
 from app.clients.cover_image import CoverImageClient
 from app.clients.discovery import Discovery
-from app.clients.models import BudgetExceeded, ModelFactory
+from app.clients.models import ModelFactory
 from app.config.settings import Settings
 from app.consumers.events import Consumers
 from app.routes.companion import router as companion_router
 from app.routes.internal import router
+from app.runtime.models.gateway import ModelUnavailable
 from app.services.assistant import Assistant, CoverRejected
 from app.services.companion import Companion
 
@@ -52,16 +53,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         stack.push_async_callback(redis.aclose)
         await redis.ping()
         http = await stack.enter_async_context(httpx.AsyncClient(follow_redirects=False))
-        models = ModelFactory(settings, redis)
+        discovery = Discovery(settings)
+        stack.push_async_callback(discovery.close)
+        await discovery.start()
+        models = ModelFactory(settings, redis, http)
         assistant = Assistant(models, CoverImageClient(settings, http, models.gateway))
         consumers = Consumers(settings, assistant)
         stack.push_async_callback(consumers.close)
         await consumers.start()
-        discovery = Discovery(settings)
-        stack.push_async_callback(discovery.close)
-        await discovery.start()
         app.state.assistant = assistant
-        app.state.companion = Companion(assistant, http)
+        app.state.companion = Companion(assistant, http, discovery)
         app.state.training_lock = asyncio.Semaphore(1)
         yield
 
@@ -78,8 +79,8 @@ async def health() -> dict[str, str]:
     return {"status": "UP"}
 
 
-@app.exception_handler(BudgetExceeded)
-async def budget_error(request: Request, error: BudgetExceeded) -> JSONResponse:
+@app.exception_handler(ModelUnavailable)
+async def model_unavailable(request: Request, error: ModelUnavailable) -> JSONResponse:
     return JSONResponse({"code": "AI_UNAVAILABLE"}, status_code=503)
 
 

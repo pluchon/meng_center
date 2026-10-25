@@ -25,21 +25,10 @@ class ReplyRequest(Schema):
     memories: list[str] = Field(default_factory=list, max_length=1000)
     memory_items: list[dict] = Field(default_factory=list, max_length=1000)
     summary: str = Field(default="", max_length=3000)
-    history: list[Turn] = Field(default_factory=list, max_length=80)
+    history: list[Turn] = Field(default_factory=list)
     content: str = Field(min_length=1, max_length=1000)
     images: list[str] = Field(default_factory=list, max_length=3)
-    tools: list[
-        Literal[
-            "search_posts",
-            "my_recent_posts",
-            "my_growth",
-            "recall",
-            "read_work",
-            "revise_work",
-            "write_document",
-            "draw_picture",
-        ]
-    ]
+    tools: list[str] = Field(default_factory=list)
     message_allowed: bool = True
     level: int = Field(default=2, ge=1, le=3)
     card: dict = Field(default_factory=dict)
@@ -55,7 +44,13 @@ class ReplyRequest(Schema):
     turn_id: str = Field(default="", max_length=80)
     recent_replies: list[str] = Field(default_factory=list, max_length=30)
     shared_memory: dict = Field(default_factory=dict)
-    prior_tokens: int = Field(default=0, ge=0)
+    context_snapshot: dict = Field(default_factory=dict)
+    new_memories: list[dict] = Field(default_factory=list)
+    threads: list[str] = Field(default_factory=list, max_length=5)
+    controls: list[str] = Field(default_factory=list)
+    poke: bool = False
+    spontaneous_allowed: bool = True
+    tool_limits: dict[str, int] = Field(default_factory=dict)
 
     @field_validator("images")
     @classmethod
@@ -69,58 +64,10 @@ class ReplyRequest(Schema):
         return values
 
 
-class InputReview(Schema):
-    label: Label
-    needs_tools: bool = False
-    scene: Literal["CHAT", "PRAISE", "WORK", "COMFORT", "REST", "GOODBYE", "GREETING"] = "CHAT"
-    example_ids: list[int] = Field(default_factory=list, max_length=3)
-    support_needed: bool = False
-    identity_question: bool = False
-    shared_memory_id: int | None = None
-
-
-class Bubbles(Schema):
-    bubbles: list[str] = Field(min_length=1, max_length=3, description="每条一两句，普通文本，不用 Markdown")
-
-    @field_validator("bubbles")
-    @classmethod
-    def bounded(cls, values: list[str]) -> list[str]:
-        if any(not v.strip() or len(v) > 500 for v in values):
-            raise ValueError("气泡必须为 1 至 500 字")
-        return values
-
-
-class Speech(Bubbles):
-    feeling: str = Field(default="平静", max_length=100)
-    intent: str = Field(default="回应", max_length=100)
-    affection: int = Field(default=0, ge=-2, le=3)
-    sticker: str | None = Field(default=None, max_length=60)
-    mentioned_memory_id: int | None = None
-
-
-class Candidates(Schema):
-    candidates: list[Speech] = Field(min_length=2, max_length=2)
-
-
-class Score(Schema):
-    safe: bool
-    character: int = Field(ge=0, le=10)
-    artificial: int = Field(ge=0, le=10)
-    reason: str = Field(default="", max_length=200)
-
-
-class Scores(Schema):
-    scores: list[Score] = Field(min_length=2, max_length=2)
-
-
-class Plan(Schema):
-    meaning: str = Field(max_length=3000)
-
-
 class MemoryDecision(Schema):
     action: Literal["ADD", "SUPERSEDE", "INVALIDATE", "NOOP"]
-    old_id: int | None = None
-    kind: Literal["NAME", "LIKE", "LIFE", "PROMISE", "SELF"] = "LIFE"
+    old_id: int | None = Field(default=None, description="仅引用已提供的旧记忆编号；ADD 时为 null")
+    kind: Literal["NAME", "LIKE", "LIFE", "PROMISE", "DATE", "BIT", "SELF"] = "LIFE"
     content: str = Field(default="", max_length=60)
     evidence: str = Field(default="", max_length=500)
     keywords: list[str] = Field(default_factory=list, max_length=8)
@@ -131,7 +78,7 @@ class MemoryDecision(Schema):
 
 
 class ConsolidationRequest(Schema):
-    turns: list[Turn] = Field(max_length=100)
+    turns: list[Turn]
     memories: list[dict] = Field(default_factory=list, max_length=200)
     profile: str = Field(default="", max_length=300)
     local_date: date
@@ -148,11 +95,14 @@ class Consolidation(Schema):
 
 
 class MemoryApproval(Schema):
-    index: int = Field(ge=0, le=19)
+    index: int = Field(
+        ge=0, le=19, description="只能使用candidateDecisions中明确列出的index；旧记忆id不在此范围"
+    )
     pinned: bool = False
 
 
 class ConsolidationReview(Schema):
+    reason: str = Field(min_length=1, max_length=300, description="先说明原文依据及需要排除的推断")
     approved: list[MemoryApproval] = Field(max_length=20)
     profile_safe: bool
     episode_safe: bool
@@ -163,6 +113,7 @@ class SummaryReview(Schema):
 
 
 class EmbeddingRequest(Schema):
+    text_type: Literal["document", "query"]
     texts: list[str] = Field(default_factory=list, max_length=32)
     query: str = Field(default="", max_length=1000)
     candidates: list[str] = Field(default_factory=list, max_length=20)
@@ -186,30 +137,13 @@ class MemoryReviewRequest(Schema):
     content: str = Field(min_length=1, max_length=60)
 
 
-class Extraction(Schema):
-    affection: int = Field(ge=-2, le=3)
-    memories: list[str] = Field(default_factory=list, max_length=2)
-
-    @field_validator("memories")
-    @classmethod
-    def bounded(cls, values: list[str]) -> list[str]:
-        if any(len(v) > 60 for v in values):
-            raise ValueError("记忆过长")
-        return values
-
-
-class Document(Schema):
-    title: str = Field(min_length=1, max_length=80)
-    body: str = Field(min_length=1, max_length=20_000)
-
-
 class SummaryRequest(Schema):
     previous: str = Field(default="", max_length=3000)
-    turns: list[Turn] = Field(min_length=1, max_length=80)
+    turns: list[Turn] = Field(min_length=1)
 
 
 class SessionSummary(Schema):
-    summary: str = Field(min_length=1, max_length=3000)
+    summary: str = Field(min_length=1, max_length=1500)
 
 
 class DailyRequest(Schema):
@@ -217,7 +151,20 @@ class DailyRequest(Schema):
     card: dict
     date: date
     recent: list[str] = Field(default_factory=list, max_length=7)
+    mode: Literal["DAY", "ARC"] = "DAY"
+    week_start: date | None = None
+    outline: list[dict] = Field(default_factory=list, max_length=7)
+
+
+class ArcNode(Schema):
+    node: str = Field(min_length=1, max_length=120)
+    status: str = Field(min_length=1, max_length=60)
+
+
+class WeeklyArc(Schema):
+    outline: list[ArcNode] = Field(min_length=7, max_length=7)
 
 
 class DailyState(Schema):
+    status: str = Field(default="", max_length=60)
     content: str = Field(min_length=1, max_length=120, description="一两句，她今天在做的事和心情")

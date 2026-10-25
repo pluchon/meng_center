@@ -76,10 +76,20 @@ public class WorkStorage {
     }
 
     public Path path(String name) {
-        if (name == null || !name.matches("[a-f0-9-]{36}\\.png")) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        if (name == null || !name.matches("[a-f0-9-]{36}\\.(?:png|webp)")) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         Path path = root.resolve(name).normalize();
         if (!path.getParent().equals(root)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         return path;
+    }
+
+    public String saveWebp(byte[] data) {
+        if (data.length<16 || data.length>5_000_000 ||
+            !new String(data,0,4,java.nio.charset.StandardCharsets.US_ASCII).equals("RIFF") ||
+            !new String(data,8,4,java.nio.charset.StandardCharsets.US_ASCII).equals("WEBP"))
+            throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        String name=UUID.randomUUID()+".webp";
+        try { Files.createDirectories(root); Files.write(path(name),data); return name; }
+        catch(IOException error) { throw new BusinessException(CompanionError.AI_UNAVAILABLE); }
     }
 
     public void delete(String name) {

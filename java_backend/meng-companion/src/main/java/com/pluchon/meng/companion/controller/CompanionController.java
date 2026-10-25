@@ -103,6 +103,14 @@ public class CompanionController {
         return ApiResponse.success(service.messages(user(), id, before, size));
     }
 
+    /** 拍一拍作为独立消息进入同一轮次链路。 */
+    @PostMapping("/sessions/{id}/pokes")
+    public DeferredResult<ResponseEntity<?>> poke(@PathVariable long id,@Valid @RequestBody CompanionDTO.Poke body,
+        @RequestHeader(value="X-Time-Zone",required=false) String zone,
+        @RequestHeader(value="X-Client-IP",defaultValue="unknown") String ip) {
+        return replies.poke(user(),id,body,zone,ip);
+    }
+
     /** 按审核后的完整气泡输出本轮结果。 */
     @PostMapping(value = "/sessions/{id}/messages")
     public DeferredResult<ResponseEntity<?>> send(
@@ -226,7 +234,8 @@ public class CompanionController {
     public ResponseEntity<?> file(@PathVariable long id) {
         var work = service.requireWork(user(), id);
         boolean document = "DOCUMENT".equals(work.getKind());
-        Object body = document
+        boolean toy = "TOY".equals(work.getKind());
+        Object body = (document || toy)
             ? work.getBody().getBytes(StandardCharsets.UTF_8)
             : new FileSystemResource(storage.path(work.getFilePath()));
         return ResponseEntity.ok()
@@ -236,7 +245,7 @@ public class CompanionController {
                 HttpHeaders.CONTENT_DISPOSITION,
                 ContentDisposition.attachment()
                     .filename(
-                        work.getTitle() + (document ? ".md" : ".png"),
+                        work.getTitle() + (document ? ".md" : "TOY".equals(work.getKind()) ? ".html" : ".png"),
                         StandardCharsets.UTF_8
                     )
                     .build()
@@ -245,6 +254,7 @@ public class CompanionController {
             .contentType(
                 document
                     ? MediaType.parseMediaType("text/markdown;charset=UTF-8")
+                    : toy ? MediaType.parseMediaType("text/html;charset=UTF-8")
                     : MediaType.IMAGE_PNG
             )
             .body(body);
@@ -284,7 +294,7 @@ public class CompanionController {
         return ResponseEntity.ok()
             .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
             .header("X-Content-Type-Options", "nosniff")
-            .contentType(MediaType.IMAGE_PNG)
+            .contentType(images.read(user(),id).toString().endsWith(".webp") ? MediaType.parseMediaType("image/webp") : MediaType.IMAGE_PNG)
             .body(new FileSystemResource(images.read(user(), id)));
     }
 

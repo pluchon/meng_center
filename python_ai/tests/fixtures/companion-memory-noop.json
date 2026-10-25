@@ -1,0 +1,20 @@
+{
+  "request": {
+    "turns": [{"role": "USER", "content": "我的确喜欢蓝色。"}, {"role": "CHARACTER", "content": "记得呀。"}],
+    "memories": [{"id": 41, "kind": "LIKE", "content": "喜欢蓝色"}, {"id": 42, "kind": "LIFE", "content": "住在台中"}, {"id": 43, "kind": "SELF", "content": "萌部落的AI角色"}],
+    "local_date": "2026-10-25"
+  },
+  "extraction": {
+    "decisions": [
+      {"action": "NOOP", "old_id": 41, "kind": "LIKE", "content": "喜欢蓝色", "evidence": "USER:我的确喜欢蓝色。"},
+      {"action": "NOOP", "old_id": 42, "kind": "LIFE", "content": "住在台中", "evidence": ""},
+      {"action": "NOOP", "old_id": 43, "kind": "SELF", "content": "萌部落的AI角色", "evidence": ""}
+    ]
+  },
+  "invalidReview": {
+    "reason": "用户只支持喜欢蓝色，批准index 0。",
+    "approved": [{"index": 0, "pinned": false}],
+    "profile_safe": true,
+    "episode_safe": true
+  }
+}

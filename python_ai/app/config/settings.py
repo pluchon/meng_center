@@ -8,16 +8,29 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MENG_AI_", extra="ignore")
 
     api_key: SecretStr = Field(validation_alias="DASHSCOPE_API_KEY")
+    deepseek_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="DEEPSEEK_API_KEY")
     base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    classifier_model: str = "qwen3.8-flash"
-    writer_model: str = "qwen3.8-flash"
-    companion_model: str = "qwen3.8-flash"
-    companion_temperature: float = Field(default=0.85, ge=0.8, le=0.9)
-    brain_model: str = "qwen3.8-flash"
+    agent_model: str = "qwen3.8-flash"
+    speech_model: str = "deepseek-flash"
+    judge_model: str = "qwen3.8-flash"
+    review_model: str = "qwen3.8-max"
+    writer_model: str = "qwen3.8-max"
+    toy_model: str = "qwen3.8-max"
+    assist_model: str = "qwen3.8-flash"
+    memory_model: str = "qwen3.8-flash"
+    model_overrides: dict[str, dict] = Field(default_factory=dict)
+    rerank_model: str = "qwen3.7-text-rerank"
+    rerank_url: str = "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
+    embedding_url: str = (
+        "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
+    )
+    rerank_thresholds: dict[str, float] = {"search": 0.35, "related": 0.4, "recall": 0.3, "web": 0.2}
+    rerank_instructions: dict[str, str] = Field(default_factory=dict)
+    tavily_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="TAVILY_API_KEY")
+    tavily_daily_credits: int = Field(default=300, ge=1)
+    tavily_exclude_domains: list[str] = Field(default_factory=list)
     requests_per_minute: int = Field(default=1200, ge=1)
     tokens_per_minute: int = Field(default=1_000_000, ge=1)
-    round_token_limit: int = Field(default=24000, ge=1000)
-    user_daily_token_limit: int = Field(default=100000, ge=1000)
     model_queue_seconds: float = Field(default=2, gt=0, le=10)
     circuit_seconds: int = Field(default=30, ge=1)
     input_price_per_million: float = Field(default=0, ge=0)
@@ -26,12 +39,11 @@ class Settings(BaseSettings):
     vision_model: str = "qwen3.8-flash"
     embedding_model: str = "qwen3.7-text-embedding-flash"
     embedding_dimensions: int = Field(default=1024, ge=1024, le=1024)
-    cover_model: str = "qwen-image-3.0"
+    cover_model: str = "qwen-image-3.0-pro"
     cover_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
     structured_method: str = "function_calling"
-    speech_structured_method: str = "json_mode"
     concurrency: int = Field(default=4, ge=1, le=32)
-    daily_token_limit: int = Field(default=50_000_000, ge=1)
+    speculative: bool = True
     timezone: str = "Asia/Taipei"
     redis_host: str = "127.0.0.1"
     redis_port: int = Field(default=16379, validation_alias="MENG_REDIS_PORT")

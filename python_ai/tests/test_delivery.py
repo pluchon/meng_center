@@ -4,8 +4,8 @@ import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
-from app.clients.models import BudgetExceeded
 from app.consumers.events import Consumers
+from app.runtime.models.gateway import ModelUnavailable
 
 
 def message(attempt: int = 0) -> SimpleNamespace:
@@ -75,14 +75,13 @@ async def test_exhausted_message_is_dead_lettered() -> None:
     item.ack.assert_not_awaited()
 
 
-async def test_budget_deferral_does_not_consume_retry_attempt() -> None:
-    worker = consumer(BudgetExceeded())
+async def test_rate_limit_uses_normal_retry_queue():
+    worker = consumer(ModelUnavailable())
     item = message(2)
     await worker.handle(item)
     call = worker.channel.default_exchange.publish.call_args
-    assert call.kwargs["routing_key"].endswith("budget")
-    assert call.args[0].headers["meng-attempt"] == 2
-    item.ack.assert_awaited_once()
+    assert call.kwargs["routing_key"].endswith("retry3")
+    assert call.args[0].headers["meng-attempt"] == 3
 
 
 async def test_invalid_message_never_calls_model() -> None:

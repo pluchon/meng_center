@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import {
   companionApi,
   sendCompanionMessage,
+  pokeCompanion,
   regenerateCompanionMessage,
   companionImage,
 } from '@/api/companion'
@@ -52,7 +53,6 @@ export function useCompanion() {
   const sending = ref(false),
     creating = ref(false),
     draft = ref(''),
-    selectedWork = ref(null),
     feedbackBusy = ref(null),
     levelBusy = ref(false),
     attachments = ref([]),
@@ -101,6 +101,8 @@ export function useCompanion() {
       String(cooldownSeconds.value % 60).padStart(2, '0'),
   )
   const drafts = new Map()
+  const retractTimers = new Set()
+  const hesitant = ref(false)
   const envelopes = new Map()
   const sendControllers = new Set()
   let retryEnvelope = null,
@@ -154,7 +156,6 @@ export function useCompanion() {
       drafts.set(String(sessionId.value), {
         text: draft.value,
         images: attachments.value,
-        work: selectedWork.value,
       })
   }
   async function goHome() {
@@ -220,7 +221,6 @@ export function useCompanion() {
     const saved = drafts.get(String(id))
     draft.value = saved?.text || ''
     attachments.value = saved?.images || []
-    selectedWork.value = saved?.work || null
     const topic = sessionList.value.find((s) => String(s.id) === String(id))
     if (topic) topic.unread = false
     typing.value = !!topic?.generating
@@ -382,15 +382,22 @@ export function useCompanion() {
     if (event === CompanionEvent.STATUS) {
       if (data.kind === 'CRISIS_HELP') hotlines.value = data.hotlines || []
       else statusText.value = data.text || ''
+    } else if (event === CompanionEvent.REACTION) {
+      const target = messages.value.find((message) => String(message.id) === String(data.messageId))
+      if (target) target.reaction = data.emoji
     } else if (event === CompanionEvent.BUBBLE) {
       statusText.value = ''
       typing.value = true
+      hesitant.value = data.typing === 'HESITANT'
       await new Promise((resolve) => {
         const timer = setTimeout(
           done,
           Math.min(
             Companion.TYPE_MAX_MS,
-            Math.max(Companion.TYPE_MIN_MS, (data.content?.length || 1) * Companion.TYPE_MS),
+            Math.max(
+              Companion.TYPE_MIN_MS,
+              (data.content?.length || 1) * Companion.TYPE_MS + (hesitant.value ? 900 : 0),
+            ),
           ),
         )
         function done() {
@@ -400,7 +407,22 @@ export function useCompanion() {
         }
         controller.signal.addEventListener('abort', done, { once: true })
       })
-      if (token === generation && !controller.signal.aborted) await appendMessage(data)
+      if (token === generation && !controller.signal.aborted) {
+        await appendMessage({ ...data, retracted: false })
+        if (data.retractAfterMs) {
+          const timer = setTimeout(() => {
+            retractTimers.delete(timer)
+            if (token !== generation || !active) return
+            const message = messages.value.find((m) => String(m.id) === String(data.id))
+            if (message) {
+              message.retracted = true
+              message.content = ''
+            }
+          }, data.retractAfterMs)
+          retractTimers.add(timer)
+        }
+      }
+      hesitant.value = false
     } else if (event === CompanionEvent.WORK) {
       recentWorks.value = [data, ...recentWorks.value.filter((w) => w.id !== data.id)].slice(0, 3)
       await appendMessage({
@@ -424,8 +446,7 @@ export function useCompanion() {
     if (inputDisabled.value || (!text && !images.length) || text.length > Companion.MAX_LENGTH)
       return
     const token = generation,
-      id = sessionId.value,
-      work = selectedWork.value
+      id = sessionId.value
     const previous = retryEnvelope && envelopes.get(retryEnvelope)
     const body =
       previous &&
@@ -436,7 +457,6 @@ export function useCompanion() {
             clientMessageId: crypto.randomUUID(),
             content: text,
             imageIds: images,
-            workId: work?.id || null,
           }
     envelopes.set(body.clientMessageId, body)
     retryEnvelope = null
@@ -446,18 +466,18 @@ export function useCompanion() {
     sending.value = true
     sendError.value = null
     typing.value = true
+    const existingMessage = messages.value.find((message) => message.clientMessageId === body.clientMessageId)
     await appendMessage({
-      id: 'pending-' + body.clientMessageId,
+      id: existingMessage?.id || 'pending-' + body.clientMessageId,
       clientMessageId: body.clientMessageId,
       role: 'USER',
       content: text,
       imageIds: images,
-      createTime: new Date().toISOString(),
+      createTime: existingMessage?.createTime || new Date().toISOString(),
       turnState: 'RECEIVED',
     })
     draft.value = ''
     attachments.value = []
-    selectedWork.value = null
     try {
       await sendCompanionMessage(id, body, {
         signal: controller.signal,
@@ -471,7 +491,6 @@ export function useCompanion() {
       if (!draft.value) {
         draft.value = text
         attachments.value = images.map((imageId) => ({ id: imageId, url: companionImage(imageId) }))
-        selectedWork.value = work
         retryEnvelope = body.clientMessageId
       }
     } finally {
@@ -500,11 +519,44 @@ export function useCompanion() {
       clientMessageId: message.clientMessageId,
       content: message.content,
       imageIds: message.imageIds || [],
-      workId: null,
     })
     retryEnvelope = message.clientMessageId
     void send()
   }
+  async function poke() {
+    if (inputDisabled.value || sending.value) return
+    const token = generation,
+      controller = new AbortController(),
+      clientMessageId = crypto.randomUUID()
+    sendControllers.add(controller)
+    sending.value = true
+    typing.value = true
+    sendError.value = null
+    try {
+      await pokeCompanion(
+        sessionId.value,
+        { clientMessageId },
+        {
+          signal: controller.signal,
+          onEvent: (event, data) => receive(event, data, token, controller),
+        },
+      )
+      await refreshCurrent(token)
+      await loadSessions()
+    } catch (failure) {
+      if (token === generation && !controller.signal.aborted) sendError.value = failure
+    } finally {
+      sendControllers.delete(controller)
+      if (token === generation) {
+        sending.value = sendControllers.size > 0
+        typing.value =
+          sending.value ||
+          !!sessionList.value.find((session) => String(session.id) === String(sessionId.value))?.generating
+        statusText.value = ''
+      }
+    }
+  }
+
   async function regenerate(message) {
     if (feedbackBusy.value || sending.value) return
     const token = generation,
@@ -555,16 +607,7 @@ export function useCompanion() {
       levelBusy.value = false
     }
   }
-  async function revise(work) {
-    if (code.value !== work.characterCode) {
-      await goChat(work.characterCode)
-      await start()
-    }
-    selectedWork.value = work
-    dialog.value = ''
-  }
-  // 只有回复生成中或画图未完成时才短轮询；其余靠页面重新可见和消息域推送的萌萌通知触发刷新。
-  const busy = () => sessionList.value.some((s) => s.generating || s.drawing)
+  const busy = () => sending.value || sessionList.value.some((session) => session.generating || session.drawing)
   async function poll(force = false) {
     if (!active || !user.loggedIn || !chatting.value || document.hidden || polling || loading.value)
       return
@@ -719,6 +762,8 @@ export function useCompanion() {
     stopCooldownWatch()
     clearInterval(cooldownTimer)
     clearInterval(pollTimer)
+    for (const timer of retractTimers) clearTimeout(timer)
+    retractTimers.clear()
     document.removeEventListener('visibilitychange', visible)
     stopNoticeWatch()
     envelopes.clear()
@@ -757,13 +802,14 @@ export function useCompanion() {
     creating,
     draft,
     attachments,
-    selectedWork,
     feedbackBusy,
     levelBusy,
     uploading,
     sendError,
     statusText,
     typing,
+    hesitant,
+    poke,
     drawing,
     sideClosed,
     log,
@@ -791,7 +837,6 @@ export function useCompanion() {
     regenerate,
     feedback,
     setLevel,
-    revise,
     retryMessage,
     pasteImages,
     dropImages,

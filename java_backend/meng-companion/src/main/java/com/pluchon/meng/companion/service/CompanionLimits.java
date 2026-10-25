@@ -223,25 +223,30 @@ public class CompanionLimits {
         String token = UUID.randomUUID().toString();
         List<String> kinds = new ArrayList<>();
         try {
-            for (String kind : List.of("message", "document", "image")) {
-                int daily = switch (kind) {
+            for (String kind : List.of("message", "toy", "image", "web:0", "web:1", "web:2", "web:3", "webImage:0", "webImage:1")) {
+                String base = kind.split(":")[0];
+                int daily = switch (base) {
                     case "message" -> properties.getMessageDaily();
-                    case "document" -> properties.getDocumentDaily();
+                    case "toy" -> properties.getToyDaily();
+                    case "web" -> properties.getWebDaily();
+                    case "webImage" -> properties.getWebImageDaily();
                     default -> properties.getImageDaily();
                 };
-                int minute = switch (kind) {
+                int minute = switch (base) {
                     case "message" -> properties.getMessageMinute();
-                    case "document" -> properties.getDocumentMinute();
+                    case "toy" -> properties.getToyMinute();
+                    case "web" -> properties.getWebMinute();
+                    case "webImage" -> properties.getWebImageMinute();
                     default -> properties.getImageMinute();
                 };
                 var result = redis.execute(
                     RESERVE,
                     keys(user, date, kind),
                     Long.toString(clock.millis()),
-                    token,
+                    reservationToken(token, kind),
                     Integer.toString(daily),
                     Integer.toString(minute),
-                    kind
+                    base
                 );
                 if (Long.valueOf(1).equals(result)) kinds.add(kind);
                 else if ("message".equals(kind)) break;
@@ -267,28 +272,55 @@ public class CompanionLimits {
             redis.execute(
                 FINISH,
                 keys(r.user(), r.date(), kind),
-                r.token(),
-                kind,
+                reservationToken(r.token(),kind),
+                kind.split(":")[0],
                 used.contains(kind) ? "1" : "0"
             );
     }
 
     public List<String> tools(Reservation r) {
-        var tools = new ArrayList<>(
-            List.of(
-                "search_posts",
-                "my_recent_posts",
-                "my_growth",
-                "recall",
-                "read_work"
-            )
-        );
-        if (r.kinds().contains("document")) tools.addAll(
-            List.of("write_document", "revise_work")
-        );
+        var tools = new ArrayList<>(List.of("search_posts","read_post","my_recent_posts","my_growth","recall"));
+        if (r.kinds().contains("toy")) tools.add("make_toy");
         if (r.kinds().contains("image")) tools.add("draw_picture");
+        if (r.kinds().stream().anyMatch(k -> k.startsWith("web:"))) tools.addAll(List.of("web_search","read_link"));
+        if (r.kinds().stream().anyMatch(k -> k.startsWith("webImage:"))) tools.add("search_images");
         return tools;
     }
+
+    public Map<String,Long> toolLimits(Reservation r) {
+        var counts = new java.util.HashMap<String,Long>();
+        for(var kind:r.kinds()) counts.merge(kind.split(":")[0],1L,Long::sum);
+        return counts;
+    }
+
+    private String reservationToken(String token,String kind) { return kind.contains(":")?token+":"+kind:token; }
+
+    public void checkPoke(long user) {
+        var result=redis.execute(new DefaultRedisScript<Long>(
+            "redis.call('ZREMRANGEBYSCORE',KEYS[1],'-inf',ARGV[1]-60000); " +
+            "if redis.call('ZCARD',KEYS[1])>=2 then return 0 end; " +
+            "redis.call('ZADD',KEYS[1],ARGV[1],ARGV[2]);redis.call('EXPIRE',KEYS[1],120);return 1",Long.class),
+            List.of("meng:companion:poke:"+user),Long.toString(clock.millis()),UUID.randomUUID().toString());
+        if(!Long.valueOf(1).equals(result)) throw new BusinessException(CompanionError.COMPANION_COOLDOWN);
+    }
+
+    public boolean controlAvailable(long user,String zone,String kind) {
+        return !Boolean.TRUE.equals(redis.hasKey("meng:companion:"+kind+":"+user+":"+date(zone)));
+    }
+
+    public boolean useControl(long user,String zone,String kind) {
+        String key="meng:companion:"+kind+":"+user+":"+date(zone), token=UUID.randomUUID().toString();
+        if(!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key,token,Duration.ofDays(2)))) return false;
+        if(org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive())
+            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                new org.springframework.transaction.support.TransactionSynchronization() {
+                    @Override public void afterCompletion(int status) {
+                        if(status!=STATUS_COMMITTED) redis.execute(UNLOCK,List.of(key),token);
+                    }
+                });
+        return true;
+    }
+
 
     public Map<String, Object> usage(long user) {
         return usage(user, "Asia/Taipei");
@@ -313,10 +345,10 @@ public class CompanionLimits {
                 0,
                 properties.getMessageDaily() - number(counts.get("message"))
             ),
-            "documents",
+            "toys",
             Math.max(
                 0,
-                properties.getDocumentDaily() - number(counts.get("document"))
+                properties.getToyDaily() - number(counts.get("toy"))
             ),
             "images",
             Math.max(
@@ -387,6 +419,7 @@ public class CompanionLimits {
     }
 
     private List<String> keys(long user, String date, String kind) {
+        kind = kind.split(":")[0];
         String prefix = "meng:companion:";
         return List.of(
             prefix + "usage:" + user + ":" + date,

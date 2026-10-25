@@ -11,7 +11,7 @@ class RetrievalRequest(Schema):
     character: str = ""
     turn_id: str = ""
     time_zone: str = "Asia/Taipei"
-    prior_tokens: int = Field(default=0, ge=0)
+    scene: str = "search"
 
     @field_validator("candidates")
     @classmethod
@@ -19,8 +19,3 @@ class RetrievalRequest(Schema):
         if any(len(value) > 1000 for value in values):
             raise ValueError("检索候选超过长度限制")
         return values
-
-
-class RetrievalDecision(Schema):
-    indexes: list[int] = Field(max_length=20)
-    reason: str = Field(max_length=300)

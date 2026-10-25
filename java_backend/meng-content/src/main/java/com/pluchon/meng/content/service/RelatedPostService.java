@@ -62,7 +62,7 @@ public class RelatedPostService {
     @Autowired
     private AiClient ai;
 
-    // 向量提供公开候选，由 agent 判断与源帖的相关性；AI 不可用时按向量相似度返回，不按标签补齐。
+    // 向量提供公开候选，由 rerank 判断与源帖的相关性；AI 不可用时按向量相似度返回，不按标签补齐。
     public PageResult<PostFeedVO> related(long id, long page, long size) {
         var post = posts.selectById(id);
         if (
@@ -76,7 +76,7 @@ public class RelatedPostService {
             String cached = redis.opsForValue().get(key);
             if (cached != null) {
                 var entry = json.readTree(cached);
-                if ("agent-v1".equals(entry.path("source").asString())) ids =
+                if ("rerank-v1".equals(entry.path("source").asString())) ids =
                     json.convertValue(
                         entry.path("ids"),
                         new tools.jackson.core.type.TypeReference<
@@ -138,7 +138,7 @@ public class RelatedPostService {
                                         )
                                         .toList(),
                                     MAX_RELATED,
-                                    UserContext.require().userId()
+                                    UserContext.require().userId(), "related"
                                 )
                             );
                             if (
@@ -156,10 +156,10 @@ public class RelatedPostService {
                                             index >= candidates.size()
                                     )
                             ) throw new IllegalStateException(
-                                "Invalid related agent selection"
+                                "Invalid related rerank selection"
                             );
-                            ranked = result
-                                .ranked()
+                            degraded = !result.reranked();
+                            ranked = AiComputation.ordered(result,candidates.size())
                                 .stream()
                                 .map(candidates::get)
                                 .toList();
@@ -191,7 +191,7 @@ public class RelatedPostService {
                     .set(
                         key,
                         json.writeValueAsString(
-                            Map.of("source", "agent-v1", "ids", ids)
+                            Map.of("source", "rerank-v1", "ids", ids)
                         ),
                         Duration.ofHours(1)
                     );

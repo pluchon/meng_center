@@ -18,7 +18,7 @@ class CoverImageClient:
         if self.gateway:
             return await self.gateway.invoke(
                 self.settings.cover_model,
-                "cover",
+                "image",
                 len(plan.prompt),
                 lambda: self._generate(plan),
                 lambda result: {"images": 1},
@@ -29,7 +29,7 @@ class CoverImageClient:
     async def _generate(self, plan: CoverPlan) -> bytes:
         response = await self.http.post(
             self.settings.cover_url,
-            headers={"Authorization": "Bearer " + self.settings.api_key.get_secret_value()},
+            headers=self.gateway.headers(),
             json={
                 "model": self.settings.cover_model,
                 "input": {"messages": [{"role": "user", "content": [{"text": plan.prompt}]}]},

@@ -29,7 +29,7 @@ class CompanionRetrievalTest {
 
     @ParameterizedTest
     @ValueSource(strings = { "[1]", "[]", "[99]", "[1,1]", "{}" })
-    void memoryRetrievalRequiresValidAgentChoice(String ranked) {
+    void memoryCandidatesAreNotInjectedBeforeRecall(String ranked) {
         var context = new CompanionContext();
         var mapper = mock(CompanionMapper.class);
         var runtime = mock(RuntimeMapper.class);
@@ -81,9 +81,12 @@ class CompanionRetrievalTest {
             "Asia/Taipei",
             "fixture"
         );
-        assertEquals(
-            ranked.equals("[1]") ? List.of(2L) : List.of(),
-            result.used()
-        );
+        assertEquals(15, result.recalled().size());
+        org.mockito.Mockito.verifyNoInteractions(ai);
+        assertEquals(List.of(), result.used());
+        assertEquals(15,result.recalled().size());
+        assertEquals(List.of(),result.items());
+        org.mockito.Mockito.verifyNoInteractions(ai);
+
     }
 }

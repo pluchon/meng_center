@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import operator
+import unicodedata
 from dataclasses import dataclass, field
 from typing import Annotated, Any, TypedDict
 
@@ -12,9 +13,11 @@ from langgraph.runtime import Runtime
 from langgraph.types import RetryPolicy, Send
 from openai import APIConnectionError, APITimeoutError, RateLimitError
 
-from app.chains.structured import build_chain, structured
+from app.chains.structured import structured
 from app.clients.models import ModelFactory
-from app.prompts.templates import MODERATION, SAFETY, VERSION
+from app.prompts.templates import MODERATION, VERSION
+from app.runtime.safety.escalate import confirm
+from app.runtime.tasks.registry import payload
 from app.schemas.models import Moderation, PostInput, Understanding, Verdict
 
 
@@ -55,17 +58,11 @@ def prepare(state: State) -> dict[str, str]:
 
 async def understand(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
     factory = runtime.context.models
-    # Graph owns network retries; the node handles final failure as neutral features.
-    chain = build_chain(
-        getattr(factory, "graph_classifier", factory.classifier),
-        Understanding,
-        "understand",
-        factory.settings.structured_method,
-    )
+    chain = factory.task_chains["understand"]
     try:
-        async with factory.semaphores["classifier"]:
+        async with factory.semaphores["judge"]:
             result = await chain.ainvoke(
-                {"payload": state["post"].model_dump_json(exclude={"image_thumbs"})},
+                {"payload": payload(state["post"], {"image_thumbs"})},
                 config={
                     "callbacks": [runtime.context.callback],
                     "run_name": "post-understanding",
@@ -73,7 +70,25 @@ async def understand(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
                     "metadata": {"post_id": state["post"].post_id},
                 },
             )
-        return {"understanding": Understanding.model_validate(result)}
+        result = Understanding.model_validate(result)
+        review = await confirm(
+            factory, result, payload(state["post"], {"image_thumbs"}), runtime.context.callback
+        )
+
+        def normalized(value):
+            return "".join(unicodedata.normalize("NFKC", value).split()).replace("#", "").casefold()
+
+        candidates = {normalized(tag): tag for tag in state["post"].tag_candidates}
+        topics = [candidates.get(normalized(tag), tag) for tag in result.topics]
+        return {
+            "understanding": result.model_copy(
+                update={
+                    "verdict": review.verdict,
+                    "reason": review.reason,
+                    "topics": list(dict.fromkeys(topics)),
+                }
+            )
+        }
     except Exception as error:
         attempts = runtime.context.attempts
         attempts["understand"] = attempts.get("understand", 0) + 1
@@ -86,7 +101,7 @@ async def understand(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
 
 
 async def embed(state: State, runtime: Runtime[Context]) -> dict[str, list[float]]:
-    return {"vector": (await runtime.context.models.embed([state["text"]]))[0]}
+    return {"vector": (await runtime.context.models.embed([state["text"]], "document"))[0]}
 
 
 async def moderate_image(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
@@ -97,7 +112,7 @@ async def moderate_image(state: State, runtime: Runtime[Context]) -> dict[str, A
         async with factory.semaphores["vision"]:
             result = await chain.ainvoke(
                 [
-                    SystemMessage(SAFETY + MODERATION),
+                    SystemMessage(MODERATION + "\n审核这张图片。"),
                     HumanMessage(
                         content=[
                             {
@@ -121,6 +136,8 @@ async def moderate_image(state: State, runtime: Runtime[Context]) -> dict[str, A
         if retryable(error) and attempts[key] < 3:
             raise
         result = Moderation(verdict=Verdict.SUSPECT, labels=["图片待复核"], reason="图片审核暂不可用")
+    content = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + image["data"]}}]
+    result = await confirm(factory, result, content, runtime.context.callback)
     return {"reviews": [{"imageId": image["id"], **result.model_dump(mode="json")}]}
 
 
@@ -145,9 +162,10 @@ def merge(state: State, runtime: Runtime[Context]) -> dict[str, Any]:
         postId=post.post_id,
         version=post.version,
         embedding=state["vector"],
-        modelVersion=f"{VERSION}:{settings.classifier_model}:{settings.vision_model}:"
-        f"{settings.embedding_model}:{settings.embedding_dimensions}",
+        modelVersion=f"{VERSION}:{settings.judge_model}:{settings.vision_model}:"
+        f"{settings.embedding_model}:{settings.embedding_dimensions}:doc-v1",
         analyzeState="FAILED" if state.get("errors") else "SUCCESS",
+        moderationState="FAILED" if state.get("errors") else "SUCCESS",
     )
     return {"result": result}
 

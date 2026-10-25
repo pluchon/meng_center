@@ -22,12 +22,17 @@ public class CompanionProperties {
     private int firstChatGain = 10;
     private int messageDaily = 200;
     private int messageMinute = 10;
-    private int documentDaily = 10;
-    private int documentMinute = 2;
+    private int toyDaily = 5;
+    private int toyMinute = 1;
+    private int webDaily = 30;
+    private int webMinute = 3;
+    private int webImageDaily = 10;
+    private int webImageMinute = 2;
     private int imageDaily = 3;
     private int imageMinute = 1;
     private int concurrentTurns = 2;
     private int ipMinute = 60;
+    private java.util.Map<String,String> holidays = java.util.Map.of();
     private List<Hotline> hotlines = List.of();
 
     public record Hotline(
@@ -53,8 +58,8 @@ public class CompanionProperties {
             firstChatGain >= 0 &&
             messageDaily > 0 &&
             messageMinute > 0 &&
-            documentDaily > 0 &&
-            documentMinute > 0 &&
+            toyDaily > 0 &&
+            toyMinute > 0 &&
             imageDaily > 0 &&
             imageMinute > 0 &&
             concurrentTurns > 0 &&

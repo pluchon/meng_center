@@ -20,7 +20,7 @@ INSERT INTO companion_session(user_id,character_code,summary,summary_until_messa
 INSERT INTO companion_message(session_id,role,content,completed) VALUES(1,'USER','喜欢蓝色',1);
 INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id) VALUES(41,'NEKO','喜欢蓝色',SHA2('喜欢蓝色',256),1);
 '@ | & docker exec -i -e MYSQL_PWD $container mysql -uroot $database
-    foreach ($name in @('V20261017002__companion_runtime.sql','V20261017003__seed_companion_cards.sql')) {
+    foreach ($name in @('V20261017002__companion_runtime.sql','V20261017003__seed_companion_cards.sql','V20261023001__companion_context_tier.sql','V20261023002__companion_style.sql','V20261023003__companion_cards.sql','V20261025001__companion_runtime_v2.sql')) {
         Get-Content -LiteralPath "$migrationRoot/$name" -Raw | & docker exec -i -e MYSQL_PWD $container mysql -uroot $database
         if ($LASTEXITCODE -ne 0) { throw "Companion migration failed: $name" }
     }
@@ -41,6 +41,11 @@ BEGIN
  INSERT INTO companion_outbox(event_id,event_type,payload) VALUES('same-event','turn.committed',JSON_OBJECT('userId',41));
  INSERT IGNORE INTO companion_outbox(event_id,event_type,payload) VALUES('same-event','turn.committed',JSON_OBJECT('userId',41));
  IF (SELECT COUNT(*) FROM companion_outbox)<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Outbox event is not unique'; END IF;
+ IF (SELECT source FROM companion_image LIMIT 1) IS NOT NULL THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Unexpected image data'; END IF;
+ UPDATE companion_session SET context_snapshot=JSON_OBJECT('profile','原文'),snapshot_time=UTC_TIMESTAMP(6),threads=JSON_ARRAY('未完话题') WHERE id=1;
+ UPDATE companion_message SET sources=JSON_ARRAY(JSON_OBJECT('title','来源','url','https://example.com','site','example.com')),retracted=1 WHERE id=1;
+ INSERT INTO companion_arc(character_code,week_start,outline) VALUES('NEKO','2026-10-19',JSON_ARRAY('节点'));
+ IF (SELECT JSON_LENGTH(threads) FROM companion_session WHERE id=1)<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Runtime v2 JSON fields failed'; END IF;
  SELECT 'Companion migration, source backfill, cards, idempotency and outbox checks passed.';
 END$$
 DELIMITER ;

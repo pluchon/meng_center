@@ -8,8 +8,6 @@ import {
   toRefs,
   watch,
 } from 'vue'
-import { ElMessage } from 'element-plus'
-import { useRouter } from 'vue-router'
 import {
   IconX,
   IconHeart,
@@ -29,7 +27,6 @@ import {
 } from '@tabler/icons-vue'
 import { CompanionContext } from '@/constants/meng'
 import { companionApi, companionFile } from '@/api/companion'
-import { createCompanionDraft } from '@/api/companionWork'
 import { useCompanionResource } from '@/composables/useCompanionResource'
 import {
   companionRelationRoad,
@@ -45,6 +42,7 @@ export default defineComponent({
   name: 'MengDialogs',
   components: {
     DialogShell,
+    MengToy: defineAsyncComponent(() => import('@/components/meng-toy/MengToy.vue')),
     MengState,
     MarkdownBody: defineAsyncComponent(() => import('@/components/markdown-body/MarkdownBody.vue')),
     IconX,
@@ -62,8 +60,7 @@ export default defineComponent({
     IconCalendar,
   },
   setup() {
-    const context = inject(CompanionContext),
-      router = useRouter()
+    const context = inject(CompanionContext)
     const busy = ref(false),
       filter = ref(context.dialog === 'all' ? '' : context.modalCode),
       page = ref(1),
@@ -238,24 +235,6 @@ export default defineComponent({
           if (context.chatting) await context.loadSide()
         })
     }
-    async function toDraft() {
-      if (!current.value || busy.value) return
-      busy.value = true
-      const work = current.value
-      try {
-        const id = await createCompanionDraft(work)
-        closeAfterDraft()
-        ElMessage.success(context.t('meng.savedDraft'))
-        await router.push({ name: context.RouteName.POST_NEW, query: { draft: String(id) } })
-      } catch (e) {
-        notifyFailure(e)
-      } finally {
-        busy.value = false
-      }
-    }
-    function closeAfterDraft() {
-      context.dialog = ''
-    }
     watch(
       () => context.dialog,
       (kind) => {
@@ -312,7 +291,6 @@ export default defineComponent({
       forgetAll,
       reset,
       deleteWork,
-      toDraft,
       retryImage: () => {
         imageError.value = false
       },

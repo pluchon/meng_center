@@ -25,7 +25,7 @@ import {
   IconSparkles,
 } from '@tabler/icons-vue'
 import { CompanionContext } from '@/constants/meng'
-import { Emotions } from '@/constants/comments'
+import { useEmotionStore } from '@/stores/emotions'
 import { companionHistoryEarlierIcon, companionReplyDotsArt } from '@/assets/images'
 import MengState from '@/components/meng-state/MengState.vue'
 import { notifyFailure } from '@/composables/useFailureNotice'
@@ -67,7 +67,14 @@ export default defineComponent({
       IconPhoto,
       earlierIcon: companionHistoryEarlierIcon,
       replyDots: companionReplyDotsArt,
-      stickerImage: (name) => Emotions.find((item) => item.name === name)?.image,
+      actionSegments: (text) =>
+        (text || '')
+          .split(/(（[^（）]*）)/u)
+          .filter(Boolean)
+          .map((part) => ({ text: part, action: part.startsWith('（') && part.endsWith('）') })),
+      safeSources: (message) =>
+        (message.sources || []).filter((source) => /^https?:\/\//i.test(source.url || '')),
+      stickerImage: (name) => useEmotionStore().items.find((item) => item.name === name)?.image,
       setLog: (element) => {
         context.log = element
       },

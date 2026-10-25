@@ -28,7 +28,9 @@ public final class CompanionConverter {
         );
     }
 
-    public static CompanionVO.Message message(Rows.Message row) {
+    public static CompanionVO.Message message(Rows.Message row) { return message(row, false); }
+
+    public static CompanionVO.Message message(Rows.Message row, boolean live) {
         var ids = new ArrayList<Long>();
         if (row.getImageIds() != null) for (var item : JSON.readTree(
             row.getImageIds()
@@ -37,7 +39,7 @@ public final class CompanionConverter {
         return new CompanionVO.Message(
             row.getId(),
             row.getRole(),
-            row.getContent(),
+            row.isRetracted() && !live ? "" : row.getContent(),
             List.copyOf(ids),
             row.getWorkId(),
             row.getCreateTime(),
@@ -48,7 +50,11 @@ public final class CompanionConverter {
             "CHARACTER".equals(row.getRole()) &&
                 row.getTurnId() != null &&
                 row.getRegeneratesMessageId() == null &&
-                row.getWorkId() == null
+                row.getWorkId() == null && !row.isRetracted(),
+            row.isRetracted(), row.getReaction(), row.getTyping(),
+            live && row.isRetracted() ? 1800 : null,
+            row.getSources() == null ? List.of() : JSON.convertValue(JSON.readTree(row.getSources()),
+                new tools.jackson.core.type.TypeReference<List<java.util.Map<String,String>>>() {})
         );
     }
 

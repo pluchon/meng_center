@@ -7,7 +7,9 @@
         <strong>{{ resource.state.data?.title || title }}</strong><small v-if="resource.state.data">{{
           resource.state.data.kind === 'DOCUMENT'
             ? t('meng.documentLength', { count: Array.from(resource.state.data.body || '').length })
-            : t('meng.image')
+            : resource.state.data.kind === 'TOY'
+              ? t('meng.toy')
+              : t('meng.image')
         }}</small>
       </div>
     </header>
@@ -32,6 +34,11 @@
       >
         {{ resource.state.data.body?.slice(0, 100) }}
       </p>
+      <MengToy
+        v-else-if="resource.state.data.kind === 'TOY'"
+        :body="resource.state.data.body || ''"
+        :title="resource.state.data.title"
+      />
       <img
         v-else
         class="work-image"
@@ -41,26 +48,11 @@
       >
       <div class="work-actions">
         <button
-          v-if="resource.state.data.kind === 'DOCUMENT'"
-          class="meng-button secondary"
-          type="button"
-          @click="revise"
-        >
-          {{ t('meng.revise') }}
-        </button>
-        <button
           class="meng-button secondary"
           type="button"
           @click="$emit('open', workId)"
         >
           {{ t('meng.open') }}
-        </button><button
-          class="meng-button secondary"
-          type="button"
-          :disabled="busy"
-          @click="toDraft"
-        >
-          {{ t('meng.draft') }}
         </button>
       </div>
     </template>

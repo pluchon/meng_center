@@ -36,11 +36,11 @@ def model(schema: str, value: dict) -> ToolModel:
 def factory(verdict: str = "PASS") -> SimpleNamespace:
     embeddings = DeterministicFakeEmbedding(size=1024)
 
-    async def embed(texts: list[str]) -> list[list[float]]:
+    async def embed(texts: list[str], text_type: str) -> list[list[float]]:
         return await embeddings.aembed_documents(texts)
 
-    return SimpleNamespace(
-        classifier=model(
+    result = SimpleNamespace(
+        judge=model(
             "Understanding",
             {
                 "topics": ["Vue"],
@@ -53,16 +53,33 @@ def factory(verdict: str = "PASS") -> SimpleNamespace:
         ),
         vision=model("Moderation", {"verdict": "SUSPECT", "labels": ["暴力"], "reason": "待人工确认"}),
         embed=embed,
-        semaphores={role: asyncio.Semaphore(2) for role in ("classifier", "vision", "writer", "cover")},
+        semaphores={
+            role: asyncio.Semaphore(2) for role in ("judge", "vision", "writer", "image", "review", "assist")
+        },
         settings=SimpleNamespace(
             structured_method="function_calling",
-            classifier_model="fake",
+            judge_model="fake",
             writer_model="fake",
             vision_model="fake",
             embedding_model="fake",
             embedding_dimensions=1024,
         ),
     )
+    result.review = model("Moderation", {"verdict": "BLOCK", "labels": [], "reason": "明确违规"})
+    result.writer = result.assist = result.judge
+    return result
+
+
+def prepare(models):
+    from app.chains.structured import build_chain
+    from app.runtime.tasks.registry import TASKS
+
+    models.task_chains = {
+        name: build_chain(getattr(models, spec.purpose), spec.schema, name, "function_calling")
+        for name, spec in TASKS.items()
+        if name in {"understand", "moderate", "cover"}
+    }
+    return models
 
 
 def post() -> PostInput:
@@ -80,7 +97,7 @@ def post() -> PostInput:
 async def test_analysis_returns_complete_vector_and_preserves_version() -> None:
     result = await post_analysis.build_graph().ainvoke(
         {"post": post()},
-        context=Context(factory(), UsageMetadataCallbackHandler()),
+        context=Context(prepare(factory()), UsageMetadataCallbackHandler()),
     )
     assert len(result["result"]["embedding"]) == 1024
     assert result["result"]["version"] == post().version
@@ -94,16 +111,16 @@ async def test_missing_embedding_never_emits_partial_success() -> None:
     with pytest.raises(RuntimeError):
         await post_analysis.build_graph().ainvoke(
             {"post": post()},
-            context=Context(models, UsageMetadataCallbackHandler()),
+            context=Context(prepare(models), UsageMetadataCallbackHandler()),
         )
 
 
 async def test_text_failure_uses_neutral_features_but_keeps_vector() -> None:
     models = factory()
-    models.classifier = ToolModel(messages=iter(["invalid output"] * 10))
+    models.judge = ToolModel(messages=iter(["invalid output"] * 10))
     result = await post_analysis.build_graph().ainvoke(
         {"post": post()},
-        context=Context(models, UsageMetadataCallbackHandler()),
+        context=Context(prepare(models), UsageMetadataCallbackHandler()),
     )
     assert result["result"]["quality"] == 3
     assert result["result"]["analyzeState"] == "FAILED"
@@ -112,10 +129,10 @@ async def test_text_failure_uses_neutral_features_but_keeps_vector() -> None:
 
 async def test_moderation_block_wins_over_other_reviews() -> None:
     models = factory()
-    models.classifier = model("Moderation", {"verdict": "BLOCK", "labels": ["广告"], "reason": "恶意广告"})
+    models.judge = model("Moderation", {"verdict": "BLOCK", "labels": ["广告"], "reason": "恶意广告"})
     result = await moderation.build_graph().ainvoke(
         {"item": ModerationInput(comment_id=3, content="待审核的文字")},
-        context=Context(models, UsageMetadataCallbackHandler()),
+        context=Context(prepare(models), UsageMetadataCallbackHandler()),
     )
     assert result["result"]["verdict"] == "BLOCK"
     assert result["result"]["labels"] == ["广告"]
@@ -124,7 +141,7 @@ async def test_moderation_block_wins_over_other_reviews() -> None:
 async def test_parallel_image_review_is_retained_in_post_result() -> None:
     item = PostInput.model_validate({**post().model_dump(), "image_thumbs": [{"id": 8, "data": "/9j/"}]})
     result = await post_analysis.build_graph().ainvoke(
-        {"post": item}, context=Context(factory(), UsageMetadataCallbackHandler())
+        {"post": item}, context=Context(prepare(factory()), UsageMetadataCallbackHandler())
     )
     assert result["result"]["verdict"] == "SUSPECT"
     assert result["result"]["imageReviews"][0]["imageId"] == 8
@@ -134,14 +151,14 @@ async def test_parallel_image_review_is_retained_in_post_result() -> None:
 
 async def test_profile_moderation_keeps_avatar_review_for_java_reuse() -> None:
     models = factory()
-    models.classifier = model("Moderation", {"verdict": "PASS", "labels": [], "reason": "正常资料"})
+    models.judge = model("Moderation", {"verdict": "PASS", "labels": [], "reason": "正常资料"})
     result = await moderation.build_graph().ainvoke(
         {
             "item": ModerationInput(
                 user_id=9, nickname="云朵", avatar_changed=True, avatar_thumb={"id": 9, "data": "/9j/"}
             )
         },
-        context=Context(models, UsageMetadataCallbackHandler()),
+        context=Context(prepare(models), UsageMetadataCallbackHandler()),
     )
     assert result["result"]["avatarChanged"] is True
     assert result["result"]["verdict"] == "SUSPECT"
@@ -151,11 +168,11 @@ async def test_profile_moderation_keeps_avatar_review_for_java_reuse() -> None:
 async def test_rejected_cover_never_calls_image_provider() -> None:
     models = factory()
     models.writer = model("CoverPlan", {"prompt": "unsafe", "negativePrompt": ""})
-    models.classifier = model("Moderation", {"verdict": "BLOCK", "labels": ["暴力"], "reason": "不可生成"})
+    models.judge = model("Moderation", {"verdict": "BLOCK", "labels": ["暴力"], "reason": "不可生成"})
     cover_image = SimpleNamespace(generate=AsyncMock())
     result = await cover_graph().ainvoke(
         {"request": CoverRequest(title="标题", summary="摘要", category="DAILY")},
-        context=CoverContext(models, UsageMetadataCallbackHandler(), cover_image),
+        context=CoverContext(prepare(models), UsageMetadataCallbackHandler(), cover_image),
     )
     assert "image" not in result
     cover_image.generate.assert_not_called()
@@ -180,11 +197,9 @@ async def test_same_writer_model_does_not_retry_as_its_own_fallback(
         calls.append(payload)
         raise RuntimeError("unavailable")
 
-    monkeypatch.setattr(
-        "app.services.assistant.build_chain", lambda *args: RunnableLambda(unavailable)
-    )
+    monkeypatch.setattr("app.services.assistant.build_chain", lambda *args: RunnableLambda(unavailable))
     models = factory()
-    models.writer = models.classifier
+    models.writer = models.judge
     assistant = Assistant(models, SimpleNamespace())
     with pytest.raises(RuntimeError, match="unavailable"):
         await assistant.chains["growth"].ainvoke({"payload": "{}"})
@@ -193,7 +208,13 @@ async def test_same_writer_model_does_not_retry_as_its_own_fallback(
 
 async def test_same_model_roles_share_one_concurrency_budget() -> None:
     models = ModelFactory(
-        Settings.model_construct(api_key=SecretStr("unit-test"), concurrency=1), AsyncMock()
+        Settings.model_construct(
+            api_key=SecretStr("unit-test"),
+            deepseek_api_key=SecretStr("deepseek-test"),
+            concurrency=1,
+            writer_model="qwen3.8-flash",
+        ),
+        AsyncMock(),
     )
     active = peak = 0
 
@@ -205,5 +226,5 @@ async def test_same_model_roles_share_one_concurrency_budget() -> None:
             await asyncio.sleep(0)
             active -= 1
 
-    await asyncio.gather(*(call(role) for role in ("classifier", "writer", "vision")))
+    await asyncio.gather(*(call(role) for role in ("judge", "writer", "vision")))
     assert peak == 1

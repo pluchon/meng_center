@@ -10,10 +10,11 @@ export const Companion = Object.freeze({
   TYPE_MAX_MS: 2500,
   POLL_MS: 3000,
   SIDE_REFRESH_MS: 30000,
-  MEMORY_KINDS: ['NAME', 'LIKE', 'LIFE', 'PROMISE', 'SELF'],
+  MEMORY_KINDS: ['NAME', 'LIKE', 'LIFE', 'PROMISE', 'DATE', 'BIT', 'SELF'],
 })
 export const CompanionEvent = Object.freeze({
   STATUS: 'status',
+  REACTION: 'reaction',
   BUBBLE: 'bubble',
   WORK: 'work',
   STAGE: 'stage',

@@ -63,7 +63,7 @@ public class SemanticSearchService {
         boolean semantic
     ) {}
 
-    // 身份、公开性与限流由业务端校验，相关性与排序交给 agent。
+    // 身份、公开性与限流由业务端校验，相关性与排序交给 rerank。
     public Result search(
         String input,
         PostCategory category,
@@ -89,6 +89,7 @@ public class SemanticSearchService {
         );
         List<PostEntity> ordered;
         try {
+            if(!vectors.encodingReady()) throw new IllegalStateException("Document embedding rebuild required");
             if (
                 redis.opsForValue().get("content:vector:building") != null
             ) throw new IllegalStateException("Vector rebuild in progress");
@@ -97,7 +98,7 @@ public class SemanticSearchService {
                 "meng_vector_post_blue"
             );
             String key =
-                "content:qvec:" +
+                "content:qvec:query:doc-v1:" +
                 active +
                 ":" +
                 org.springframework.util.DigestUtils.md5DigestAsHex(
@@ -110,7 +111,7 @@ public class SemanticSearchService {
                 new tools.jackson.core.type.TypeReference<List<Float>>() {}
             );
             else {
-                var response = ai.embeddings(Map.of("texts", List.of(q)));
+                var response = ai.embeddings(Map.of("texts", List.of(q), "textType", "query"));
                 var batches = json.convertValue(
                     response.get("vectors"),
                     new tools.jackson.core.type.TypeReference<
@@ -171,7 +172,7 @@ public class SemanticSearchService {
                         )
                         .toList(),
                     20,
-                    com.pluchon.meng.common.web.context.UserContext.require().userId()
+                    com.pluchon.meng.common.web.context.UserContext.require().userId(), "search"
                 )
             );
             if (
@@ -191,7 +192,8 @@ public class SemanticSearchService {
             ) throw new IllegalStateException(
                 "Invalid agent retrieval selection"
             );
-            ordered = decision.ranked().stream().map(candidates::get).toList();
+            if(!decision.reranked()) throw new IllegalStateException("重排不可用");
+            ordered = AiComputation.ordered(decision,candidates.size()).stream().map(candidates::get).toList();
         } catch (Exception unavailable) {
             // 准入已在上面扣过，关键词检索不再重复计次；响应带 semantic=false，前端不提示错误。
             var fallback = keyword.search(

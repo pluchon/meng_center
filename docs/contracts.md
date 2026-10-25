@@ -32,7 +32,7 @@
 | `user.profile-updated` | user | userId、version、nickname、signature、avatarChanged、avatarThumb（更换或尚无审核结果时才有） | ai：资料审核 |
 | `user.profile-moderated` | ai | userId、version、modelVersion、verdict、labels、reason、avatarChanged、imageReviews | user：记录结论，按开关处理；沿用未变化头像的逐图结论 |
 | `user.profile-review-changed` | user | userId、clearedFields、labels | im：通知本人（系统频道的「审核」分类） |
-| `post.published` | content | postId、authorId、version、category、title、plainText、tags、imageThumbs、imagesChanged | growth：加经验；ai：分析帖子 |
+| `post.published` | content | postId、authorId、version、category、title、plainText、tags、imageThumbs、imagesChanged、tagCandidates（最常用的 50 个标签，新增） | growth：加经验；ai：分析帖子 |
 | `post.updated` | content | 同 `post.published` | ai：重新分析 |
 | `post.analysis-requested` | content | 同 `post.published` | ai：全量重建或换模型时重新分析，由管理员触发 |
 | `post.analyzed` | ai | postId、version、modelVersion、topics、keywords、quality、verdict、labels、reason、embedding、analyzeState、imagesChanged、imageReviews | content：写特征、逐图结论和向量索引，按审核开关处理 |
@@ -77,8 +77,8 @@
 | `POST /ai/internal/creator-reviews` | ai | content | 创作总结和建议 | 返回 503 `AI_UNAVAILABLE` |
 | `POST /ai/internal/ranker-trainings` | ai | content | 排序模型的权重和 AUC | 本周不换模型，下周再试 |
 | `GET /user/internal/users/{id}/followees` | user | content | 某人关注的人的 id，按关注时间倒序，最多 500 个 | 推荐流跳过「关注」这一路，其余照常 |
-| `POST /ai/internal/embeddings` | ai | content | 每段文本的向量 | AI 语义搜索返回 `AI_UNAVAILABLE`，不退回关键词 |
-| `POST /ai/internal/retrievals` | ai | content | 只读 agent 按完整含义选择候选下标，可返回空结果；候选由调用方按公开性和数据归属限定 | 返回 503 `AI_UNAVAILABLE`，不退回关键词匹配 |
+| `POST /ai/internal/embeddings` | ai | content | 每段文本的向量；请求必须带 `textType`（帖子为 `document`，搜索词为 `query`） | AI 语义搜索返回 `AI_UNAVAILABLE`，不退回关键词 |
+| `POST /ai/internal/retrievals` | ai | content | `qwen3.7-text-rerank` 重排后，返回阈值以上的候选下标 `ranked` 和分数 `scores`，可返回空结果；候选由调用方按公开性和数据归属限定 | 返回 503 `AI_UNAVAILABLE`；语义搜索退回关键词，相关帖子按向量顺序 |
 | `POST /ai/internal/tag-suggestions` | ai | content | 3 个标签 | 返回 503 `AI_UNAVAILABLE` |
 | `POST /ai/internal/inspirations` | ai | content | 3 个切入角度和开头 | 同上 |
 | `POST /ai/internal/covers` | ai | content | 一张图片 | 同上 |
@@ -92,21 +92,25 @@ ai 的八个接口是纯计算，不改任何状态，按只读接口对待；�
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 选中的气泡（文字或贴纸）、作品、画图任务、好感建议、心情与意图、审核分类、各候选的分数；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
-| `POST /ai/internal/companion/summaries` | ai | companion | 一段会话摘要（分块压缩，轮后异步调用） | 保留旧摘要，下一轮再试；期间按预算截断最旧的历史 |
+| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 选中的气泡（文字或贴纸）、网图 `images`（base64 WebP 加来源）、来源 `sources`、工具计次 `toolUsage`、作品（画图任务、小玩意）、好感建议、心情与意图、话题线 `threads`、输入节奏 `typing`、表情回应 `reaction`、撤回位置 `retractIndex`、审核分类、打分结果；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
+| `POST /ai/internal/companion/summaries` | ai | companion（空闲压缩） | 合并后的前情提要（写明归属、单列已过时的说法） | 保留旧摘要和窗口，下次空闲扫描再试 |
+| `POST /ai/internal/companion/openings` | ai | companion（新建会话） | 新话题的开场白，参考阶段、近况线、最近一张回忆卡和没聊完的话题；纯计算 | 用角色卡的固定开场白 |
 | `POST /ai/internal/companion/consolidations` | ai | companion（整理消费者） | 对候选记忆的 ADD / SUPERSEDE / INVALIDATE / NOOP 决定、约定日期、回忆卡、重写后的核心档案 | 消息重试，超过次数进死信；聊天不受影响 |
-| `POST /ai/internal/companion/dailies` | ai | companion（`companionMemoryMaintain` 任务） | 某个角色某一天的「今天的她」，一两句；纯计算 | 不写入，下次任务再补；这期间对话上下文里没有这一项 |
+| `POST /ai/internal/companion/dailies` | ai | companion（`companionMemoryMaintain` 任务） | 周一生成某个角色这一周的近况线；每天生成「今天的她」和当天状态；纯计算 | 不写入，下次任务再补；这期间对话上下文里没有这一项 |
 | `POST /ai/internal/companion/memory-reviews` | ai | companion（本人手工编辑记忆） | 对记忆内容的语义审核结果 `safe` 与审核完成标记 `reviewed`；纯计算，不写记忆 | 不安全返回业务参数错误；审核缺失、额度不足或调用失败返回 503 `AI_UNAVAILABLE`，保留原记忆 |
-| `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量；给定候选时由检索 agent 返回相关候选下标 | 不注入未经 agent 判断的检索结果；置顶事实仍受上下文预算保护 |
+| `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量（请求带 `textType`：记忆和回忆卡为 `document`，召回查询为 `query`）；给定候选时由 rerank 返回阈值以上的下标和分数 | rerank 不可用时按向量顺序取前 3 条；置顶事实仍受上下文预算保护 |
 | `POST /ai/internal/companion/drawings` | ai | companion（画图任务） | 一张图片 | 任务失败，释放画图额度，聊天里显示「没画成」 |
-| `POST /content/internal/posts/vector-search` | content | ai（萌萌工具） | 对传入的 1024 维查询向量召回最多 20 篇公开帖子；ai 再由检索 agent 判断并选择最多 5 篇 | 工具明确说明当前无法按含义检索，不退回关键词匹配，不编造结果 |
+| `POST /content/internal/posts/vector-search` | content | ai（萌萌工具） | 对传入的 1024 维查询向量召回最多 20 篇公开帖子；ai 再用 rerank 取最多 5 篇 | 工具明确说明当前无法按含义检索，不退回关键词匹配，不编造结果 |
+| `GET /content/internal/emotions` | content | ai（萌萌的贴纸和表情回应） | 读：启用的表情的名字、系列、描述、用法、标签和目录 `version`（[content.md](content.md)第 5.11 节）。依据：嘴要按用法挑表情，前端的清单 ai 拿不到 | ai 用上一份缓存；从没读到过就这一轮不开放贴纸和表情回应 |
+| `GET /content/internal/posts/{id}` | content | ai（萌萌 `read_post` 工具） | 读：一篇公开且未删除帖子的标题、作者昵称、发布时间、正文前 3000 字；非公开或不存在时返回 404。依据：用户发来站内帖子链接或说「看看那篇」，`search_posts` 只有摘要，回答不了正文里的问题 | 工具回答「这篇看不了」，不编造内容 |
 | `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（萌萌工具） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
 | `GET /growth/internal/users/{id}/summary` | growth | ai（萌萌工具） | 等级、连续签到天数、今天是否签到 | 同上 |
 | `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 使用中性称呼「你」，不为此读取登录账号或联系方式 |
 
 - ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
 - 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。
-- ai 不回调 companion：`recall`、`read_work` 等工具需要的记忆和作品，由 companion 在请求里预先给出。
+- ai 不回调 companion：回忆、`read_work` 等需要的记忆和作品，由 companion 在请求里预先给出。
+- 外部服务 Tavily（联网搜索、读链接、搜图）只由 ai 调用，不是项目内的契约；规则见 [AI 公共运行时](ai-runtime.md)第 6.2、6.3 节。
 - 记忆整理和摘要包含独立语义复核；返回 `reviewed` 后 companion 才允许持久化。数据归属、证据、编号、长度与日期仍由 companion 校验。
 
 ## 3. 新增契约的流程

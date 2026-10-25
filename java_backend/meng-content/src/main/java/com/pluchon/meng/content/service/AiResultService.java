@@ -101,7 +101,7 @@ public class AiResultService {
             jdbc.update("INSERT IGNORE INTO ai_result_inbox(event_id) VALUES (?)", eventId) == 0
         ) return;
         jdbc.update(
-            "INSERT INTO post_ai_feature(post_id,post_version,model_version,topics,keywords,labels,quality,verdict,reason,analyze_state,image_reviews) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE post_version=VALUES(post_version),model_version=VALUES(model_version),topics=VALUES(topics),keywords=VALUES(keywords),labels=VALUES(labels),quality=VALUES(quality),verdict=VALUES(verdict),reason=VALUES(reason),analyze_state=VALUES(analyze_state),image_reviews=VALUES(image_reviews),delete_state=0",
+            "INSERT INTO post_ai_feature(post_id,post_version,model_version,topics,keywords,labels,quality,verdict,reason,analyze_state,image_reviews,moderation_state) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE retry_count=IF(post_version=VALUES(post_version),retry_count,0),post_version=VALUES(post_version),model_version=VALUES(model_version),topics=VALUES(topics),keywords=VALUES(keywords),labels=VALUES(labels),quality=VALUES(quality),verdict=VALUES(verdict),reason=VALUES(reason),analyze_state=VALUES(analyze_state),image_reviews=VALUES(image_reviews),moderation_state=VALUES(moderation_state),delete_state=0",
             result.postId(),
             result.version(),
             result.modelVersion(),
@@ -112,7 +112,8 @@ public class AiResultService {
             verdict,
             reason,
             result.analyzeState(),
-            json.writeValueAsString(reviews)
+            json.writeValueAsString(reviews),
+            "FAILED".equals(result.analyzeState()) ? "FAILED" : java.util.Objects.requireNonNullElse(result.moderationState(),"SUCCESS")
         );
         String state = post.getReviewState().name();
         String effectiveVerdict = manuallyApproved ? "PASS" : verdict;

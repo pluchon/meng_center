@@ -1,6 +1,7 @@
 import { computed, defineAsyncComponent, defineComponent, watch, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { useEmotionStore } from '@/stores/emotions'
 import { useImStore } from '@/stores/im'
 import { useFavoriteStore } from '@/stores/favorites'
 import { RouteName } from '@/router/names'
@@ -25,6 +26,7 @@ export default defineComponent({
       () => user.current?.id,
       (id) => {
         im.start(id)
+        if (id) void useEmotionStore().load()
         favorites.invalidate()
       },
       { immediate: true },

@@ -27,7 +27,8 @@ public record PostAnalysisDTO(
     boolean imagesChanged,
     @NotNull
     @Size(max = PostRules.IMAGES_MAX + 1)
-    List<@jakarta.validation.Valid ImageReview> imageReviews
+    List<@jakarta.validation.Valid ImageReview> imageReviews,
+    @Pattern(regexp="SUCCESS|FAILED") String moderationState
 ) {
     public record ImageReview(
         @Positive long imageId,

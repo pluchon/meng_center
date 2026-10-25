@@ -77,7 +77,7 @@ class RelatedAgentTest {
     @Test
     void legacyTagCacheIsIgnoredAndAgentChoosesTheFinalRelatedPost() {
         when(ai.retrieve(any())).thenReturn(
-            new AiComputation.RetrievalResponse(List.of(1), 30)
+            new AiComputation.RetrievalResponse(List.of(1), List.of(0.9), true)
         );
         assertEquals(1, service.related(99, 1, 5).total());
         verify(feed).hydrate(List.of(second));

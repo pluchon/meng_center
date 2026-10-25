@@ -35,13 +35,13 @@ function Start-Isolated([string]$Name) {
     if (Get-NetTCPConnection -State Listen -LocalPort 18102,19102 -ErrorAction SilentlyContinue) { throw 'Isolation ports 18102/19102 are already occupied.' }
     $repository = Split-Path $PSScriptRoot -Parent
     $jar = Join-Path $repository 'java_backend/meng-content/target/meng-content-0.1.0-SNAPSHOT.jar'
-    return Start-Process java -WindowStyle Hidden -PassThru -ArgumentList @('-Dfile.encoding=UTF-8','-jar',$jar,'--server.port=18102','--spring.cloud.nacos.discovery.register-enabled=false','--meng.content.job.port=19102','--meng.content.job.address=http://127.0.0.1:19102/') -RedirectStandardOutput "$output/$Name.log" -RedirectStandardError "$output/$Name-error.log"
+    return Start-Process java -WindowStyle Hidden -PassThru -ArgumentList @('-Xms64m','-Xmx384m','-XX:MaxMetaspaceSize=256m','-XX:ActiveProcessorCount=2','-Dfile.encoding=UTF-8','-jar',$jar,'--server.port=18102','--spring.cloud.nacos.discovery.register-enabled=false','--meng.content.job.port=19102','--meng.content.job.address=http://127.0.0.1:19102/') -RedirectStandardOutput "$output/$Name.log" -RedirectStandardError "$output/$Name-error.log"
 }
 
 try {
     $env:MYSQL_PWD = $env:MENG_MYSQL_XXLJOB_PASSWORD
-    $jobs = @(Query "SELECT id,executor_handler FROM xxl_job_info WHERE executor_handler IN ('contentHotRebuild','contentSearchRebuild') ORDER BY id;")
-    Check 'Exactly two enabled tasks with specified cron, timeouts, strategies and retries' ($jobs.Count -eq 2 -and (Query "SELECT COUNT(*) FROM xxl_job_info WHERE ((executor_handler='contentHotRebuild' AND schedule_conf='0 0 4 * * ?' AND executor_timeout=600) OR (executor_handler='contentSearchRebuild' AND schedule_conf='0 10 4 * * ?' AND executor_timeout=1800)) AND schedule_type='CRON' AND trigger_status=1 AND executor_route_strategy='FIRST' AND executor_block_strategy='DISCARD_LATER' AND executor_fail_retry_count=1 AND misfire_strategy='DO_NOTHING';") -eq '2')
+    $jobs = @(Query "SELECT id,executor_handler FROM xxl_job_info WHERE executor_handler IN ('contentHotRebuild','contentSearchRebuild','contentAiReanalyzeFailed') ORDER BY id;")
+    Check 'Exactly three enabled tasks with specified cron, timeouts, strategies and retries' ($jobs.Count -eq 3 -and (Query "SELECT COUNT(*) FROM xxl_job_info WHERE ((executor_handler='contentHotRebuild' AND schedule_conf='0 0 4 * * ?' AND executor_timeout=600) OR (executor_handler='contentSearchRebuild' AND schedule_conf='0 10 4 * * ?' AND executor_timeout=1800) OR (executor_handler='contentAiReanalyzeFailed' AND schedule_conf='0 0 * * * ?' AND executor_timeout=180)) AND schedule_type='CRON' AND trigger_status=1 AND executor_route_strategy='FIRST' AND executor_block_strategy='DISCARD_LATER' AND executor_fail_retry_count=1 AND misfire_strategy='DO_NOTHING';") -eq '3')
     Poll { (Query "SELECT COUNT(*) FROM xxl_job_group WHERE app_name='meng-content' AND address_list='http://127.0.0.1:$($ports.MENG_CONTENT_JOB_PORT)/';") -eq '1' }
     Check 'Executor auto-registers with localhost address' $true
     $executor = "http://127.0.0.1:$($ports.MENG_CONTENT_JOB_PORT)/beat"

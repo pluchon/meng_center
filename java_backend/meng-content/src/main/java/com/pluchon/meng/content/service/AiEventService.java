@@ -99,6 +99,7 @@ public class AiEventService {
         body.put("title", post.getTitle());
         body.put("plainText", summary.plain(post.getContent()));
         body.put("tags", tags.forPost(id));
+        body.put("tagCandidates", jdbc.queryForList("SELECT name FROM tag WHERE delete_state=0 ORDER BY use_count DESC,id LIMIT 50",String.class));
         var thumbs = new ArrayList<Map<String, Object>>();
         if (includeImages) for (var image : images.selectList(
             Wrappers.<PostImageEntity>lambdaQuery().eq(PostImageEntity::getPostId, id)
@@ -242,6 +243,15 @@ public class AiEventService {
             }
         } finally {
             sending.set(false);
+        }
+    }
+    @org.springframework.transaction.annotation.Transactional(rollbackFor=Exception.class)
+    public void reanalyzeFailed() {
+        var rows=jdbc.queryForList("SELECT f.post_id FROM post_ai_feature f JOIN post p ON p.id=f.post_id WHERE f.analyze_state='FAILED' AND f.retry_count<3 AND f.delete_state=0 AND p.delete_state=0 AND f.update_time>=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 3 DAY) ORDER BY p.id LIMIT 100");
+        for(var row:rows) {
+            long id=((Number)row.get("post_id")).longValue();
+            if(jdbc.update("UPDATE post_ai_feature SET retry_count=retry_count+1 WHERE post_id=? AND analyze_state='FAILED' AND retry_count<3",id)>0)
+                post(id,"post.analysis-requested",true);
         }
     }
 }

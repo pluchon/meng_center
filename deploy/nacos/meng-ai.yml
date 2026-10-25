@@ -1,0 +1,15 @@
+{
+  "agent_model": "qwen3.8-flash",
+  "speech_model": "deepseek-flash",
+  "judge_model": "qwen3.8-flash",
+  "review_model": "qwen3.8-max",
+  "writer_model": "qwen3.8-max",
+  "toy_model": "qwen3.8-max",
+  "assist_model": "qwen3.8-flash",
+  "memory_model": "qwen3.8-flash",
+  "cover_model": "qwen-image-3.0-pro",
+  "speculative": true,
+  "rerank_thresholds": {"search": 0.35, "related": 0.4, "recall": 0.3, "web": 0.2},
+  "tavily_daily_credits": 300,
+  "model_overrides": {}
+}

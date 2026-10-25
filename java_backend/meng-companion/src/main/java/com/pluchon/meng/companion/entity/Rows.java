@@ -60,6 +60,9 @@ public final class Rows {
         private String characterCode;
         private String title;
         private String summary;
+        private String contextSnapshot;
+        private LocalDateTime snapshotTime;
+        private String threads;
         private long summaryUntilMessageId;
         private int messageCount;
         private long windowStartMessageId;
@@ -88,13 +91,16 @@ public final class Rows {
         private String turnState;
         private String kind = "TEXT";
         private String sticker;
+        private String sources;
+        private boolean retracted;
+        private String reaction;
+        private String typing = "NORMAL";
         private String feeling;
         private String intent;
         private String promptVersion;
         private String model;
         private String memoryIds;
         private String metrics;
-        private Long requestWorkId;
         private Long regeneratesMessageId;
         private long requestRevision;
         private String timeZone = "Asia/Taipei";
@@ -114,6 +120,7 @@ public final class Rows {
         private String keywords;
         private int importance = 5;
         private String embedding;
+        private String embeddingVersion;
         private boolean pinned;
         private LocalDateTime invalidAt;
         private Long supersededBy;

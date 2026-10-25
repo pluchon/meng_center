@@ -23,7 +23,8 @@ public final class CompanionVO {
         List<String> stageNames,
         LocalDateTime lastMessageTime,
         int level,
-        List<String> levelNames
+        List<String> levelNames,
+        String status
     ) {}
 
     public record Session(
@@ -48,7 +49,12 @@ public final class CompanionVO {
         String sticker,
         String clientMessageId,
         String turnState,
-        boolean canRegenerate
+        boolean canRegenerate,
+        boolean retracted,
+        String reaction,
+        String typing,
+        Integer retractAfterMs,
+        List<java.util.Map<String,String>> sources
     ) {}
 
     public record Messages(List<Message> records, Long nextBefore) {}

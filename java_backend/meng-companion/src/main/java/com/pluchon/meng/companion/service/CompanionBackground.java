@@ -54,6 +54,9 @@ public class CompanionBackground {
     @Autowired
     private CompanionLimits limits;
 
+    @Autowired private CompanionRuntimeV2 v2;
+    @Autowired private com.pluchon.meng.companion.mapper.RuntimeV2Mapper state;
+
     @Autowired
     private StringRedisTemplate redis;
 
@@ -173,9 +176,10 @@ public class CompanionBackground {
             ) {
                 var date = LocalDate.parse(d.path("dueDate").asString());
                 if (
-                    !"PROMISE".equals(d.path("kind").asString()) ||
+                    (!Set.of("PROMISE", "DATE").contains(d.path("kind").asString())) ||
+                    ("PROMISE".equals(d.path("kind").asString()) && (
                     date.isAfter(today.plusDays(90)) ||
-                    (!d.path("done").asBoolean() && date.isBefore(today))
+                    (!d.path("done").asBoolean() && date.isBefore(today))))
                 ) throw new IllegalArgumentException("Invalid promise date");
             }
         var vectors = embed(result.path("decisions"));
@@ -243,7 +247,9 @@ public class CompanionBackground {
                     !decision.path("dueDate").isNull() &&
                     !decision.path("dueDate").asString().isBlank()
                 ) memory.setDueDate(
-                    LocalDate.parse(decision.path("dueDate").asString())
+                    "DATE".equals(memory.getKind())
+                        ? LocalDate.parse(decision.path("dueDate").asString()).withYear(2000)
+                        : LocalDate.parse(decision.path("dueDate").asString())
                 );
                 if (index < vectors.size()) memory.setEmbedding(
                     vectors.get(index)
@@ -270,6 +276,7 @@ public class CompanionBackground {
                         current.getProfileRevision() / 5)
             ) runtime.writeProfile(profile, current.getId());
             runtime.advanceProfileRevision(changed, current.getId());
+            for (long id : state.excessBits(user, code)) runtime.evictMemory(id);
             var all = mapper.memories(user, code);
             int count = 0;
             for (var m : all)
@@ -333,7 +340,7 @@ public class CompanionBackground {
             String kind = d.path("kind").asString(),
                 evidence = d.path("evidence").asString();
             if (
-                !Set.of("NAME", "LIKE", "LIFE", "PROMISE", "SELF").contains(
+                !Set.of("NAME", "LIKE", "LIFE", "PROMISE", "DATE", "BIT", "SELF").contains(
                     kind
                 )
             ) throw new IllegalArgumentException("Invalid memory kind");
@@ -372,7 +379,8 @@ public class CompanionBackground {
             for (var d : decisions) texts.add(d.path("content").asString());
             if (texts.isEmpty()) return List.of();
             var result = ai
-                .compute("embeddings", Map.of("texts", texts))
+                .compute("embeddings", Map.of("textType", "document",
+                        "texts", texts))
                 .path("vectors");
             var vectors = new ArrayList<String>();
             for (var v : result)
@@ -412,21 +420,14 @@ public class CompanionBackground {
         var history = new ArrayList<>(
             runtime.window(sessionId, session.getWindowStartMessageId())
         );
-        if (
-            history
-                .stream()
-                .mapToInt(m -> m.getContent().length())
-                .sum() < 4000
-        ) return;
-        var half = new ArrayList<>(
-            history.subList(0, Math.max(1, history.size() / 2))
-        );
-        // 扩展到下一条用户消息之前，保持连发气泡与所属轮次一起压缩。
-        while (
-                half.size() < history.size() &&
-                !"USER".equals(history.get(half.size()).getRole())
-            )
-            half.add(history.get(half.size()));
+        int total=history.stream().mapToInt(m -> CompanionRuntimeV2.tokens(m.getContent())).sum();
+        boolean idle=session.getLastMessageTime()!=null && session.getLastMessageTime().plusMinutes(30).compareTo(LocalDateTime.ofInstant(clock.instant(),ZoneOffset.UTC))<=0;
+        if(total<600000 && (!idle || total<=8000)) return;
+        int keep=total>=600000?total/2:8000;
+        int accumulated=0, boundary=history.size();
+        while(boundary>0 && accumulated<keep) accumulated+=CompanionRuntimeV2.tokens(history.get(--boundary).getContent());
+        while(boundary>0 && !"USER".equals(history.get(boundary).getRole())) boundary--;
+        var half=new ArrayList<>(history.subList(0,boundary));
         if (half.isEmpty()) return;
         String summary = ai.summarize(
             session.getSummary(),
@@ -437,7 +438,8 @@ public class CompanionBackground {
             var bond = mapper.lockBond(user, session.getCharacterCode());
             if (
                 bond.getRevision() == revision &&
-                mapper.lockSession(sessionId, user) != null
+                mapper.lockSession(sessionId, user) != null &&
+                Objects.equals(mapper.session(sessionId,user).getLastMessageTime(),session.getLastMessageTime())
             ) mapper.summary(
                 sessionId,
                 summary,
@@ -555,6 +557,7 @@ public class CompanionBackground {
                 .compute(
                     "embeddings",
                     Map.of(
+                        "textType", "document",
                         "texts",
                         missing.stream().map(Rows.Memory::getContent).toList()
                     )
@@ -570,6 +573,10 @@ public class CompanionBackground {
                 missing.get(i).getContentHash()
             );
         } catch (RuntimeException ignored) {}
+        for(var episode:state.missingEpisodes()) try {
+            var vector=ai.compute("embeddings",Map.of("texts",List.of(episode.get("summary").toString()),"textType","document")).path("vectors").get(0);
+            if(vector!=null && vector.size()==1024) state.episodeVector(vector.toString(),((Number)episode.get("id")).longValue(),episode.get("summary").toString());
+        } catch(RuntimeException ignored) { }
         for (var row : runtime.idleSessions()) {
             long session = ((Number) row.get("id")).longValue(),
                 user = ((Number) row.get("user_id")).longValue();
@@ -580,6 +587,12 @@ public class CompanionBackground {
             ).longValue();
             var history = new ArrayList<>(runtime.window(session, until));
             if (history.isEmpty()) continue;
+            summarize(user,session,bond.getRevision());
+            transactions.executeWithoutResult(status -> {
+                var live=mapper.lockSession(session,user);
+                if(live!=null && mapper.lockBond(user,code).getRevision()==bond.getRevision())
+                    v2.snapshot(live,bond,true);
+            });
             var result = ai.compute(
                 "consolidations",
                 Map.of(
@@ -689,26 +702,22 @@ public class CompanionBackground {
                 String card = runtime.card(code, 0L);
                 if (card == null) continue;
                 try {
-                    String content = ai
-                        .compute(
-                            "dailies",
-                            Map.of(
-                                "character",
-                                code,
-                                "card",
-                                json.readTree(card),
-                                "date",
-                                date.toString(),
-                                "recent",
-                                runtime.recentDailies(code, date)
-                            )
-                        )
-                        .path("content")
-                        .asString("")
-                        .strip();
-                    if (
-                        !content.isEmpty() && content.length() <= 120
-                    ) runtime.insertDaily(code, date, content);
+                    var week=date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                    var arcs=this.state.arcs(code,week);
+                    JsonNode outline;
+                    if(arcs.isEmpty()) {
+                        outline=ai.compute("dailies",Map.of("character",code,"card",json.readTree(card),"date",date.toString(),
+                            "mode","ARC","weekStart",week.toString())).path("outline");
+                        if(!outline.isArray() || outline.size()!=7) continue;
+                        this.state.arc(code,week,outline.toString());
+                    } else outline=json.readTree(arcs.get(0));
+                    var daily=ai.compute("dailies",Map.of("character",code,"card",json.readTree(card),"date",date.toString(),
+                        "outline",outline,"recent",runtime.recentDailies(code,date)));
+                    String content=daily.path("content").asString().strip(), state=daily.path("status").asString();
+                    if(!content.isBlank() && content.length()<=120 && state.length()<=60) {
+                        runtime.insertDaily(code,date,content);
+                        this.state.dailyStatus(state,code,date);
+                    }
                 } catch (RuntimeException ignored) {
                     // 生成失败下次任务再补；这期间上下文里没有「今天的她」。
                 }

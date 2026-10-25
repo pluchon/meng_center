@@ -28,6 +28,11 @@ public interface CompanionPostMapper {
         @Param("size") int size
     );
 
+    @Select(
+        "SELECT p.id,p.title,LEFT(p.content,3000) content,COALESCE(a.nickname,'社区用户') author_nickname,p.create_time FROM post p LEFT JOIN public_author_snapshot a ON a.user_id=p.author_id AND a.delete_state=0 WHERE p.id=#{id} AND p.delete_state=0 AND p.review_state='NORMAL'"
+    )
+    CompanionPostContract.Detail read(long id);
+
     record AuthorSnapshot(long userId, String nickname) {}
 
     @Insert(

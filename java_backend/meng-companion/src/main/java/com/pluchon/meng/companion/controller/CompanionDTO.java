@@ -18,13 +18,14 @@ public final class CompanionDTO {
         @Pattern(regexp = "[A-Za-z0-9_-]{1,80}")
         String clientMessageId,
         @Size(max = 1000) String content,
-        @Size(max = 3) List<@Positive Long> imageIds,
-        @Positive Long workId
+        @Size(max = 3) List<@Positive Long> imageIds
     ) {
         public Send {
             imageIds = imageIds == null ? List.of() : List.copyOf(imageIds);
         }
     }
+
+    public record Poke(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{1,80}") String clientMessageId) {}
 
     public record Level(@Min(1) @Max(3) int level) {}
 

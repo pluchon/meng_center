@@ -7,7 +7,7 @@ dependencies = [
   "langchain~=1.2.0", "langchain-core~=1.2.0", "langchain-openai~=1.1.0", "langgraph~=1.1.0",
   "aio-pika~=9.6.0", "redis~=7.3.0", "httpx~=0.28.0",
   "scikit-learn~=1.8.0", "nacos-sdk-python~=3.2.0",
-  "tzdata>=2026.1,<2027",
+  "tzdata>=2026.1,<2027", "pillow~=13.0.0",
 ]
 
 [dependency-groups]

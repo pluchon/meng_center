@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.companion_guard import crosses_red_line, has_contact
+from app.runtime.safety.redline import crosses_red_line, has_contact
 
 
 @pytest.mark.parametrize(

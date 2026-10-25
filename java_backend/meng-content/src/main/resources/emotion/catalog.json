@@ -1,0 +1,317 @@
+{
+  "version": "20261024.1",
+  "emotions": [
+    {
+      "name": "头像",
+      "series": "classic",
+      "imageKey": "userAvatar",
+      "sort": 0,
+      "enabled": true,
+      "description": "琪露诺举手招呼，身旁有纸飞机",
+      "meaning": "打招呼，表示自己来了",
+      "tags": [
+        "招呼",
+        "你好"
+      ]
+    },
+    {
+      "name": "萌萌",
+      "series": "classic",
+      "imageKey": "mengAvatar",
+      "sort": 1,
+      "enabled": true,
+      "description": "琪露诺拿着扩音器",
+      "meaning": "呼唤大家，宣布事情",
+      "tags": [
+        "呼唤",
+        "通知"
+      ]
+    },
+    {
+      "name": "写帖",
+      "series": "classic",
+      "imageKey": "articleEditAvatar",
+      "sort": 2,
+      "enabled": true,
+      "description": "琪露诺闭眼举起双手欢呼",
+      "meaning": "准备开始，投入创作",
+      "tags": [
+        "开工",
+        "写作"
+      ]
+    },
+    {
+      "name": "找回",
+      "series": "classic",
+      "imageKey": "resetAvatar",
+      "sort": 3,
+      "enabled": true,
+      "description": "浅色画风的琪露诺举着双手",
+      "meaning": "温柔招呼，请求回应",
+      "tags": [
+        "温柔",
+        "招呼"
+      ]
+    },
+    {
+      "name": "水滴",
+      "series": "classic",
+      "imageKey": "waterDropIcon",
+      "sort": 4,
+      "enabled": true,
+      "description": "系着粉色蝴蝶结的毛茸茸尾巴",
+      "meaning": "柔软可爱的装饰",
+      "tags": [
+        "可爱",
+        "毛茸茸"
+      ]
+    },
+    {
+      "name": "疑惑",
+      "series": "cirno",
+      "imageKey": "cirnoConfusedEmotion",
+      "sort": 5,
+      "enabled": true,
+      "description": "琪露诺拿着蓝色葫芦，头上有汗滴",
+      "meaning": "疑惑，不明白发生了什么",
+      "tags": [
+        "困惑",
+        "疑问"
+      ]
+    },
+    {
+      "name": "齐天小圣",
+      "series": "cirno",
+      "imageKey": "cirnoMonkeyKingEmotion",
+      "sort": 6,
+      "enabled": true,
+      "description": "琪露诺戴金箍拿长棍，闭眼伸舌头",
+      "meaning": "俏皮出场，模仿齐天大圣",
+      "tags": [
+        "俏皮",
+        "孙悟空"
+      ]
+    },
+    {
+      "name": "开工",
+      "series": "cirno",
+      "imageKey": "cirnoWorkEmotion",
+      "sort": 7,
+      "enabled": true,
+      "description": "琪露诺双手叉腰，神情认真",
+      "meaning": "准备开始做事",
+      "tags": [
+        "工作",
+        "认真"
+      ]
+    },
+    {
+      "name": "好耶",
+      "series": "cirno",
+      "imageKey": "cirnoCheerEmotion",
+      "sort": 8,
+      "enabled": true,
+      "description": "琪露诺开心地蹦起，身旁有爱心",
+      "meaning": "事情顺利，开心庆祝",
+      "tags": [
+        "开心",
+        "庆祝"
+      ]
+    },
+    {
+      "name": "超喜欢",
+      "series": "cirno",
+      "imageKey": "cirnoLoveEmotion",
+      "sort": 9,
+      "enabled": true,
+      "description": "琪露诺举着写有超字的牌子，身旁有爱心",
+      "meaning": "表达很喜欢",
+      "tags": [
+        "喜欢",
+        "爱心"
+      ]
+    },
+    {
+      "name": "牛",
+      "series": "cirno",
+      "imageKey": "cirnoAwesomeEmotion",
+      "sort": 10,
+      "enabled": true,
+      "description": "琪露诺举着写有牛字的牌子",
+      "meaning": "赞赏对方的表现",
+      "tags": [
+        "厉害",
+        "佩服"
+      ]
+    },
+    {
+      "name": "不准发癫",
+      "series": "cirno",
+      "imageKey": "cirnoNoChaosEmotion",
+      "sort": 11,
+      "enabled": true,
+      "description": "琪露诺指向前方，旁边写着不准发癫",
+      "meaning": "玩笑地劝对方冷静",
+      "tags": [
+        "冷静",
+        "吐槽"
+      ]
+    },
+    {
+      "name": "吃冰棍",
+      "series": "cirno",
+      "imageKey": "cirnoPopsicleEmotion",
+      "sort": 12,
+      "enabled": true,
+      "description": "琪露诺半眯着眼吃冰棍",
+      "meaning": "悠闲休息，吃点凉的",
+      "tags": [
+        "冰棍",
+        "休息"
+      ]
+    },
+    {
+      "name": "摇葫芦",
+      "series": "cirno",
+      "imageKey": "cirnoShakeEmotion",
+      "sort": 13,
+      "enabled": true,
+      "description": "琪露诺闭眼摇着蓝色葫芦",
+      "meaning": "俏皮地摇一摇",
+      "tags": [
+        "葫芦",
+        "玩闹"
+      ]
+    },
+    {
+      "name": "生气",
+      "series": "cirno",
+      "imageKey": "cirnoAngryEmotion",
+      "sort": 14,
+      "enabled": true,
+      "description": "琪露诺握紧拳头，头上有生气符号",
+      "meaning": "表达轻微不满",
+      "tags": [
+        "生气",
+        "不满"
+      ]
+    },
+    {
+      "name": "躲一下",
+      "series": "cirno",
+      "imageKey": "cirnoShyEmotion",
+      "sort": 15,
+      "enabled": true,
+      "description": "琪露诺躲在浅蓝物品后，旁边有汗滴",
+      "meaning": "害羞，暂时躲一下",
+      "tags": [
+        "害羞",
+        "躲藏"
+      ]
+    },
+    {
+      "name": "太烧了",
+      "series": "cirno",
+      "imageKey": "cirnoOverheatedEmotion",
+      "sort": 16,
+      "enabled": true,
+      "description": "琪露诺抱着饮料和西瓜，旁边写着太烧了",
+      "meaning": "表示太热或被热情冲昏头",
+      "tags": [
+        "炎热",
+        "脸红"
+      ]
+    },
+    {
+      "name": "呼呼呼",
+      "series": "cirno",
+      "imageKey": "cirnoAirplaneEmotion",
+      "sort": 17,
+      "enabled": true,
+      "description": "琪露诺举着小飞机，旁边写着呼呼呼",
+      "meaning": "玩闹，模仿飞机飞行",
+      "tags": [
+        "飞机",
+        "玩闹"
+      ]
+    },
+    {
+      "name": "欢呼",
+      "series": "cirno",
+      "imageKey": "cirnoHoorayEmotion",
+      "sort": 18,
+      "enabled": true,
+      "description": "琪露诺闭眼举手，旁边写着好耶",
+      "meaning": "庆祝成功，开心欢呼",
+      "tags": [
+        "好耶",
+        "庆祝"
+      ]
+    },
+    {
+      "name": "直呼内行",
+      "series": "cirno",
+      "imageKey": "cirnoExpertEmotion",
+      "sort": 19,
+      "enabled": true,
+      "description": "琪露诺举着写有直呼内行的牌子",
+      "meaning": "赞叹懂行，带一点玩笑",
+      "tags": [
+        "内行",
+        "佩服"
+      ]
+    },
+    {
+      "name": "困了",
+      "series": "cirno",
+      "imageKey": "cirnoSleepyEmotion",
+      "sort": 20,
+      "enabled": true,
+      "description": "琪露诺半眯着眼，旁边有睡意气泡",
+      "meaning": "困了，想休息",
+      "tags": [
+        "困倦",
+        "睡觉"
+      ]
+    },
+    {
+      "name": "嗷呜",
+      "series": "cirno",
+      "imageKey": "cirnoRoarEmotion",
+      "sort": 21,
+      "enabled": true,
+      "description": "琪露诺举起两只猫爪，旁边写着嗷呜",
+      "meaning": "俏皮卖萌，假装吼叫",
+      "tags": [
+        "卖萌",
+        "猫爪"
+      ]
+    },
+    {
+      "name": "摸摸",
+      "series": "cirno",
+      "imageKey": "cirnoHeadpatEmotion",
+      "sort": 22,
+      "enabled": true,
+      "description": "琪露诺接受摸头，笑着拿着猫粮",
+      "meaning": "安慰或请求摸头",
+      "tags": [
+        "摸头",
+        "安慰"
+      ]
+    },
+    {
+      "name": "好家伙",
+      "series": "cirno",
+      "imageKey": "cirnoWowEmotion",
+      "sort": 23,
+      "enabled": true,
+      "description": "琪露诺笑着竖起拇指，旁边写着好家伙",
+      "meaning": "惊叹，觉得出乎意料",
+      "tags": [
+        "惊讶",
+        "赞叹"
+      ]
+    }
+  ]
+}

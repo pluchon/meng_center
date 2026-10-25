@@ -5,10 +5,11 @@ import { chromium } from 'playwright'
 const browser = await chromium.launch({ channel: 'msedge', headless: true })
 const page = await browser.newPage({ viewport: { width: 1440, height: 1100 } })
 const errors = [], posts = [], changes = []
+const retries = []
 page.on('pageerror', (error) => errors.push(error.message))
 page.on('console', (message) => { if (message.type() === 'error') errors.push(message.text()) })
 const now = '2026-10-17T04:00:00Z'
-const usage = { messages: 198, documents: 10, images: 3, chatSeconds: 100, cooldownSeconds: 0 }
+const usage = { messages: 198, toys: 5, images: 3, chatSeconds: 100, cooldownSeconds: 0 }
 const characters = ['TSUNDERE','GENKI','NEKO'].map((code) => ({
   code, name: {TSUNDERE:'白濑凛',GENKI:'日向小葵',NEKO:'奶糖'}[code], tagline: '一起聊聊今天的事',
   stage: 3, stageName:'朋友', stageNames:['初识','熟悉','朋友','亲近','羁绊'], progress:0.3,
@@ -20,10 +21,13 @@ let memories = [{id:1,kind:'LIKE',content:'喜欢蓝色',pinned:false},
   {id:2,kind:'PROMISE',content:'下周去看展览',pinned:false,dueDate:'2026-10-20'},
   {id:3,kind:'SELF',content:'喜欢晒太阳',pinned:false}]
 const work = {id:10,characterCode:'NEKO',sessionId:1,kind:'DOCUMENT',title:'云朵小故事',body:'# 一朵云\n\n慢慢飘过屋顶。',createTime:now}
-let messages = [{id:1,role:'USER',content:'今天有点累',kind:'TEXT',imageIds:[],turnState:'COMMITTED',createTime:now},
-  {id:2,role:'CHARACTER',content:'这边让你一点，先歇会儿喵。',kind:'TEXT',imageIds:[],createTime:now},
+const toy = {id:11,characterCode:'NEKO',sessionId:1,kind:'TOY',title:'云朵小玩意',body:'<canvas></canvas><script>document.body.dataset.started=1</script>',createTime:now}
+let messages = [{id:1,role:'USER',content:'今天有点累',kind:'TEXT',reaction:'好耶',imageIds:[],turnState:'COMMITTED',createTime:now},
+  {id:2,role:'CHARACTER',content:'（挪开杯子）这边让你一点，先歇会儿喵。',kind:'TEXT',sources:[{title:'资料',site:'example.com',url:'https://example.com/article'},{title:'非法来源',site:'invalid',url:'javascript:alert(1)'}],imageIds:[],createTime:now},
   {id:3,role:'CHARACTER',content:'云朵小故事',workId:10,kind:'TEXT',imageIds:[],createTime:now},
-  {id:4,role:'CHARACTER',content:'',kind:'STICKER',sticker:'好耶',imageIds:[],createTime:now}]
+  {id:5,role:'CHARACTER',content:'云朵小玩意',workId:11,kind:'TEXT',imageIds:[],createTime:now},
+  {id:4,role:'CHARACTER',content:'',kind:'STICKER',sticker:'好耶',imageIds:[],createTime:now},
+  {id:6,role:'CHARACTER',content:'',retracted:true,canRegenerate:false,kind:'TEXT',imageIds:[],createTime:now}]
 let next = 20, firstPending = true, forget = null, queue = []
 const sse = (events) => events.map(([event,data]) => `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`).join('')
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve,ms))
@@ -31,6 +35,7 @@ await page.route((url) => /^\/(?:api\/)?(companion|user|growth|im|content)\//.te
   const request=route.request(), url=new URL(request.url()), path=url.pathname.replace(/^\/api/,''), method=request.method()
   const ok = (data) => route.fulfill({json:{code:'OK',data}})
   if (!path.startsWith('/companion/')) {
+    if (path==='/content/emotions') return ok({version:'fixture',items:[{name:'好耶',series:'cirno',imageKey:'cirnoCheerEmotion',description:'庆祝',meaning:'好耶',tags:['开心'],enabled:true,sort:1}]})
     if (path==='/user/me') return ok({id:41,nickname:'回放用户',role:'USER',level:3})
     if (path.includes('unread')) return ok({chat:0,comment:0,like:0,system:0})
     if (path.includes('summary')) return ok({level:3,experience:100})
@@ -42,13 +47,33 @@ await page.route((url) => /^\/(?:api\/)?(companion|user|growth|im|content)\//.te
     const value=request.postDataJSON();characters.find(c=>c.code===path.split('/')[3]).level=value.level;changes.push(value);return ok(null)
   }
   if (/\/characters\/[^/]+\/sessions$/.test(path)) return ok({records:sessions,total:sessions.length})
+  if (/\/sessions\/\d+\/pokes$/.test(path)) {
+    const body=request.postDataJSON();assert.match(body.clientMessageId,/^[a-f0-9-]{36}$/)
+    const poke={id:next++,role:'USER',kind:'POKE',content:'拍了拍你的肩膀',clientMessageId:body.clientMessageId,turnState:'COMMITTED',imageIds:[],createTime:now}
+    const reply={id:next++,role:'CHARACTER',kind:'TEXT',content:'嗯？有什么想说的喵？',imageIds:[],createTime:now}
+    messages.push(poke,reply);changes.push('poke')
+    return route.fulfill({contentType:'text/event-stream',body:sse([['bubble',reply],['done',{usage}]])})
+  }
   if (method==='DELETE' && /\/sessions\/\d+$/.test(path)) {forget=url.searchParams.get('forget');sessions=sessions.filter(s=>s.id!==Number(path.split('/').at(-1)));return ok(null)}
   if (/\/sessions\/\d+\/messages$/.test(path) && method==='GET') return ok({records:messages.toReversed(),nextBefore:null})
   if (/\/sessions\/\d+\/messages$/.test(path) && method==='POST') {
     assert.match(request.headers().accept,/text\/event-stream/)
     assert.match(request.headers().accept,/application\/json/)
     if (path.includes('/999999/')) return route.fulfill({status:429,json:{code:'COMPANION_COOLDOWN',data:{cooldownSeconds:42}}})
-    const body=request.postDataJSON();posts.push(body);assert.match(body.clientMessageId,/^[a-f0-9-]{36}$/)
+    const body=request.postDataJSON();assert.match(body.clientMessageId,/^[a-f0-9-]{36}$/)
+    if (body.content==='重试去重验证') {
+      retries.push(body)
+      let user=messages.find(m=>m.clientMessageId===body.clientMessageId)
+      if(!user) {user={id:next++,role:'USER',kind:'TEXT',content:body.content,clientMessageId:body.clientMessageId,imageIds:[],turnState:'FAILED',createTime:now};messages.push(user)}
+      if(retries.length===1) return route.fulfill({status:503,json:{code:'AI_UNAVAILABLE',message:'模型暂不可用'}})
+      user.turnState='RECEIVED'
+      await delay(1500)
+      user.turnState='COMMITTED'
+      const reply={id:next++,role:'CHARACTER',kind:'TEXT',content:'重试回复完成喵。',imageIds:[],createTime:now}
+      messages.push(reply)
+      return route.fulfill({contentType:'text/event-stream',body:sse([['bubble',reply],['done',{usage}]])})
+    }
+    posts.push(body)
     const user={id:next++,role:'USER',kind:'TEXT',content:body.content,clientMessageId:body.clientMessageId,imageIds:[],turnState:'RECEIVED',createTime:now}
     messages.push(user);sessions[0].generating=true
     if (!firstPending) { queue.push(user);return route.fulfill({contentType:'text/event-stream',body:sse([['queued',{clientMessageId:body.clientMessageId}],['done',{usage}]])}) }
@@ -73,8 +98,8 @@ await page.route((url) => /^\/(?:api\/)?(companion|user|growth|im|content)\//.te
   if (/\/characters\/[^/]+\/memories$/.test(path)) return ok(memories)
   if (/\/memories\/\d+$/.test(path) && method==='PATCH') {const body=request.postDataJSON();Object.assign(memories.find(m=>m.id===Number(path.split('/').at(-1))),body);changes.push(body);return ok(null)}
   if (path.endsWith('/calendar')) return route.fulfill({contentType:'text/calendar',headers:{'content-disposition':'attachment; filename=promise.ics'},body:'BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n'})
-  if (path==='/companion/works') return ok({records:[work],total:1})
-  if (/\/works\/\d+$/.test(path)) return ok(work)
+  if (path==='/companion/works') return ok({records:[work,toy],total:2})
+  if (/\/works\/\d+$/.test(path)) return ok(path.endsWith('/11')?toy:work)
   if (path==='/companion/usage') return ok(usage)
   throw new Error(`Unexpected companion request ${method} ${path}`)
 })
@@ -82,6 +107,7 @@ await page.routeWebSocket('**/im/**', () => {})
 try {
   await page.goto(new URL('/meng/neko?s=1',process.env.MENG_FRONT_USER_URL || 'http://localhost:5173').href)
   await page.getByRole('group',{name:'性格档位'}).waitFor()
+  assert.match(await page.locator('.sidebar-work').filter({hasText:toy.title}).locator('small').innerText(),/^小玩意/)
   // 直接调用实际 API 模块，验证两个 POST 入口都能保留 JSON 业务码、状态与附加数据。
   const failures = await page.evaluate(async () => {
     const api = await import('/src/api/companion.js')
@@ -115,14 +141,41 @@ try {
   await page.waitForFunction(() => document.querySelector('.level-switch button:last-child')?.getAttribute('aria-pressed')==='true')
   assert.equal(changes[0].level,3)
   await page.getByRole('img',{name:'琪露诺贴纸：好耶'}).waitFor()
-  await page.getByRole('button',{name:'续写',exact:true}).first().click()
-  await page.getByText('正在续写：云朵小故事',{exact:true}).waitFor()
+  await page.locator('.message-reaction img').waitFor()
+  assert.equal(await page.locator('.message-reaction img').getAttribute('alt'),'好耶')
+  assert.equal(await page.locator('.message-sources a').count(),1)
+  assert.equal(await page.locator('.message-sources a').getAttribute('href'),'https://example.com/article')
+  assert.match(await page.locator('.message-sources a').getAttribute('rel'),/noopener/)
+  await page.locator('.character-action').filter({hasText:'挪开杯子'}).waitFor()
+  await page.locator('.retracted-note').waitFor()
+  await page.getByRole('button',{name:'拍一拍',exact:true}).first().press('Enter')
+  await page.locator('.poke-note').waitFor()
+  assert.ok(changes.includes('poke'))
+  assert.equal(await page.getByRole('button',{name:'续写',exact:true}).count(),0)
+  const toyCard=page.locator('.chat-work').filter({hasText:'云朵小玩意'})
+  await toyCard.getByRole('button',{name:'运行',exact:true}).waitFor()
+  assert.equal(await toyCard.locator('iframe').count(),0)
+  await toyCard.getByRole('button',{name:'运行',exact:true}).click()
+  const frame=toyCard.locator('iframe')
+  await frame.waitFor()
+  assert.equal(await frame.getAttribute('sandbox'),'allow-scripts')
+  assert.match(await frame.getAttribute('srcdoc'),/default-src 'none'/)
+  await page.waitForFunction(()=>{const f=document.querySelector('.meng-toy iframe')?.getBoundingClientRect(),log=document.querySelector('.chat-log')?.getBoundingClientRect();return f && log && f.top>=log.top-1 && f.bottom<=log.bottom+1})
+  await toyCard.getByRole('button',{name:'重新运行',exact:true}).click()
   const input=page.locator('.chat-input-area textarea'), send=page.getByRole('button',{name:'发送',exact:true}).last()
-  await input.fill('把故事续写一下');await send.click()
+  await input.fill('今天有点累');await send.click()
   await input.fill('结尾加一阵小雨');await send.click()
   await page.getByText('已排队',{exact:true}).first().waitFor()
-  assert.equal(posts[0].workId,10);assert.notEqual(posts[0].clientMessageId,posts[1].clientMessageId)
+  assert.equal(Object.hasOwn(posts[0],'workId'),false);assert.notEqual(posts[0].clientMessageId,posts[1].clientMessageId)
   await delay(2800)
+  await input.fill('重试去重验证');await send.click()
+  await page.getByRole('button',{name:'重新发送',exact:true}).waitFor()
+  const retried=page.waitForRequest(request=>request.method()==='POST' && request.postData()?.includes('重试去重验证'))
+  await page.getByRole('button',{name:'重新发送',exact:true}).click();await retried
+  assert.equal(await page.getByText('重试去重验证',{exact:true}).count(),1)
+  assert.equal(retries[0].clientMessageId,retries[1].clientMessageId)
+  await page.getByText('重试回复完成喵。',{exact:true}).waitFor()
+  for(let i=errors.length-1;i>=0;i--) if(/Failed to load resource:.*503/.test(errors[i])) {errors.splice(i,1);break}
   const firstBubble=page.locator('.message-bubble').filter({hasText:'这边让你一点'}).first()
   await firstBubble.hover();await firstBubble.getByRole('button',{name:'有点出戏'}).click()
   assert.ok(changes.includes('feedback'))
@@ -151,5 +204,5 @@ try {
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth<=window.innerWidth),'Mobile horizontal overflow')
   if (output) await page.screenshot({path:output.replace('.png','-mobile.png'),fullPage:false})
   assert.deepEqual(errors,[])
-  console.log('PASS: grid animation/reduced motion, timezone, levels, stickers, work continuation, queueing, feedback, regeneration, memory editing/pinning, calendar, forget option and mobile layout')
+  console.log('PASS: grid animation/reduced motion, timezone, levels, stickers, read-only documents, toy sandbox, queueing, feedback, regeneration, memory editing/pinning, calendar, forget option and mobile layout')
 } catch(error) { console.error('UI errors:',errors);console.error('Rendered:',(await page.locator('body').innerText()).slice(0,3000));throw error } finally {await browser.close()}

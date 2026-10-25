@@ -46,8 +46,20 @@ public class CompanionTelemetry {
         registry
             .counter("companion.rewrites")
             .increment(Math.max(0, metrics.path("rewrites").asInt()));
+        registry.counter("companion.unsupported").increment(Math.max(0, metrics.path("unsupported").asInt()));
+        registry.summary("companion.history.tokens").record(Math.max(0, metrics.path("historyTokens").asDouble()));
+        if (metrics.path("ackMs").isNumber()) registry.timer("companion.ack")
+            .record(metrics.path("ackMs").asLong(), TimeUnit.MILLISECONDS);
+        for (var tool : metrics.path("tools")) {
+            String name = tool.path("name").asString("unknown");
+            registry.counter("companion.tools", "tool", name,
+                "success", Boolean.toString(tool.path("success").asBoolean()),
+                "cached", Boolean.toString(tool.path("cached").asBoolean())).increment();
+            registry.timer("companion.tool.latency", "tool", name)
+                .record(Math.max(0, tool.path("elapsedMs").asLong()), TimeUnit.MILLISECONDS);
+        }
         for (var call : metrics.path("calls")) {
-            String role = call.path("role").asString("unknown");
+            String role = call.path("purpose").asString("unknown");
             registry
                 .counter("companion.tokens.input", "role", role)
                 .increment(Math.max(0, call.path("input").asDouble()));

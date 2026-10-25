@@ -399,9 +399,16 @@
 
 .bubble-avatar {
   flex: none;
+  cursor: pointer;
+  touch-action: manipulation;
   border: 2px solid var(--meng-surface);
   border-radius: 50%;
   box-shadow: 0 2px 0 var(--c-edge);
+}
+
+.bubble-avatar:focus-visible {
+  outline: 2px solid currentcolor;
+  outline-offset: 3px;
 }
 
 .message-bubble {
@@ -1057,4 +1064,52 @@
   background: var(--meng-bg);
   color: var(--meng-placeholder);
   box-shadow: 0 4px 0 var(--meng-companion-neutral-edge);
+}
+
+.character-action {
+  opacity: 0.65;
+  font-style: italic;
+}
+
+.message-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: 0.75rem;
+}
+
+.message-reaction {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.retracted-note,
+.poke-note {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.typing-row.hesitant img {
+  animation: hesitant-input 1.8s ease-in-out infinite;
+}
+
+@keyframes hesitant-input {
+  0%,
+  40%,
+  100% {
+    opacity: 1;
+  }
+
+  50%,
+  70% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typing-row.hesitant img {
+    animation: none;
+  }
 }

@@ -92,7 +92,7 @@ public interface CompanionMapper {
 
     @Update(
         """
-        UPDATE companion_session SET summary='',window_start_message_id=COALESCE((SELECT MAX(m.id) FROM companion_message m WHERE m.session_id=companion_session.id),0),summary_until_message_id=COALESCE(
+        UPDATE companion_session SET context_snapshot=NULL,snapshot_time=NULL,threads=NULL,summary='',window_start_message_id=COALESCE((SELECT MAX(m.id) FROM companion_message m WHERE m.session_id=companion_session.id),0),summary_until_message_id=COALESCE(
         (SELECT MAX(id) FROM companion_message WHERE session_id=companion_session.id),0)
         WHERE user_id=#{user} AND character_code=#{code} AND delete_state=0
         """
@@ -124,7 +124,7 @@ public interface CompanionMapper {
     @Select(
         """
         SELECT * FROM companion_message WHERE session_id=#{session} AND id > #{after}
-        AND delete_state=0 AND completed=1 ORDER BY id DESC LIMIT 100
+        AND delete_state=0 AND completed=1 AND (turn_id IS NULL OR role='USER' OR EXISTS(SELECT 1 FROM companion_message u WHERE u.id=companion_message.turn_id AND u.turn_state='COMMITTED')) ORDER BY id DESC
         """
     )
     List<Rows.Message> history(
@@ -158,9 +158,9 @@ public interface CompanionMapper {
     @Insert(
         """
         INSERT INTO companion_message(session_id,role,content,bubbles,image_ids,work_id,affection_delta,safety_label,completed,
-        client_message_id,turn_id,turn_state,kind,sticker,feeling,intent,prompt_version,model,memory_ids,metrics,request_work_id,request_revision,time_zone,regenerates_message_id)
+        client_message_id,turn_id,turn_state,kind,sticker,feeling,intent,prompt_version,model,memory_ids,metrics,request_revision,time_zone,regenerates_message_id)
         VALUES(#{sessionId},#{role},#{content},#{bubbles},#{imageIds},#{workId},#{affectionDelta},#{safetyLabel},#{completed},
-        #{clientMessageId},#{turnId},#{turnState},#{kind},#{sticker},#{feeling},#{intent},#{promptVersion},#{model},#{memoryIds},#{metrics},#{requestWorkId},#{requestRevision},#{timeZone},#{regeneratesMessageId})
+        #{clientMessageId},#{turnId},#{turnState},#{kind},#{sticker},#{feeling},#{intent},#{promptVersion},#{model},#{memoryIds},#{metrics},#{requestRevision},#{timeZone},#{regeneratesMessageId})
         """
     )
     @Options(useGeneratedKeys = true, keyProperty = "id")

@@ -20,6 +20,9 @@ public class ContentRebuildJobs {
     @Autowired
     private com.pluchon.meng.content.service.RecommendationMaintenance recommendations;
 
+    @XxlJob("contentAiReanalyzeFailed")
+    public void reanalyzeFailed() { ai.reanalyzeFailed(); }
+
     @XxlJob("contentAiOutboxDispatch")
     public void ai() {
         ai.dispatch();
