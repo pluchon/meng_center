@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 from langchain_openai import ChatOpenAI
 from pydantic import PrivateAttr
 
+from app.runtime.context.cache import changes, digest, fingerprints, public_hashes
 from app.runtime.context.segments import tokens
 
 LOG = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class RoundUsage:
     tokens: int = 0
     calls: list[dict] = field(default_factory=list)
     segments: dict = field(default_factory=dict)
+    session: int = 0
 
 
 CURRENT: ContextVar[RoundUsage | None] = ContextVar("model_usage", default=None)
@@ -95,6 +97,7 @@ class ModelGateway:
         incoming, outgoing = int(usage.get("input_tokens", 0)), int(usage.get("output_tokens", 0))
         cached = int(usage.get("input_token_details", {}).get("cache_read", 0))
         current = CURRENT.get()
+        cache = usage.get("_cache_segments")
         record = dict(
             purpose=purpose,
             model=model,
@@ -116,6 +119,15 @@ class ModelGateway:
             character=current.character if current else "",
             turn=current.turn if current else "",
         )
+        if purpose == "speech" and cache:
+            record["segmentHashes"] = public_hashes(cache)
+            try:
+                async with asyncio.timeout(0.2):
+                    diagnostic = await self.cache_diagnostic(model, cache, incoming, cached, current)
+                if diagnostic:
+                    record["cacheDiagnostic"] = diagnostic
+            except Exception:
+                LOG.warning("speech_cache_diagnostic_failed")
         if current:
             current.tokens += incoming + outgoing
             current.calls.append(record)
@@ -132,6 +144,23 @@ class ModelGateway:
         except Exception:
             LOG.warning("model_accounting_failed purpose=%s", purpose)
         LOG.info("model_call=%s", json.dumps(record, ensure_ascii=False))
+
+    async def cache_diagnostic(self, model, cache, incoming, cached, current):
+        if not current or not current.session or not current.turn:
+            return None
+        scope = digest([current.user, current.character, current.session, model])
+        key = "meng:ai:cache-prefix:" + scope
+        raw = await self.redis.get(key)
+        previous = json.loads(raw) if isinstance(raw, (str, bytes)) else None
+        # 接话与重写属于同一轮，不能把它们当成下一轮的热会话样本。
+        if previous and previous.get("turn") == current.turn:
+            return None
+        diagnostic = changes(previous, cache) if previous else None
+        await self.redis.set(key, json.dumps({**public_hashes(cache), "turn": current.turn}), ex=3600)
+        if diagnostic and incoming > 0 and cached / incoming < 0.5:
+            diagnostic.update(cacheRatio=cached / incoming)
+            LOG.warning("speech_cache_break=%s", json.dumps(diagnostic, ensure_ascii=False))
+        return diagnostic
 
     @staticmethod
     def retryable(error):
@@ -222,7 +251,10 @@ class GatewayChatOpenAI(ChatOpenAI):
                     self._purpose,
                     estimate,
                     call,
-                    self.chat_usage,
+                    lambda result: {
+                        **self.chat_usage(result),
+                        **({"_cache_segments": fingerprints(messages)} if self._purpose == "speech" else {}),
+                    },
                 )
             except Exception as error:
                 last = error

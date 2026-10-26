@@ -1,0 +1,85 @@
+{
+  "model": "deepseek-v4-pro",
+  "promptVersion": "20261025.9",
+  "catalogVersion": "20261025.2",
+  "baselineSha256": "03b12469021db1ce493594e148c390fbe1cc2664588ee16d04b6a54d148a5a9b",
+  "evaluationSha256": "54fe87f8795e266ddfd24f485fd9a0ebdc80cf4ecec0bdb00bf61eea8a48fa2d",
+  "sources": [
+    {
+      "file": "chinese-original.json",
+      "url": "https://raw.githubusercontent.com/thu-coai/CDial-GPT/master/data/toy_data.json",
+      "sha256": "82d0af19b8bb69a523322aa8fb04fe5f270352e83e1cea1f993fa7469126c5f1"
+    }
+  ],
+  "samples": 104,
+  "baselineSamples": 4987,
+  "frequencyMethod": "连续中文2至4字重叠词组；按各长度总词组数归一；零频率以0.5次估计",
+  "reviewed": [
+    {
+      "phrase": "我听着",
+      "size": 3,
+      "count": 5,
+      "baselineCount": 0,
+      "outputTotal": 1185,
+      "baselineTotal": 40790,
+      "ratio": 344.2194092827004,
+      "isSlop": false,
+      "reason": "五处中四处对应同一课堂吐槽题，另一次承接烦躁情绪；不能将题目重复造成的高频判为套话。"
+    },
+    {
+      "phrase": "台北",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 0,
+      "outputTotal": 1483,
+      "baselineTotal": 48846,
+      "ratio": 329.37289278489544,
+      "isSlop": false,
+      "reason": "固定的城市资料更新和回忆题，属于题目主题。"
+    },
+    {
+      "phrase": "社区",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 0,
+      "outputTotal": 1483,
+      "baselineTotal": 48846,
+      "ratio": 329.37289278489544,
+      "isSlop": false,
+      "reason": "来自同一社区搜索题；具体页面功能是否有依据由事实审核判断，不由词频判断。"
+    },
+    {
+      "phrase": "听着",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 1,
+      "outputTotal": 1483,
+      "baselineTotal": 48846,
+      "ratio": 164.68644639244772,
+      "isSlop": false,
+      "reason": "与我听着完全重叠；主要由同一吐槽题反复出现造成。"
+    },
+    {
+      "phrase": "我听",
+      "size": 2,
+      "count": 7,
+      "baselineCount": 4,
+      "outputTotal": 1483,
+      "baselineTotal": 48846,
+      "ratio": 57.64025623735671,
+      "isSlop": false,
+      "reason": "包含我听着、我听见了和讲给我听等不同表达，属于截断与聚合造成的候选。"
+    },
+    {
+      "phrase": "会儿",
+      "size": 2,
+      "count": 7,
+      "baselineCount": 6,
+      "outputTotal": 1483,
+      "baselineTotal": 48846,
+      "ratio": 38.42683749157114,
+      "isSlop": false,
+      "reason": "普通时间短语后缀，休息、陪伴和时间安排等语境均可使用。"
+    }
+  ]
+}

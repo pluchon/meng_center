@@ -9,6 +9,13 @@ CATALOG = json.loads(CATALOG_PATH.read_text(encoding="utf-8"))
 CARDS = {row["code"]: SimpleNamespace(name=row["card"]["name"]) for row in CATALOG["characters"]}
 
 
+def configure_catalog(path):
+    global CATALOG
+    CATALOG = json.loads(Path(path or CATALOG_PATH).read_text(encoding="utf-8"))
+    CARDS.clear()
+    CARDS.update({row["code"]: SimpleNamespace(name=row["card"]["name"]) for row in CATALOG["characters"]})
+
+
 def card_payload(code):
     row = next(row for row in CATALOG["characters"] if row["code"] == code)
     return copy.deepcopy({**row["card"], "version": CATALOG["version"]})

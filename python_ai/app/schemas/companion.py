@@ -18,6 +18,7 @@ class Turn(Schema):
 
 class ReplyRequest(Schema):
     user_id: int = Field(gt=0)
+    session_id: int = Field(default=0, ge=0)
     character: Character
     stage: int = Field(ge=1, le=5)
     nickname: str = Field(max_length=50)

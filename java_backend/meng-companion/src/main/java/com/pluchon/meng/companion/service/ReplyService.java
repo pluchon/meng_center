@@ -547,6 +547,7 @@ public class ReplyService {
         } catch (RuntimeException ignored) {}
         var request = new LinkedHashMap<String, Object>();
         request.put("userId", user);
+        request.put("sessionId", session.getId());
         request.put("character", session.getCharacterCode());
         request.put("stage", p.bond().getStage());
         request.put("level", p.bond().getLevel());

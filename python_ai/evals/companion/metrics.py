@@ -37,6 +37,7 @@ def summarize(records, card_loader):
                 tics=counted["tics"],
                 kaomojiRatio=counted["kaomojiRatio"],
                 repeatedReplyRuns=counted["repeatedReplyRuns"],
+                selfImitation=counted["selfImitation"],
             )
         result[model] = dict(
             cases=len(rows),
@@ -79,6 +80,20 @@ def compare(current, baseline):
             firstBubbleP50DeltaMs=new - old if old is not None and new is not None else None,
         )
     return result
+
+
+def baseline_metrics(report, fallback_card_loader):
+    catalog = report.get("catalog")
+    if catalog:
+        cards = {row["code"]: row["card"] for row in catalog["characters"]}
+        return summarize(report["records"], cards.__getitem__)
+    # 旧报告缺少目录快照时保留其原始风格统计，不能借新卡改写旧频率目标。
+    recomputed = summarize(report["records"], fallback_card_loader)
+    for model, values in report.get("metrics", {}).items():
+        if model in recomputed and "characters" in values:
+            for code, character in values["characters"].items():
+                recomputed[model]["characters"].setdefault(code, {}).update(character)
+    return recomputed
 
 
 def summarize_background(records):

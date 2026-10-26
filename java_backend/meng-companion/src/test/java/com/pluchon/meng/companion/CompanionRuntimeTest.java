@@ -444,6 +444,7 @@ public class CompanionRuntimeTest {
             "test"
         );
         until(() -> !requests.isEmpty() && locks.isEmpty());
+        assertEquals(1L, requests.get(0).get("sessionId"));
         assertTrue(
             ((List<Long>) requests.get(0).get("memoryIds")).containsAll(
                 List.of(90001L, 90002L, 90003L)

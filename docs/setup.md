@@ -98,7 +98,7 @@ SMTP 主机和端口、短信签名、各短信模板编号、手机号地区名
 
 - **短信**：国内 `SendSms` 需要签名和验证码模板；国际 `SendMessageToGlobe` 需要 Sender ID 和各地区的通道开通。
   两条通道当前都是关闭的，发短信码的请求返回「短信通道尚未配置」。配置项在 `meng.user.sms` 和 `meng.user.international-sms`。
-  向各地区实发和通知类短信的限制还没有实测，见 [auth.md](auth.md) 文末的待核实。
+  向各地区实发和通知类短信的限制还没有实测，见[架构设计](architecture.md)第 10 节的待核实。
 - **正式协议**：用户协议和隐私政策的正式条款、运营者名称、联系邮箱、适用地区还没有。
   `meng.user.legal.published` 为 `false` 时注册提交返回「正式协议尚未发布」。条款正文放在用户端的 `src/content/legal/`。
 - **邮件**：SMTP 认证已验证，发信延迟正常；进垃圾箱的概率取决于发信账号的服务商。

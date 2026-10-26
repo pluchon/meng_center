@@ -32,7 +32,7 @@
 | `user.profile-updated` | user | userId、version、nickname、signature、avatarChanged、avatarThumb（更换或尚无审核结果时才有） | ai：资料审核 |
 | `user.profile-moderated` | ai | userId、version、modelVersion、verdict、labels、reason、avatarChanged、imageReviews | user：记录结论，按开关处理；沿用未变化头像的逐图结论 |
 | `user.profile-review-changed` | user | userId、clearedFields、labels | im：通知本人（系统频道的「审核」分类） |
-| `post.published` | content | postId、authorId、version、category、title、plainText、tags、imageThumbs、imagesChanged、tagCandidates（最常用的 50 个标签，新增） | growth：加经验；ai：分析帖子 |
+| `post.published` | content | postId、authorId、version、category、title、plainText、tags、imageThumbs、imagesChanged、tagCandidates（最常用的 50 个标签） | growth：加经验；ai：分析帖子 |
 | `post.updated` | content | 同 `post.published` | ai：重新分析 |
 | `post.analysis-requested` | content | 同 `post.published` | ai：全量重建或换模型时重新分析，由管理员触发 |
 | `post.analyzed` | ai | postId、version、modelVersion、topics、keywords、quality、verdict、labels、reason、embedding、analyzeState、imagesChanged、imageReviews | content：写特征、逐图结论和向量索引，按审核开关处理 |
@@ -44,7 +44,6 @@
 | `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者；某人对这篇帖子的第一行收藏记录插入成功时发一次，之后放进别的收藏夹不重复发 |
 | `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
-| `lottery.won` | growth | userId、prizeName | im：中奖通知 |
 | `companion.stage-reached` | companion | userId、characterCode、characterName、stage、stageName | im：通知本人（系统频道的「萌萌」类型） |
 | `companion.promise-due` | companion | userId、characterCode、characterName、memoryId、content、dueDate | im：约定到期当天通知本人（「萌萌」类型），每个约定只发一次 |
 | `companion.drawing-finished` | companion | userId、characterCode、characterName、sessionId、workId、title | im：画好了，通知本人（「萌萌」类型） |
@@ -57,7 +56,7 @@
 - 审核被拒绝不发事件，由 user 自己发通知邮件或短信。
 - growth 的成长账户按需创建，不靠 `user.approved` 初始化，见[成长域](growth.md)。
 - AI 请求、审核通知使用 content / user 本域的事务 outbox，broker confirm 后标记已发送；AI 结果持久发布成功后才确认输入。结果重复投递由 eventId 或用户资料版本去重，迟到的旧内容版本丢弃。重试、死信与每日 token 预算延迟见 [ai.md](ai.md) 第 4.3 节。
-- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。中奖事件等抽奖落地后再接。
+- 评论、帖子喜欢、收藏、评论喜欢、审核通过和等级变更已有 im 消费者；内容事件快照包含生成通知需要的标题和摘要。
 
 ## 2. 内部接口
 
@@ -108,6 +107,7 @@ ai 的八个接口是纯计算，不改任何状态，按只读接口对待；�
 | `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 使用中性称呼「你」，不为此读取登录账号或联系方式 |
 
 - ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
+- 萌萌回复请求增加可选的内部 `sessionId`，由 companion 从已鉴权的会话传入，用于分段缓存诊断隔离。旧调用缺省为 0，只记录本次摘要；不参与权限判断，不进入模型上下文，也不返回浏览器。
 - 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。
 - ai 不回调 companion：回忆、`read_work` 等需要的记忆和作品，由 companion 在请求里预先给出。
 - 外部服务 Tavily（联网搜索、读链接、搜图）只由 ai 调用，不是项目内的契约；规则见 [AI 公共运行时](ai-runtime.md)第 6.2、6.3 节。

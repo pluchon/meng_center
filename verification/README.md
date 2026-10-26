@@ -14,6 +14,7 @@ content 的字段转换测试覆盖 record 入参、全部映射字段和计数�
 
 普通页面微调只跑受影响文件的静态检查、前端构建和相关的浏览器脚本。
 认证流程、数据库、接口、架构这类改动，或者重构之后，再跑完整的后端测试和隔离联调。
+只跑和这次改动相关的脚本和测试。同一份代码已经跑过并通过的，不再重跑。调用真实模型的评测（`-SelectMouthModels`、`-EvaluateDecisions`、`-EvaluateModels`）必须遵守 [docs/ai-runtime.md](../docs/ai-runtime.md) 第 11.2 节的硬性约束：开发中只跑限额冒烟，完整评测只在仓库主人确认验收后跑一次。
 
 ## 准备
 
@@ -48,13 +49,21 @@ npm --prefix verification ci
 | `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证萌萌迁移、旧数据来源与窗口初始化、角色卡、消息幂等键和 outbox 唯一键；结束删除验证库，不改业务库 |
 | `node verification/browser/companion-runtime.mjs` | 用接口回放验证发送与换一句的 JSON 错误协商、重试消息去重、萌萌背景移动及减少动态效果、档位、时区、消息幂等键、排队、拍一拍、反馈、换一句、贴纸、来源过滤、记忆编辑置顶、日历、历史文档只读、小玩意按需运行与沙箱策略及手机布局；不调用真实模型或业务写接口 |
 | `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、三个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败 |
-| `./verification/Test-Companion.ps1 -SelectMouthModels -SmallModelSample -EvaluationTokenBudget 200000 -EvaluationBudgetId <固定授权编号>` | 必须指定独立 token 额度和固定授权编号，同一编号重复执行累计；对 DeepSeek 官方 Flash 1017 与 Pro 两个候选执行虚构长对话和匿名盲评，记录安全、依据、自然程度与缓存用量。去掉 `-SmallModelSample` 后每角色执行 35 轮；不调用真实 Tavily。`-EvaluationOutput <JSON路径>` 指定报告位置；`-Baseline <上次完整JSON>` 按同一口径比较成功生成且不使用工具的首个气泡 P50、固定降级次数、口癖与颜文字频率、连续近似回复信号，同时记录 agent/judge 输出 token 和预生成采用率。完整评测另记录三角色各 5 轮固定背景近况回归，不混入原有 408 条对照回答；背景语词命中与连续命中数用于定位反复提近况的问题，仍需核对原文 |
+| `./verification/Test-Companion.ps1 -SelectMouthModels -SmallModelSample -EvaluationTokenBudget <已授权额度> -EvaluationBudgetId <固定授权编号>` | 必须指定独立 token 额度和固定授权编号，同一编号重复执行累计；对 DeepSeek 官方 Flash 1017 与 Pro 两个候选执行虚构长对话和匿名盲评，记录安全、依据、自然程度与缓存用量。现有完整入口每角色执行 35 轮，真实执行须另遵守第 11.2 节；不调用真实 Tavily。`-EvaluationOutput <JSON路径>` 指定报告位置；`-Baseline <上次完整JSON>` 按同一口径比较成功生成且不使用工具的首个气泡 P50、固定降级次数、口癖与颜文字频率、连续近似回复信号，同时记录 agent/judge 输出 token 和预生成采用率。现有完整入口包含安全场景和三角色各 5 轮固定背景回归；后续评测范围以第 11.2 节及仓库主人授权为准，已有报告保留且不重复执行 |
 | `./verification/Test-Companion.ps1 -EvaluateDecisions -EvaluationTokenBudget <额度> -EvaluationBudgetId <固定授权编号>` | 真实主 agent 配合虚构工具资料，检查联网、年份、隐私、回忆、休息、越权、危机和孤独倾诉标签；另检查显式记忆与查询、操作请求的区别，不访问真实网页或业务数据 |
 | `./verification/Invoke-ModelEvaluation.ps1 -Task <station/companion/decisions> -TokenBudget <额度> -BudgetId <固定授权编号>` | 已安装依赖时单独执行对应真实评测；同机只允许一个受保护评测，可用物理内存低于 3 GB 或内存提交比例超过 85% 时停止本次进程；`-EvaluationArguments` 传入对应 Python 模块参数。回复生成条件相同且尚无盲评分数时，可补充盲评协议版本后继续；已有分数时拒绝混用协议 |
 | `./verification/Test-Companion.ps1` | 萌萌 Java 好感、隐私、事务恢复、纪元快照与架构规则；Python 输入标签、输出重写、控制行解析、出处校验、URL 和图片下载安全、小玩意、空闲压缩与原生 rerank。真实评测参数沿用上一行的独立额度要求，`-CompareModel deepseek-v4-pro` 指定对照，`-Baseline <JSON>` 比较结果；语料与结果只写入 `test-output/` |
 | `./verification/Test-Ai.ps1` | Python 锁文件安装、Ruff、离线假模型分支、原生向量与 rerank、MQ 确认与有限重投；`-EvaluateModels -EvaluationTokenBudget <额度> -EvaluationBudgetId <固定授权编号>` 执行真实审核与主题评测，`-Baseline <JSON文件>` 比较违规召回率与误判率；`-Integration` 对运行中的服务执行辅助接口、MQ、向量、语义搜索、推荐与资料审核联调，结束清理随机账号和派生数据，`-Covers` 增加成品图审核。Qwen 评测和联调使用 DashScope 额度；DeepSeek 说话评测使用官方额度 |
 
 嘴模型评测的盲评分数为 0～10，允许小数。缺少结构化分数或格式不合法时，仅重试该组一次，采用第一份有效评分，仍失败则保留检查点并停止。需要更换盲评协议时，先在仓库外另存原报告，再通过 `-EvaluationArguments @('--resume','--restart-blind','--output','<原报告路径>')` 保留全部原始回复、清除全部旧分数并重新盲评；授权编号和回复生成条件必须保持一致，失败回复不会删除或重新生成。
+
+嘴模型对照需要同时指定 `-Baseline <仓库外完整报告.json>` 和 `-ChangedVariable '角色卡说话方式'`；禁止重新生成控制基线；只读取已有的验收报告。报告校验运行时代码、固定目录字段（含频率目标与档位分布）、模型配置、场景及采样条件，只有其余条件相同才生成 `comparison` 和自动选型结论；旧基线缺少可核对条件时只输出 `descriptiveComparison`，不宣称因果改善。不指定基线时允许生成单批报告，明确标记没有对比结论。Python 参数 `--seed` 默认 42，按样本编号固定形态抽样并写入报告。
+
+盲评使用 `qwen3.8-flash` 与 `qwen3.8-max` 两位裁判，均不得等于候选嘴模型；每个样本每位裁判按 A/B、B/A 各评分一次。人设、自然程度、安全、事实依据分别报告顺序一致性与 Spearman；相关性低于 0.6、样本不足或恒定分数的维度不参与选型。每次调用前保存尝试次数，每个顺序结束保存评分，恢复不重置失败次数；失败诊断包含原始合成响应、工具参数及结束原因。缺少工具调用时仅接受完整且通过原结构校验的 JSON，不从说明文字提取分数。长对话角色指标另含 `selfImitation.firstHalf/secondHalf`。
+
+| 命令 | 内容 |
+|---|---|
+| `python -m evals.companion.slop_profile --chinese-baseline <仓库外语料.json> --evaluation <评测.json> --output <仓库外候选.json>`（在 `python_ai/`） | 不调用模型、Tavily 或业务接口。中文基线包含 `language: zh`、`sources`、逐条发言 `texts`；按连续中文 2～4 字词组统计，至少出现 5 次且归一频率高于基线 20 倍才进入候选。开发者逐条复核后维护 `evals/companion/slop/<模型>.json` 的 `reviewed`、`isSlop`、`reason`；不自动把题目主题、普通语气词和片段列为套话。原始语料保存在仓库外，`reference.json` 只记录来源和原创特点 |
 
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，

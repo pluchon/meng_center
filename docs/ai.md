@@ -24,7 +24,7 @@
 ### 2.2 调用方向
 
 - **同步**：content → ai、growth → ai，都是「把数据给 ai，拿回计算结果」。本文的功能里 ai 不反过来同步调任何服务；萌萌工具对 content、growth 的只读调用是唯一例外，content、growth 都不会同步调 companion，所以不成环。
-- **异步**：content 把帖子和评论的全文（和配图的小图）放进事件发给 ai，user 把改过的资料放进事件发给 ai；ai 算完发结果事件，由原来的域消费后落库处理。
+- **异步**：content 把帖子和评论的全文（和配图的小图）放进事件发给 ai，user 把改过的资料放进事件发给 ai；ai 算完发结果事件，由发出事件的域消费后落库处理。
 - 前端不直接访问 ai。网关不开 `/ai/**` 路由（萌萌也经 companion 进入），ai 的内部接口只监听本机，供 Java 服务调用。
 - 这样「AI 只做计算」（[架构](architecture.md)第 6 节规则 8）落得最彻底：权限、限次、缓存、状态都在 Java。
 
@@ -120,7 +120,7 @@ python_ai/
   - 通过 `extra_body={"enable_thinking": False}` 关掉 Qwen3 的思考模式：非流式调用开着思考会报错，审核和抽取也不需要。
   - 按用途取模型：站内功能用 `judge`（Flash，温度 0）、`assist`（Flash，按任务配置温度）、`vision`（原生多模态 Flash，温度 0），由注册表统一登记（[AI 公共运行时](ai-runtime.md)第 2 节）。同型号的用途共享并发信号量，避免统一型号后把并发上限重复计算。
 - 结构化输出：`model.with_structured_output(Schema, method="function_calling")`，Schema 是 pydantic 模型，拿回来就是校验过的对象。DashScope 兼容接口对 `json_schema` 方式的支持随型号不同，开工时实测；支持就换成 `json_schema`，代码只改这一个参数。
-- 向量：改用 DashScope 原生接口（httpx，经网关计量），`model=qwen3.7-text-embedding-flash`、`parameters.dimension=1024`、`parameters.text_type` 按调用方传入的 `textType` 设置。兼容接口不能指定类型，默认按 query 编码，所以不再用 `OpenAIEmbeddings`。每次最多 10 段，这是内部契约的上限。
+- 向量：改用 DashScope 原生接口（httpx，经网关计量），`model=qwen3.7-text-embedding-flash`、`parameters.dimension=1024`、`parameters.text_type` 按调用方传入的 `textType` 设置。兼容接口不能指定类型，默认按 query 编码，所以不用 `OpenAIEmbeddings`。每次最多 10 段，这是内部契约的上限。
 - 降级：按注册表的降级链执行（[AI 公共运行时](ai-runtime.md)第 2 节）；同型号不重复调用来充当降级。判断类任务失败按第 4.3 节重试。
 - 并发：每种实际型号一个 `asyncio.Semaphore`，同型号角色共享，上限放配置，避免把 DashScope 的每分钟额度打满。
 
@@ -269,7 +269,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 ### 5.3 重建
 
 - 只改映射：用 ES 的 reindex 从当前生效的索引拷到另一套，不用重新算向量。
-- 换向量模型、维度或编码类型：走第 4.1 节的全量重新分析，灌到另一套，灌完切别名。本期从 query 编码改为 document 编码（`modelVersion` 带 `:doc-v1`），上线后要做一次 `recompute=true` 的重建。
+- 换向量模型、维度或编码类型：走第 4.1 节的全量重新分析，灌到另一套，灌完切别名。帖子向量按 document 编码（`modelVersion` 带 `:doc-v1`）；上线前确认已用 `recompute=true` 重建过一次，没有就补上。
 - 向量不进 MySQL；ES 整个丢了就重新分析一遍（10 万篇大约几十元，几个小时）。
 - `POST /content/admin/ai/reanalyze?recompute=true` 重新计算，`recompute=false` 只做映射重建。重算期间保留旧读别名，结果写入另一色；所有批次发完且待处理帖子清空后刷新并切别名。Redis 的 building / pending / model 键记录进度，不设日内过期；死信未处理时不切换。须先修复失败消息再重放，不能直接删除进度键强制切换。
 - 别名切换更新 active generation，搜索词向量和用户兴趣向量据此失效；重算期间暂时关闭语义混排和用户向量召回，避免混用模型空间。当前接口契约固定 1024 维，改维度同时修改契约与映射。
@@ -297,7 +297,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 | 路 | 做法 | 类型 |
 |---|---|---|
 | 热门 | 近 7 天热度分最高的 200 篇；这 7 天的帖子不足 60 篇（社区冷清）时放宽到近 90 天，老帖靠新鲜度排在后面 | 传统 |
-| 关注 | 关注的人近 7 天的帖子。关注列表从 user 取（新增内部接口，见 [contracts.md](contracts.md)） | 传统 |
+| 关注 | 关注的人近 7 天的帖子。关注列表从 user 取（内部接口见 [contracts.md](contracts.md)） | 传统 |
 | 兴趣 | 向量索引上按画像里最重的 10 个主题词和 3 个分类做加权 terms 查询，近 14 天 | 传统 + AI 特征 |
 | 向量 | 用兴趣向量做 kNN，`k=200`、`num_candidates=1000`，近 30 天 | AI |
 
@@ -381,7 +381,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 - 源帖向量召回最多 20 篇公开候选，排除源帖与 `BLOCK`，再以源帖标题和摘要为查询做 rerank，取阈值（默认 0.4）以上的按分数排序；同一作者最多 3 篇。见 [AI 公共运行时](ai-runtime.md)第 6.5 节。
 - 不按标签、分类或关键词补齐结果。没有足够依据时允许空结果。rerank 不可用时按向量相似度的顺序返回且不写缓存；向量索引也不可用时返回空列表，详情页其他部分不受影响。
-- 排序结果按源帖缓存 1 小时，缓存带 `rerank-v1` 来源标记，旧的 `agent-v1` 缓存不再使用。改帖、删帖时清理缓存。
+- 排序结果按源帖缓存 1 小时，缓存带 `rerank-v1` 来源标记。改帖、删帖时清理缓存。
 
 ## 9. 语义搜索
 
@@ -488,7 +488,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 ## 13. 数据
 
-### 13.1 content 新增表
+### 13.1 content 的 AI 表
 
 `post_ai_feature`：
 
@@ -503,8 +503,8 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 | `verdict` | 枚举 `PASS` / `SUSPECT` / `BLOCK` |
 | `reason` | 最多 200 字 |
 | `analyze_state` | 枚举：成功 / 失败（失败时特征是中性值） |
-| `moderation_state` | 枚举：成功 / 失败（新增）；失败的会被 `contentAiReanalyzeFailed` 重发 |
-| `retry_count` | 失败重发次数（新增），最多 3 |
+| `moderation_state` | 枚举：成功 / 失败；失败的会被 `contentAiReanalyzeFailed` 重发 |
+| `retry_count` | 失败重发次数，最多 3 |
 | `image_reviews` | 逐图 id、结论、标签和理由，文字编辑时复用 |
 | `manual_review` | 人工通过标记，只对同一内容版本生效 |
 | `create_time`、`update_time`、`delete_state` | |
@@ -542,7 +542,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 growth 有 `growth:ai:summary:{userId}:{days}`（总结缓存）和同样的每日次数键。
 
-### 13.3 user 新增表
+### 13.3 user 的 AI 表
 
 `profile_ai_review`：`user_id`、`profile_version`、`verdict`、`labels`、`reason`、`model_version`、原昵称、原签名、原头像地址、`avatar_review`、`review_state`（未处理 / 已清除 / 已恢复）、三个通用列；用户和版本唯一。`user.profile_version` 为微秒时间戳，与普通计数更新分离。`profile_ai_outbox` 同域事务保留事件及发送状态。
 

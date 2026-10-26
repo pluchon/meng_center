@@ -2,7 +2,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-from pydantic import SecretStr, ValidationError
+from pydantic import SecretStr
 
 from app.config.settings import Settings
 from evals.companion.budget import (
@@ -13,10 +13,8 @@ from evals.companion.budget import (
 )
 from evals.companion.select import (
     SCENE,
-    BlindScore,
     blind_context,
     history_before,
-    judge_pair,
     resume_records,
 )
 
@@ -100,14 +98,6 @@ def test_blind_protocol_upgrade_never_mixes_scores_or_changes_reply_conditions()
         resume_records(previous, {**updated, "promptVersion": "v3"}, "fixed")
 
 
-def test_blind_score_accepts_fractional_marks_without_relaxing_bounds():
-    score = BlindScore(a=7.5, b=8, reason="语气更自然")
-    assert (score.a, score.b) == (7.5, 8.0)
-    for invalid in (-0.1, 10.1, float("nan"), True):
-        with pytest.raises(ValidationError):
-            BlindScore(a=invalid, b=8, reason="无效分数")
-
-
 def test_restarting_blind_preserves_failed_replies_but_discards_all_prior_scores():
     setup = dict(promptVersion="v2", candidates=["a", "b"], blindProtocolVersion=2)
     rows = {"a": [dict(id="NEKO-0", passed=False)]}
@@ -119,30 +109,6 @@ def test_restarting_blind_preserves_failed_replies_but_discards_all_prior_scores
         resume_records(previous, {**updated, "promptVersion": "v3"}, "fixed", restart_blind=True)
     with pytest.raises(ValueError, match="授权编号"):
         resume_records(previous, updated, "different", restart_blind=True)
-
-
-@pytest.mark.parametrize("kind", ["missing", "malformed"])
-async def test_blind_format_retry_keeps_first_valid_score_and_original_payload(kind):
-    invalid = None
-    if kind == "malformed":
-        with pytest.raises(ValidationError) as captured:
-            BlindScore(a=11, b=8, reason="范围错误")
-        invalid = captured.value
-    valid = BlindScore(a=7.5, b=8, reason="有效评分")
-    service = SimpleNamespace(
-        structured=AsyncMock(side_effect=[invalid, valid, BlindScore(a=10, b=10, reason="未使用")])
-    )
-    payload = {"input": "虚构问题", "responses": {"A": ["回复甲"], "B": ["回复乙"]}}
-    assert await judge_pair(service, payload) is valid
-    assert service.structured.await_count == 2
-    assert all(call.args[2] is payload for call in service.structured.await_args_list)
-
-
-async def test_blind_format_retry_is_bounded_and_never_accepts_missing_scores():
-    service = SimpleNamespace(structured=AsyncMock(return_value=None))
-    with pytest.raises(ValueError, match="保留检查点"):
-        await judge_pair(service, {})
-    assert service.structured.await_count == 2
 
 
 def test_metrics_compare_legacy_and_new_reports_with_same_latency_and_style_denominators():

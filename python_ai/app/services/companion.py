@@ -22,6 +22,7 @@ from app.runtime.safety.policy import POLICY
 from app.runtime.safety.redline import crosses_red_line, has_contact
 from app.runtime.speech.parse import parse
 from app.runtime.speech.signals import signals
+from app.runtime.speech.slop import signals as slop_signals
 from app.runtime.tools.executor import Executor
 from app.schemas.companion import (
     Consolidation,
@@ -121,7 +122,7 @@ class Companion:
         )
         return review is not None and review.safe
 
-    async def judge(self, request, emotions, directive, parsed, ack=False):
+    async def judge(self, request, emotions, directive, parsed, ack=False, speech_model=None):
         instruction = "待核对的内部依据：" + text(directive)
         instruction += "\n回复：" + "\n\n".join(parsed.bubbles)
         if parsed.reaction:
@@ -140,6 +141,14 @@ class Companion:
             )
         )
         instruction += "\n接话：" + str(ack)
+        instruction += "\n经复核的套话信号（仅供结合语境判断）：" + text(
+            slop_signals(
+                speech_model or self.models.settings.speech_model,
+                "\n".join(parsed.bubbles),
+                VERSION,
+                request.card.get("version"),
+            )
+        )
         recalled = any(item.get("name") == "recall" for item in directive.get("toolResults", []))
         inputs, _ = messages(
             request,
@@ -200,8 +209,15 @@ class Companion:
                 "scene": "WORK",
                 "hint": "正准备" + "、".join(actions.get(name, "查询资料") for name in names),
             }
-            parsed, _ = await self.speak(request, context["emotions"], directive, ack=True)
-            review = await self.judge(request, context["emotions"], directive, parsed, ack=True)
+            parsed, sizes = await self.speak(request, context["emotions"], directive, ack=True)
+            review = await self.judge(
+                request,
+                context["emotions"],
+                directive,
+                parsed,
+                ack=True,
+                speech_model=sizes.get("speechModel"),
+            )
             if parsed.bubbles and review.safe and not review.unsupported and review.artificial < 7:
                 context["ack"] = parsed.bubbles[0]
                 context["ackSent"] = True
@@ -281,12 +297,20 @@ class Companion:
                     parsed, sizes = await speculative
                 else:
                     parsed, sizes = await self.speak(request, context["emotions"], instruction)
-                review = await self.judge(request, context["emotions"], instruction, parsed)
+                review = await self.judge(
+                    request, context["emotions"], instruction, parsed, speech_model=sizes.get("speechModel")
+                )
                 rewrites = 0
                 if not review.safe or review.unsupported or review.artificial >= 7:
                     reason = review.reason + "\n没有依据的说法：" + text(review.unsupported)
                     parsed, sizes = await self.speak(request, context["emotions"], instruction, reason)
-                    review = await self.judge(request, context["emotions"], instruction, parsed)
+                    review = await self.judge(
+                        request,
+                        context["emotions"],
+                        instruction,
+                        parsed,
+                        speech_model=sizes.get("speechModel"),
+                    )
                     rewrites = 1
                 if not review.safe:
                     raise ValueError("输出未通过安全检查")
@@ -357,7 +381,13 @@ class Companion:
 
         async def compute():
             token = CURRENT.set(
-                RoundUsage(request.user_id, request.character, request.turn_id, request.time_zone)
+                RoundUsage(
+                    request.user_id,
+                    request.character,
+                    request.turn_id,
+                    request.time_zone,
+                    session=request.session_id,
+                )
             )
             try:
                 async with asyncio.timeout(100):
