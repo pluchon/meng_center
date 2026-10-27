@@ -1,7 +1,10 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
+
+from app.runtime.tools.facts import clean_result
 
 
 class Empty(BaseModel):
@@ -23,6 +26,8 @@ class ToolSpec:
     schema: type[BaseModel]
     progress: str
     timeout: float = 8
+    cache_seconds: int = 30
+    cleaner: Callable[[dict], dict] = clean_result
 
 
 TOOLS = {
@@ -33,9 +38,10 @@ TOOLS = {
             "确认资料缺失的过往事实；普通闲聊、情绪倾诉和角色设定问题不调用",
             Query,
             "在想以前聊过的事…",
+            cache_seconds=60,
         ),
         ToolSpec("search_posts", "按含义检索公开帖子", Query, "在翻帖子…", timeout=6),
-        ToolSpec("read_post", "读取一篇公开帖子的正文", Post, "在看帖子…", timeout=3),
+        ToolSpec("read_post", "读取一篇公开帖子的正文", Post, "在看帖子…", timeout=3, cache_seconds=60),
         ToolSpec("my_recent_posts", "读取当前用户最近公开的帖子", Empty, "在看你最近的帖子…", timeout=3),
         ToolSpec("my_growth", "读取当前用户成长数据", Empty, "在看你的成长记录…", timeout=3),
     )

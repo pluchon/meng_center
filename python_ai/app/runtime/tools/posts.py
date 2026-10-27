@@ -11,7 +11,6 @@ async def extract(service, rows, context):
     if result is None or any(f.index >= len(rows) for f in result.facts):
         raise ValueError("工具事实缺少依据")
     sources = [dict(postId=row["id"], title=row["title"]) for row in rows if "id" in row and "title" in row]
-    context["sources"].extend(sources)
     return {"facts": [clean(f.content) for f in result.facts], "sources": sources}
 
 

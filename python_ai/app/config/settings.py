@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Annotated
+
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -18,6 +20,7 @@ class Settings(BaseSettings):
     assist_model: str = "qwen3.8-flash"
     memory_model: str = "qwen3.8-flash"
     model_overrides: dict[str, dict] = Field(default_factory=dict)
+    tool_cache_seconds: dict[str, Annotated[int, Field(ge=0, le=3600)]] = Field(default_factory=dict)
     rerank_model: str = "qwen3.7-text-rerank"
     rerank_url: str = "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
     embedding_url: str = (
