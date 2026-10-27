@@ -48,7 +48,7 @@ npm --prefix verification ci
 | `node verification/Test-CompanionStream.mjs` | 奶糖助手前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
 | `node verification/Test-CompanionComposer.mjs` | 执行真实组件的 Vue 响应式交互，检查发送失败恢复文字与图片、保留新草稿、复用原消息编号和防止重复重试；不启动浏览器或调用模型 |
 | `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证奶糖助手迁移、旧数据隔离、删除旧表列、来源与窗口初始化、消息幂等键、outbox 唯一键和未发送图片的数量及过期筛选；结束删除验证库，不改业务库 |
-| `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、两个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败 |
+| `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、两个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败。离线开发已暂停记忆维护时显式使用 `-AllowPausedMemoryMaintenance`，其他约束保持不变 |
 | `./verification/Test-Companion.ps1 -SelectMouthModels -Smoke -Character NEKO -EvaluationTokenBudget <不超过30000> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 开发期真实接通检查：只用当前默认说话模型，奶糖五轮，不盲评，不生成质量或选型结论；本期最多三次，到额即停。默认说话模型关闭降级链；工具使用录制结果，不调用业务接口或真实生图，第五轮附带固定小图检查官方图片输入 |
 | `./verification/Test-Companion.ps1 -SelectMouthModels -Acceptance -EvaluationTokenBudget <仓库主人给定额度> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 仅在仓库主人明确要求验收后执行，本期一次；默认只评当前模型，奶糖35轮，输入来自固定匿名论坛语料；记录语料哈希和逐条来源。显式 `-CompareModel deepseek-v4-pro` 才增加候选；固定种子抽20组双裁判评分。有对照回答时交换顺序，无对照时只作绝对评分。`-Baseline <仓库外报告>` 与 `-ChangedVariable <唯一变量>` 同时指定，旧报告不重新生成 |
 | `./verification/Test-Companion.ps1 -EvaluateDecisions -Acceptance -EvaluationTokenBudget <额度> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号>` | 真实主 agent 配合虚构工具资料，检查站内工具、隐私、回忆、休息、越权、危机和孤独倾诉标签；另检查显式记忆与查询、操作请求的区别；按阶段限制验收次数，每个用例后保存用量与检查点，失败即停止，不访问真实网页或业务数据 |

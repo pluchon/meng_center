@@ -109,6 +109,8 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 companion 使用新增迁移 `V20261027001__naitang_assistant` 删除旧能力的表与列，并逻辑删除旧角色数据；IM 使用自己的迁移 `V20261027001__remove_companion_notice_targets` 清理旧陪伴通知及跳转字段。历史迁移保持原样。奶糖的一轮使用 LangGraph 状态图，主 agent、草稿与预审并行；站内审核共用同一个审核子图。接口与运行时规则见 [奶糖助手](../docs/meng.md) 和 [AI 公共运行时](../docs/ai-runtime.md)。
 
+`V20261027002__version_companion_memory_facts` 将记忆去重限定为当前有效事实，保留失效、取代和清空记录；`V20261027003__track_memory_embedding_model` 扩展向量版本字段，记录模型、维度和编码版本。模型或编码变化后，维护任务补齐向量，召回不混用不同版本。
+
 ## 搜索引擎
 
 Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。
@@ -137,3 +139,5 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 奶糖更新需要发布 `meng-companion.yml` 和 `meng-ai.yml`，并重新执行任务初始化，保留发件箱与记忆维护两个任务，停用其他旧任务。记忆向量按 `document` 编码，召回查询按 `query` 编码；版本不匹配的记忆向量由维护任务重算。content 的帖子向量通过管理员接口蓝绿重建。
 
 Windows 会锁定运行中的 JAR。更新时先停止对应实例，再打包并重新启动 companion、content、IM 和 Python AI；前端重新启动开发服务。`./verification/Test-CompanionDeployment.ps1` 只读核对进程和构建时间、迁移、表情目录、奶糖角色卡与示例、两个任务及执行器注册。开发验证不调用真实模型；真实冒烟和验收遵守运行时文档第 11.2 节。
+
+尚未授权真实模型调用时，在调度中心暂停 `companionMemoryMaintain`，防止补向量、摘要和记忆维护自动调用模型；发件箱任务保持启用。此时使用 `Test-CompanionDeployment.ps1 -AllowPausedMemoryMaintenance` 检查部署，脚本只允许维护任务暂停，不修改任务状态；默认检查仍要求两个任务启用。重新初始化任务会恢复启用，必须等模型验证阶段再执行。
