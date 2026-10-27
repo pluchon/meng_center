@@ -22,6 +22,7 @@ from app.runtime.safety.redline import crosses_red_line, has_contact
 from app.runtime.speech.parse import parse
 from app.runtime.speech.signals import signals
 from app.runtime.speech.slop import signals as slop_signals
+from app.runtime.tasks.registry import TASKS
 from app.runtime.tasks.structured import structured
 from app.runtime.tools.executor import Executor
 from app.schemas.companion import (
@@ -60,6 +61,8 @@ class Companion:
         self._emotions, self._emotion_expiry = [], 0
 
     async def structured(self, schema, prompt, payload, callback=None, purpose="judge", multimodal=False):
+        spec = next((spec for spec in TASKS.values() if spec.schema is schema), None)
+        purpose = spec.purpose if spec else purpose
         # 判断类保留数组、空值和嵌套归属；自然中文扁平化会混淆旧记忆与待审候选。
         content = (
             payload
@@ -76,13 +79,6 @@ class Companion:
                 [SystemMessage(prompt), HumanMessage(content)],
                 config={"callbacks": [callback] if callback else []},
             )
-
-    async def plain(self, purpose, prompt, payload):
-        async with self.models.semaphores[purpose]:
-            result = await getattr(self.models, purpose).ainvoke(
-                [SystemMessage(prompt), HumanMessage(payload)]
-            )
-        return result.content
 
     async def internal(self, service, path, params=None, post=False):
         if self.discovery is None:
@@ -293,7 +289,8 @@ class Companion:
         async with self.models.usage() as callback:
             result = await self.structured(
                 Consolidation,
-                "只整理给出的真实对话。用户事实只从USER提取，SELF只从CHARACTER提取；工具结果不能入记忆。"
+                "只整理给出的真实对话。用户事实只从USER提取，SELF只从CHARACTER的自身设定提取。"
+                "工具结果和角色转述的帖子资料都不能入记忆。"
                 "每个决定给出evidence，直接复制对应角色单条turns.content中的连续原文片段，"
                 "不加用户/角色标签、额外引号或省略号。与旧事实比对ADD/SUPERSEDE/INVALIDATE/NOOP，只引用给出的编号。"
                 "偏好和长期习惯必须由用户明确陈述，不把一次经历或当下感受扩大成稳定偏好。"

@@ -10,12 +10,13 @@ class Parsed:
 
 def parse(value, names, controls=(), character=""):
     result, lines = Parsed(), []
-    for line in value.strip().splitlines():
+    raw = value.strip().splitlines()
+    for index, line in enumerate(raw):
         line = line.strip()
         match = re.fullmatch(r"\[贴纸:([^\[\]\s]{1,12})\]", line)
         if match:
             name = match[1]
-            if "sticker" in controls and name in names and result.sticker is None:
+            if index == len(raw) - 1 and "sticker" in controls and name in names and result.sticker is None:
                 result.sticker = name
             continue
         # 不符合控制协议的行不进入可见文本。

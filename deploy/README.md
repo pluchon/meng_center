@@ -101,15 +101,13 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 `meng-content.yml` 配置上传目录、发帖间隔、每日上限和喜欢热度权重；`meng-growth.yml` 配置时区、奖励、每日上限及等级门槛。四个域各自管理 Flyway 迁移。消息服务使用 `V20261012001__create_im_tables` 建表，`meng-im.yml` 配置连接 Origin 和用户查询超时；私信存储目录只从 `MENG_IM_IMAGE_ROOT` 读取。成长事件交换机 `meng.growth.topic`，内容事件交换机 `meng.content.topic`；growth 消费发帖与评论事件，user 消费等级变更。
 
-## 萌萌服务
+## 奶糖助手服务
 
-`meng-companion` 监听 `127.0.0.1:8107`，网关入口为 `/companion/**`。首次使用依次执行 `Initialize-LocalEnvironment.ps1`、`Initialize-DomainDatabases.ps1`、`Publish-NacosConfiguration.ps1`，再打包并执行 `Start-Backend.ps1 -Service meng-companion`。已有数据卷原地新增 `meng_companion` 库及 `meng_companion_app`，只使用 `MENG_MYSQL_COMPANION_PASSWORD`，不修改已有账号或卷。
+`meng-companion` 监听 `127.0.0.1:8107`，网关入口为 `/companion/**`。首次使用依次执行 `Initialize-LocalEnvironment.ps1`、`Initialize-DomainDatabases.ps1`、`Publish-NacosConfiguration.ps1`，再打包并执行 `Start-Backend.ps1 -Service meng-companion`。已有数据卷原地新增 `meng_companion` 库及 `meng_companion_app`，凭据来自 `MENG_MYSQL_COMPANION_PASSWORD`。
 
-作品与私密对话图片保存到 `MENG_COMPANION_WORK_ROOT`，默认位于用户 LocalAppData 下。Flyway 创建角色、关系、会话、消息、记忆、作品、安全记录及私密图片记录；初始角色资料不引用占位图片文件。Python 继续共用 8106，不建立会话数据库。
+主页的奶糖助手只提供会话、长期记忆、私人图片和站内只读工具。新对话直接使用角色卡的固定开场白。角色卡与示例对白只有奶糖一套，由 `resources/companion/catalog.json` 按版本原子导入。私人图片目录来自 `MENG_COMPANION_WORK_ROOT`，保存在仓库外。
 
-同时更新 content 的 `V20261017001__add_public_author_snapshot`，供萌萌只读工具使用公开昵称快照，内部请求不再同步查询 user。工具只能查询公开帖子及当前用户成长数据。IM 消费 `companion.stage-reached`，系统频道的 `COMPANION` 类型表示萌萌通知。新增配置或路由后重启相应服务；companion 的业务阈值支持 Nacos 刷新。
-
-对话、安全和模型评测命令见 [萌萌文档](../docs/meng.md)。前端设计与立绘仍以画布 `meng_ai` 为准。
+companion 使用新增迁移 `V20261027001__naitang_assistant` 删除旧能力的表与列，并逻辑删除旧角色数据；IM 使用自己的迁移 `V20261027001__remove_companion_notice_targets` 清理旧陪伴通知及跳转字段。历史迁移保持原样。奶糖的一轮使用 LangGraph 状态图，主 agent、草稿与预审并行；站内审核共用同一个审核子图。接口与运行时规则见 [奶糖助手](../docs/meng.md) 和 [AI 公共运行时](../docs/ai-runtime.md)。
 
 ## 搜索引擎
 
@@ -134,25 +132,8 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 | `contentRecRankerTrain` | 周一 05:00 | 180 |
 | `userAiOutboxDispatch` | 每分钟 | 55 |
 | `companionOutboxDispatch` | 每分钟，重发未确认事件并恢复遗留轮次 | 55 |
-| `companionMemoryMaintain` | 每 10 分钟，补向量、回忆卡和过期清理 | 500 |
-| `companionPromiseNotify` | 每 5 分钟，按用户当地日期检查约定 | 240 |
+| `companionMemoryMaintain` | 每 10 分钟，补记忆向量、空闲压缩、快照刷新和过期原文清理 | 500 |
 
-萌萌更新需要发布 `meng-companion.yml` 和 `meng-ai.yml`，并重新执行任务初始化以登记执行器及内部转发器。companion 的运行时迁移为 `V20261025001__companion_runtime_v2`；已经执行的三份 `V2026102300*` 迁移保留原始脚本以维持校验。content 执行 `V20261023001__ai_runtime_v2` 并导入表情目录。旧记忆保留，缺失或编码版本过旧的向量由维护任务分批重算。帖子向量需由管理员触发蓝绿重建，完成切换后才启用新编码查询。前后端应一起更新。
+奶糖更新需要发布 `meng-companion.yml` 和 `meng-ai.yml`，并重新执行任务初始化，保留发件箱与记忆维护两个任务，停用其他旧任务。记忆向量按 `document` 编码，召回查询按 `query` 编码；版本不匹配的记忆向量由维护任务重算。content 的帖子向量通过管理员接口蓝绿重建。
 
-Windows 会锁定正在运行的 JAR，更新前先停止对应实例，再打包并重新启动 companion、IM 和 Python AI。仅通过单元测试或修改源码不表示业务实例已经更新。角色卡和台词内容由 companion 启动时从 `resources/companion/catalog.json` 按版本导入，历史 Flyway 文件不修改；内容编辑只更新 JSON 与版本号。更新后执行 `./verification/Test-CompanionDeployment.ps1`，核对迁移记录、24 项表情目录、当前内容版本的 45 组场景台词、三个任务、执行器注册及进程是否晚于构建产物。
-
-内容服务的官方执行器绑定所有网卡，端口 9102；注册地址仍是 `http://127.0.0.1:9102/`。Compose 不映射或开放执行器端口，`xxl-job-bridge` 只在调度中心容器的回环地址转发到宿主机。宿主机防火墙应阻止外部访问 9102，不为它创建对外放行规则；执行器还强制校验环境变量令牌，空值和 `default_token` 会使内容服务启动失败。Nacos 只保存调度地址、执行器端口、注册地址和日志路径，不能覆盖令牌。
-
-调度中心停机不影响内容服务启动和普通请求。执行器日志保留七天，位于 `MENG_CONTENT_IMAGE_ROOT` 相邻的 `job-logs` 目录；调度中心日志在 Docker 卷中。重启调度中心容器后也重启 `xxl-job-bridge`，使其重新共享调度中心网络空间。
-
-user 执行器同样要求环境令牌，端口 9101，内部转发器为 `xxl-job-user-bridge`，日志在头像目录相邻的 `user-job-logs`。重启调度中心时两个转发器都需重启。
-
-## AI 计算服务
-
-安装 uv 后，在仓库根目录执行 `./deploy/scripts/Start-Ai.ps1`；脚本按 `uv.lock` 安装 Python 3.12 依赖，随后监听 `127.0.0.1:8106`，健康接口为 `/actuator/health`。凭据只读取环境变量，服务注册名 `meng-ai`，Group `MENG_GROUP`。无需建立 AI 数据库，也不为它开放网关路由。
-
-content / user 的新增 Flyway 迁移分别为 `V20261016004__add_ai_content`、`V20261016002__add_profile_ai_review`，随新服务启动执行。同步发布 content / growth / user 的 Nacos 配置，更新 ES 向量索引权限并初始化上述任务。两个审核 enforce 开关默认 false，管理页面落地前保持关闭；推荐排序默认 MANUAL。Python 停机不阻塞发帖，事务 outbox 和持久队列保留分析请求，恢复后继续处理。
-
-模型、配额、蓝绿重建和评测说明见 [AI 域](../docs/ai.md)。`Start-Ai.ps1 -SkipSync` 仅省略启动前安装；`verification/Test-Ai.ps1` 不启动业务服务、不连接 MySQL。
-
-ES 故障不阻塞发帖和服务健康检查，搜索降级为标题包含查询。索引同步使用单线程、有界队列和三次重试；失败只记录帖子 ID，下次重建修复。批量重建与实时写入在进程内串行写同一索引，搜索读取不持有写锁。
+Windows 会锁定运行中的 JAR。更新时先停止对应实例，再打包并重新启动 companion、content、IM 和 Python AI；前端重新启动开发服务。`./verification/Test-CompanionDeployment.ps1` 只读核对进程和构建时间、迁移、表情目录、奶糖角色卡与示例、两个任务及执行器注册。开发验证不调用真实模型；真实冒烟和验收遵守运行时文档第 11.2 节。

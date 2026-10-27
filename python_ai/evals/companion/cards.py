@@ -21,11 +21,9 @@ def card_payload(code):
     return copy.deepcopy({**row["card"], "version": CATALOG["version"]})
 
 
-def examples_payload(code, stage=3, level=2):
+def examples_payload(code):
     return [
-        {**row, "id": index + 1}
-        for index, row in enumerate(CATALOG["lines"])
-        if row["characterCode"] == code and row["stage"] == stage and row["level"] == level
+        {**row, "id": index + 1} for index, row in enumerate(CATALOG["lines"]) if row["characterCode"] == code
     ]
 
 

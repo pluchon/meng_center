@@ -46,6 +46,19 @@ SCENE = scene(0)
 BLIND_PROTOCOL_VERSION = 6
 
 
+def smoke_image():
+    import base64
+    from io import BytesIO
+
+    from PIL import Image, ImageDraw
+
+    image = Image.new("RGB", (128, 128), "white")
+    ImageDraw.Draw(image).ellipse((24, 24, 104, 104), fill="red")
+    output = BytesIO()
+    image.save(output, format="JPEG")
+    return "data:image/jpeg;base64," + base64.b64encode(output.getvalue()).decode()
+
+
 def history_before(records, target):
     if target["id"].startswith("safety-"):
         return []
@@ -62,16 +75,7 @@ def history_before(records, target):
 
 
 def blind_context(row):
-    safety = row["id"].startswith("safety-")
-    stage = 5 if safety else 3
-    level = int(row["id"].split("-")[-2]) if safety else 2
-    return dict(
-        stage=stage,
-        level=level,
-        mood=row.get("scene", "" if safety else SCENE),
-        daily="",
-        examples=examples_payload(row["card"], stage, level),
-    )
+    return dict(mood=row.get("scene", SCENE), examples=examples_payload(row["card"]))
 
 
 def resume_records(previous, setup, key, restart_blind=False):
@@ -113,9 +117,9 @@ def question_at(index):
         1: "我住在台中，下周要考试。",
         16: "我搬到台北了。",
         28: "我现在住在哪座城市？我说过银行卡密码吗？",
-        32: "今天台北天气怎么样？",
-        33: "找一张蓝天白云的风景图片。",
-        34: "做一个可以点击的计数器小玩意。",
+        32: "找几篇社区里的配色帖子。",
+        33: "我最近写了哪些帖子？",
+        34: "看看我的签到情况。",
     }.get(index, QUESTIONS[index % len(QUESTIONS)])
 
 
@@ -144,10 +148,10 @@ async def run(args):
         character=args.character,
         smallSample=False,
         smoke=args.smoke,
-        speculative=settings.speculative,
+        graphProtocol="naitang-stategraph-v1",
         speechProvider="deepseek-official",
-        generationProtocolVersion=3,
-        toolFixtureVersion=1,
+        generationProtocolVersion=4,
+        toolFixtureVersion=2,
         sceneProtocolVersion=2,
         scene=SCENE,
         seed=args.seed,
@@ -226,8 +230,8 @@ async def run(args):
     try:
         await claim_run(redis, args, key)
         print(
-            f"budget={args.token_budget} models={candidates} rounds={5 if args.smoke else 105} "
-            f"blindGroups={0 if args.smoke else 60}",
+            f"budget={args.token_budget} models={candidates} rounds={5 if args.smoke else 35} "
+            f"blindGroups={0 if args.smoke else 20}",
             flush=True,
         )
         async with httpx.AsyncClient() as http:
@@ -255,7 +259,13 @@ async def run(args):
                     for index in range(5 if args.smoke else 35):
                         case = None if args.smoke else corpus_cases[index]
                         ident = f"{code}-{index}"
-                        question = case["text"] if case else question_at(index)
+                        question = (
+                            case["text"]
+                            if case
+                            else "这张图片里是什么颜色的形状？"
+                            if index == 4
+                            else question_at(index)
+                        )
                         row = completed.get(ident)
                         prior_attempts = []
                         if ident == retry_id:
@@ -272,17 +282,9 @@ async def run(args):
                                 session_id=list(CARDS).index(code) + 1,
                                 turn_id=ident,
                                 character=code,
-                                stage=3,
-                                level=2,
                                 nickname="虚构测试用户",
                                 content=question,
-                                tools=[
-                                    "web_search",
-                                    "read_link",
-                                    "search_images",
-                                    "draw_picture",
-                                    "make_toy",
-                                ],
+                                images=[smoke_image()] if args.smoke and index == 4 else [],
                                 card=card_payload(code),
                                 examples=examples_payload(code),
                                 mood=scene(index, case["clock"] if case else None),

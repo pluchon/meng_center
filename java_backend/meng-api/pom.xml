@@ -4,5 +4,5 @@
     >meng-center</artifactId><version>0.1.0-SNAPSHOT</version><relativePath
     >../pom.xml</relativePath></parent><artifactId
   >meng-api</artifactId><packaging>pom</packaging><modules><module
-    >meng-api-user</module><module>meng-api-content</module><module>meng-api-growth</module>  <module>meng-api-companion</module>
+    >meng-api-user</module><module>meng-api-content</module><module>meng-api-growth</module>
   </modules></project>

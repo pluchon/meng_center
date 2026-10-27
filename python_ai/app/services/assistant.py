@@ -10,6 +10,7 @@ from app.clients.cover_image import CoverImageClient
 from app.clients.models import ModelFactory
 from app.graphs import cover, moderation, post_analysis
 from app.graphs.post_analysis import Context
+from app.prompts.templates import TASKS as PROMPTS
 from app.prompts.templates import VERSION
 from app.runtime.tasks.registry import TASKS, payload
 from app.runtime.tasks.structured import build_chain
@@ -39,7 +40,7 @@ class Assistant:
                 getattr(models, spec.purpose), spec.schema, name, models.settings.structured_method
             )
             for name, spec in TASKS.items()
-            if name not in {"retrieval", "moderate_image", "moderate_confirm"}
+            if name in PROMPTS
         }
         models.task_chains = self.chains
 

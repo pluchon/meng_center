@@ -20,7 +20,6 @@ import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 import PageState from '@/components/page-state/PageState.vue'
 // 每种通知对应的小图标
 const typeIcons = {
-  [NoticeType.COMPANION_STAGE_REACHED]: authHeartIcon,
   [NoticeType.POST_COMMENT]: authCodeIcon,
   [NoticeType.COMMENT_REPLY]: authCodeIcon,
   [NoticeType.COMMENT_MENTION]: authCodeIcon,

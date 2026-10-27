@@ -9,13 +9,12 @@ from langchain.agents.middleware import (
     wrap_model_call,
 )
 from langchain.agents.structured_output import ToolStrategy
-from langchain.tools import ToolRuntime, tool
 from pydantic import model_validator
 
 from app.runtime.agent.directive import Directive, validate
 from app.runtime.context.companion import messages
 from app.runtime.models.retry import transient
-from app.runtime.tools.registry import TOOLS
+from app.runtime.tools.registry import TOOLS, declare
 
 ACTIVE: ContextVar[dict | None] = ContextVar("agent_context", default=None)
 
@@ -57,19 +56,6 @@ async def bound_call(request, handler):
         request = request.override(tools=[])
     async with context["service"].models.semaphores["agent"]:
         return await handler(request)
-
-
-def declare(spec):
-    @tool(spec.name, description=spec.description, args_schema=spec.schema)
-    async def execute(runtime: ToolRuntime[Context], **kwargs):
-        context = runtime.context.data
-        result = await context["service"].executor.execute(
-            {"id": runtime.tool_call_id, "name": spec.name, "args": kwargs}, context
-        )
-        context.setdefault("toolResults", []).append({"name": spec.name, **result})
-        return result
-
-    return execute
 
 
 class Agent:

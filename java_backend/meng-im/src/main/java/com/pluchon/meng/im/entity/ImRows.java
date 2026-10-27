@@ -126,8 +126,6 @@ public final class ImRows {
         // 通知去重标识
         private String dedupeKey;
         // 萌萌通知的本人会话目标。
-        private String companionCode;
-        private Long companionSessionId;
         // 数据库 UTC 创建时间
         private LocalDateTime createTime;
         // 聚合互动人数

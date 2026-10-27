@@ -21,7 +21,15 @@ def limited(chain: Runnable, semaphore: asyncio.Semaphore) -> Runnable:
 
 
 def structured(model: Runnable, schema: type[BaseModel], method: str, attempts=2) -> Runnable:
-    return model.with_structured_output(schema, method=method).with_retry(
+    def validate(value):
+        if isinstance(schema, type) and issubclass(schema, BaseModel):
+            return schema.model_validate(value)
+        if value is None:
+            raise OutputParserException("缺少结构化输出")
+        return value
+
+    chain = model.with_structured_output(schema, method=method) | RunnableLambda(validate)
+    return chain.with_retry(
         stop_after_attempt=attempts,
         retry_if_exception_type=(OutputParserException, ValidationError),
     )

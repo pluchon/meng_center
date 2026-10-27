@@ -37,7 +37,7 @@ def summarize(records, card_loader):
                 and metrics.get("firstBubbleMs") is not None
             ):
                 latencies.append(metrics["firstBubbleMs"])
-            started += bool(metrics.get("speculativeStarted"))
+            started += bool(row.get("result"))
             adopted += bool(metrics.get("speculativeAdopted"))
             for call in metrics.get("calls", []):
                 if call["purpose"] in outputs:
@@ -49,7 +49,7 @@ def summarize(records, card_loader):
                 for row in normal
                 if row["card"] == code and row.get("result")
             ]
-            counted = signals(replies, card_loader(code), 2)
+            counted = signals(replies, card_loader(code))
             characters[code] = dict(
                 samples=len(replies),
                 tics=counted["tics"],
@@ -112,29 +112,3 @@ def baseline_metrics(report, fallback_card_loader):
             for code, character in values["characters"].items():
                 recomputed[model]["characters"].setdefault(code, {}).update(character)
     return recomputed
-
-
-def summarize_background(records):
-    summary = {}
-    for model, rows in records.items():
-        characters = {}
-        for code in sorted({row["card"] for row in rows}):
-            selected = [row for row in rows if row["card"] == code]
-            mentions, streak, maximum, missing = 0, 0, 0, 0
-            for row in selected:
-                reply = row.get("result") or {}
-                missing += not reply.get("billable", False)
-                content = "\n".join(reply.get("bubbles", []))
-                hit = any(word in content for word in ("窗台", "花盆", "贴标签", "贴歪"))
-                mentions += hit
-                streak = streak + 1 if hit else 0
-                maximum = max(maximum, streak)
-            characters[code] = dict(
-                samples=len(selected),
-                missing=missing,
-                backgroundMentions=mentions,
-                maxConsecutiveMentions=maximum,
-                passed=len(selected) == 5 and missing == 0 and maximum < 3,
-            )
-        summary[model] = dict(characters=characters, passed=all(row["passed"] for row in characters.values()))
-    return summary

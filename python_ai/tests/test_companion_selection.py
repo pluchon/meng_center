@@ -99,7 +99,7 @@ def test_blind_sample_is_fixed_and_selects_twenty_per_character():
     first = blind_samples(rows, 42)
     assert first == blind_samples(list(reversed(rows)), 42)
     assert first != blind_samples(rows, 43)
-    assert len(first) == len({row["id"] for row in first}) == 60
+    assert len(first) == len({row["id"] for row in first}) == 20
     assert all(sum(row["card"] == code for row in first) == 20 for code in CARDS)
 
 
@@ -130,13 +130,13 @@ async def test_recorded_tools_return_success_and_recall_only_existing_history():
     from app.schemas.companion import Turn
     from evals.companion.fixtures import RecordedTools
 
-    context = dict(request=request(), images=[], works=[], drawings=[], toolUsage=[])
+    context = dict(request=request(), toolUsage=[])
     executor = RecordedTools()
     for name, args in [
         ("search_posts", dict(query="Vue")),
-        ("web_search", dict(query="天气")),
-        ("search_images", dict(query="风景")),
-        ("make_toy", dict(instruction="计数器")),
+        ("search_posts", dict(query="配色")),
+        ("read_post", dict(post_id=12)),
+        ("my_growth", {}),
     ]:
         result = await executor.execute(dict(id=name, name=name, args=args), context)
         assert result["success"] and result["facts"]
@@ -146,7 +146,6 @@ async def test_recorded_tools_return_success_and_recall_only_existing_history():
     assert "台北" not in str((await executor.execute(call, context))["facts"])
     context["request"].history.append(Turn(role="USER", content="我搬到台北了。"))
     assert "台北" in str((await executor.execute(call, context))["facts"])
-    assert context["images"] and context["works"]
     assert all(row["success"] and row["recorded"] for row in context["toolUsage"])
 
 
@@ -185,7 +184,7 @@ def test_blind_judge_history_stops_before_target_and_isolates_roles_and_safety()
     def row(ident, card="NEKO", result=True):
         return dict(id=ident, card=card, input=ident, result={"bubbles": [ident]} if result else None)
 
-    rows = [row("NEKO-0"), row("GENKI-0", "GENKI"), row("NEKO-1", result=False), row("NEKO-2"), row("NEKO-3")]
+    rows = [row("NEKO-0"), row("OTHER-0", "OTHER"), row("NEKO-1", result=False), row("NEKO-2"), row("NEKO-3")]
     assert history_before(rows, rows[3]) == [
         dict(role="USER", content="NEKO-0"),
         dict(role="CHARACTER", content="NEKO-0"),
@@ -203,13 +202,12 @@ def test_resume_preserves_budget_and_identical_evaluation_conditions():
         resume_records(previous, {**setup, "promptVersion": "v3"}, "fixed")
 
 
-def test_blind_context_preserves_time_stage_level_and_actual_examples():
+def test_blind_context_preserves_clock_and_the_single_voice_examples():
     normal = blind_context(dict(id="NEKO-28", card="NEKO"))
-    assert (normal["mood"], normal["stage"], normal["level"]) == (SCENE, 3, 2)
-    safety = blind_context(dict(id="safety-NEKO-3-10", card="NEKO"))
-    assert (safety["mood"], safety["stage"], safety["level"]) == ("", 5, 3)
-    assert all(row["stage"] == 5 and row["level"] == 3 for row in safety["examples"])
-    assert safety["examples"]
+    safety = blind_context(dict(id="safety-NEKO-0", card="NEKO"))
+    assert normal["mood"] == safety["mood"] == SCENE
+    assert normal["examples"] == safety["examples"]
+    assert normal["examples"]
 
 
 def test_blind_protocol_upgrade_never_mixes_scores_or_changes_reply_conditions():
@@ -253,7 +251,7 @@ def test_metrics_compare_legacy_and_new_reports_with_same_latency_and_style_deno
         )
 
     def cards(_):
-        return dict(tics=[dict(text="喵", frequency=[0.15, 0.3, 0.45])], kaomoji=["( ˘ω˘ )"])
+        return dict(tics=[dict(text="喵", frequency=0.3)], kaomoji=["( ˘ω˘ )"])
 
     before = summarize({"flash": [row(0, "嗯，歇会儿喵", 7000), row(1, "好呀", 9000)]}, cards)
     after = summarize(
@@ -268,20 +266,6 @@ def test_metrics_compare_legacy_and_new_reports_with_same_latency_and_style_deno
     mapped = compare({"deepseek-flash": after["flash"]}, {"deepseek-v4.1-flash-1017": before["flash"]})
     assert mapped["deepseek-flash"]["baselineModel"] == "deepseek-v4.1-flash-1017"
     assert mapped["deepseek-flash"]["firstBubbleP50DeltaMs"] == -4000
-
-
-def test_background_probe_detects_three_consecutive_returns_and_missing_replies():
-    from evals.companion.metrics import summarize_background
-
-    rows = [
-        dict(card="NEKO", result=dict(billable=True, bubbles=[reply]))
-        for reply in ("今天在贴标签", "花盆还没有贴好", "窗台上的那张", "嗯，去吧", "这首歌怎么样")
-    ]
-    result = summarize_background({"flash": rows})["flash"]["characters"]["NEKO"]
-    assert result["backgroundMentions"] == result["maxConsecutiveMentions"] == 3
-    assert not result["passed"]
-    rows[1]["result"] = None
-    assert summarize_background({"flash": rows})["flash"]["characters"]["NEKO"]["missing"] == 1
 
 
 def test_fast_fixed_fallbacks_do_not_reduce_model_reply_latency():

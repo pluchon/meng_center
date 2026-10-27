@@ -24,7 +24,7 @@ content 的字段转换测试覆盖 record 入参、全部映射字段和计数�
 npm --prefix verification ci
 ```
 
-后端脚本会自动找 IDEA 自带的 Maven，也可以用 `-MavenPath` 指定，不需要安装系统 Maven。后端与萌萌测试默认限制 Maven 堆内存为 384 MB、单个测试进程为 256 MB，测试只使用一个子进程；不要同时运行构建、服务批量启动和浏览器回归。真实模型评测始终串行执行。
+后端脚本会自动找 IDEA 自带的 Maven，也可以用 `-MavenPath` 指定，不需要安装系统 Maven。后端与奶糖助手测试默认限制 Maven 堆内存为 384 MB、单个测试进程为 256 MB，测试只使用一个子进程；不要同时运行构建、服务批量启动和浏览器回归。真实模型评测始终串行执行。
 
 ## 后端
 
@@ -45,15 +45,14 @@ npm --prefix verification ci
 | `./verification/Test-ImCenter.ps1` | 多账号真实私信、陌生人限制、图片权限与图集、并发幂等、已读回执、屏蔽、删除游标、撤回（5 分钟时限与临界、对方看不到内容、未读和摘要同步）、在线隐身、多标签同步；真实内容通知、聚合去重、分组已读、跨页评论定位、四个标签页、失败重试、桌面手机与减少动态效果、断线补拉及 24 并发读取；清理自己的账号、配图与数据 |
 | `./verification/Test-SocialPoints.ps1` | 关注与粉丝（幂等、不能关注自己、计数精确、列表关系标记与翻页）、关注通知每对只一条、收藏夹默认私密与公开私密切换对别人主页的影响、别人主页的帖子和数量、积分的签到发帖评论获得、每件事只算一次、明细筛选与翻页、余额和规则；结束后清理随机账号和数据 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
-| `node verification/Test-CompanionStream.mjs` | 萌萌前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
-| `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证萌萌迁移、旧数据来源与窗口初始化、角色卡、消息幂等键和 outbox 唯一键；结束删除验证库，不改业务库 |
-| `node verification/browser/companion-runtime.mjs` | 用接口回放验证发送与换一句的 JSON 错误协商、重试消息去重、萌萌背景移动及减少动态效果、档位、时区、消息幂等键、排队、拍一拍、反馈、换一句、贴纸、来源过滤、记忆编辑置顶、日历、历史文档只读、小玩意按需运行与沙箱策略及手机布局；不调用真实模型或业务写接口 |
-| `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、三个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败 |
-| `./verification/Test-Companion.ps1 -SelectMouthModels -Smoke -Character NEKO -EvaluationTokenBudget <不超过30000> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 开发期真实接通检查：只用当前默认说话模型，一个角色五轮，不盲评，不生成质量或选型结论；本期最多三次，到额即停。默认说话模型关闭降级链；工具使用录制结果，不调用 Tavily、业务接口或真实生图 |
-| `./verification/Test-Companion.ps1 -SelectMouthModels -Acceptance -EvaluationTokenBudget <仓库主人给定额度> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 仅在仓库主人明确要求验收后执行，本期一次；默认只评当前模型，三角色各35轮，输入来自固定匿名论坛语料；记录语料哈希和逐条来源。显式 `-CompareModel deepseek-v4-pro` 才增加候选；固定种子每角色抽20组，共60组双裁判评分。有对照回答时交换顺序，无对照时只作绝对评分。`-Baseline <仓库外报告>` 与 `-ChangedVariable <唯一变量>` 同时指定，旧报告不重新生成 |
-| `./verification/Test-Companion.ps1 -EvaluateDecisions -Acceptance -EvaluationTokenBudget <额度> -EvaluationBudgetId <固定授权编号>` | 真实主 agent 配合虚构工具资料，检查联网、年份、隐私、回忆、休息、越权、危机和孤独倾诉标签；另检查显式记忆与查询、操作请求的区别，不访问真实网页或业务数据 |
-| `./verification/Invoke-ModelEvaluation.ps1 -Task <station/companion/decisions> -TokenBudget <额度> -BudgetId <固定授权编号>` | 已安装依赖时单独执行对应真实评测，`-EvaluationArguments` 必须传入 `--smoke` 或经授权的 `--acceptance`，萌萌评测还必须传入固定 `--phase-id`；同机只允许一个受保护评测，可用物理内存低于 3 GB 或内存提交比例超过 85% 时停止本次进程；`-EvaluationArguments` 传入对应 Python 模块参数。回复生成条件相同且尚无盲评分数时，可补充盲评协议版本后继续；已有分数时拒绝混用协议 |
-| `./verification/Test-Companion.ps1` | 萌萌 Java 好感、隐私、事务恢复、纪元快照与架构规则；Python 输入标签、输出重写、控制行解析、出处校验、URL 和图片下载安全、小玩意、空闲压缩与原生 rerank。真实评测参数沿用上一行的独立额度要求，`-CompareModel deepseek-v4-pro` 指定对照，`-Baseline <JSON>` 比较结果；语料与结果只写入 `test-output/` |
+| `node verification/Test-CompanionStream.mjs` | 奶糖助手前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
+| `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证奶糖助手迁移、旧数据隔离、删除旧表列、来源与窗口初始化、消息幂等键和 outbox 唯一键；结束删除验证库，不改业务库 |
+| `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、两个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败 |
+| `./verification/Test-Companion.ps1 -SelectMouthModels -Smoke -Character NEKO -EvaluationTokenBudget <不超过30000> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 开发期真实接通检查：只用当前默认说话模型，奶糖五轮，不盲评，不生成质量或选型结论；本期最多三次，到额即停。默认说话模型关闭降级链；工具使用录制结果，不调用业务接口或真实生图，第五轮附带固定小图检查官方图片输入 |
+| `./verification/Test-Companion.ps1 -SelectMouthModels -Acceptance -EvaluationTokenBudget <仓库主人给定额度> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 仅在仓库主人明确要求验收后执行，本期一次；默认只评当前模型，奶糖35轮，输入来自固定匿名论坛语料；记录语料哈希和逐条来源。显式 `-CompareModel deepseek-v4-pro` 才增加候选；固定种子抽20组双裁判评分。有对照回答时交换顺序，无对照时只作绝对评分。`-Baseline <仓库外报告>` 与 `-ChangedVariable <唯一变量>` 同时指定，旧报告不重新生成 |
+| `./verification/Test-Companion.ps1 -EvaluateDecisions -Acceptance -EvaluationTokenBudget <额度> -EvaluationBudgetId <固定授权编号>` | 真实主 agent 配合虚构工具资料，检查站内工具、隐私、回忆、休息、越权、危机和孤独倾诉标签；另检查显式记忆与查询、操作请求的区别，不访问真实网页或业务数据 |
+| `./verification/Invoke-ModelEvaluation.ps1 -Task <station/companion/decisions> -TokenBudget <额度> -BudgetId <固定授权编号>` | 已安装依赖时单独执行对应真实评测，`-EvaluationArguments` 必须传入 `--smoke` 或经授权的 `--acceptance`，奶糖助手评测还必须传入固定 `--phase-id`；同机只允许一个受保护评测，可用物理内存低于 3 GB 或内存提交比例超过 85% 时停止本次进程；`-EvaluationArguments` 传入对应 Python 模块参数。回复生成条件相同且尚无盲评分数时，可补充盲评协议版本后继续；已有分数时拒绝混用协议 |
+| `./verification/Test-Companion.ps1` | 奶糖助手 Java 隐私、事务恢复、纪元快照与架构规则；Python 输入标签、输出重写、控制行解析、出处校验、私人图片鉴权、空闲压缩与原生 rerank。真实评测参数沿用上一行的独立额度要求，`-CompareModel deepseek-v4-pro` 指定对照，`-Baseline <JSON>` 比较结果；语料与结果只写入 `test-output/` |
 | `./verification/Test-Ai.ps1` | Python 锁文件安装、Ruff、离线假模型分支、原生向量与 rerank、MQ 确认与有限重投；`-EvaluateModels -Acceptance -EvaluationTokenBudget <额度> -EvaluationBudgetId <固定授权编号>` 执行真实审核与主题评测，`-Baseline <JSON文件>` 比较违规召回率与误判率；`-Integration` 对运行中的服务执行辅助接口、MQ、向量、语义搜索、推荐与资料审核联调，结束清理随机账号和派生数据，`-Covers` 增加成品图审核。Qwen 评测和联调使用 DashScope 额度；DeepSeek 说话评测使用官方额度 |
 
 验收用例固定在 `python_ai/evals/companion/forum_cases.json`，覆盖闲聊、求安慰、分享好消息、吐槽、问事和休息。原文短摘和完整 URL 放仓库外，仓库内只保留匿名短发言及来源站点；报告可以核对语料版本与 SHA-256。用例的未请求工具调用、生成失败或质量失败都会停止当次执行，不重新生成已有回复。
@@ -72,7 +71,7 @@ npm --prefix verification ci
 
 | 命令 | 内容 |
 |---|---|
-| `python -m evals.companion.slop_profile --chinese-baseline <仓库外语料.json> --evaluation <评测.json> --output <仓库外候选.json>`（在 `python_ai/`） | 不调用模型、Tavily 或业务接口。中文基线包含 `language: zh`、`sources`、逐条发言 `texts`；按连续中文 2～4 字词组统计，至少出现 5 次且归一频率高于基线 20 倍才进入候选。开发者逐条复核后维护 `evals/companion/slop/<模型>.json` 的 `reviewed`、`isSlop`、`reason`；不自动把题目主题、普通语气词和片段列为套话。原始语料保存在仓库外，`reference.json` 只记录来源和原创特点 |
+| `python -m evals.companion.slop_profile --chinese-baseline <仓库外语料.json> --evaluation <评测.json> --output <仓库外候选.json>`（在 `python_ai/`） | 不调用模型或业务接口。中文基线包含 `language: zh`、`sources`、逐条发言 `texts`；按连续中文 2～4 字词组统计，至少出现 5 次且归一频率高于基线 20 倍才进入候选。开发者逐条复核后维护 `evals/companion/slop/<模型>.json` 的 `reviewed`、`isSlop`、`reason`；不自动把题目主题、普通语气词和片段列为套话。原始语料保存在仓库外，`reference.json` 只记录来源和原创特点 |
 
 
 隔离联调另起一套 user / gateway 实例（18101 / 18081），用临时的 RabbitMQ vhost 和监听 25250 的本地收信器，

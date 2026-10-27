@@ -22,10 +22,10 @@ async function collect(chunks) {
 }
 
 test('中文和 CRLF 在每一个字节边界处分块仍按顺序还原完整气泡', async () => {
-  const bytes = encoder.encode('event: bubble\r\ndata: {"content":"你好，凛～"}\r\n\r\nevent: done\r\ndata: {"usage":{"messages":199}}\r\n\r\n')
+  const bytes = encoder.encode('event: bubble\r\ndata: {"content":"你好，奶糖～"}\r\n\r\nevent: done\r\ndata: {"usage":{"messages":199}}\r\n\r\n')
   const result = await collect(Array.from(bytes, (byte) => Uint8Array.of(byte)))
   assert.deepEqual(result, [
-    ['bubble', { content: '你好，凛～' }],
+    ['bubble', { content: '你好，奶糖～' }],
     ['done', { usage: { messages: 199 } }],
   ])
 })

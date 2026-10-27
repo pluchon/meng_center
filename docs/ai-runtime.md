@@ -228,7 +228,7 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 
 ### 6.1 工具表
 
-工具在 `runtime/tools/` 里用 LangChain 的 `@tool` 声明，交给 `create_agent`；每个工具另登记进度文案、超时、结果清洗函数和缓存时长。**工具表每轮固定不变**。
+工具在 `runtime/tools/` 里用 LangChain 的 `@tool` 声明，交给 `create_agent`；每个工具登记进度文案与超时，工具内统一清洗结果。**工具表每轮固定不变**。
 
 | 工具 | 做什么 |
 |---|---|
@@ -443,7 +443,7 @@ START → plan（cover_plan 链）→ check（审核子图的文字节点）─�
 - 报告开头的 `usage` 按用途记录调用次数、输入与输出 token、已确认 token、没有收到用量的调用，以及授权累计扣减或预留 token。报告还包含基线哈希、生成条件、目录快照、口癖与颜文字比例、自我模仿、无工具首个气泡 P50、agent/judge 输出 token 和预跑采用率。
 - 盲评协议：有对照回答时，两个裁判各按 A/B、B/A 两种顺序评分，没有对照时各作一次绝对评分；单个维度前后偏好不同记平局，原始分数保留。每次调用前保存尝试次数，每个顺序完成即保存评分；格式错误只重试该次一次。解析协议变化后保留原回答，经仓库主人确认后才重新评分。
 - 已生成回复的延迟、口癖上限或颜文字指标未达标时，保存 `qualityFailures` 并停止，不进入盲评。
-- 套话表严格匹配提示词与目录版本；目录更新后保留旧表，新版本画像用后续验收评测的真实输出重新统计。
+- 套话表严格匹配提示词与目录版本；当前目录的奶糖套话表为未画像状态，`reviewed` 为空且不参与打分；新画像只使用获准验收后的奶糖输出。
 
 ## 12. 目录
 
@@ -456,14 +456,13 @@ python_ai/app/
 │   ├── context/     segments.py、companion.py（第 4.2、4.3 节的排列）、card.py（角色卡渲染）、form.py（形态抽样与语气提醒）
 │   ├── speech/      parse.py（第 5.1 节）、signals.py、grams.py、slop.py（复读与套话信号）
 │   ├── tools/       registry.py（@tool 声明与进度文案）、posts.py、growth.py、recall.py
-│   ├── retrieval/   rerank.py
 │   ├── safety/      redline.py、policy.py
 │   └── tasks/       registry.py、structured.py（唯一的结构化调用函数）
-├── chains/      各任务的提示词与链
+├── prompts/     各任务的提示词；链由 runtime/tasks/structured.py 构建
 └── clients/     models.py、rerank.py、embedding.py、cover_image.py（httpx，经网关计量）
 ```
 
-- 调用方向：`routes` / `consumers` → `services` → `graphs` / `chains` / `runtime` → `clients`。
+- 调用方向：`routes` / `consumers` → `services` → `graphs` / `runtime` → `clients`。
 - 依赖：`langchain`（`create_agent` 与中间件）、`langgraph`、`langchain-openai`、`pillow`（图片缩略），版本固定到小版本。
 
 ## 13. 实现约束
@@ -479,14 +478,7 @@ python_ai/app/
 
 按顺序做，每一步做完跑相关的离线测试：
 
-1. **删除旧萌萌能力**：联网搜索、读链接、找图、画图、小玩意、接话（ack）及其代码（`tools/web.py`、`images.py`、`toy.py`、`netguard.py`、`clients/tavily.py`）和配置（`TAVILY_API_KEY`）；删除 `openings`、`dailies`、`drawings`、`memory-reviews` 内部接口；删除多角色、好感、阶段、档位、心情、话题线、撤回、表情回应、拍一拍、近况线、回忆卡、约定相关的代码和提示词。
-2. **奶糖一轮改成第 3 节的图**：`create_agent` 子图、嘴预跑与预审分支、merge、respeak、judge、block、fallback；进度用 `get_stream_writer`；去掉手写的循环、队列和预跑取消逻辑。打分字段按第 3.3 节精简，主 agent 增加 `imageNote`。
-3. **站内图去重**：帖子分析和评论、资料审核共用第 9.3 节的审核子图；封面图改用子图的文字节点和审图节点；两套结构化调用函数合成 `runtime/tasks/structured.py`。
-4. **companion**：按 [meng.md](meng.md) 第 8、9 节改接口和数据，写一份新的 Flyway 迁移；角色卡和示例对白只留奶糖一套。
-5. **content**：`BLOCK` 的帖子不写向量；恢复帖子时重发分析；创作中心总结带上用户画像里的常写主题（[ai.md](ai.md) 第 11.2 节）。
-6. **前端**：删除萌萌页面和导航入口，主页加奶糖小助手（[meng.md](meng.md) 第 12 节）。
-7. **收尾**：同步 `README.md`、`deploy/README.md`、`verification/README.md` 和验证脚本；评测语料、套话表、`reference.json` 只留奶糖；全局搜索旧标识符（`TSUNDERE`、`GENKI`、`web_search`、`make_toy`、`draw_picture`、`affection`、`stage` 等）确认没有残留。
-8. **验证**：离线测试和前端构建通过；需要确认真实模型接通时，按第 11.2 节最多冒烟 3 次（含一次 DeepSeek 图片输入）；浏览器体验由仓库主人验收。
+- **验证**：离线测试和前端构建通过；需要确认真实模型接通时，按第 11.2 节最多冒烟 3 次（含一次 DeepSeek 图片输入）；浏览器体验由仓库主人验收。
 
 ### 以后
 

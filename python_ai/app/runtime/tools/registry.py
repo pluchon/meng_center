@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
 
 
@@ -23,16 +24,6 @@ class ToolSpec:
     progress: str
     timeout: float = 8
 
-    def declaration(self):
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.schema.model_json_schema(),
-            },
-        }
-
 
 TOOLS = {
     s.name: s
@@ -49,3 +40,16 @@ TOOLS = {
         ToolSpec("my_growth", "读取当前用户成长数据", Empty, "在看你的成长记录…", timeout=3),
     )
 }
+
+
+def declare(spec):
+    @tool(spec.name, description=spec.description, args_schema=spec.schema)
+    async def execute(runtime: ToolRuntime, **kwargs):
+        context = runtime.context.data
+        result = await context["service"].executor.execute(
+            {"id": runtime.tool_call_id, "name": spec.name, "args": kwargs}, context
+        )
+        context.setdefault("toolResults", []).append({"name": spec.name, **result})
+        return result
+
+    return execute

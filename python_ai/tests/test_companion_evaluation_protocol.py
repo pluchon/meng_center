@@ -314,7 +314,7 @@ def test_generation_fingerprint_allows_only_voice_tics_kaomoji_and_character_lin
     revised["lines"][0]["dialogue"]["character"] = "新的示例台词"
     monkeypatch.setattr(cards, "CATALOG", revised)
     assert generation_conditions(settings) == before
-    revised["characters"][0]["card"]["levels"][0]["form"]["question"] = 0.7
+    revised["characters"][0]["card"]["form"]["question"] = 0.7
     assert generation_conditions(settings) != before
 
 
@@ -355,7 +355,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
                     billable=mode != "failed",
                     model=self.models.settings.speech_model,
                     bubbles=[request.character, request.card["kaomoji"][0]],
-                    toolUsage=[dict(name="web_search")] if mode == "unexpected" else [],
+                    toolUsage=[dict(name="search_posts")] if mode == "unexpected" else [],
                     metrics=dict(
                         unsupported=0, artificial=1, firstBubbleMs=4000 if mode == "metrics" else 100
                     ),
@@ -364,7 +364,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
 
         async def structured(self, schema, prompt, payload):
             calls.append(self.models.settings.judge_model)
-            # 顺序交换后分数跟随内容，确保模型偏好一致；不同角色提供非恒定评分。
+            # 两个裁判返回相同的恒定分数；没有方差时不得把一致度当作验收门槛。
             base = list(cards.CARDS).index(payload.get("response", payload.get("responses", {}).get("A"))[0])
             if "response" in payload:
                 from evals.companion.blind import SingleScore
@@ -410,7 +410,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
         assert await select.run(args) == 1
         report = json.loads(output.read_text(encoding="utf-8"))
         assert report["stoppedReason"] == "MetricsNotMet" and not report["complete"]
-        assert not calls and len(generated) == 105 and report["qualityFailures"]
+        assert not calls and len(generated) == 35 and report["qualityFailures"]
         return
     await select.run(args)
     report = json.loads(output.read_text(encoding="utf-8"))
@@ -432,14 +432,16 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
         assert resumed["usage"]["invocationTokenLimit"] == 3000
         assert resumed["continuations"][0]["retryId"] == "NEKO-1"
         return
-    assert report["complete"] and len(report["pairs"]) == (0 if mode == "smoke" else 60)
-    assert len(generated) == {"smoke": 5, "single": 105, "comparison": 210}[mode]
-    assert len(calls) == {"smoke": 0, "single": 120, "comparison": 240}[mode]
+    assert report["complete"] and len(report["pairs"]) == (0 if mode == "smoke" else 20)
+    assert len(generated) == {"smoke": 5, "single": 35, "comparison": 70}[mode]
+    assert len(calls) == {"smoke": 0, "single": 40, "comparison": 80}[mode]
     assert set(calls) == (set() if mode == "smoke" else set(JUDGES))
     if mode == "smoke":
         assert report["metrics"] == {} and report["setup"]["candidates"] == ["deepseek-flash"]
     else:
-        assert all(row["usableAsGate"] for row in report["judgeAgreement"].values())
+        assert all(
+            row["spearman"] is None and not row["usableAsGate"] for row in report["judgeAgreement"].values()
+        )
     assert next(iter(report)) == "usage"
     assert report["comparison"] == {} and not report["comparisonProtocol"]["canConclude"]
     assert report["winner"] is None

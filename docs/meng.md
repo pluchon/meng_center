@@ -278,7 +278,7 @@
 | `companion_safety_event` | user_id、character_code、message_id、kind | 只记类型 |
 | `companion_image` | user_id、file_path | 用户上传的私人图片；只有本人能读 |
 
-- 结构变化放进一份新的 Flyway 迁移，不改历史文件：删除已经不用的表（`companion_character`、`companion_episode`、`companion_arc`、`companion_daily`、`companion_work`、`companion_drawing`、`companion_feedback`）和列（好感、阶段、档位、心情、话题线、撤回、表情回应、作品引用、网图来源等）；`TSUNDERE`、`GENKI` 的会话、消息和记忆按逻辑删除处理。项目没有上线，没有真实用户数据。
+- 结构变化放进一份新的 Flyway 迁移，不改历史文件：删除已经不用的表（角色展示、近况、作品及反馈表）和列（好感、阶段、档位、心情、话题线、撤回、表情回应、作品引用、网图来源等）；旧角色的会话、消息和记忆按逻辑删除处理。项目没有上线，没有真实用户数据。
 - `companion_bond.revision` 在清空记忆时递增：在途的整理结果提交前比对版本，防止清空后旧数据写回。
 - 用户消息先保存；`FAILED` 的轮次不进入后续上下文。
 

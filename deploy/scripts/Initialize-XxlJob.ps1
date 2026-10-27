@@ -57,11 +57,11 @@ WHERE NOT EXISTS(SELECT 1 FROM xxl_job_info WHERE job_group=@userGroup AND execu
 "@
     $sql+=@"
 INSERT INTO xxl_job_group(app_name,name,address_type,access_token,update_time)
-VALUES('meng-companion','萌萌服务',0,CONVERT(0x${tokenHex} USING utf8mb4),NOW())
+VALUES('meng-companion','奶糖助手',0,CONVERT(0x${tokenHex} USING utf8mb4),NOW())
 ON DUPLICATE KEY UPDATE access_token=VALUES(access_token),update_time=NOW();
 SET @companionGroup=(SELECT id FROM xxl_job_group WHERE app_name='meng-companion');
 "@
-    foreach($job in @(@{handler='companionOutboxDispatch';cron='0 * * * * ?';timeout=55},@{handler='companionMemoryMaintain';cron='0 */10 * * * ?';timeout=500},@{handler='companionPromiseNotify';cron='0 */5 * * * ?';timeout=240})) {
+    foreach($job in @(@{handler='companionOutboxDispatch';cron='0 * * * * ?';timeout=55},@{handler='companionMemoryMaintain';cron='0 */10 * * * ?';timeout=500})) {
         $handler=$job.handler;$cron=$job.cron;$timeout=$job.timeout
         $sql+=@"
 INSERT INTO xxl_job_info(job_group,name,author,schedule_type,schedule_conf,misfire_strategy,executor_route_strategy,executor_handler,executor_block_strategy,executor_timeout,executor_fail_retry_count,glue_type,trigger_status,add_time,update_time,glue_updatetime)
@@ -71,6 +71,7 @@ UPDATE xxl_job_info SET schedule_conf='${cron}',executor_timeout=${timeout},trig
 WHERE job_group=@companionGroup AND executor_handler='${handler}';
 "@
     }
+    $sql += "UPDATE xxl_job_info SET trigger_status=0,update_time=NOW() WHERE job_group=@companionGroup AND executor_handler NOT IN ('companionOutboxDispatch','companionMemoryMaintain');"
     $sql | & docker exec -i -e MYSQL_PWD $container mysql -uroot
     if($LASTEXITCODE -ne 0) {throw 'XXL tasks initialization failed.'}
 } finally { $env:MYSQL_PWD=$priorPassword;$sql=$null;$passwordHex=$null;$adminHex=$null;$tokenHex=$null }

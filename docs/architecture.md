@@ -63,8 +63,7 @@ java_backend/
 ├── meng-api/                所有域的对外契约
 │   ├── meng-api-user/
 │   ├── meng-api-content/
-│   ├── meng-api-growth/
-│   └── meng-api-companion/
+│   └── meng-api-growth/
 ├── meng-gateway/            网关
 ├── meng-user/               用户域
 ├── meng-content/            内容域

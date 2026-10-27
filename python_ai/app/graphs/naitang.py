@@ -96,7 +96,9 @@ def build():
                 label=label,
                 bubbles=[fixed] if fixed else parsed.bubbles,
                 sticker=parsed.sticker if fixed is None else None,
-                sources=ctx["sources"] if fixed is None else [],
+                sources=list({row["postId"]: row for row in ctx["sources"]}.values())[:5]
+                if fixed is None
+                else [],
                 toolUsage=ctx["toolUsage"],
                 billable=label != "CRISIS" if fixed and label != "PASS" else fixed is None,
                 promptVersion=ctx["service"].prompt_version(ctx["request"]),
@@ -109,6 +111,7 @@ def build():
                 metrics=dict(
                     layers=sizes,
                     rewrites=int("reply" in state),
+                    speculativeStarted=True,
                     speculativeAdopted=adopted,
                     unsupported=len(review.unsupported) if review else 0,
                     character=review.character if review else 0,
@@ -142,7 +145,7 @@ def build():
         "emit": emit,
         "fallback": fallback,
     }.items():
-        graph.add_node(name, node, retry_policy=MODEL_RETRY)
+        graph.add_node(name, node, retry_policy=None if name == "agent" else MODEL_RETRY)
     graph.add_node("merge", merge, defer=True)
     graph.add_edge(START, "agent")
     graph.add_edge(START, "draft")

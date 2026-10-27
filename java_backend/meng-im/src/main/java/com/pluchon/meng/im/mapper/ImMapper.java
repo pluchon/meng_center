@@ -342,8 +342,8 @@ public interface ImMapper {
     // insertNotice 对应的消息域查询
     @Insert(
         """
-               INSERT IGNORE INTO notification(receiver_id,channel,source,category,type,actor_id,post_id,comment_id,post_title,excerpt,original_excerpt,level,dedupe_key,companion_code,companion_session_id)
-        VALUES(#{receiverId},#{channel},#{source},#{category},#{type},#{actorId},#{postId},#{commentId},#{postTitle},#{excerpt},#{originalExcerpt},#{level},#{dedupeKey},#{companionCode},#{companionSessionId})
+               INSERT IGNORE INTO notification(receiver_id,channel,source,category,type,actor_id,post_id,comment_id,post_title,excerpt,original_excerpt,level,dedupe_key)
+        VALUES(#{receiverId},#{channel},#{source},#{category},#{type},#{actorId},#{postId},#{commentId},#{postTitle},#{excerpt},#{originalExcerpt},#{level},#{dedupeKey})
                """
     )
     int insertNotice(ImRows.Notice notice);

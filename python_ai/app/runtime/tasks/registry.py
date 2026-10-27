@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+from app.schemas.companion import Consolidation, ConsolidationReview, SessionSummary, SummaryReview
 from app.schemas.models import (
     CoverPlan,
     GrowthSummary,
@@ -33,6 +34,10 @@ TASKS = {
     "cover_plan": TaskSpec("writer", CoverPlan, temperature=0.7, timeout=15),
     "growth": TaskSpec("assist", GrowthSummary),
     "creator": TaskSpec("assist", Summary),
+    "memory_consolidate": TaskSpec("memory", Consolidation),
+    "memory_review": TaskSpec("judge", ConsolidationReview),
+    "summary": TaskSpec("memory", SessionSummary),
+    "summary_review": TaskSpec("judge", SummaryReview),
     "retrieval": TaskSpec("rerank", dict, fallback="vector"),
 }
 

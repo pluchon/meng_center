@@ -40,7 +40,7 @@ def generation_conditions(settings):
         models={name: json.loads(json.dumps(asdict(spec))) for name, spec in registry(settings).items()},
         baseUrl=settings.base_url,
         structuredMethod=settings.structured_method,
-        speculative=settings.speculative,
+        graphProtocol="naitang-stategraph-v1",
     )
 
 
@@ -79,7 +79,7 @@ def comparison_status(plan, current_setup, previous):
         "character",
         "smallSample",
         "smoke",
-        "speculative",
+        "graphProtocol",
         "speechProvider",
         "generationConditions",
         "generationProtocolVersion",

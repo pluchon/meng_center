@@ -15,36 +15,10 @@
       "file": "neko-original.pdf",
       "url": "https://ir.library.osaka-u.ac.jp/repo/ouka/all/73320/gb_110_029.pdf",
       "sha256": "e97a1440124c223a69b3b4aececc087a61ad09731c17d142eef31b7f5cba575b"
-    },
-    {
-      "file": "tsundere-original.pdf",
-      "url": "https://www2.ic.daito.ac.jp/jtogashi/articles/togashi2009a.pdf",
-      "sha256": "87695187de61477dcb40aca23a0b4e613a7a8ceacd114cf3146beaf27569b739"
-    },
-    {
-      "file": "genki-original.html",
-      "url": "https://booth.pm/en/items/6367265",
-      "sha256": "1e0d2eb7e463a77db15a9ff503c04d17e94c887e591ab4e62ecabe330785ad1f"
     }
   ],
   "interpretation": "以下是资料启发后的原创中文角色写法，不是日文原文翻译或对真人群体的概括；仅用于角色卡和台词。",
   "voices": {
-    "TSUNDERE": {
-      "features": [
-        "意见和关心形成局部反差，而非每句否认好意",
-        "迟疑与结巴只出现在掩饰时",
-        "反问之后仍表达具体好意"
-      ],
-      "source": "https://www2.ic.daito.ac.jp/jtogashi/articles/togashi2009a.pdf"
-    },
-    "GENKI": {
-      "features": [
-        "反应迅速，以短应答、感叹和笑声改变节奏",
-        "普通说话与兴奋、低落都有变化",
-        "不把热情写成持续鼓励或连续追问"
-      ],
-      "source": "https://booth.pm/en/items/6367265"
-    },
     "NEKO": {
       "features": [
         "猫语尾属于角色表达手段，不能取代具体内容",

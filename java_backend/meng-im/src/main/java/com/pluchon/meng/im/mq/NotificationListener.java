@@ -18,66 +18,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class NotificationListener {
 
-    @RabbitListener(queues = "meng.im.companion.stage-reached")
-    public void companionStage(
-        EventEnvelope<com.pluchon.meng.api.companion.event.StageReachedEvent> event
-    ) {
-        check(event, "companion.stage-reached");
-        var body = event.body();
-        var row = new ImRows.Notice();
-        row.setReceiverId(body.userId());
-        row.setChannel(Channel.SYSTEM);
-        row.setCategory("COMPANION");
-        row.setType(NoticeType.COMPANION_STAGE_REACHED);
-        row.setExcerpt(
-            "你和" +
-                body.characterName() +
-                "的关系到了「" +
-                body.stageName() +
-                "」"
-        );
-        row.setDedupeKey("companion-stage:" + event.eventId());
-        row.setCompanionCode(body.characterCode());
-        notices.receive(row);
-    }
-
-    @RabbitListener(queues = "meng.im.companion.promise-due")
-    public void companionPromise(
-        EventEnvelope<com.pluchon.meng.api.companion.event.PromiseDueEvent> event
-    ) {
-        check(event, "companion.promise-due");
-        var body = event.body();
-        var row = new ImRows.Notice();
-        row.setReceiverId(body.userId());
-        row.setChannel(Channel.SYSTEM);
-        row.setCategory("COMPANION");
-        row.setType(NoticeType.COMPANION_PROMISE_DUE);
-        row.setCompanionCode(body.characterCode());
-        row.setExcerpt(
-            body.characterName() + "记着今天的约定：" + body.content()
-        );
-        row.setDedupeKey("companion-promise:" + body.memoryId());
-        notices.receive(row);
-    }
-
-    @RabbitListener(queues = "meng.im.companion.drawing-finished")
-    public void companionDrawing(
-        EventEnvelope<com.pluchon.meng.api.companion.event.DrawingFinishedEvent> event
-    ) {
-        check(event, "companion.drawing-finished");
-        var body = event.body();
-        var row = new ImRows.Notice();
-        row.setReceiverId(body.userId());
-        row.setChannel(Channel.SYSTEM);
-        row.setCategory("COMPANION");
-        row.setType(NoticeType.COMPANION_DRAWING_FINISHED);
-        row.setCompanionCode(body.characterCode());
-        row.setCompanionSessionId(body.sessionId());
-        row.setExcerpt(body.characterName() + "画好了「" + body.title() + "」");
-        row.setDedupeKey("companion-drawing:" + body.workId());
-        notices.receive(row);
-    }
-
     @RabbitListener(
         queues = {
             "meng.im.post.review-changed",
