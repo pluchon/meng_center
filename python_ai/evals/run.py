@@ -15,6 +15,8 @@ from app.graphs.moderation import confirm_content
 from app.runtime.tasks.structured import TaskRuntime
 from app.schemas.models import Moderation, Understanding
 from evals.companion.budget import EvaluationGateway, claim_run, evaluation_settings, save_checkpoint
+from evals.retrieval.calibrate import calibrate
+from evals.retrieval.collect import collect as collect_retrieval
 
 LOG = logging.getLogger(__name__)
 
@@ -41,6 +43,7 @@ async def evaluate(args) -> None:
     correct = blocked = caught = false_positive = normal = topic_hits = topic_total = total = 0
     reviews = overturned = 0
     records = []
+    retrieval = {}
 
     async def checkpoint(complete=False, **extra):
         await save_checkpoint(
@@ -50,6 +53,7 @@ async def evaluate(args) -> None:
                 complete=complete,
                 budgetKey=key,
                 records=records,
+                **({"retrieval": retrieval} if retrieval else {}),
                 **extra,
             ),
         )
@@ -99,6 +103,13 @@ async def evaluate(args) -> None:
                     )
                 await checkpoint()
                 print(f"station task={task} sample={total + topic_total}", flush=True)
+        if getattr(args, "with_retrieval", False):
+            await collect_retrieval(models, retrieval, checkpoint)
+            retrieval["calibration"] = calibrate(
+                retrieval, settings.rerank_thresholds, models.rerank.spec.model
+            )
+            if any(row["recommended"] is None for row in retrieval["calibration"]["scenes"].values()):
+                raise ValueError("重排阈值在独立验证集退化，保留检查点并停止")
         metrics = {
             "accuracy": correct / total,
             "blockRecall": caught / max(1, blocked),
@@ -136,4 +147,7 @@ if __name__ == "__main__":
     parser.add_argument("--budget-id", required=True)
     parser.add_argument("--acceptance", action="store_true")
     parser.add_argument("--phase-id", required=True)
+    parser.add_argument(
+        "--with-retrieval", action="store_true", help="在同一验收预算内采集重排原始分数并离线校准"
+    )
     asyncio.run(evaluate(parser.parse_args()))

@@ -1,0 +1,36 @@
+{"id":"search-01","scene":"search","split":"calibration","query":"Vue 组件如何按需加载图表","documents":["用动态导入和异步组件延迟加载图表模块","Vue 页面更换字体的操作记录","水彩画里的云朵配色"],"relevant":[0]}
+{"id":"search-02","scene":"search","split":"calibration","query":"怎么制作 Godot 二段跳","documents":["在角色控制器中保存跳跃次数并在落地时重置","Godot 导入像素字体和标题图片","摄影镜头焦距选择"],"relevant":[0]}
+{"id":"search-03","scene":"search","split":"calibration","query":"Markdown 帖子怎么安全显示 HTML","documents":["渲染 Markdown 后用白名单清理危险标签和事件属性","Markdown 正文中插入目录的方法","手账贴纸收纳"],"relevant":[0]}
+{"id":"search-04","scene":"search","split":"calibration","query":"社区里有没有介绍陶艺电窑烧制的帖子","documents":["陶艺作品外观摄影技巧","烤箱做面包的温度记录","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"search-05","scene":"search","split":"calibration","query":"MySQL 怎么给邮箱唯一性加约束","documents":["归一化邮箱后给哈希列添加唯一索引","MySQL 全文搜索分词器配置","CSS 邮箱图标绘制"],"relevant":[0]}
+{"id":"search-06","scene":"search","split":"calibration","query":"周末适合玩的双人合作解谜游戏","documents":["整理双人协作机关与解谜关卡的游戏体验","单人动作游戏的隐藏结局","拼图相框制作"],"relevant":[0]}
+{"id":"search-07","scene":"search","split":"calibration","query":"相机夜景照片如何减少噪点","documents":["使用三脚架降低感光度并适当延长曝光","白天运动摄影的高速快门","音频降噪软件试用"],"relevant":[0]}
+{"id":"search-08","scene":"search","split":"calibration","query":"有没有讲贝斯换弦的教程","documents":["木吉他和弦练习心得","更换电脑键盘轴体","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"search-09","scene":"search","split":"validation","query":"如何避免分页后页面滚动位置丢失","documents":["为每一页保存滚动位置并在数据渲染后恢复","分页按钮更换图标颜色","照片裁剪位置选择"],"relevant":[0]}
+{"id":"search-10","scene":"search","split":"validation","query":"怎样做水彩透明叠色","documents":["等前一层干透后薄涂下一层，控制颜料与水的比例","不透明丙烯覆盖深色底稿","电脑显示器色温设置"],"relevant":[0]}
+{"id":"search-11","scene":"search","split":"validation","query":"Spring 事务失败后怎样避免消息提前发送","documents":["用事务发件箱保存事件，提交后再向消息队列发送","Spring 页面模板国际化配置","短信祝福文案收集"],"relevant":[0]}
+{"id":"search-12","scene":"search","split":"validation","query":"有没有天文望远镜赤道仪校准经验","documents":["星空照片后期调整心得","动画里的宇宙旅行推荐","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"related-01","scene":"related","split":"calibration","query":"给初学者的 Vue 异步组件实践","documents":["记录异步组件的加载占位与失败重试","Vue 标题栏图标替换","水族箱过滤器清理"],"relevant":[0]}
+{"id":"related-02","scene":"related","split":"calibration","query":"Godot 角色移动与地面检测","documents":["用角色控制器处理坡面移动和落地状态","Godot 自定义编辑器主题","动画人物服装设计"],"relevant":[0]}
+{"id":"related-03","scene":"related","split":"calibration","query":"雨天街头摄影的反光与构图","documents":["用街头水洼反射安排夜景照片构图","摄影包收纳隔层的改造","数据库连接池参数"],"relevant":[0]}
+{"id":"related-04","scene":"related","split":"calibration","query":"手工玻璃吹制入门笔记","documents":["透明塑料收纳盒改造","浏览器毛玻璃 CSS 效果","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"related-05","scene":"related","split":"calibration","query":"Markdown 帖子渲染中的安全边界","documents":["讨论富文本清洗和事件属性白名单","Markdown 标题目录样式","冬季围巾编织"],"relevant":[0]}
+{"id":"related-06","scene":"related","split":"calibration","query":"用 Redis 缓存公开帖子列表","documents":["讨论帖子变更后如何使列表缓存失效","Redis 终端字体配色","冰箱食物保存计划"],"relevant":[0]}
+{"id":"related-07","scene":"related","split":"calibration","query":"双人合作游戏里的沟通与分工","documents":["双人合作关卡中的角色分工和提示设计","单人竞速游戏的计时挑战","会议记录排版技巧"],"relevant":[0]}
+{"id":"related-08","scene":"related","split":"calibration","query":"传统漆器多层髹涂实践","documents":["木桌刷普通清漆的记录","数字绘画图层分组教程","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"related-09","scene":"related","split":"validation","query":"像素角色动画的走路循环","documents":["讨论像素角色走路循环中脚部接触帧","像素字体标点对齐","浏览器页面自动循环播放"],"relevant":[0]}
+{"id":"related-10","scene":"related","split":"validation","query":"用相册记录季节里的颜色","documents":["按季节整理照片色彩并制作小型摄影集","相册上传接口的鉴权","钢琴曲指法练习"],"relevant":[0]}
+{"id":"related-11","scene":"related","split":"validation","query":"小型网站怎样进行数据库迁移","documents":["分享 Flyway 新增迁移与升级前兼容性检查","网页背景色渐变动画","候鸟迁徙观察日记"],"relevant":[0]}
+{"id":"related-12","scene":"related","split":"validation","query":"合成器模块电路焊接入门","documents":["合成器音色搭配心得","机械键盘键帽清洁","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"recall-01","scene":"recall","split":"calibration","query":"我以前说过喜欢什么颜色","documents":["用户明确说喜欢浅蓝色","用户说最近在阅读数据库文章","角色说自己喜欢冰汽水"],"relevant":[0]}
+{"id":"recall-02","scene":"recall","split":"calibration","query":"我上次分享的绘画工具是什么","documents":["用户说水彩练习使用旅行固体颜料盒","用户说想观看绘画直播","用户说喜欢蓝色插画"],"relevant":[0]}
+{"id":"recall-03","scene":"recall","split":"calibration","query":"我提过正在做哪个项目吗","documents":["用户说正在制作 Godot 平台跳跃游戏","用户说朋友准备开发手机应用","角色提议做一个手账页面"],"relevant":[0]}
+{"id":"recall-04","scene":"recall","split":"calibration","query":"我说过养了一只猫吗","documents":["角色把自己叫作猫娘","用户说看了一段猫咪视频","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"recall-05","scene":"recall","split":"calibration","query":"我平时怎样保存读书笔记","documents":["用户说读完后会在 Markdown 文件记录短评","用户说朋友把笔记写在纸上","用户说想买一本新小说"],"relevant":[0]}
+{"id":"recall-06","scene":"recall","split":"calibration","query":"我说过常用什么键盘布局","documents":["用户明确说日常使用紧凑配列键盘","用户说今天看了一张键盘照片","角色说自己打字很慢"],"relevant":[0]}
+{"id":"recall-07","scene":"recall","split":"calibration","query":"我之前学的是哪种乐器","documents":["用户说最近在练习木吉他","用户说听朋友弹过钢琴","用户说喜欢一首动画歌曲"],"relevant":[0]}
+{"id":"recall-08","scene":"recall","split":"calibration","query":"我提到过最喜欢的咖啡豆产区吗","documents":["用户说今天想喝一杯咖啡","用户说朋友经营饮品店","用户没有提供与查询直接相关的内容"],"relevant":[]}
+{"id":"recall-09","scene":"recall","split":"validation","query":"我之前用哪种方式整理照片","documents":["用户说按年份和月份建相册文件夹","用户说想看摄影教程","角色说照片颜色很好看"],"relevant":[0]}
+{"id":"recall-10","scene":"recall","split":"validation","query":"我记得说过想完成哪个画画目标","documents":["用户明确说希望完成一组水彩四季插画","用户说朋友已经画完漫画","用户说今天看到漂亮的天空"],"relevant":[0]}
+{"id":"recall-11","scene":"recall","split":"validation","query":"我以前说喜欢哪类合作游戏","documents":["用户说喜欢双人解谜与协作机关游戏","用户说偶尔看竞速比赛直播","角色说想试试一款动作游戏"],"relevant":[0]}
+{"id":"recall-12","scene":"recall","split":"validation","query":"我说过最喜欢哪位作曲家吗","documents":["用户说周末听了一场音乐会","用户说朋友正在学习作曲","用户没有提供与查询直接相关的内容"],"relevant":[]}
