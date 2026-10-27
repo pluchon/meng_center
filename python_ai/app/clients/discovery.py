@@ -47,8 +47,6 @@ class Discovery:
                 "tokens_per_minute",
                 "model_queue_seconds",
                 "circuit_seconds",
-                "tavily_daily_credits",
-                "tavily_exclude_domains",
             } | {name for name in Settings.model_fields if name.endswith("_model")}
             if not isinstance(values, dict) or set(values) - allowed:
                 raise ValueError("AI 配置包含未知或不允许的字段")

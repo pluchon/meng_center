@@ -3,24 +3,16 @@ from __future__ import annotations
 import json
 
 from fastapi import APIRouter, Request
-from fastapi.responses import Response, StreamingResponse
+from fastapi.responses import StreamingResponse
 
 from app.schemas.companion import (
     ConsolidationRequest,
-    DailyRequest,
-    DrawingRequest,
     EmbeddingRequest,
-    MemoryReviewRequest,
     ReplyRequest,
     SummaryRequest,
 )
 
 router = APIRouter(prefix="/ai/internal/companion")
-
-
-@router.post("/openings")
-async def openings(body: dict, request: Request):
-    return await request.app.state.companion.opening(body)
 
 
 @router.post("/replies")
@@ -45,18 +37,3 @@ async def consolidations(body: ConsolidationRequest, request: Request):
 @router.post("/embeddings")
 async def embeddings(body: EmbeddingRequest, request: Request):
     return await request.app.state.companion.embeddings(body)
-
-
-@router.post("/dailies")
-async def dailies(body: DailyRequest, request: Request):
-    return await request.app.state.companion.daily(body)
-
-
-@router.post("/memory-reviews")
-async def memory_reviews(body: MemoryReviewRequest, request: Request):
-    return await request.app.state.companion.review_memory(body)
-
-
-@router.post("/drawings")
-async def drawings(body: DrawingRequest, request: Request):
-    return Response(await request.app.state.companion.drawing(body.instruction), media_type="image/png")

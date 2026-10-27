@@ -124,20 +124,6 @@ class EmbeddingRequest(Schema):
     time_zone: str = "Asia/Taipei"
 
 
-class DrawingRequest(Schema):
-    instruction: str = Field(min_length=1, max_length=2000)
-
-
-class OutputReview(Schema):
-    safe: bool
-
-
-class MemoryReviewRequest(Schema):
-    user_id: int = Field(gt=0)
-    character: str
-    content: str = Field(min_length=1, max_length=60)
-
-
 class SummaryRequest(Schema):
     previous: str = Field(default="", max_length=3000)
     turns: list[Turn] = Field(min_length=1)
@@ -145,27 +131,3 @@ class SummaryRequest(Schema):
 
 class SessionSummary(Schema):
     summary: str = Field(min_length=1, max_length=1500)
-
-
-class DailyRequest(Schema):
-    character: Character
-    card: dict
-    date: date
-    recent: list[str] = Field(default_factory=list, max_length=7)
-    mode: Literal["DAY", "ARC"] = "DAY"
-    week_start: date | None = None
-    outline: list[dict] = Field(default_factory=list, max_length=7)
-
-
-class ArcNode(Schema):
-    node: str = Field(min_length=1, max_length=120)
-    status: str = Field(min_length=1, max_length=60)
-
-
-class WeeklyArc(Schema):
-    outline: list[ArcNode] = Field(min_length=7, max_length=7)
-
-
-class DailyState(Schema):
-    status: str = Field(default="", max_length=60)
-    content: str = Field(min_length=1, max_length=120, description="一两句，她今天在做的事和心情")

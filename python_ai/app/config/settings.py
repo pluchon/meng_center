@@ -15,7 +15,6 @@ class Settings(BaseSettings):
     judge_model: str = "qwen3.8-flash"
     review_model: str = "qwen3.8-max"
     writer_model: str = "qwen3.8-max"
-    toy_model: str = "qwen3.8-max"
     assist_model: str = "qwen3.8-flash"
     memory_model: str = "qwen3.8-flash"
     model_overrides: dict[str, dict] = Field(default_factory=dict)
@@ -26,9 +25,6 @@ class Settings(BaseSettings):
     )
     rerank_thresholds: dict[str, float] = {"search": 0.35, "related": 0.4, "recall": 0.3, "web": 0.2}
     rerank_instructions: dict[str, str] = Field(default_factory=dict)
-    tavily_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="TAVILY_API_KEY")
-    tavily_daily_credits: int = Field(default=300, ge=1)
-    tavily_exclude_domains: list[str] = Field(default_factory=list)
     requests_per_minute: int = Field(default=1200, ge=1)
     tokens_per_minute: int = Field(default=1_000_000, ge=1)
     model_queue_seconds: float = Field(default=2, gt=0, le=10)

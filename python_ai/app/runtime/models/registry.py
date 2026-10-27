@@ -23,7 +23,6 @@ def registry(settings):
         "judge": ModelSpec(settings.judge_model, vision=True),
         "review": ModelSpec(settings.review_model, 0, 12, vision=True),
         "writer": ModelSpec(settings.writer_model, 0.7, 15, 3000, fallbacks=(flash,)),
-        "toy": ModelSpec(settings.toy_model, 0.3, 30, 8000),
         "assist": ModelSpec(settings.assist_model),
         "memory": ModelSpec(settings.memory_model, 0.2, 15, 3000),
         "vision": ModelSpec(settings.vision_model, 0, 12, vision=True),

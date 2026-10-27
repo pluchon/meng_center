@@ -77,8 +77,6 @@ class Agent:
                 await asyncio.gather(speculative, return_exceptions=True)
             # 未经审核不执行工具；本次工具调用本身需要明确的非危机上下文。
             async with asyncio.TaskGroup() as group:
-                if any(TOOLS[call["name"]].ack for call in calls) and not context.get("ackSent"):
-                    group.create_task(self.service.ack(context, [call["name"] for call in calls]))
                 pending = [group.create_task(self.service.executor.execute(call, context)) for call in calls]
             results = [task.result() for task in pending]
             for call, value in zip(calls, results, strict=True):
