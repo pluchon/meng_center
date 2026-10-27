@@ -158,7 +158,7 @@ public class CompanionOutbox {
                         .getFuture()
                         .get(3, TimeUnit.SECONDS);
                     if (
-                        !confirm.isAck() || correlation.getReturned() != null
+                        !confirm.ack() || correlation.getReturned() != null
                     ) throw new IllegalStateException(
                         "Companion event was not routed"
                     );
