@@ -1,6 +1,5 @@
 import { RouteName } from './names'
 export const routes = [
-  { path: '/meng/:character?', name: RouteName.MENG, component: () => import('@/views/meng/MengView.vue'), meta: { titleKey: 'meng.title', requiresAuth: true } },
   {
     path: '/messages',
     name: RouteName.MESSAGES,

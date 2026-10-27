@@ -17,7 +17,6 @@ export default {
   total: '共 {count} 条',
   POST: '帖子',
   GROWTH: '成长通知',
-  COMPANION: '萌萌通知',
   REPORT: '举报通知',
   APPROVAL: '审核通知',
   FOLLOW: '关注通知',
@@ -85,9 +84,6 @@ export default {
   welcome: '欢迎来到萌部落，一起分享喜欢的事物吧',
   toLevel: 'Lv.{level} {name}',
   action: {
-    COMPANION_STAGE_REACHED: '你和萌萌的关系变近了',
-    COMPANION_PROMISE_DUE: '她记着今天的约定',
-    COMPANION_DRAWING_FINISHED: '她画好了',
     POST_COMMENT: '评论了你的帖子',
     COMMENT_REPLY: '回复了你的评论',
     COMMENT_MENTION: '在评论里提到了你',

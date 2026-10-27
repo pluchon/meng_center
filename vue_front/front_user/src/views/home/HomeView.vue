@@ -154,6 +154,7 @@
         </div>
       </section>
     </div>
+    <NaitangAssistant />
   </CommunityLayout>
 </template>
 <script src="./HomeView.js"></script>

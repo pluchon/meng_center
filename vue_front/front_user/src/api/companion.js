@@ -1,6 +1,6 @@
 import request, { normalizeFailure, settleFailure } from './request'
 import { readCompanionStream } from './companionStream'
-import { CompanionError } from '@/constants/meng'
+import { CompanionError } from '@/constants/companion'
 const root = '/companion'
 export function companionTimeZone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'Asia/Taipei'
@@ -9,31 +9,13 @@ const headers = () => ({ 'X-Time-Zone': companionTimeZone() })
 const scoped = (config = {}) => ({ ...config, headers: { ...config.headers, ...headers() } })
 const silent = { silent: true }
 export const companionApi = {
-  characters: (config) => request.get(root + '/characters', scoped(config)),
-  sessions: (code, params, config) =>
-    request.get(root + '/characters/' + code + '/sessions', scoped({ ...config, params })),
-  createSession: (code) =>
-    request.post(root + '/characters/' + code + '/sessions', null, scoped(silent)),
-  deleteSession: (id, forget = false) =>
-    request.delete(root + '/sessions/' + id, scoped({ params: { forget } })),
+  sessions: (params, config) =>
+    request.get(root + '/sessions', scoped({ ...config, params, silent: true })),
+  createSession: () => request.post(root + '/sessions', null, scoped(silent)),
+  deleteSession: (id) => request.delete(root + '/sessions/' + id, scoped(silent)),
   messages: (id, params, config) =>
     request.get(root + '/sessions/' + id + '/messages', scoped({ ...config, params })),
-  memories: (code, config) =>
-    request.get(root + '/characters/' + code + '/memories', scoped(config)),
-  editMemory: (id, body) => request.patch(root + '/memories/' + id, body, scoped()),
-  deleteMemory: (id) => request.delete(root + '/memories/' + id, scoped()),
-  clearMemories: (code) => request.delete(root + '/characters/' + code + '/memories', scoped()),
-  level: (code, level) => request.put(root + '/characters/' + code + '/level', { level }, scoped()),
-  feedback: (id) => request.post(root + '/messages/' + id + '/feedback', null, scoped()),
-  calendar: (id) =>
-    request.get(
-      root + '/memories/' + id + '/calendar',
-      scoped({ responseType: 'blob', rawData: true }),
-    ),
-  reset: (code) => request.post(root + '/characters/' + code + '/reset', null, scoped()),
-  works: (params, config) => request.get(root + '/works', scoped({ ...config, params })),
-  work: (id, config) => request.get(root + '/works/' + id, scoped(config)),
-  deleteWork: (id) => request.delete(root + '/works/' + id, scoped()),
+  clearMemories: () => request.delete(root + '/memories', scoped(silent)),
   usage: () => request.get(root + '/usage', scoped(silent)),
   upload: (file) => {
     const body = new FormData()
@@ -42,21 +24,10 @@ export const companionApi = {
   },
 }
 export const companionImage = (id) => (import.meta.env.VITE_API_BASE || '') + root + '/images/' + id
-export const companionFile = (id) =>
-  (import.meta.env.VITE_API_BASE || '') + root + '/works/' + id + '/file'
-export const companionBlob = (id) =>
-  request.get(root + '/works/' + id + '/file', scoped({ responseType: 'blob', rawData: true }))
-
 // POST 流使用 Cookie；按 SSE 的事件边界解码，保留跨网络分块的中文和 CRLF。
 // 失败和 axios 走同一套处理（settleFailure）：未登录跳登录页，其余整理成带文案的错误交给聊天区展示。
 export async function sendCompanionMessage(id, body, { signal, onEvent }) {
   return streamCompanion(root + '/sessions/' + id + '/messages', body, { signal, onEvent })
-}
-export async function pokeCompanion(id, body, options) {
-  return streamCompanion(root + '/sessions/' + id + '/pokes', body, options)
-}
-export async function regenerateCompanionMessage(id, options) {
-  return streamCompanion(root + '/messages/' + id + '/regeneration', null, options)
 }
 async function streamCompanion(path, body, { signal, onEvent }) {
   let response
@@ -73,7 +44,7 @@ async function streamCompanion(path, body, { signal, onEvent }) {
       body: JSON.stringify(body),
     })
   } catch {
-    if (signal.aborted) throw { cancelled: true }
+    if (signal?.aborted) throw { cancelled: true }
     throw await settleFailure(0, {}, silent)
   }
   if (!response.ok)

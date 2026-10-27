@@ -12,7 +12,7 @@ import im from './zh-CN/im'
 import account from './zh-CN/account'
 import viewer from './zh-CN/viewer'
 import ai from './zh-CN/ai'
-import meng from './zh-CN/meng'
+import companion from './zh-CN/companion'
 export const i18n = createI18n({
   legacy: false,
   locale: 'zh-CN',
@@ -32,7 +32,7 @@ export const i18n = createI18n({
       account,
       viewer,
       ai,
-      meng,
+      companion,
     },
   },
 })

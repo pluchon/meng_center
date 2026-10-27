@@ -1,7 +1,7 @@
 export const Companion = Object.freeze({
-  CHARACTERS: ['TSUNDERE', 'GENKI', 'NEKO'],
   MAX_LENGTH: 1000,
   MAX_IMAGES: 3,
+  IMAGE_BYTES: 10_000_000,
   SESSION_LIMIT: 50,
   PAGE_SIZE: 20,
   HISTORY_SIZE: 30,
@@ -9,15 +9,11 @@ export const Companion = Object.freeze({
   TYPE_MIN_MS: 600,
   TYPE_MAX_MS: 2500,
   POLL_MS: 3000,
-  SIDE_REFRESH_MS: 30000,
-  MEMORY_KINDS: ['NAME', 'LIKE', 'LIFE', 'PROMISE', 'DATE', 'BIT', 'SELF'],
+  SCROLL_THRESHOLD: 60,
 })
 export const CompanionEvent = Object.freeze({
   STATUS: 'status',
-  REACTION: 'reaction',
   BUBBLE: 'bubble',
-  WORK: 'work',
-  STAGE: 'stage',
   DONE: 'done',
   ERROR: 'error',
   QUEUED: 'queued',
@@ -29,4 +25,3 @@ export const CompanionError = Object.freeze({
   UNAVAILABLE: 'AI_UNAVAILABLE',
   SESSION_LIMIT: 'COMPANION_SESSION_LIMIT',
 })
-export const CompanionContext = Symbol('companion')

@@ -1,5 +1,5 @@
 import {
-  navMengIcon,
+  emotionPickerIcon,
   messagePhotoIcon,
   messageSendIcon,
   messageRefreshIcon,
@@ -371,7 +371,7 @@ export default defineComponent({
       document.removeEventListener('visibilitychange', focus)
     })
     return {
-      navMengIcon,
+      emotionPickerIcon,
       messagePhotoIcon,
       messageSendIcon,
       messageRefreshIcon,

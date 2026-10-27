@@ -1,4 +1,4 @@
-import { CompanionEvent } from '../constants/meng.js'
+import { CompanionEvent } from '../constants/companion.js'
 
 // SSE 只按空行分隔事件，UTF-8 解码跨网络分块保留；上层决定如何展示事件。
 // 已经开始输出后的 error 事件和中途断流抛出 { code }，由调用方整理成请求层的错误对象。

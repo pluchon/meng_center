@@ -1,5 +1,5 @@
 import { scrollToTop } from '@/composables/scrollToTop'
-import { defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { defineAsyncComponent, defineComponent, ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { contentApi } from '@/api/content'
@@ -45,6 +45,7 @@ export default defineComponent({
     FeedFilters,
     PageState,
     RecommendedAuthors,
+    NaitangAssistant: defineAsyncComponent(() => import('@/components/naitang-assistant/NaitangAssistant.vue')),
   },
   setup() {
     const current = ref(0)

@@ -214,7 +214,7 @@
             >
               <img
                 class="message-art-icon"
-                :src="navMengIcon"
+                :src="emotionPickerIcon"
                 width="18"
                 height="18"
                 alt=""

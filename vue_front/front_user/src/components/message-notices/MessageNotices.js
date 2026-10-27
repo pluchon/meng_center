@@ -76,19 +76,7 @@ export default defineComponent({
     )
     function open(item) {
       const notice = item.notice
-      if (
-        [
-          NoticeType.COMPANION_STAGE_REACHED,
-          NoticeType.COMPANION_PROMISE_DUE,
-          NoticeType.COMPANION_DRAWING_FINISHED,
-        ].includes(notice.type)
-      )
-        void router.push({
-          name: RouteName.MENG,
-          params: notice.companionCode ? { character: notice.companionCode.toLowerCase() } : {},
-          query: notice.companionSessionId ? { s: String(notice.companionSessionId) } : {},
-        })
-      else if (notice.type === NoticeType.FOLLOWED && item.actors.length)
+      if (notice.type === NoticeType.FOLLOWED && item.actors.length)
         void router.push({ name: RouteName.USER, params: { id: item.actors[0].id } })
       else if (notice.type === NoticeType.POST_REVIEW_CHANGED && !notice.postId)
         // 帖子被审核退回，原帖已不在，去草稿箱看

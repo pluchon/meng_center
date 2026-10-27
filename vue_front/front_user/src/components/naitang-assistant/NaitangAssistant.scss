@@ -1,0 +1,352 @@
+.naitang-assistant {
+  position: fixed;
+  z-index: 1100;
+  right: var(--meng-space-6);
+  bottom: var(--meng-space-6);
+  color: var(--meng-text);
+
+  button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--meng-space-2);
+    min-width: 32px;
+    min-height: 32px;
+    padding: var(--meng-space-1);
+    border: 0;
+    border-radius: var(--meng-radius-note);
+    color: var(--meng-primary);
+    background: transparent;
+    cursor: pointer;
+    font: inherit;
+
+    &:hover {
+      background: var(--meng-tint);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+}
+
+.naitang-launcher {
+  width: 76px;
+  height: 76px;
+  padding: var(--meng-space-1) !important;
+  border: 3px solid var(--meng-surface) !important;
+  border-radius: var(--meng-radius-pill) !important;
+  background: var(--meng-tint) !important;
+  box-shadow: var(--meng-shadow-card);
+  transform: rotate(-5deg);
+  transition: transform 160ms ease;
+
+  &:hover {
+    transform: rotate(0) translateY(-3px);
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+  }
+}
+
+.naitang-panel {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  height: min(600px, calc(100dvh - 48px));
+  overflow: hidden;
+  border: 2px solid var(--meng-border);
+  border-radius: var(--meng-radius-dialog);
+  background: var(--meng-surface);
+  box-shadow: var(--meng-shadow-card);
+}
+
+.naitang-header {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-1);
+  padding: var(--meng-space-3);
+  border-bottom: 1px dashed var(--meng-border);
+  background: var(--meng-primary-light-9);
+
+  h2 {
+    flex: 1;
+    margin: 0;
+    font-family: var(--meng-font-display);
+    font-size: 18px;
+  }
+}
+
+.naitang-avatar {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  object-fit: cover;
+}
+
+.naitang-menu {
+  position: relative;
+}
+
+.naitang-menu-popover {
+  position: absolute;
+  z-index: 1;
+  top: 100%;
+  right: 0;
+  width: max-content;
+  padding: var(--meng-space-2);
+  border: 1px solid var(--meng-border);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-surface);
+  box-shadow: var(--meng-shadow);
+}
+
+.naitang-messages,
+.naitang-history {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--meng-space-4);
+}
+
+.naitang-message {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--meng-space-2);
+  margin-bottom: var(--meng-space-4);
+}
+
+.naitang-message-body {
+  max-width: 84%;
+  min-width: 0;
+}
+
+.naitang-bubble {
+  margin: 0;
+  padding: var(--meng-space-3);
+  border: 1px solid var(--meng-border);
+  border-radius: 4px var(--meng-radius-note) var(--meng-radius-note);
+  background: var(--meng-bg);
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  line-height: 1.65;
+  font-size: 14px;
+
+  .action {
+    color: var(--meng-muted);
+    font-style: italic;
+  }
+}
+
+.naitang-message.own {
+  justify-content: flex-end;
+
+  .naitang-bubble {
+    border-radius: var(--meng-radius-note) 4px var(--meng-radius-note) var(--meng-radius-note);
+    background: var(--meng-tint);
+  }
+}
+
+.naitang-sticker {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+}
+
+.naitang-message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--meng-space-1);
+  margin-top: var(--meng-space-1);
+}
+
+.naitang-message-images img {
+  width: 90px;
+  height: 90px;
+  border-radius: var(--meng-space-2);
+  object-fit: cover;
+}
+
+.naitang-sources {
+  margin: var(--meng-space-2) 0 0;
+  padding-left: var(--meng-space-4);
+  font-size: 12px;
+}
+
+.naitang-status {
+  padding: var(--meng-space-2);
+  border: 1px dashed var(--meng-border);
+  border-radius: var(--meng-radius-note);
+  color: var(--meng-muted);
+  font-size: 12px;
+}
+
+.naitang-note {
+  margin: var(--meng-space-2) 0;
+  color: var(--meng-muted);
+  font-size: 12px;
+}
+
+.naitang-error {
+  color: var(--meng-danger-text);
+  font-size: 12px;
+}
+
+.naitang-help {
+  display: grid;
+  gap: var(--meng-space-2);
+  padding: var(--meng-space-3);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-warning);
+  font-size: 13px;
+}
+
+.naitang-older {
+  width: 100%;
+  font-size: 12px !important;
+}
+
+.naitang-session {
+  display: flex;
+  align-items: center;
+  margin: var(--meng-space-2) 0;
+  padding: var(--meng-space-2);
+  border: 1px dashed var(--meng-border);
+  border-radius: var(--meng-radius-note);
+
+  &.selected {
+    background: var(--meng-tint);
+  }
+
+  button:first-child {
+    flex: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+    text-align: left;
+  }
+
+  span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  small {
+    color: var(--meng-muted);
+    font-size: 11px;
+  }
+}
+
+.naitang-composer {
+  padding: var(--meng-space-3) var(--meng-space-4);
+  border-top: 1px dashed var(--meng-border);
+
+  textarea {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    resize: none;
+    padding: var(--meng-space-2);
+    border: 1px solid var(--meng-border);
+    border-radius: var(--meng-space-3);
+    color: var(--meng-text);
+    background: var(--meng-bg);
+    font: inherit;
+    font-size: 14px;
+  }
+}
+
+.naitang-compose-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-2);
+  margin-top: var(--meng-space-2);
+}
+
+.naitang-compose-tools small {
+  flex: 1;
+  color: var(--meng-muted);
+  font-size: 11px;
+}
+
+.naitang-send {
+  margin-left: auto;
+  background: var(--meng-tint) !important;
+}
+
+.naitang-attachments {
+  display: flex;
+  gap: var(--meng-space-2);
+  padding-bottom: var(--meng-space-2);
+}
+
+.naitang-attachments > div {
+  position: relative;
+}
+
+.naitang-attachments img {
+  display: block;
+  width: 54px;
+  height: 54px;
+  border-radius: var(--meng-space-2);
+  object-fit: cover;
+}
+
+.naitang-attachments button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 24px;
+  min-height: 24px;
+  background: var(--meng-surface);
+}
+
+.naitang-credit {
+  padding: var(--meng-space-1);
+  color: var(--meng-muted);
+  text-align: center;
+  font-size: 9px;
+}
+
+@media (width <= 600px) {
+  .naitang-assistant {
+    right: var(--meng-space-4);
+    bottom: var(--meng-space-4);
+  }
+
+  .naitang-panel {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .naitang-composer {
+    padding-bottom: max(var(--meng-space-3), env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .naitang-launcher {
+    transition: none;
+    transform: none;
+  }
+}
