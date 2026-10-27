@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import httpx
 
 from app.config.settings import Settings
+from app.runtime.models.registry import registry
 from app.schemas.models import CoverPlan
 
 
@@ -13,11 +14,12 @@ class CoverImageClient:
         self.settings = settings
         self.http = http
         self.gateway = gateway
+        self.spec = registry(settings)["image"]
 
     async def generate(self, plan: CoverPlan) -> bytes:
         if self.gateway:
             return await self.gateway.invoke(
-                self.settings.cover_model,
+                self.spec.model,
                 "image",
                 len(plan.prompt),
                 lambda: self._generate(plan),
@@ -31,7 +33,7 @@ class CoverImageClient:
             self.settings.cover_url,
             headers=self.gateway.headers(),
             json={
-                "model": self.settings.cover_model,
+                "model": self.spec.model,
                 "input": {"messages": [{"role": "user", "content": [{"text": plan.prompt}]}]},
                 "parameters": {
                     "size": "1664*928",
@@ -41,7 +43,7 @@ class CoverImageClient:
                     "prompt_extend": False,
                 },
             },
-            timeout=52,
+            timeout=self.spec.timeout,
         )
         response.raise_for_status()
         content = response.json()["output"]["choices"][0]["message"]["content"]

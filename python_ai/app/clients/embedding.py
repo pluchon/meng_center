@@ -1,9 +1,16 @@
 import math
 
+from app.runtime.models.registry import registry
+
 
 class EmbeddingClient:
     def __init__(self, settings, http, gateway):
         self.settings, self.http, self.gateway = settings, http, gateway
+        self.spec = registry(settings)["embedding"]
+
+    @property
+    def version(self):
+        return f"{self.spec.model}:1024:doc-v1"
 
     async def encode(self, texts, text_type):
         if text_type not in {"document", "query"}:
@@ -13,9 +20,9 @@ class EmbeddingClient:
             response = await self.http.post(
                 self.settings.embedding_url,
                 headers=self.gateway.headers(),
-                timeout=3,
+                timeout=self.spec.timeout,
                 json={
-                    "model": self.settings.embedding_model,
+                    "model": self.spec.model,
                     "input": {"texts": texts},
                     "parameters": {"text_type": text_type, "dimension": 1024},
                 },
@@ -24,7 +31,7 @@ class EmbeddingClient:
             return response.json()
 
         payload = await self.gateway.invoke(
-            self.settings.embedding_model,
+            self.spec.model,
             "embedding",
             sum(map(len, texts)),
             call,

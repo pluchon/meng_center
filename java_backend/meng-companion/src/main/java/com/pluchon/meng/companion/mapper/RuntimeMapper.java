@@ -192,17 +192,18 @@ public interface RuntimeMapper {
     int markProcessed(@Param("event") String event);
 
     @Select(
-        "SELECT * FROM companion_memory WHERE (embedding IS NULL OR embedding_version IS NULL OR embedding_version<>'doc-v1') AND invalid_at IS NULL AND delete_state=0 ORDER BY id LIMIT 32"
+        "SELECT * FROM companion_memory WHERE (embedding IS NULL OR embedding_version IS NULL OR embedding_version<>#{version}) AND invalid_at IS NULL AND delete_state=0 ORDER BY id LIMIT 32"
     )
-    List<Rows.Memory> missingMemoryVectors();
+    List<Rows.Memory> missingMemoryVectors(@Param("version") String version);
 
     @Update(
-        "UPDATE companion_memory SET embedding=#{vector},embedding_version='doc-v1' WHERE id=#{id} AND content_hash=#{hash} AND invalid_at IS NULL AND delete_state=0"
+        "UPDATE companion_memory SET embedding=#{vector},embedding_version=#{version} WHERE id=#{id} AND content_hash=#{hash} AND invalid_at IS NULL AND delete_state=0"
     )
     int writeMemoryVector(
         @Param("vector") String vector,
         @Param("id") long id,
-        @Param("hash") String hash
+        @Param("hash") String hash,
+        @Param("version") String version
     );
 
     @Select(

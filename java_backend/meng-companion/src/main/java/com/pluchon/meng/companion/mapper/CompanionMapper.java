@@ -138,15 +138,17 @@ public interface CompanionMapper {
     @Insert(
         """
         INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id,source_session_id,
-        kind,keywords,importance,embedding,pinned)
+        kind,keywords,importance,embedding,embedding_version,pinned)
         VALUES(#{userId},#{characterCode},#{content},#{contentHash},#{sourceMessageId},#{sourceSessionId},
-        #{kind},#{keywords},#{importance},#{embedding},#{pinned})
+        #{kind},#{keywords},#{importance},#{embedding},#{embeddingVersion},#{pinned})
         ON DUPLICATE KEY UPDATE last_used_time=CURRENT_TIMESTAMP(6)
         """
     )
     @SelectKey(
         statement = "SELECT id FROM companion_memory WHERE user_id=#{userId} AND character_code=#{characterCode} AND active_content_hash=#{contentHash}",
-        keyProperty = "id", before = false, resultType = Long.class
+        keyProperty = "id",
+        before = false,
+        resultType = Long.class
     )
     void insertMemory(Rows.Memory memory);
 

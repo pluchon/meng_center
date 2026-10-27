@@ -66,19 +66,33 @@ public class CompanionContext {
     ) {
         var all = new ArrayList<>(allMemories(user, code));
         JsonNode vector = null;
+        String version = "";
         if (!all.isEmpty()) try {
-            vector = ai
-                .compute(
-                    "embeddings",
-                    Map.of("texts", List.of(query), "textType", "query")
+            var result = ai.compute(
+                "embeddings",
+                Map.of(
+                    "texts",
+                    List.of(query),
+                    "textType",
+                    "query",
+                    "userId",
+                    user,
+                    "character",
+                    code,
+                    "turnId",
+                    turn,
+                    "timeZone",
+                    zone
                 )
-                .path("vectors")
-                .get(0);
+            );
+            vector = result.path("vectors").get(0);
+            version = result.path("modelVersion").asString("");
         } catch (RuntimeException ignored) {}
         final JsonNode q = vector;
+        final String targetVersion = version;
         all.sort(
             Comparator.comparingDouble((Rows.Memory m) ->
-                score(m, q)
+                score(m, q, targetVersion)
             ).reversed()
         );
         return new Memories(
@@ -100,12 +114,14 @@ public class CompanionContext {
         return value;
     }
 
-    private double score(Rows.Memory memory, JsonNode q) {
+    private double score(Rows.Memory memory, JsonNode q, String version) {
         double similarity = 0;
-        if (q != null && memory.getEmbedding() != null) similarity = cosine(
-            q,
-            json.readTree(memory.getEmbedding())
-        );
+        if (
+            q != null &&
+            !version.isBlank() &&
+            version.equals(memory.getEmbeddingVersion()) &&
+            memory.getEmbedding() != null
+        ) similarity = cosine(q, json.readTree(memory.getEmbedding()));
         long age =
             memory.getLastUsedTime() == null
                 ? 0

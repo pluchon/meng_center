@@ -346,7 +346,7 @@ START ─┬─► moderation（审核子图，文字节点用 understand 任务
 - 兼容接口的 `/embeddings` 默认按 **query** 类型编码；原生接口 `POST /api/v1/services/embeddings/text-embedding/text-embedding` 可以传 `parameters.text_type=document|query`。同一句话两种类型的余弦约 0.92，不是同一个向量。
 - 帖子和奶糖的记忆按 `document` 编码；搜索词、`search_posts` 的查询、记忆召回查询按 `query` 编码。兴趣向量是帖子向量的平均，相关帖子用源帖向量，都属于文档对文档。
 - `/ai/internal/embeddings` 和 `/ai/internal/companion/embeddings` 的请求带 `textType`（必填）。`modelVersion` 带 `:doc-v1` 后缀。
-- 换编码类型或模型要重算全部向量：帖子走蓝绿重建（`POST /content/admin/ai/reanalyze?recompute=true`），重建期间保留旧别名；记忆用补向量任务按 `embedding_version` 逐条重算。
+- 换编码类型或模型要重算全部向量：帖子走蓝绿重建（`POST /content/admin/ai/reanalyze?recompute=true`），重建期间保留旧别名；记忆用补向量任务按 `embedding_version` 逐条重算；版本包含模型名、1024 维和 `doc-v1` 编码标签。空文本的向量请求只返回版本，不调用模型；补向量任务先读取当前版本，再处理缺失或版本不同的记忆。旧简写版本不能与新查询向量比较，相似度计算只使用同版本向量。
 
 ### 9.7 MQ 分队列
 

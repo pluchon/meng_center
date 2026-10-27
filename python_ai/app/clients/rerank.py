@@ -1,9 +1,12 @@
 import math
 
+from app.runtime.models.registry import registry
+
 
 class RerankClient:
     def __init__(self, settings, http, gateway):
         self.settings, self.http, self.gateway = settings, http, gateway
+        self.spec = registry(settings)["rerank"]
 
     async def rank(self, query, documents, limit=5, scene="recall"):
         if not documents:
@@ -15,9 +18,9 @@ class RerankClient:
             response = await self.http.post(
                 self.settings.rerank_url,
                 headers=self.gateway.headers(),
-                timeout=3,
+                timeout=self.spec.timeout,
                 json={
-                    "model": self.settings.rerank_model,
+                    "model": self.spec.model,
                     "input": {"query": query, "documents": documents},
                     "parameters": {
                         "top_n": min(limit, len(documents)),
@@ -32,7 +35,7 @@ class RerankClient:
 
         try:
             data = await self.gateway.invoke(
-                self.settings.rerank_model,
+                self.spec.model,
                 "rerank",
                 sum(map(len, documents)),
                 call,

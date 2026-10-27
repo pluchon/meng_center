@@ -245,7 +245,7 @@ class Companion:
             "vectors": vectors,
             "ranked": ranked.pop("indexes"),
             **ranked,
-            "modelVersion": self.models.settings.embedding_model + ":1024:doc-v1",
+            "modelVersion": self.models.embedding_client.version,
         }
 
     async def summary(self, request: SummaryRequest) -> dict:

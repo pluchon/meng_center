@@ -76,4 +76,44 @@ class CompanionRetrievalTest {
         assertEquals(List.of(), result.used());
         org.mockito.Mockito.verify(ai).compute(eq("embeddings"), any());
     }
+
+    @Test
+    void differentModelVectorsCannotDominateRecallSimilarity() {
+        var mapper = mock(CompanionMapper.class);
+        var redis = mock(StringRedisTemplate.class);
+        var ai = mock(AiClient.class);
+        var context = new CompanionContext();
+        var json = JsonMapper.builder().build();
+        var old = new Rows.Memory();
+        old.setId(1L);
+        old.setContent("旧模型事实");
+        old.setEmbedding("[1,0]");
+        old.setEmbeddingVersion("old-model");
+        var current = new Rows.Memory();
+        current.setId(2L);
+        current.setContent("当前模型事实");
+        current.setEmbedding("[0.5,0.8660254]");
+        current.setEmbeddingVersion("current-model");
+        when(mapper.bond(42, "NEKO")).thenReturn(new Rows.Bond());
+        when(mapper.memories(42, "NEKO")).thenReturn(List.of(old, current));
+        when(ai.compute(eq("embeddings"), any())).thenReturn(
+            json.readTree(
+                "{\"vectors\":[[1,0]],\"modelVersion\":\"current-model\"}"
+            )
+        );
+        ReflectionTestUtils.setField(
+            context,
+            "memoryCache",
+            new CompanionMemoryCache(mapper, redis)
+        );
+        ReflectionTestUtils.setField(context, "ai", ai);
+        var result = context.memories(
+            42,
+            "NEKO",
+            "查询",
+            "Asia/Taipei",
+            "fixture"
+        );
+        assertEquals(2L, result.recalled().get(0).get("id"));
+    }
 }

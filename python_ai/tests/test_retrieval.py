@@ -1,4 +1,5 @@
 import json
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import httpx
@@ -6,9 +7,12 @@ import pytest
 from pydantic import SecretStr
 
 from app.clients.embedding import EmbeddingClient
+from app.clients.models import ModelFactory
 from app.clients.rerank import RerankClient
 from app.config.settings import Settings
 from app.runtime.models.gateway import ModelGateway, ModelUnavailable
+from app.schemas.companion import EmbeddingRequest
+from app.services.companion import Companion
 
 
 @pytest.mark.parametrize(
@@ -84,3 +88,18 @@ async def test_unavailable_recall_keeps_three_candidates_and_does_not_repeat_gat
             await EmbeddingClient(settings, http, gateway).encode(["甲"], "query")
         assert not transient(stopped.value)
         assert len(calls) == 4
+
+
+async def test_embedding_version_metadata_does_not_invoke_a_model():
+    settings = Settings.model_construct(
+        api_key=SecretStr("fixture"),
+        deepseek_api_key=SecretStr("fixture"),
+        model_overrides={"embedding": {"model": "embedding-model-v2", "timeout": 2}},
+    )
+    factory = ModelFactory(settings, AsyncMock(), http=AsyncMock())
+    factory.embed = AsyncMock()
+    service = Companion(SimpleNamespace(models=factory), None)
+    result = await service.embeddings(EmbeddingRequest(text_type="document"))
+    assert result["vectors"] == [] and result["modelVersion"] == "embedding-model-v2:1024:doc-v1"
+    factory.embed.assert_not_awaited()
+    factory.http.post.assert_not_awaited()

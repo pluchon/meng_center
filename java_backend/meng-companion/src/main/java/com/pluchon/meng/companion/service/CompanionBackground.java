@@ -132,26 +132,28 @@ public class CompanionBackground {
             .map(Rows.Message::getContent)
             .collect(java.util.stream.Collectors.joining(" "));
         JsonNode queryVector = null;
+        String queryVersion = "";
         if (!old.isEmpty()) try {
-            queryVector = ai
-                .compute(
-                    "embeddings",
-                    Map.of(
-                        "texts",
-                        List.of(
-                            query.substring(0, Math.min(1000, query.length()))
-                        ),
-                        "textType",
-                        "query"
-                    )
+            var encoded = ai.compute(
+                "embeddings",
+                Map.of(
+                    "texts",
+                    List.of(query.substring(0, Math.min(1000, query.length()))),
+                    "textType",
+                    "query"
                 )
-                .path("vectors")
-                .get(0);
+            );
+            queryVector = encoded.path("vectors").get(0);
+            queryVersion = embeddingVersion(encoded);
         } catch (RuntimeException ignored) {}
         final JsonNode vector = queryVector;
+        final String vectorVersion = queryVersion;
         old.sort(
             Comparator.comparingDouble((Rows.Memory m) ->
-                vector != null && m.getEmbedding() != null
+                vector != null &&
+                !vectorVersion.isBlank() &&
+                vectorVersion.equals(m.getEmbeddingVersion()) &&
+                m.getEmbedding() != null
                     ? CompanionContext.cosine(
                           vector,
                           json.readTree(m.getEmbedding())
@@ -241,9 +243,13 @@ public class CompanionBackground {
                     .orElseThrow();
                 memory.setSourceMessageId(source.getId());
                 memory.setSourceSessionId(source.getSessionId());
-                if (index < vectors.size()) memory.setEmbedding(
-                    vectors.get(index)
-                );
+                if (
+                    index < vectors.values().size() &&
+                    vectors.values().get(index) != null
+                ) {
+                    memory.setEmbedding(vectors.values().get(index));
+                    memory.setEmbeddingVersion(vectors.version());
+                }
                 mapper.insertMemory(memory);
                 if ("SUPERSEDE".equals(action)) {
                     invalidated = true;
@@ -363,24 +369,54 @@ public class CompanionBackground {
             .toList();
     }
 
-    private List<String> embed(JsonNode decisions) {
+    private record MemoryVectors(List<String> values, String version) {}
+
+    private static String embeddingVersion(JsonNode value) {
+        String version = value.path("modelVersion").asString("");
+        if (
+            version.isBlank() || version.length() > 160
+        ) throw new IllegalArgumentException("缺少向量模型版本");
+        return version;
+    }
+
+    private MemoryVectors embed(JsonNode decisions) {
         try {
             var texts = new ArrayList<String>();
-            for (var d : decisions) texts.add(d.path("content").asString());
-            if (texts.isEmpty()) return List.of();
-            var result = ai
-                .compute(
-                    "embeddings",
-                    Map.of("textType", "document", "texts", texts)
-                )
-                .path("vectors");
-            var vectors = new ArrayList<String>();
-            for (var v : result)
-                if (v.isArray() && v.size() == 1024) vectors.add(v.toString());
-                else return List.of();
-            return vectors;
+            var indexes = new ArrayList<Integer>();
+            for (int index = 0; index < decisions.size(); index++) {
+                var decision = decisions.get(index);
+                if (
+                    Set.of("ADD", "SUPERSEDE").contains(
+                        decision.path("action").asString()
+                    )
+                ) {
+                    texts.add(decision.path("content").asString());
+                    indexes.add(index);
+                }
+            }
+            if (texts.isEmpty()) return new MemoryVectors(List.of(), "");
+            var result = ai.compute(
+                "embeddings",
+                Map.of("textType", "document", "texts", texts)
+            );
+            var values = result.path("vectors");
+            if (values.size() != texts.size()) return new MemoryVectors(
+                List.of(),
+                ""
+            );
+            var aligned = new ArrayList<String>(
+                java.util.Collections.nCopies(decisions.size(), null)
+            );
+            for (int i = 0; i < values.size(); i++) {
+                var vector = values.get(i);
+                if (
+                    !vector.isArray() || vector.size() != 1024
+                ) return new MemoryVectors(List.of(), "");
+                aligned.set(indexes.get(i), vector.toString());
+            }
+            return new MemoryVectors(aligned, embeddingVersion(result));
         } catch (RuntimeException ignored) {
-            return List.of();
+            return new MemoryVectors(List.of(), "");
         }
     }
 
@@ -460,10 +496,15 @@ public class CompanionBackground {
     }
 
     public void maintain() {
-        var missing = runtime.missingMemoryVectors();
-        if (!missing.isEmpty()) try {
-            var vectors = ai
-                .compute(
+        try {
+            var metadata = ai.compute(
+                "embeddings",
+                Map.of("textType", "document", "texts", List.of())
+            );
+            String expectedVersion = embeddingVersion(metadata);
+            var missing = runtime.missingMemoryVectors(expectedVersion);
+            if (!missing.isEmpty()) {
+                var result = ai.compute(
                     "embeddings",
                     Map.of(
                         "textType",
@@ -471,20 +512,28 @@ public class CompanionBackground {
                         "texts",
                         missing.stream().map(Rows.Memory::getContent).toList()
                     )
-                )
-                .path("vectors");
-            for (
-                int i = 0;
-                i < Math.min(missing.size(), vectors.size());
-                i++
-            ) if (
-                vectors.get(i).size() == 1024 &&
-                runtime.writeMemoryVector(
-                    vectors.get(i).toString(),
-                    missing.get(i).getId(),
-                    missing.get(i).getContentHash()
-                ) > 0
-            ) redis.delete("meng:companion:memo:" + missing.get(i).getUserId());
+                );
+                String actualVersion = embeddingVersion(result);
+                var vectors = result.path("vectors");
+                if (
+                    vectors.size() != missing.size()
+                ) throw new IllegalArgumentException("向量数量不匹配");
+                for (int i = 0; i < missing.size(); i++) {
+                    var vector = vectors.get(i);
+                    if (
+                        vector.isArray() &&
+                        vector.size() == 1024 &&
+                        runtime.writeMemoryVector(
+                            vector.toString(),
+                            missing.get(i).getId(),
+                            missing.get(i).getContentHash(),
+                            actualVersion
+                        ) > 0
+                    ) redis.delete(
+                        "meng:companion:memo:" + missing.get(i).getUserId()
+                    );
+                }
+            }
         } catch (RuntimeException ignored) {}
         for (var row : runtime.idleSessions()) {
             long session = ((Number) row.get("id")).longValue(),
