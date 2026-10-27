@@ -694,6 +694,57 @@ public class CompanionRuntimeTest {
     }
 
     @Test
+    void completedCompactionsArePersistedOnceAndOldPressureCannotRepeat() {
+        for (boolean capacity : List.of(false, true)) {
+            jdbc.update("DELETE FROM companion_message");
+            jdbc.update("DELETE FROM companion_runtime_daily");
+            jdbc.update(
+                "UPDATE companion_session SET window_start_message_id=0,summary_until_message_id=0,last_message_time=? WHERE id=1",
+                capacity
+                    ? LocalDateTime.parse("2026-10-17T04:00:00")
+                    : LocalDateTime.parse("2026-10-17T03:00:00")
+            );
+            String metrics =
+                "{\"windowStartMessageId\":0,\"layers\":{\"contextBudget\":{\"compactAfterRound\":" +
+                capacity +
+                "}}}";
+            for (int i = 0; i < 20; i++) jdbc.update(
+                "INSERT INTO companion_message(session_id,role,content,completed,metrics) VALUES(1,?,?,1,?)",
+                i % 2 == 0 ? "USER" : "CHARACTER",
+                "甲".repeat(1000),
+                metrics
+            );
+            when(ai.summarize(anyString(), any())).thenReturn(null);
+            var background = background(mock(PrivateImageStorage.class));
+            background.summarize(41, 1, 0);
+            assertEquals(
+                0,
+                jdbc.queryForObject(
+                    "SELECT COUNT(*) FROM companion_runtime_daily",
+                    Integer.class
+                )
+            );
+            when(ai.summarize(anyString(), any())).thenReturn("归属明确的摘要");
+            background.summarize(41, 1, 0);
+            background.summarize(41, 1, 0);
+            assertEquals(
+                capacity ? 0 : 1,
+                jdbc.queryForObject(
+                    "SELECT idle_compactions FROM companion_runtime_daily",
+                    Integer.class
+                )
+            );
+            assertEquals(
+                capacity ? 1 : 0,
+                jdbc.queryForObject(
+                    "SELECT capacity_compactions FROM companion_runtime_daily",
+                    Integer.class
+                )
+            );
+        }
+    }
+
+    @Test
     void unreviewedMemoryBatchCannotBeWritten() {
         assertThrows(IllegalArgumentException.class, () ->
             CompanionBackground.validateDecisions(

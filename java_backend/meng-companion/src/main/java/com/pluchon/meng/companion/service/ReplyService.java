@@ -534,6 +534,7 @@ public class ReplyService {
         request.put("newMemories", newMemories);
         request.put("controls", List.of("sticker"));
         request.put("recalled", memories.recalled());
+        request.put("priorCalls", memories.calls());
         request.put("examples", contexts.examples(p.bond(), card));
         request.put("recentReplies", runtime.recentReplies(session.getId()));
         request.put("summary", session.getSummary());
@@ -544,7 +545,7 @@ public class ReplyService {
         );
         request.put("images", p.images());
         request.put("messageAllowed", reservation.messageAllowed());
-        var allowedMemoryIds = new java.util.HashSet<Long>(memories.used());
+        var allowedMemoryIds = new java.util.HashSet<Long>();
         for (var memory : snapshot.path("memories"))
             if (memory.path("id").isIntegralNumber()) allowedMemoryIds.add(
                 memory.path("id").asLong()
@@ -615,6 +616,13 @@ public class ReplyService {
                 bond.getRevision() != p.bond().getRevision() ||
                 mapper.lockSession(session.getId(), user) == null
             ) throw new BusinessException(CommonErrorCode.CONFLICT);
+            if (
+                result.path("metrics") instanceof
+                    tools.jackson.databind.node.ObjectNode metrics
+            ) metrics.put(
+                "windowStartMessageId",
+                session.getWindowStartMessageId()
+            );
             String label = result.path("label").asString();
             if (
                 !Set.of(

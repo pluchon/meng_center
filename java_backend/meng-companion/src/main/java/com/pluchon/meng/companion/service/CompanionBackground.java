@@ -461,7 +461,9 @@ public class CompanionBackground {
                 .compareTo(
                     LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
                 ) <= 0;
-        boolean pressured = total >= 600000 || contextPressure(history);
+        boolean pressured =
+            total >= 600000 ||
+            contextPressure(history, session.getWindowStartMessageId());
         if (!pressured && (!idle || total <= 8000)) return;
         int keep = pressured ? total / 2 : 8000;
         int accumulated = 0,
@@ -488,16 +490,26 @@ public class CompanionBackground {
                     mapper.session(sessionId, user).getLastMessageTime(),
                     session.getLastMessageTime()
                 )
-            ) mapper.summary(
-                sessionId,
-                summary,
-                half.get(half.size() - 1).getId(),
-                session.getSummaryUntilMessageId()
-            );
+            ) {
+                int updated = mapper.summary(
+                    sessionId,
+                    summary,
+                    half.get(half.size() - 1).getId(),
+                    session.getSummaryUntilMessageId()
+                );
+                if (updated > 0) runtime.recordCompaction(
+                    LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC),
+                    pressured ? 0 : 1,
+                    pressured ? 1 : 0
+                );
+            }
         });
     }
 
-    private boolean contextPressure(List<Rows.Message> history) {
+    private boolean contextPressure(
+        List<Rows.Message> history,
+        long windowStart
+    ) {
         for (int i = history.size() - 1; i >= 0; i--) {
             var message = history.get(i);
             if (
@@ -505,8 +517,12 @@ public class CompanionBackground {
                 message.getMetrics() == null
             ) continue;
             try {
-                return json
-                    .readTree(message.getMetrics())
+                var metrics = json.readTree(message.getMetrics());
+                if (
+                    metrics.path("windowStartMessageId").asLong(-1) !=
+                    windowStart
+                ) return false;
+                return metrics
                     .path("layers")
                     .path("contextBudget")
                     .path("compactAfterRound")

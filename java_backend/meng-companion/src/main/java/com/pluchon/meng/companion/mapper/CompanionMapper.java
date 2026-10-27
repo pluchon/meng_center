@@ -184,7 +184,7 @@ public interface CompanionMapper {
     @Update(
         "UPDATE companion_session SET summary=#{summary},summary_until_message_id=#{until},window_start_message_id=#{until} WHERE id=#{id} AND summary_until_message_id=#{previous} AND delete_state=0"
     )
-    void summary(
+    int summary(
         @Param("id") long id,
         @Param("summary") String summary,
         @Param("until") long until,

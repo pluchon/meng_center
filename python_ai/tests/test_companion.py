@@ -64,6 +64,14 @@ async def test_chat_adopts_prejudged_draft():
     assert value.speak.await_count == value.judge.await_count == 1
 
 
+async def test_pre_round_embedding_usage_is_kept_without_another_model_call():
+    value = service()
+    call = {"purpose": "embedding", "input": 12, "output": 0, "cached": 0}
+    result = await value.compute(request(prior_calls=[call]), AsyncMock())
+    assert result["metrics"]["calls"] == [call]
+    assert value.speak.await_count == 1
+
+
 @pytest.mark.parametrize("label", ["CRISIS", "SEXUAL", "JAILBREAK"])
 async def test_blocked_paths_wait_for_branches_and_only_emit_fixed_reply(label):
     value = service()

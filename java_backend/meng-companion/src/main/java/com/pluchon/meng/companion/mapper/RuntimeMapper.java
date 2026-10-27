@@ -17,6 +17,15 @@ import org.apache.ibatis.annotations.Update;
 // 所有轮次归属于已经鉴权的会话；跨轮身份只来自本域持久化数据。
 @Mapper
 public interface RuntimeMapper {
+    @Insert(
+        "INSERT INTO companion_runtime_daily(day_utc,idle_compactions,capacity_compactions) VALUES(#{day},#{idle},#{capacity}) ON DUPLICATE KEY UPDATE idle_compactions=idle_compactions+VALUES(idle_compactions),capacity_compactions=capacity_compactions+VALUES(capacity_compactions)"
+    )
+    void recordCompaction(
+        @Param("day") java.time.LocalDate day,
+        @Param("idle") int idle,
+        @Param("capacity") int capacity
+    );
+
     @Select(
         "SELECT content FROM companion_card WHERE character_code=#{code} AND active=1 AND delete_state=0 ORDER BY id DESC LIMIT 1"
     )

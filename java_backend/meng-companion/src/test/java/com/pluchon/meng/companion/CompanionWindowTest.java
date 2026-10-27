@@ -59,7 +59,7 @@ class CompanionWindowTest {
         history
             .get(history.size() - 1)
             .setMetrics(
-                "{\"layers\":{\"contextBudget\":{\"compactAfterRound\":" +
+                "{\"windowStartMessageId\":0,\"layers\":{\"contextBudget\":{\"compactAfterRound\":" +
                     pressure +
                     "}}}"
             );

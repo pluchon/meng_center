@@ -196,6 +196,8 @@ class Companion:
                 request.turn_id,
                 request.time_zone,
                 session=request.session_id,
+                calls=list(request.prior_calls),
+                tokens=sum(call.get("input", 0) + call.get("output", 0) for call in request.prior_calls),
             )
         )
         try:
@@ -241,6 +243,8 @@ class Companion:
             if request.user_id and CURRENT.get() is None
             else None
         )
+        current = CURRENT.get()
+        offset = len(current.calls) if current else 0
         try:
             vectors = await self.models.embed(request.texts, request.text_type) if request.texts else []
             ranked = (
@@ -253,6 +257,7 @@ class Companion:
                 "ranked": ranked.pop("indexes"),
                 **ranked,
                 "modelVersion": self.models.embedding_client.version,
+                "calls": current.calls[offset:] if current else [],
             }
         finally:
             if token is not None:

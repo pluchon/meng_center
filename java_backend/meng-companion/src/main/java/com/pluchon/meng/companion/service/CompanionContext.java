@@ -50,7 +50,7 @@ public class CompanionContext {
 
     public record Memories(
         List<Map<String, Object>> recalled,
-        List<Long> used
+        List<JsonNode> calls
     ) {}
 
     public List<Rows.Memory> allMemories(long user, String code) {
@@ -67,6 +67,7 @@ public class CompanionContext {
         var all = new ArrayList<>(allMemories(user, code));
         JsonNode vector = null;
         String version = "";
+        var calls = new ArrayList<JsonNode>();
         if (!all.isEmpty()) try {
             var result = ai.compute(
                 "embeddings",
@@ -87,6 +88,7 @@ public class CompanionContext {
             );
             vector = result.path("vectors").get(0);
             version = result.path("modelVersion").asString("");
+            result.path("calls").forEach(calls::add);
         } catch (RuntimeException ignored) {}
         final JsonNode q = vector;
         final String targetVersion = version;
@@ -97,7 +99,7 @@ public class CompanionContext {
         );
         return new Memories(
             all.stream().limit(20).map(this::memory).toList(),
-            List.of()
+            List.copyOf(calls)
         );
     }
 

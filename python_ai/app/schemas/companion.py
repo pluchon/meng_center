@@ -34,6 +34,7 @@ class ReplyRequest(Schema):
     turn_id: str = Field(default="", max_length=80)
     recent_replies: list[str] = Field(default_factory=list, max_length=30)
     context_snapshot: dict = Field(default_factory=dict)
+    prior_calls: list[dict] = Field(default_factory=list, max_length=32)
     new_memories: list[dict] = Field(default_factory=list)
     controls: list[str] = Field(default_factory=list)
 

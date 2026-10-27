@@ -52,8 +52,19 @@ class CompanionRetrievalTest {
                 Map.of(
                     "vectors",
                     List.of(Collections.nCopies(1024, 0.1)),
-                    "tokens",
-                    2
+                    "calls",
+                    List.of(
+                        Map.of(
+                            "purpose",
+                            "embedding",
+                            "input",
+                            2,
+                            "output",
+                            0,
+                            "cached",
+                            0
+                        )
+                    )
                 )
             );
         });
@@ -73,7 +84,8 @@ class CompanionRetrievalTest {
             "fixture"
         );
         assertEquals(16, result.recalled().size());
-        assertEquals(List.of(), result.used());
+        assertEquals(1, result.calls().size());
+        assertEquals(2, result.calls().get(0).path("input").asInt());
         org.mockito.Mockito.verify(ai).compute(eq("embeddings"), any());
     }
 

@@ -37,7 +37,7 @@ $maintenanceStatus = if ($AllowPausedMemoryMaintenance) { 'IN (0,1)' } else { '=
 try{
     $env:MYSQL_PWD=$env:MYSQL_ROOT_PASSWORD
     $sql=@"
-SELECT IF((SELECT COUNT(*) FROM meng_companion.flyway_schema_history WHERE version IN ('20261017002','20261017003','20261023001','20261023002','20261023003','20261025001','20261027001','20261027002','20261027003') AND success=1)=9,'OK','FAIL companion migrations');
+SELECT IF((SELECT COUNT(*) FROM meng_companion.flyway_schema_history WHERE version IN ('20261017002','20261017003','20261023001','20261023002','20261023003','20261025001','20261027001','20261027002','20261027003','20261027004') AND success=1)=10,'OK','FAIL companion migrations');
 SELECT IF((SELECT COUNT(*) FROM meng_im.flyway_schema_history WHERE version='20261027001' AND success=1)=1,'OK','FAIL IM migration');
 SELECT IF((SELECT COUNT(*) FROM meng_companion.companion_card WHERE version='${catalogVersion}' AND active=1)=1,'OK','FAIL catalog cards');
 SELECT IF((SELECT COUNT(*) FROM meng_companion.companion_card old JOIN meng_companion.companion_card current_card ON current_card.character_code=old.character_code AND current_card.id>old.id WHERE old.active=1 AND current_card.active=1 AND current_card.delete_state=0)=0,'OK','FAIL stale active cards');
