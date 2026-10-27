@@ -6,7 +6,7 @@
 
 - 多用户社区：谁都能注册，但注册后进入待审核，管理员通过后才能登录。
 - 风格：日漫萌系、水色主题。
-- 功能：发帖、私信、成长、AI 萌萌。
+- 功能：发帖、私信、成长、站内 AI（推荐、语义搜索、审核、发帖辅助）和主页的奶糖助手。
 - 性质：兴趣项目，同时是多种技术的融合练习。首要目标是**易维护、易扩展**，
   避免旧论坛「同步调用连成网、服务间调用混乱」的问题。
 
@@ -31,8 +31,7 @@
 | 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
-| 模型 | DashScope（百炼）：DeepSeek V4.1 Flash（萌萌说话）、Qwen3.8 Flash / Max、Qwen3.7 Embedding Flash、Qwen3.7 Rerank、Qwen Image 3.0 Pro | 对话走 OpenAI 兼容接口，向量和重排走原生接口，千问同步生图；型号按用途靠配置切换，见 [ai-runtime.md](ai-runtime.md) |
-| 联网搜索 | Tavily | 只给萌萌的工具用，只在 ai 服务里调用 |
+| 模型 | DeepSeek 官方接口：DeepSeek V4.1 Flash（奶糖说话和看图）；阿里云百炼：Qwen3.8 Flash / Max、Qwen3.7 Embedding Flash、Qwen3.7 Rerank、Qwen Image 3.0 Pro | 对话走 OpenAI 兼容接口，向量和重排走原生接口，千问同步生图；型号按用途靠配置切换，见 [ai-runtime.md](ai-runtime.md) |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 当前只保留用户端项目；管理端仅保留文档规格，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 
@@ -71,7 +70,7 @@ java_backend/
 ├── meng-content/            内容域
 ├── meng-im/                 私信与通知域
 ├── meng-growth/             成长域
-└── meng-companion/          萌萌会话、关系与作品域
+└── meng-companion/          奶糖助手的会话与记忆域
 ```
 
 `meng-im` 通过网关向前端提供消息接口，没有被其他服务调用的内部接口，也不生产跨服务事件，因此没有 `meng-api-im`。
@@ -117,8 +116,8 @@ java_backend/
 | content | 帖子、评论、点赞、收藏、搜索索引同步 |
 | im | 私信、通知（WebSocket） |
 | growth | 经验、等级、签到、积分 |
-| companion | 萌萌：角色卡与档位、会话编排、好感度、分层记忆与整理任务、作品、限次与防沉迷，见 [meng.md](meng.md) |
-| ai（Python） | 萌萌的对话图；帖子理解、审核判定、向量计算、标签与灵感、封面、成长总结等纯计算，见 [ai.md](ai.md) |
+| companion | 奶糖助手：角色卡、会话编排、长期记忆与整理任务、限次，见 [meng.md](meng.md) |
+| ai（Python） | 奶糖一轮的图；帖子理解、审核子图、向量计算、标签与灵感、封面、成长与创作总结等纯计算，见 [ai.md](ai.md) 和 [ai-runtime.md](ai-runtime.md) |
 
 - **后台管理接口**：各域服务里单独一组 Controller，路径如 `/content/admin/**`，
   网关统一校验管理员角色，Service 再校验一次。管理端前端已移除，管理员接口仍在，规格保留在文档里。
@@ -144,10 +143,10 @@ java_backend/
 ## 6. 防耦合规则
 
 1. **依赖单向分层，不成环，同层不互调。**
-   user 在底层，不调任何项目内服务；content、im、companion 同步调 user，content、growth、companion 同步调 ai 做计算；除萌萌对话外，ai 不被写路径同步调用。
-2. **同步调用全项目只有这几条箭头**：content → user、im → user、companion → user、content → ai、growth → ai、companion → ai；以及萌萌工具专用的 ai → content、ai → growth（只读）。
+   user 在底层，不调任何项目内服务；content、im、companion 同步调 user，content、growth、companion 同步调 ai 做计算；除奶糖助手的对话外，ai 不被写路径同步调用。
+2. **同步调用全项目只有这几条箭头**：content → user、im → user、companion → user、content → ai、growth → ai、companion → ai；以及奶糖站内工具专用的 ai → content、ai → growth（只读）。
 3. **同步调用只读、深度为 1。** 内部接口只做查询；处理内部调用时不许再向外发起同步调用。跨服务的写只能通过事件。
-   唯一的例外是萌萌：companion → ai → content / growth 深度为 2。只有萌萌对话图里的工具能调，接口在 ai 里写成白名单，content、growth 处理这些调用时不再外调，也永远不调 companion，所以不成环。见 [meng.md](meng.md) 第 6.3 节。
+   唯一的例外是奶糖助手：companion → ai → content / growth 深度为 2。只有奶糖一轮的图里的站内工具能调，接口在 ai 里写成白名单，content、growth 处理这些调用时不再外调，也永远不调 companion，所以不成环。见 [meng.md](meng.md) 第 5.3 节。
 4. **「发生了一件事，别人要跟着反应」一律走 MQ 事件。** 事务提交后发送；生产者不知道谁在消费。
 5. **每个服务独占一个 MySQL 库和独立账号。** 物理上杜绝跨服务联表和共享 Entity。
 6. **一次写操作只落在一个服务，不做分布式事务。** 必须同事务的放同一个域；跨域最终一致，消费者幂等。
@@ -168,10 +167,10 @@ java_backend/
 |---|---|---|---|
 | user | 无 | 审核通过、关注、资料变更、资料审核状态变更 | 等级变更、资料审核结果 |
 | content | user、ai | 发帖、改帖、删帖、评论、点赞、收藏、评论点赞、举报处理、请求分析、审核状态变更 | 帖子分析结果、评论审核结果 |
-| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、内容审核状态变更、资料审核状态变更、萌萌升阶、约定到期、画图完成 |
+| im | user | 无 | 审核通过、关注、评论、点赞、收藏、评论点赞、举报处理、等级变更、内容审核状态变更、资料审核状态变更 |
 | growth | ai | 等级变更 | 发帖、评论 |
-| companion | user、ai | 萌萌升阶、约定到期、画图完成 | 无 |
-| ai | content、growth（只限萌萌工具，只读） | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
+| companion | user、ai | 无 | 无 |
+| ai | content、growth（只限奶糖的站内工具，只读） | 帖子分析结果、评论审核结果、资料审核结果 | 发帖、改帖、请求分析、评论、资料变更 |
 
 事件和内部接口的明细见 [contracts.md](contracts.md)。
 
@@ -214,7 +213,7 @@ java_backend/
 
 | 域 | 项 | 当前倾向 |
 |---|---|---|
-| 全局 | LangGraph 图执行态是否持久化 | 不接；萌萌的会话状态由 companion 保存，每次请求带上下文 |
+| 全局 | LangGraph 图执行态是否持久化 | 不接；奶糖的会话状态由 companion 保存，每次请求带上下文 |
 | 内容 | 没挂到帖子上的图片 | 本期不清理。以后加一个 xxl-job 任务来清，要放过被草稿引用的图片 |
 | 内容 | 表情包 | 目录由 `emotion` 表和 `catalog.json` 维护（[content.md](content.md) 第 5.11 节）；表情包管理页面和用户上传暂未开放 |
 | 内容 | 评论按热度排序 | 本期只按时间。有需要时用评论的赞数排 |
@@ -230,14 +229,12 @@ java_backend/
 | 消息 | 通知和未挂载图片的清理 | 本期不清理。以后加 xxl-job 任务 |
 | 消息 | 多实例 | 方向见 [im.md](im.md) 第 2 节，本期不写代码 |
 | 前端 | 繁体中文语言包 | 暂缓；结构已支持，加一个语言目录即可 |
-| 萌萌 | 角色名字定稿 | 先用暂定名；大头照、异常插画和加载动画统一使用软萌画风 |
-| 萌萌 | 偏好调优 | 数据攒到几千对、且有用户同意后再评估；可调优的型号以百炼控制台为准 |
-| 萌萌 | 用户自己的 API key | 用户在设置里填自己的百炼和 DeepSeek key，网关按用户取凭据；页面和存储另做 |
-| 萌萌 | 更多表情 | 需要美术素材；加到全站表情目录里，评论和萌萌共用 |
-| 萌萌 | 记忆向量迁到 Elasticsearch | 单个「用户 × 角色」的记忆超出 Java 内计算的范围后再迁 |
-| 萌萌 | 真实用户盲测 | 上线后用按用户分桶灰度，两组只差一个变量；看换一句率、出戏反馈率、平均每次聊天的轮数、次日回访；判定阈值和最少样本数开测前写定；只统计计数，不读对话正文 |
-| 萌萌 | 公开基准对标 | 人设用 [CharacterEval](https://preview.aclanthology.org/add_acl24_videos/2024.acl-long.638) 的公开数据，记忆用 LongMemEval 的五类问题和 LoCoMo 的长对话问题，在自己的评测框架里跑；各厂商自报的分数测法不同，不直接比较 |
-| 萌萌 | 大模型观测平台（如 Langfuse） | 对话量上来、服务器扩容后再加；现在用结构化日志，每日看板见 [AI 公共运行时](ai-runtime.md)第 14 节 |
+| 奶糖助手 | 用户自己的 API key | 用户在设置里填自己的百炼和 DeepSeek key，网关按用户取凭据；页面和存储另做 |
+| 奶糖助手 | 更多表情 | 需要美术素材；加到全站表情目录里，评论、私信和奶糖共用 |
+| 奶糖助手 | 记忆向量迁到 Elasticsearch | 单个用户的记忆超出 Java 内计算的范围后再迁 |
+| 奶糖助手 | 真实用户盲测 | 上线后用按用户分桶灰度，两组只差一个变量；看平均每次对话的轮数、次日回访；判定阈值和最少样本数开测前写定；只统计计数，不读对话正文 |
+| 奶糖助手 | 公开基准对标 | 人设用 [CharacterEval](https://preview.aclanthology.org/add_acl24_videos/2024.acl-long.638) 的公开数据，记忆用 LongMemEval 的五类问题和 LoCoMo 的长对话问题，在自己的评测框架里跑；各厂商自报的分数测法不同，不直接比较 |
+| 奶糖助手 | 大模型观测平台（如 Langfuse） | 对话量上来、服务器扩容后再加；现在用结构化日志，每日看板见 [AI 公共运行时](ai-runtime.md)第 14 节 |
 
 ### 待核实
 
@@ -245,4 +242,5 @@ java_backend/
 - 阿里云国际短信向八个地区的实际送达、Sender ID 要求和账户通道开通情况。
 - 阿里云对通知类短信（审核结果）的限制，尤其是个人认证的账号和境外号码。发不了的情况下只发验证码，审核结果让用户登录时看。
 - 帖子向量改按 document 编码后，是否已用 `recompute=true` 全量重建过一次；没有就补上（[ai.md](ai.md) 第 5.3 节）。
-- 萌萌危机热线的地区和号码，上线前核对。
+- 奶糖助手危机热线的地区和号码，上线前核对。
+- DeepSeek 官方接口对图片输入的支持，开发时冒烟确认一次（[AI 公共运行时](ai-runtime.md)第 2 节）。

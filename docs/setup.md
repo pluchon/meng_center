@@ -36,8 +36,8 @@
 | `MENG_PII_HASH_KEY` | 邮箱和手机号的检索哈希，与加密密钥分开 |
 | `MENG_MYSQL_USER_PASSWORD` | `meng_user` 库的应用账号密码 |
 | `MENG_MYSQL_CONTENT_PASSWORD`、`MENG_MYSQL_GROWTH_PASSWORD`、`MENG_MYSQL_IM_PASSWORD` | 内容、成长、消息域的独立应用账号密码 |
-| `MENG_MYSQL_COMPANION_PASSWORD` | 萌萌独立库 `meng_companion` 的应用账号密码 |
-| `MENG_COMPANION_WORK_ROOT` | 萌萌作品及私人对话图片目录，默认位于用户 LocalAppData 下，不在仓库内 |
+| `MENG_MYSQL_COMPANION_PASSWORD` | 奶糖助手独立库 `meng_companion` 的应用账号密码 |
+| `MENG_COMPANION_WORK_ROOT` | 奶糖助手的私人对话图片目录，默认位于用户 LocalAppData 下，不在仓库内 |
 | `MENG_USER_AVATAR_ROOT` | 用户头像目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MENG_IM_IMAGE_ROOT` | 私信配图存储目录，默认在用户 LocalAppData 下，不在仓库内 |
 | `MENG_CONTENT_IMAGE_ROOT` | 配图存储目录，默认在用户 LocalAppData 下，不在仓库内 |
@@ -56,15 +56,14 @@
 | `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_ACCESS_KEY_SECRET` | 阿里云短信 |
 | `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen 文本、向量、重排和图像），只给 ai 服务用 |
 | `DEEPSEEK_API_KEY` | DeepSeek 官方（V4.1 Flash 1017 与 V4 Pro 角色说话），只给 ai 服务用 |
-| `TAVILY_API_KEY` | Tavily 联网搜索、读链接、搜图，只给 ai 服务用 |
 
-AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`。模型按用途配置：`AGENT_MODEL`、`SPEECH_MODEL`（默认 `deepseek-flash`，对应官方 DeepSeek V4.1 Flash 1017；DeepSeek 使用 `DEEPSEEK_API_KEY`，Qwen 降级使用 `DASHSCOPE_API_KEY`）、`JUDGE_MODEL`、`REVIEW_MODEL`、`WRITER_MODEL`、`TOY_MODEL`、`ASSIST_MODEL`、`MEMORY_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`RERANK_MODEL`、`COVER_MODEL`，每个用途的温度、超时和降级链见 [AI 公共运行时](ai-runtime.md)第 2 节；旧的 `CLASSIFIER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`SPEECH_STRUCTURED_METHOD`、`DAILY_TOKEN_LIMIT` 删除。其余：`BASE_URL`、`EMBEDDING_URL`、`RERANK_URL`（都是 DashScope 原生接口）、`COVER_URL`、`STRUCTURED_METHOD`（判断类的结构化输出方式）、`TAVILY_DAILY_CREDITS`（默认 300）、`CONCURRENCY`、`TIMEZONE`。嘴输出纯文本，不依赖 JSON 和 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
+AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`。模型按用途配置：`AGENT_MODEL`、`SPEECH_MODEL`（默认 `deepseek-flash`，对应官方 DeepSeek V4.1 Flash 1017；DeepSeek 使用 `DEEPSEEK_API_KEY`，Qwen 降级使用 `DASHSCOPE_API_KEY`）、`JUDGE_MODEL`、`REVIEW_MODEL`、`WRITER_MODEL`、`ASSIST_MODEL`、`MEMORY_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`RERANK_MODEL`、`COVER_MODEL`，每个用途的温度、超时和降级链见 [AI 公共运行时](ai-runtime.md)第 2 节；旧的 `CLASSIFIER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`SPEECH_STRUCTURED_METHOD`、`DAILY_TOKEN_LIMIT` 删除。其余：`BASE_URL`、`EMBEDDING_URL`、`RERANK_URL`（都是 DashScope 原生接口）、`COVER_URL`、`STRUCTURED_METHOD`（判断类的结构化输出方式）、`CONCURRENCY`、`TIMEZONE`。嘴输出纯文本，不依赖 JSON 和 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
 
-AI 启动时读取 `MENG_GROUP/meng-ai.yml`，文件采用 JSON 兼容的 YAML 格式。`model_overrides` 按用途覆盖温度、超时、降级链和 `context_tokens`；上下文限制取配置值与 600K 的较小值，配置值应符合实际模型窗口。`speculative`（环境变量 `MENG_AI_SPECULATIVE`，默认 `true`）控制嘴是否和主 agent 并行预生成；关闭后嘴等待主 agent。`cover_model`（`MENG_AI_COVER_MODEL`）默认 `qwen-image-3.0-pro`，萌萌画图与 AI 封面共用。修改后重启 AI 服务。`meng-companion.yml` 的 `holidays` 支持 `MM-DD` 和 `YYYY-MM-DD`，按用户当地日期读取。
+AI 启动时读取 `MENG_GROUP/meng-ai.yml`，文件采用 JSON 兼容的 YAML 格式。`model_overrides` 按用途覆盖温度、超时、降级链和 `context_tokens`；上下文限制取配置值与 600K 的较小值，配置值应符合实际模型窗口。`speculative`（环境变量 `MENG_AI_SPECULATIVE`，默认 `true`）控制嘴是否和主 agent 并行预生成；关闭后嘴等待主 agent。`cover_model`（`MENG_AI_COVER_MODEL`）默认 `qwen-image-3.0-pro`，用于 AI 封面。修改后重启 AI 服务。
 
 网关限流配置为 `REQUESTS_PER_MINUTE`、`TOKENS_PER_MINUTE`、`MODEL_QUEUE_SECONDS`、`CIRCUIT_SECONDS`，只保护模型账号的每分钟额度，本机并发限制单独保留。不设 token 上限：`ROUND_TOKEN_LIMIT`、`USER_DAILY_TOKEN_LIMIT`、`DAILY_TOKEN_LIMIT` 及其预算预留与结算都删除（[AI 公共运行时](ai-runtime.md)第 2.1 节）；用量照常按用户、功能记录。`INPUT_PRICE_PER_MILLION`、`OUTPUT_PRICE_PER_MILLION` 和 `CACHED_PRICE_RATIO` 用于估算费用；未配置单价时默认零，不能据此认定调用免费。
 
-萌萌执行器端口为 `MENG_COMPANION_JOB_PORT`（默认 9107），只允许调度中心内部转发器访问。任务日志位于作品目录同级的 `companion-job-logs/`。服务本机的 `/actuator/metrics` 提供 `companion.*` 指标，包括首个气泡 P50/P95、降级、重写、token、缓存 token、估算费用和发件箱积压；指标不包含聊天正文。
+companion 执行器端口为 `MENG_COMPANION_JOB_PORT`（默认 9107），只允许调度中心内部转发器访问。任务日志位于图片目录同级的 `companion-job-logs/`。服务本机的 `/actuator/metrics` 提供 `companion.*` 指标，包括首个气泡 P50/P95、降级、重写、token、缓存 token、估算费用和发件箱积压；指标不包含聊天正文。
 
 宿主机端口不是密钥，集中写在 `deploy/ports.env`。
 

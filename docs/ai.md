@@ -1,7 +1,7 @@
-# 萌部落社区 · AI 域（萌萌以外）
+# 萌部落社区 · AI 域（奶糖助手以外）
 
 > 配套文档：[架构设计](architecture.md)、[事件与内部接口](contracts.md)、[内容域](content.md)、[成长域](growth.md)。
-> 萌萌（角色扮演）见 [meng.md](meng.md)。两者共用的模型注册表、网关、检索、安全层和任务注册表见 [AI 公共运行时](ai-runtime.md)；数据、提示词和业务规则各管各的。
+> 奶糖助手见 [meng.md](meng.md)。两者共用的模型注册表、网关、检索、安全层和任务注册表见 [AI 公共运行时](ai-runtime.md)；数据、提示词和业务规则各管各的。
 
 ## 1. 范围
 
@@ -16,16 +16,16 @@
 
 | 谁 | 做什么 |
 |---|---|
-| ai（Python） | 只做计算：调 Qwen 抽特征、判审核、生成文字和图片，调 embedding 算向量。不建库、不改任何业务状态；本文的功能不同步调用任何 Java 服务（萌萌的工具例外，见 [meng.md](meng.md) 第 6.3 节） |
+| ai（Python） | 只做计算：调 Qwen 抽特征、判审核、生成文字和图片，调 embedding 算向量。不建库、不改任何业务状态；本文的功能不同步调用任何 Java 服务（奶糖助手的站内工具例外，见 [meng.md](meng.md) 第 5.3 节） |
 | content | 帖子特征和审核结论的存储、向量索引、推荐、相关帖子、语义搜索；发帖页 AI 入口的对外接口、鉴权和限次 |
 | growth | 成长 AI 总结的对外接口：自己用 SQL 统计数字，交给 ai 写文字，结果缓存和限次在 growth |
 | user | 昵称、签名、头像的审核结论存储和处理 |
 
 ### 2.2 调用方向
 
-- **同步**：content → ai、growth → ai，都是「把数据给 ai，拿回计算结果」。本文的功能里 ai 不反过来同步调任何服务；萌萌工具对 content、growth 的只读调用是唯一例外，content、growth 都不会同步调 companion，所以不成环。
+- **同步**：content → ai、growth → ai，都是「把数据给 ai，拿回计算结果」。本文的功能里 ai 不反过来同步调任何服务；奶糖助手的站内工具对 content、growth 的只读调用是唯一例外，content、growth 都不会同步调 companion，所以不成环。
 - **异步**：content 把帖子和评论的全文（和配图的小图）放进事件发给 ai，user 把改过的资料放进事件发给 ai；ai 算完发结果事件，由发出事件的域消费后落库处理。
-- 前端不直接访问 ai。网关不开 `/ai/**` 路由（萌萌也经 companion 进入），ai 的内部接口只监听本机，供 Java 服务调用。
+- 前端不直接访问 ai。网关不开 `/ai/**` 路由（奶糖助手也经 companion 进入），ai 的内部接口只监听本机，供 Java 服务调用。
 - 这样「AI 只做计算」（[架构](architecture.md)第 6 节规则 8）落得最彻底：权限、限次、缓存、状态都在 Java。
 
 ## 3. ai 服务
@@ -46,11 +46,11 @@
 | 成长和创作总结 | `qwen3.8-flash` | 短文本，温度 0.5 |
 | 配图和头像审核 | `qwen3.8-flash`（原生视觉） | 只看审核用的小图（长边 512） |
 | 向量 | `qwen3.7-text-embedding-flash` | 1024 维，余弦相似度 |
-| 重排 | `qwen3.7-text-rerank` | 语义搜索、相关帖子、萌萌的回忆与帖子工具 |
-| 生成封面 | `qwen-image-3.0-pro` | 当前最好的 Qwen 生图模型，和萌萌画图共用；同步直出，不带 `X-DashScope-Async` 头 |
+| 重排 | `qwen3.7-text-rerank` | 语义搜索、相关帖子、奶糖助手的回忆与搜帖 |
+| 生成封面 | `qwen-image-3.0-pro` | 当前最好的 Qwen 生图模型；同步直出，不带 `X-DashScope-Async` 头 |
 | 排序模型 | scikit-learn 逻辑回归 | 不是大模型；离线训练，权重交给 content 用（第 6.7 节） |
 
-站内功能的文字理解、审核与写作统一使用当前最新的 Flash（萌萌的说话用 DeepSeek，见 [AI 公共运行时](ai-runtime.md)第 2 节），图像使用 Qwen Image 3.0 Pro。Flash 兼任视觉审核，保持小图、低温度和结构化输出。检索排序统一用 `qwen3.7-text-rerank`。每个任务的提示词版本、Schema、模型用途、温度、超时与降级登记在任务注册表里（[AI 公共运行时](ai-runtime.md)第 9 节），提示词只写正面要求。向量保留最新轻量型号 `qwen3.7-text-embedding-flash`，内部维度固定 1024，无需因写作或生图型号变化重建向量。
+站内功能的文字理解、审核与写作统一使用当前最新的 Flash（奶糖助手的说话用 DeepSeek，见 [AI 公共运行时](ai-runtime.md)第 2 节），图像使用 Qwen Image 3.0 Pro。Flash 兼任视觉审核，保持小图、低温度和结构化输出。检索排序统一用 `qwen3.7-text-rerank`。每个任务的提示词版本、Schema、模型用途、温度、超时与降级登记在任务注册表里（[AI 公共运行时](ai-runtime.md)第 9 节），提示词只写正面要求。向量保留最新轻量型号 `qwen3.7-text-embedding-flash`，内部维度固定 1024，无需因写作或生图型号变化重建向量。
 
 按[阿里云官方价格](https://help.aliyun.com/zh/model-studio/model-pricing)，北京地域常用短输入档、每百万 Token 原价：Flash 输入 0.8 元 / 输出 2.7 元，向量 Flash 输入 0.125 元；Qwen Image 3.0 Pro 按张计费，单价以控制台为准，纯文生图无输入图片费用。不同地域、输入长度和优惠分别计费，程序不硬编码价格。型号能力与参数见[视觉理解](https://help.aliyun.com/zh/model-studio/vision-model)、[向量接口](https://help.aliyun.com/zh/model-studio/embedding-interfaces-compatible-with-openai/)、[千问同步生图接口](https://help.aliyun.com/zh/model-studio/qwen-image-generation-and-editing-api-reference)。
 
@@ -105,7 +105,7 @@ python_ai/
 | `langchain-core` | 提示词模板、Runnable、回调 |
 | `langchain-openai` | `ChatOpenAI`，指向 DashScope 的 OpenAI 兼容地址；向量和重排走原生接口（httpx） |
 | `langgraph` | 多步流程 |
-| `langchain` | 只在要用 `create_agent` 时才引，非萌萌的功能目前用不到 |
+| `langchain` | `create_agent` 与中间件，只有奶糖助手的主 agent 用 |
 | `fastapi`、`uvicorn`、`pydantic-settings`、`aio-pika`、`redis`、`httpx` | 服务本身 |
 | `scikit-learn` | 排序模型 |
 
@@ -128,9 +128,9 @@ python_ai/
 
 | 写法 | 用在 | 理由 |
 |---|---|---|
-| LCEL 链：`prompt \| model.with_structured_output(Schema)` | 挑选标签、激发灵感、成长总结、创作总结、评论文字审核、资料文字审核 | 一次调用就完事，不需要状态和分支 |
-| LangGraph `StateGraph` | 帖子分析、内容审核（文字加配图）、资料审核、生成封面 | 有并行（文字、向量、多张图同时跑）、有分支（没图就跳过、提示词不安全就停）、需要按节点重试 |
-| 不用 `create_agent` | 全部非萌萌功能 | 这些都是固定流程，不需要模型自己决定调什么工具；用 agent 只会多花 token、结果更难预测 |
+| LCEL 链：`prompt \| model.with_structured_output(Schema)` | 挑选标签、激发灵感、封面描述、成长总结、创作总结 | 一次调用就完事，不需要状态和分支；都经 `runtime/tasks/structured.py` 执行 |
+| LangGraph `StateGraph` | 帖子分析、审核子图（帖子、评论、资料共用）、生成封面 | 有并行（文字、向量、多张图同时跑）、有分支（没图就跳过、提示词不安全就停）、需要按节点重试 |
+| 不用 `create_agent` | 本文的全部功能 | 这些都是固定流程，不需要模型自己决定调什么工具；用 agent 只会多花 token、结果更难预测 |
 | 普通 Python | 排序模型训练 | 不涉及大模型 |
 
 ### 3.7 链的写法
@@ -149,41 +149,15 @@ python_ai/
 - 状态用 `TypedDict`，多个分支往同一个列表里写的字段用 `Annotated[list[...], operator.add]` 合并；Service 只返回图的 `result`，不向调用方暴露内部状态。
 - 运行时依赖（模型、设置、用量回调）放 `context_schema`（一个 dataclass），节点用 `runtime: Runtime[Context]` 取，不放进状态，也不读全局变量。
 - 调外部模型的节点挂 `retry_policy=RetryPolicy(max_attempts=3, …)`，只对连接错误、超时、429 重试。
-- 图在应用启动时 `compile()` 一次，复用。**不接 checkpointer**：这些流程几秒就跑完，中断了靠 MQ 重投从头再跑，事件和结果都是幂等的；萌萌要不要接由萌萌自己决定。
+- 图在应用启动时 `compile()` 一次，复用。**不接 checkpointer**：这些流程几秒就跑完，中断了靠 MQ 重投从头再跑，事件和结果都是幂等的。奶糖助手的图同样不接（[AI 公共运行时](ai-runtime.md)第 3 节）。
 - 节点函数只返回要更新的字段，不原地改状态。
 
-**帖子分析图**（`graphs/post_analysis.py`）：
+三张图的结构见 [AI 公共运行时](ai-runtime.md)第 9 节，这里只列要点：
 
-```
-START → prepare ─┬─► understand ─────────────────────┐
-                 ├─► embed ──────────────────────────┤
-                 └─► (每张图一个 Send) moderate_image ─┤
-                                                     ▼
-                                     merge（defer，等所有分支）→ END
-```
-
-| 节点 | 做什么 | 失败时 |
-|---|---|---|
-| `prepare` | 清洗文本、截断、拼好向量输入；按配图数量决定分发 | 不会失败 |
-| `understand` | flash 链：主题、关键词、质量、文字审核结论 | 重试后仍失败：写中性值，`errors` 里记一条，不中断整个图 |
-| `embed` | 算 1024 维向量 | 重试后仍失败：整个图失败，消息回队列重投（没有向量的结果不发出去） |
-| `moderate_image` | VL 模型看一张小图，给出这张图的结论 | 重试后仍失败：这张图记 `SUSPECT`，交给人看 |
-| `merge` | 文字和每张图的结论取最严重的那个，组装 `post.analyzed` | — |
-
-`moderate_image` 用 `Send` 按图分发，`merge` 用 `defer=True` 等所有分支跑完；没有配图时不分发，直接进 `merge`。
-
-**内容审核子图**（`graphs/moderation.py`）：文字审核链加上面同一个 `moderate_image` 分发和合并，编译成子图。评论审核和资料审核直接用它；帖子分析不用，因为帖子的文字审核和主题抽取是同一次调用，省一次模型调用。
-
-**资料审核图**：昵称和签名走内容审核子图的文字部分，换了头像时再走一次 `moderate_image`。
-
-**封面图**（`graphs/cover.py`）：
-
-```
-START → plan（Flash 写出画面描述和反向描述）→ check（审核描述本身）─┬─ 通过 → generate（调千问生图）→ END
-                                                               └─ 不通过 → END（返回拒绝原因）
-```
-
-千问生图不在 LangChain 里，`generate` 节点直接用 `clients/cover_image.py`（httpx）同步调用，挂重试 2 次。每次生成一张 1664×928 封面，保留水印；画面描述已由写作链生成，关闭提供方的提示词改写，避免额外改写和思考耗时。只下载返回的阿里云 HTTPS 图片，限制 10 MB，再交 Java 沿用普通图片处理和 `ai_generated` 标记。
+- **审核子图**（`graphs/moderation.py`，第 9.3 节）：文字节点按任务选 Schema（帖子用 `understand`，顺带输出主题、关键词、质量；评论和资料用 `moderate_text`），每张图一个 `Send` 进审图节点，`merge` 用 `defer=True` 取最严重结论，有 `BLOCK` 时进 `confirm` 由 `qwen3.8-max` 复核。帖子、评论、资料三条流程共用它，不再各写一套分发与合并。
+- **帖子分析图**（`graphs/post_analysis.py`，第 9.5 节）：审核子图和 `embed` 并行，`merge` 后发 `post.analyzed`。文字节点重试后仍失败写中性值并记 `errors`；`embed` 重试后仍失败整个图失败、消息回队列重投；某张图重试后仍失败记 `SUSPECT`。
+- **资料审核**：昵称和签名走审核子图的文字节点，换了头像时一并送审图节点。
+- **封面图**（`graphs/cover.py`，第 9.8 节）：`plan`（封面描述链）→ 审核子图的文字节点 → `generate` → 审核子图的审图节点；不通过就按「没生成成功」处理，不走 BLOCK 复核。千问生图不在 LangChain 里，`generate` 节点直接用 `clients/cover_image.py`（httpx）同步调用，挂重试 2 次。每次生成一张 1664×928 封面，保留水印，关闭提供方的提示词改写；只下载返回的阿里云 HTTPS 图片，限制 10 MB，再交 Java 沿用普通图片处理和 `ai_generated` 标记。
 
 ### 3.9 测试与评测
 
@@ -206,6 +180,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
                ai 发 post.analyzed ──► content：写 post_ai_feature，写向量索引，按审核结论处理
 ```
 
+- 结论为 `BLOCK` 的帖子不写向量索引；管理员恢复帖子时，content 重发一次 `post.analysis-requested` 补上向量。
 - 删帖：content 自己删向量文档，不经过 ai。
 - 全量重建或换模型：管理员调 `POST /content/admin/ai/reanalyze`，content 按游标分批发 `post.analysis-requested`，ai 照常处理。重复请求合并。
 
@@ -215,7 +190,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 | 字段 | 内容 |
 |---|---|
-| `topics` | 1～5 个主题词。事件里的 `tagCandidates`（最常用的 50 个标签）作为候选，优先用原文；代码再按 [AI 公共运行时](ai-runtime.md)第 9.5 节归一 |
+| `topics` | 1～5 个主题词。事件里的 `tagCandidates`（最常用的 50 个标签）作为候选，优先用原文；代码再按 [AI 公共运行时](ai-runtime.md)第 9.1 节归一 |
 | `keywords` | 最多 8 个关键词，作为帖子分析元数据；不用于 AI 检索匹配 |
 | `quality` | 1～5：1 灌水或无意义，3 正常，5 有信息量或用心的创作 |
 | `verdict` | `PASS` 通过、`SUSPECT` 可疑、`BLOCK` 违规 |
@@ -379,7 +354,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 `GET /content/posts/{id}/related?page=&size=`，每次 5 篇（`size` 最大 10），总数最多 20 篇，由后端分页。
 
-- 源帖向量召回最多 20 篇公开候选，排除源帖与 `BLOCK`，再以源帖标题和摘要为查询做 rerank，取阈值（默认 0.4）以上的按分数排序；同一作者最多 3 篇。见 [AI 公共运行时](ai-runtime.md)第 6.5 节。
+- 源帖向量召回最多 20 篇公开候选，排除源帖与 `BLOCK`，再以源帖标题和摘要为查询做 rerank，取阈值（默认 0.4）以上的按分数排序；同一作者最多 3 篇。见 [AI 公共运行时](ai-runtime.md)第 6.2 节。
 - 不按标签、分类或关键词补齐结果。没有足够依据时允许空结果。rerank 不可用时按向量相似度的顺序返回且不写缓存；向量索引也不可用时返回空列表，详情页其他部分不受影响。
 - 排序结果按源帖缓存 1 小时，缓存带 `rerank-v1` 来源标记。改帖、删帖时清理缓存。
 
@@ -391,7 +366,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 - content 重新校验帖子公开状态和逻辑删除标记，再把标题、摘要交给 `/ai/internal/retrievals`。ai 用 `qwen3.7-text-rerank` 重排，返回阈值（默认 0.35）以上的下标和分数，可以返回空结果。
 - 只能返回给定候选的下标；重复和越界都拒绝。业务端继续校验身份、公开性、归属、长度与额度。
 - 语义结果展示标题和摘要，不按查询词生成高亮。向量或 rerank 不可用时退回关键词检索（不重复计搜索次数），结果照常返回，响应带 `semantic=false`，前端不提示错误。
-- 萌萌公开帖子工具由 Python 先计算向量，调用 content 的只读向量候选接口，再用同一个 rerank 取最多五篇；content 内部工具接口不回调 AI，保持调用深度约束。
+- 奶糖助手的 `search_posts` 由 Python 先计算向量，调用 content 的只读向量候选接口，再用同一个 rerank 取最多五篇；content 内部工具接口不回调 AI，保持调用深度约束。
 
 ## 10. 发帖页的三个入口
 
@@ -422,7 +397,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 `POST /content/creator/ai-reviews`，参数 `days`（7 或 30），放在创作中心的数据区。
 
-- content 用 SQL 算好：区间内每天的浏览、喜欢、评论、收藏，发帖数，表现最好的 3 篇（标题、分类、各项数），各分类的平均表现，发帖时段分布。
+- content 用 SQL 算好：区间内每天的浏览、喜欢、评论、收藏，发帖数，表现最好的 3 篇（标题、分类、各项数），各分类的平均表现，发帖时段分布；再取作者自己帖子的 `topics`（第 4.2 节）里最近常写的 3 个主题，和兴趣画像（第 6.1 节）里最近常看的 3 个主题，让建议贴合作者自己的方向。这些数据都在 content，不新增服务依赖。
 - ai 写一段总结和两三条可以照做的建议（例如「技术类的收藏率最高，可以多写」），口吻和成长总结一致。
 - 展示、缓存、限次的做法和 11.1 相同，缓存键是 `content:ai:creator-review:{userId}:{days}`。
 
@@ -468,7 +443,7 @@ START → plan（Flash 写出画面描述和反向描述）→ check（审核描
 
 ### 12.5 昵称、签名、头像
 
-- user 在资料保存成功后发 `user.profile-updated`（userId、版本、昵称、签名，换了头像时带头像的小图）；ai 用资料审核图判，回 `user.profile-moderated`。
+- user 在资料保存成功后发 `user.profile-updated`（userId、版本、昵称、签名，换了头像时带头像的小图）；ai 用审核子图判，回 `user.profile-moderated`。
 - user 消费结论，存进 `profile_ai_review`。开关打开且 `BLOCK` 时，昵称和签名（文字）、头像分开判断，哪一部分违规只清哪一部分：
   - 文字违规：昵称清空（展示名退回用户名）、签名清空；头像不动。
   - 头像违规：头像换回默认；昵称和签名不动。
@@ -564,7 +539,7 @@ growth 有 `growth:ai:summary:{userId}:{days}`（总结缓存）和同样的每�
 
 ## 15. 安全与隐私
 
-- 和萌萌的对话、私信都不进推荐画像、不进向量索引、不送去做帖子分析。
+- 和奶糖助手的对话、私信都不进推荐画像、不进向量索引、不送去做帖子分析。
 - 送去模型的只有公开的帖子、评论和配图，用户自己在发帖页填的草稿，公开的昵称、签名和头像，自己的成长和创作统计数字。不送邮箱、手机号、IP、属地。
 - 不开 LangSmith 追踪（不设 `LANGSMITH_TRACING`），用量和耗时只记在本地日志。
 - 内容会发到阿里云 DashScope，用户协议和隐私政策里要写明（等正式协议时补）。

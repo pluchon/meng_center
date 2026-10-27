@@ -8,7 +8,7 @@
 
 ## 演示视频
 
-[meng_center_demo.mp4](meng_center_demo.mp4)，92 秒：注册审核、主页、发帖、语义搜索、创作中心、成长、消息、个人中心，再到萌萌的三个角色、聊天、记忆、语气档位，最后是架构和一次发帖的事件流。
+[meng_center_demo.mp4](meng_center_demo.mp4)，92 秒：注册审核、主页、发帖、语义搜索、创作中心、成长、消息、个人中心，再到旧版萌萌的三个角色，最后是架构和一次发帖的事件流。萌萌现在已缩成主页的奶糖助手，视频里的三角色页面是旧版。
 
 ## 功能
 
@@ -91,21 +91,11 @@ flowchart TD
 
 ![个人中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/20261018120157288.png)
 
-### 萌萌
+### 奶糖助手
 
-萌萌是三个 AI 角色：白濑凛（傲娇）、日向小葵（元气）、奶糖（猫娘）。形象是琪露诺的三种打扮，属于同人二创。每个角色有五个关系阶段，从初识到羁绊，关系最高到好友，不会发展成恋人。
+主页右下角的小助手，形象是琪露诺的猫娘打扮（同人二创）。登录后点开对话框，奶糖用自己的口吻做基本问答：能看用户发来的图，能找站内帖子、读帖子、查用户自己的帖子和成长数据，也记得用户以前说过的事。关系最高到朋友，不会发展成恋人。
 
-聊天时角色会记住用户说过的事，会自己去查不懂的事、找图、按心情画画、做能在聊天里运行的小玩意、找帖子。每个角色有三档语气，用户自己选，例如奶糖是正常、撒娇、撒娇卖萌。记忆按角色分开，跟凛说过的事，小葵不知道。
-
-![萌萌首页](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/20261018120159934.png)
-
-![萌萌聊天](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/20261018120202763.png)
-
-![记忆弹窗](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/20261018120205445.png)
-
-![性格档位](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/20261018120207726.png)
-
-关系界限、现实生活优先、防沉迷和危机处理这些规则写在 [萌萌](docs/meng.md) 第 8 节，优先级高于角色设定。
+关系界限、现实生活优先和危机处理这些规则写在 [奶糖助手](docs/meng.md) 第 6 节，优先级高于角色设定。
 
 ## 架构
 
@@ -120,7 +110,7 @@ flowchart LR
         CONTENT[content<br/>帖子与评论]
         GROWTH[growth<br/>成长与积分]
         IM[im<br/>私信与通知]
-        COMP[companion<br/>萌萌会话与记忆]
+        COMP[companion<br/>奶糖会话与记忆]
     end
 
     GW --> USER & CONTENT & GROWTH & IM & COMP
@@ -152,12 +142,12 @@ flowchart LR
 | content | 8102 | 帖子、评论、点赞、收藏、搜索与向量索引、推荐 |
 | growth | 8103 | 经验、等级、签到、积分 |
 | im | 8104 | 私信、通知、WebSocket |
-| ai | 8106 | 帖子理解、审核、推荐计算、萌萌对话图，不存任何业务状态 |
-| companion | 8107 | 萌萌的会话编排、好感、记忆、作品、限次 |
+| ai | 8106 | 帖子理解、审核、推荐计算、奶糖一轮的图，不存任何业务状态 |
+| companion | 8107 | 奶糖助手的会话编排、记忆、限次 |
 
 几条固定的规则，细节见 [架构设计](docs/architecture.md)：
 
-- 同步调用只有少数固定方向，而且只读，深度为 1。唯一的例外是萌萌：companion 调 ai，ai 的工具再只读地调 content 和 growth。
+- 同步调用只有少数固定方向，而且只读，深度为 1。唯一的例外是奶糖助手：companion 调 ai，ai 的站内工具再只读地调 content 和 growth。
 - 一件事发生后别的服务要跟着反应，一律走 RabbitMQ 事件，事务提交后才发送。
 - 权限、额度、计费和最终的业务状态由 Java 决定。AI 服务只做计算和给出建议，不能绕过业务服务改数据。
 - 身份只来自网关注入的请求头，不信任前端传来的用户编号和角色。
@@ -190,98 +180,26 @@ sequenceDiagram
 
 发帖不会等 AI。分析通常在几秒内完成，AI 不可用时帖子照常发布，分析在队列里延后处理。
 
-### 萌萌的一轮对话
+### 奶糖的一轮对话
 
-对话由 companion 编排。它负责额度、会话锁、取上下文和最终落库；ai 负责生成。一轮的结果在检查通过后才发给前端，所以前端收到的是一个个完整的气泡，不是逐字输出。
-
-```mermaid
-sequenceDiagram
-    actor U as 用户
-    participant F as 前端
-    participant C as companion
-    participant A as ai
-    participant M as 模型
-    U->>F: 发送消息
-    F->>C: POST 消息（带幂等编号、时区）
-    C->>C: 校验额度与冷却，加会话锁，保存用户消息
-    C->>C: 组装上下文：角色卡、档位、记忆、摘要、历史
-    C->>A: 内部流式请求
-    A->>M: 主 agent 判断输入与场景
-    alt 危机信号
-        A-->>C: 固定的安全回复
-    else 需要工具
-        A->>M: 并行调用固定工具，再调用 respond
-    end
-    A->>M: DeepSeek 按指令生成一次纯文本回复
-    A->>M: 安全判定，人设分和人机味分
-    A-->>C: 通过检查的气泡、好感建议、心情
-    C->>C: 同一个事务保存气泡、作品、好感，写发件箱
-    C-->>F: 依次发送气泡
-    C-->>F: done，附带剩余次数
-    Note over C: 事务之后异步整理记忆、<br/>推进摘要、统计用量
-```
-
-几个设计上的取舍：
-
-- 断开连接不会中止生成。刷新页面或切到别的话题后，这一轮仍会在服务端完成，回来时从历史里补齐。
-- 同一用户可以同时在两个话题里聊。同一个话题里，生成过程中再发的消息会排队，这一轮结束后合并成一轮回复。
-- 每条消息带客户端生成的编号，重复提交会返回同一轮的结果，不会重复计次。
-
-### 萌萌的记忆
-
-记忆分五层，写入在对话之后异步进行，不占用回复的时间。
+对话由 companion 编排：额度、会话锁、取上下文和最终落库都在 Java；ai 只负责生成。一轮的结果在检查通过后才发给前端，所以前端收到的是一个个完整的气泡，不是逐字输出。
 
 ```mermaid
-flowchart TD
-    T[一轮对话提交] --> O[发件箱事件]
-    O --> W[整理任务<br/>同一用户和角色串行处理]
-    W --> S[检索最相似的旧记忆]
-    S --> D[ai 判断每条候选<br/>新增、取代、失效、不变]
-    D --> V[companion 校验<br/>编号在候选内、有原文证据、归属正确]
-    V --> P[格式化敏感信息检查<br/>手机号、邮箱、证件号]
-    P --> DB[(落库)]
-    DB --> PR[变化累计后重写核心档案]
-    DB --> EP[空闲会话生成回忆卡]
-    EP --> HOT[被反复提起的话题晋升为事实]
+flowchart LR
+    S([开始]) --> AG[主 agent<br/>Qwen：审核、站内工具、回忆]
+    S --> DR[嘴预跑<br/>DeepSeek：看图起草]
+    DR --> PJ[预审打分]
+    AG --> M{汇合}
+    PJ --> M
+    M -->|危机、色情、越狱| B[安全拦截]
+    M -->|闲聊且预审通过| E[发出]
+    M -->|用了工具或预审不过| R[带事实重说] --> J[打分] --> E
+    J -->|仍不通过| F[兜底台词]
 ```
 
-| 层 | 内容 |
-|---|---|
-| 核心档案 | 300 字以内，总结角色眼中的这个用户，每轮都放进上下文 |
-| 事实 | 称呼、喜好、近况、约定、角色自己说过的设定；被取代的事实标记失效，不删除 |
-| 回忆卡 | 一段聊天结束后的小结，按相关度检索出少量放进上下文 |
-| 会话摘要 | 当前话题中较早部分的压缩 |
-| 最近对话 | 下发当前窗口全部历史；空闲 30 分钟且超过约 8K token 时压缩，600K 时强制压缩 |
-
-约定提醒按用户的时区换算日期。网页不能操作系统闹钟，所以提醒有三层：下次来聊天时角色自然问起，到期当天发一条站内通知，聊天里也可以下载日历文件。不做浏览器推送。
-
-### 上下文怎么排
-
-提示词里不变的部分放在最前面，每轮都变的部分放在最后，这样阿里云百炼的前缀缓存更容易命中。
-
-```mermaid
-flowchart TB
-    subgraph 稳定前缀
-        A1[关系界限与语言底线]
-        A2[角色卡、阶段、档位说明]
-        A3[固定的工具声明]
-    end
-    subgraph 慢变层
-        B1[核心档案、置顶事实、角色自述]
-    end
-    subgraph 追加层
-        C1[会话摘要]
-        C2[对话历史，只在末尾追加]
-    end
-    subgraph 本轮层
-        D1[用户当地时间]
-        D2[检索到的记忆和回忆]
-        D3[到期的约定、今天的她]
-        D4[场景示例台词]
-        D5[用户这句话]
-    end
-    A1 --> A2 --> A3 --> B1 --> C1 --> C2 --> D1 --> D2 --> D3 --> D4 --> D5
-```
+- 闲聊时 agent 和「嘴加预审」同时跑，汇合就能发，首句约 2.5 秒。
+- 断开连接不会中止生成；同一个对话里生成中再发的消息会排队，结束后合并成一轮回复。
+- 记忆在对话之后异步整理：从用户自己的话里提炼事实，取代的旧事实标记失效、不删除；会话空闲 30 分钟后才压缩较早的历史，聊天中不动前缀，缓存命中更高。编排和上下文的完整规则见 [AI 公共运行时](docs/ai-runtime.md)。
 
 ## 技术栈
 
@@ -289,7 +207,7 @@ flowchart TB
 |---|---|
 | 后端 | JDK 17，Spring Boot 4.0，Spring Cloud 2025.1，Spring Cloud Alibaba，MyBatis-Plus，Flyway |
 | AI 服务 | Python 3.12，FastAPI，LangChain 1.x，LangGraph 1.x，使用 uv 管理依赖 |
-| 模型 | 阿里云百炼：DeepSeek V4.1 Flash（萌萌说话）、Qwen3.8 Flash / Max（判断、agent 与写作）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen3.7 Rerank（重排）、Qwen Image 3.0 Pro（生图）；联网搜索用 Tavily |
+| 模型 | DeepSeek 官方接口：DeepSeek V4.1 Flash（奶糖说话和看图）；阿里云百炼：Qwen3.8 Flash / Max（判断、agent 与写作）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen3.7 Rerank（重排）、Qwen Image 3.0 Pro（生图） |
 | 中间件 | MySQL 8、Redis、RabbitMQ、Elasticsearch、Nacos、xxl-job |
 | 前端 | Vue 3，vue-router，Pinia，Axios，Element Plus，SCSS，构建用 Vite |
 | 部署 | Docker Compose 启动本地中间件；业务服务以 JAR 和 uvicorn 在本机运行 |
@@ -364,7 +282,7 @@ npm run dev
 | 命令 | 内容 |
 |---|---|
 | `./verification/Test-Backend.ps1` | 全部后端模块的单元测试和架构测试 |
-| `./verification/Test-Companion.ps1` | 萌萌的 Java 测试、Python 静态检查和测试；加 `-EvaluateModels` 跑模型评测 |
+| `./verification/Test-Companion.ps1` | 奶糖助手的 Java 测试、Python 静态检查和测试 |
 | `./verification/Test-Ai.ps1` | AI 服务的静态检查和测试 |
 | `./verification/Test-Functional.ps1` | 注册、审核、登录、改密的完整联调 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有密钥的值 |
@@ -381,9 +299,9 @@ npm run dev
 | [内容域](docs/content.md) | 帖子、评论、配图、热榜、搜索、收藏夹 |
 | [成长域](docs/growth.md) | 签到、经验、等级、积分 |
 | [消息域](docs/im.md) | 私信、通知、实时连接 |
-| [AI 公共运行时](docs/ai-runtime.md) | 萌萌和站内 AI 共用：模型、上下文与缓存、去 AI 味、工具与联网、检索、安全 |
+| [AI 公共运行时](docs/ai-runtime.md) | 奶糖和站内 AI 共用：模型、奶糖一轮的图、上下文与缓存、审核子图、检索、安全、评测 |
 | [AI 域](docs/ai.md) | 帖子理解、推荐、语义搜索、发帖页 AI 入口、成长总结、审核 |
-| [萌萌](docs/meng.md) | 角色、好感度、记忆、对话链路、作品、关系界限与安全、页面 |
+| [奶糖助手](docs/meng.md) | 设定、记忆、对话链路、关系界限与安全、接口、页面 |
 | [前端规范](docs/frontend.md) | 目录、三文件拆分、不硬编码的做法、检查工具 |
 | [环境、密钥与约定](docs/setup.md) | 本机环境、环境变量清单、命名约定 |
 | [本地中间件](deploy/README.md) | 启动、端口与凭据约定 |

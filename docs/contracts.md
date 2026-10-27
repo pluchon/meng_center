@@ -44,9 +44,6 @@
 | `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者；某人对这篇帖子的第一行收藏记录插入成功时发一次，之后放进别的收藏夹不重复发 |
 | `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
-| `companion.stage-reached` | companion | userId、characterCode、characterName、stage、stageName | im：通知本人（系统频道的「萌萌」类型） |
-| `companion.promise-due` | companion | userId、characterCode、characterName、memoryId、content、dueDate | im：约定到期当天通知本人（「萌萌」类型），每个约定只发一次 |
-| `companion.drawing-finished` | companion | userId、characterCode、characterName、sessionId、workId、title | im：画好了，通知本人（「萌萌」类型） |
 
 说明：
 
@@ -85,32 +82,27 @@
 
 ai 的八个接口是纯计算，不改任何状态，按只读接口对待；因为请求体大，用 POST。输入输出和超时见 [ai.md](ai.md) 第 3.2 节。这些功能里 ai 不调用任何项目内服务，帖子的全文通过事件拿到。
 
-### 2.3 萌萌
+### 2.3 奶糖助手
 
-前端只经 companion 进入；限次、好感、记忆都在 companion。设计见 [meng.md](meng.md)。
+前端只经 companion 进入；限次、会话、记忆都在 companion。设计见 [meng.md](meng.md)。
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 选中的气泡（文字或贴纸）、网图 `images`（base64 WebP 加来源）、来源 `sources`、工具计次 `toolUsage`、作品（画图任务、小玩意）、好感建议、心情与意图、话题线 `threads`、输入节奏 `typing`、表情回应 `reaction`、撤回位置 `retractIndex`、审核分类、打分结果；失败为 `error`。Java 原子保存后才转换为公开 SSE，数值建议不返回浏览器 | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
+| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 气泡（文字或贴纸）、站内帖子来源 `sources`、工具计次 `toolUsage`、审核分类、打分结果与用量；失败为 `error`。Java 原子保存后才转换为公开 SSE | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
 | `POST /ai/internal/companion/summaries` | ai | companion（空闲压缩） | 合并后的前情提要（写明归属、单列已过时的说法） | 保留旧摘要和窗口，下次空闲扫描再试 |
-| `POST /ai/internal/companion/openings` | ai | companion（新建会话） | 新话题的开场白，参考阶段、近况线、最近一张回忆卡和没聊完的话题；纯计算 | 用角色卡的固定开场白 |
-| `POST /ai/internal/companion/consolidations` | ai | companion（整理消费者） | 对候选记忆的 ADD / SUPERSEDE / INVALIDATE / NOOP 决定、约定日期、回忆卡、重写后的核心档案 | 消息重试，超过次数进死信；聊天不受影响 |
-| `POST /ai/internal/companion/dailies` | ai | companion（`companionMemoryMaintain` 任务） | 周一生成某个角色这一周的近况线；每天生成「今天的她」和当天状态；纯计算 | 不写入，下次任务再补；这期间对话上下文里没有这一项 |
-| `POST /ai/internal/companion/memory-reviews` | ai | companion（本人手工编辑记忆） | 对记忆内容的语义审核结果 `safe` 与审核完成标记 `reviewed`；纯计算，不写记忆 | 不安全返回业务参数错误；审核缺失、额度不足或调用失败返回 503 `AI_UNAVAILABLE`，保留原记忆 |
-| `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量（请求带 `textType`：记忆和回忆卡为 `document`，召回查询为 `query`）；给定候选时由 rerank 返回阈值以上的下标和分数 | rerank 不可用时按向量顺序取前 3 条；置顶事实仍受上下文预算保护 |
-| `POST /ai/internal/companion/drawings` | ai | companion（画图任务） | 一张图片 | 任务失败，释放画图额度，聊天里显示「没画成」 |
-| `POST /content/internal/posts/vector-search` | content | ai（萌萌工具） | 对传入的 1024 维查询向量召回最多 20 篇公开帖子；ai 再用 rerank 取最多 5 篇 | 工具明确说明当前无法按含义检索，不退回关键词匹配，不编造结果 |
-| `GET /content/internal/emotions` | content | ai（萌萌的贴纸和表情回应） | 读：启用的表情的名字、系列、描述、用法、标签和目录 `version`（[content.md](content.md)第 5.11 节）。依据：嘴要按用法挑表情，前端的清单 ai 拿不到 | ai 用上一份缓存；从没读到过就这一轮不开放贴纸和表情回应 |
-| `GET /content/internal/posts/{id}` | content | ai（萌萌 `read_post` 工具） | 读：一篇公开且未删除帖子的标题、作者昵称、发布时间、正文前 3000 字；非公开或不存在时返回 404。依据：用户发来站内帖子链接或说「看看那篇」，`search_posts` 只有摘要，回答不了正文里的问题 | 工具回答「这篇看不了」，不编造内容 |
-| `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（萌萌工具） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
-| `GET /growth/internal/users/{id}/summary` | growth | ai（萌萌工具） | 等级、连续签到天数、今天是否签到 | 同上 |
-| `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 使用中性称呼「你」，不为此读取登录账号或联系方式 |
+| `POST /ai/internal/companion/consolidations` | ai | companion（整理消费者） | 对候选记忆的 ADD / SUPERSEDE / INVALIDATE / NOOP 决定、重写后的核心档案，以及独立审核的 `reviewed` 标记 | 消息重试，超过次数进死信；聊天不受影响 |
+| `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量（请求带 `textType`：记忆为 `document`，召回查询为 `query`）；给定候选时由 rerank 返回阈值以上的下标和分数 | rerank 不可用时按向量顺序取前 3 条 |
+| `POST /content/internal/posts/vector-search` | content | ai（`search_posts`） | 对传入的 1024 维查询向量召回最多 20 篇公开帖子；ai 再用 rerank 取最多 5 篇 | 工具明确说明当前无法按含义检索，不编造结果 |
+| `GET /content/internal/emotions` | content | ai（奶糖的贴纸） | 读：启用的表情的名字、系列、描述、用法、标签和目录 `version`（[content.md](content.md)第 5.11 节） | ai 用上一份缓存；从没读到过就这一轮不开放贴纸 |
+| `GET /content/internal/posts/{id}` | content | ai（`read_post`） | 读：一篇公开且未删除帖子的标题、作者昵称、发布时间、正文前 3000 字；非公开或不存在时返回 404 | 工具回答「这篇看不了」，不编造内容 |
+| `GET /content/internal/users/{id}/recent-posts?size=` | content | ai（`my_recent_posts`） | 这个用户最近的公开帖子，最多 5 篇 | 同上 |
+| `GET /growth/internal/users/{id}/summary` | growth | ai（`my_growth`） | 等级、连续签到天数、今天是否签到 | 同上 |
+| `GET /user/internal/users?ids=` | user | companion | 已有接口，取当前用户昵称 | 使用中性称呼「你」 |
 
-- ai 对 content、growth 的调用只发生在萌萌工具里，地址是白名单；用户 id 由 companion 传入，不由模型决定。
-- 萌萌回复请求增加可选的内部 `sessionId`，由 companion 从已鉴权的会话传入，用于分段缓存诊断隔离。旧调用缺省为 0，只记录本次摘要；不参与权限判断，不进入模型上下文，也不返回浏览器。
+- ai 对 content、growth 的调用只发生在奶糖的站内工具里，地址是白名单；用户编号由 companion 传入，不由模型决定。
+- 回复请求带可选的内部 `sessionId`，由 companion 从已鉴权的会话传入，只用于分段缓存诊断；不参与权限判断，不进入模型上下文。
 - 这是全项目唯一深度为 2 的同步调用，见[架构设计](architecture.md)第 6 节规则 3。
-- ai 不回调 companion：回忆、`read_work` 等需要的记忆和作品，由 companion 在请求里预先给出。
-- 外部服务 Tavily（联网搜索、读链接、搜图）只由 ai 调用，不是项目内的契约；规则见 [AI 公共运行时](ai-runtime.md)第 6.2、6.3 节。
+- ai 不回调 companion：回忆候选由 companion 在请求里预先给出。
 - 记忆整理和摘要包含独立语义复核；返回 `reviewed` 后 companion 才允许持久化。数据归属、证据、编号、长度与日期仍由 companion 校验。
 
 ## 3. 新增契约的流程
