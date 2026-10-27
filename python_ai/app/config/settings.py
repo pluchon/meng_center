@@ -39,7 +39,6 @@ class Settings(BaseSettings):
     cover_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
     structured_method: str = "function_calling"
     concurrency: int = Field(default=4, ge=1, le=32)
-    speculative: bool = True
     timezone: str = "Asia/Taipei"
     redis_host: str = "127.0.0.1"
     redis_port: int = Field(default=16379, validation_alias="MENG_REDIS_PORT")

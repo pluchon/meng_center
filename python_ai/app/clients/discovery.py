@@ -40,7 +40,6 @@ class Discovery:
             values = json.loads(raw)
             allowed = {
                 "model_overrides",
-                "speculative",
                 "rerank_thresholds",
                 "rerank_instructions",
                 "requests_per_minute",

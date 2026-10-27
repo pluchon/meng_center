@@ -5,7 +5,7 @@ from app.runtime.context.segments import text, tokens
 
 
 def provided_memory_ids(request):
-    rows = [*request.context_snapshot.get("memories", []), *request.new_memories, *request.due]
+    rows = [*request.context_snapshot.get("memories", []), *request.new_memories]
     return {row["id"] for row in rows if type(row.get("id")) is int and row["id"] > 0}
 
 
@@ -53,34 +53,29 @@ def speech_facts(instruction):
 
 def messages(request, emotions, instruction=None, speech=True, form="", judge=False, history_limit=None):
     stable, decision, snapshot = prefixes(request, emotions)
-    level = request.card.get("levels", [{}] * 3)[request.level - 1]
-    anchor = request.card.get("brief", request.card.get("name", "她"))
-    if level.get("name"):
-        anchor += "，这档是" + level["name"]
+    anchor = request.card.get("brief", "随性撒娇的奶糖")
     lines = ["〔场景信息，不是用户说的话〕", "你：" + anchor]
     optional = (
         ("此刻", request.mood),
-        ("你上一轮的心情", request.previous_feeling),
-        ("还没聊完的", "；".join(request.threads)),
         ("刚记住的", memory_text(request.new_memories)),
-        ("到期的约定", memory_text(request.due)),
     )
     lines.extend(f"{name}：{value}" for name, value in optional if value)
     if not speech:
-        known = [*request.context_snapshot.get("memories", []), *request.new_memories, *request.due]
+        known = [*request.context_snapshot.get("memories", []), *request.new_memories]
         if known:
             lines.append("本轮可用记忆出处：" + text(known))
     if instruction:
         lines.extend(speech_facts(instruction) if speech else ["本轮判断：" + text(instruction)])
     if form:
         lines.append("形态：" + form)
-    controls = {"reaction": "给他的消息挂个表情", "retract": "撤回一句", "sticker": "发送表情图"}
+    controls = {"sticker": "发送表情图"}
     allowed = [controls[key] for key in request.controls if key in controls]
     if allowed:
         lines.append("这轮可以：" + " / ".join(allowed))
     current = "\n".join([*lines, "〔用户〕", request.content])
     content = [{"type": "text", "text": current}]
-    content.extend({"type": "image_url", "image_url": {"url": image}} for image in request.images)
+    if not judge:
+        content.extend({"type": "image_url", "image_url": {"url": image}} for image in request.images)
     result = [SystemMessage(stable if speech else decision), SystemMessage(snapshot)]
     result += history(
         request, history_limit if history_limit is not None else 6 if judge else None if speech else 20

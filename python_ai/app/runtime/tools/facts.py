@@ -20,6 +20,7 @@ def clean(value):
     value = html.unescape(re.sub(r"<[^>]*>", "", value))
     value = re.sub(r"\[([^]]+)\]\([^)]*\)|https?://\S+", lambda m: m[1] or "", value)
     return "".join(
-        c for c in unicodedata.normalize("NFKC", value)
+        c
+        for c in unicodedata.normalize("NFKC", value)
         if not unicodedata.category(c).startswith("C") or c == "\n"
     )[:600]

@@ -37,7 +37,7 @@ def imitation_summary(replies):
     )
 
 
-def signals(replies, card, level):
+def signals(replies, card):
     prefixes = Counter(reply[:4] for reply in replies if reply)
     total = max(1, len(replies))
     # 只报告相邻三轮近似复述的文本信号，不把词面相似当成语义结论。
@@ -54,7 +54,7 @@ def signals(replies, card, level):
         "tics": {
             tic["text"]: {
                 "frequency": sum(tic["text"] in r for r in replies) / total,
-                "target": tic.get("frequency", [0.3] * 3)[level - 1],
+                "target": tic.get("frequency", 0.3),
             }
             for tic in card.get("tics", [])
             if isinstance(tic, dict) and "text" in tic

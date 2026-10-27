@@ -2,6 +2,8 @@ import asyncio
 import logging
 import time
 
+from langgraph.config import get_stream_writer
+
 from app.runtime.context.card import memory_text
 from app.runtime.context.segments import text
 from app.runtime.tools.facts import ToolFacts, clean
@@ -25,7 +27,7 @@ class Executor:
             request = context["request"]
             if not request.message_allowed:
                 return {"id": ident, "success": False, "facts": ["今天聊天的次数已经用完了"], "sources": []}
-            await context["emit"]({"event": "status", "data": {"text": spec.progress}})
+            get_stream_writer()({"event": "status", "data": {"text": spec.progress}})
             async with asyncio.timeout(spec.timeout):
                 result, cached = await self.invoke(name, args, context)
             context["toolUsage"].append(

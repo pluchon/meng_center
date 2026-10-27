@@ -10,8 +10,9 @@ from datetime import timedelta
 from langchain_core.messages import HumanMessage, SystemMessage
 from pydantic import ValidationError
 
+from app.graphs.naitang import build
 from app.prompts.companion import VERSION
-from app.runtime.agent.agent import Agent
+from app.runtime.agent.agent import Agent, Context
 from app.runtime.context.companion import messages, provided_memory_ids
 from app.runtime.context.form import sample, style_feedback
 from app.runtime.context.segments import text
@@ -54,6 +55,7 @@ class Companion:
         self.assistant, self.models, self.http, self.discovery = assistant, assistant.models, http, discovery
         self.executor = Executor(self)
         self.agent = Agent(self)
+        self.graph = build()
         self._emotions, self._emotion_expiry = [], 0
 
     async def structured(self, schema, prompt, payload, callback=None, purpose="judge", multimodal=False):
@@ -109,8 +111,6 @@ class Companion:
     async def judge(self, request, emotions, directive, parsed, speech_model=None):
         instruction = "待核对的内部依据：" + text(directive)
         instruction += "\n回复：" + "\n\n".join(parsed.bubbles)
-        if parsed.reaction:
-            instruction += "\n对用户的表情回应：" + parsed.reaction
         instruction += "\n复读信号（包括当前候选）：" + text(
             signals(
                 [
@@ -121,7 +121,6 @@ class Companion:
                     "\n\n".join(parsed.bubbles),
                 ],
                 request.card,
-                request.level,
             )
         )
         instruction += "\n经复核的套话信号（仅供结合语境判断）：" + text(
@@ -174,201 +173,73 @@ class Companion:
             output.content, {row["name"] for row in emotions}, request.controls, request.card.get("name", "")
         ), sizes
 
-    async def compute(self, request, emit):
-        started = time.monotonic()
-        context = dict(
+    @staticmethod
+    def prompt_version(request):
+        return f"{VERSION}/{request.card.get('version', '')}"
+
+    async def context(self, request):
+        return dict(
+            service=self,
             request=request,
-            emit=emit,
-            started=started,
             emotions=await self.emotions(),
-            used=set(),
+            started=time.monotonic(),
             memoryIds=provided_memory_ids(request),
-            works=[],
-            drawings=[],
-            images=[],
             sources=[],
             toolUsage=[],
+            toolResults=[],
         )
-        speculative = None
-        if getattr(self.models.settings, "speculative", True) and request.message_allowed:
-            speculative = asyncio.create_task(self.speak(request, context["emotions"], {}))
-            context["speculative"] = speculative
-        try:
-            return await self.finish_round(request, context, speculative)
-        finally:
-            if speculative:
-                # 回收未采用或中断的请求；已经完成的调用保留原有计量。
-                if not speculative.done():
-                    speculative.cancel()
-                await asyncio.gather(speculative, return_exceptions=True)
 
-    async def finish_round(self, request, context, speculative):
-        directive = await self.agent.run(context)
-        needs_facts = bool(
-            context.get("toolResults")
-            or context["toolUsage"]
-            or directive.facts
-            or directive.mention_memory_id
-        )
-        adopted = (
-            speculative is not None
-            and not needs_facts
-            and directive.label not in {"CRISIS", "SEXUAL", "JAILBREAK"}
-        )
-        if speculative and not adopted:
-            speculative.cancel()
-            await asyncio.gather(speculative, return_exceptions=True)
-        instruction = directive.model_dump()
-        if context.get("toolResults"):
-            instruction["toolResults"] = context["toolResults"]
-        result = dict(
-            label=directive.label,
-            bubbles=[],
-            works=[],
-            drawings=[],
-            images=[],
-            sources=[],
-            affection=0,
-            memories=[],
-            feeling="平静",
-            billable=False,
-            threads=request.threads,
-            typing="NORMAL",
-            reaction=None,
-            retractIndex=None,
-            promptVersion=f"{VERSION}/{request.card.get('version', '')}",
-            model="fixed",
-        )
-        if directive.label == "CRISIS":
-            result["bubbles"] = [
-                request.card.get("crisis", "先到安全的地方，联系身边信任的人或当地紧急援助。")
-            ]
-        elif directive.label in {"SEXUAL", "JAILBREAK"}:
-            result["bubbles"] = [request.card.get("refusal", "这个话题不继续了，换个话题。")]
-        elif not request.message_allowed:
-            raise ValueError("消息次数用完")
-        else:
-            try:
-                if adopted:
-                    parsed, sizes = await speculative
-                else:
-                    parsed, sizes = await self.speak(request, context["emotions"], instruction)
-                review = await self.judge(
-                    request, context["emotions"], instruction, parsed, speech_model=sizes.get("speechModel")
-                )
-                rewrites = 0
-                if not review.safe or review.unsupported or review.artificial >= 7:
-                    reason = review.reason + "\n没有依据的说法：" + text(review.unsupported)
-                    parsed, sizes = await self.speak(request, context["emotions"], instruction, reason)
-                    review = await self.judge(
-                        request,
-                        context["emotions"],
-                        instruction,
-                        parsed,
-                        speech_model=sizes.get("speechModel"),
-                    )
-                    rewrites = 1
-                if not review.safe:
-                    raise ValueError("输出未通过安全检查")
-                result.update(
-                    bubbles=parsed.bubbles,
-                    works=context["works"],
-                    drawings=context["drawings"],
-                    images=context["images"],
-                    sources=context["sources"],
-                    sticker=parsed.sticker,
-                    reaction=parsed.reaction,
-                    retractIndex=parsed.retract_index,
-                    affection=0 if directive.label == "ROMANCE_PUSH" else review.affection,
-                    mentioned_memory_id=review.mentioned_memory
-                    if review.mentioned_memory in context["memoryIds"]
-                    else None,
-                    feeling=review.feeling,
-                    threads=request.threads if review.threads is None else review.threads,
-                    typing=review.typing,
-                    billable=True,
-                    model=sizes.get("speechModel", self.models.settings.speech_model),
-                )
-                sizes["memoryIds"] = sorted(context["memoryIds"])
-                result["metrics"] = dict(
-                    layers=sizes,
-                    rewrites=rewrites,
-                    unsupported=len(review.unsupported),
-                    character=review.character,
-                    artificial=review.artificial,
-                    rewriteReason=review.reason,
-                    speculativeAdopted=adopted,
-                )
-            except Exception as error:
-                fields = []
-                if isinstance(error, ValidationError):
-                    fields = [
-                        ".".join(map(str, item["loc"])) + ":" + item["type"]
-                        for item in error.errors(
-                            include_input=False, include_context=False, include_url=False
-                        )
-                    ]
-                LOG.warning(
-                    "speech_round_failed error_type=%s fields=%s", type(error).__name__, ",".join(fields)
-                )
-                result["bubbles"] = [request.card.get("fallback", "刚才没说清楚，等一下再说。")]
-        if speculative:
-            await asyncio.gather(speculative, return_exceptions=True)
-        current = CURRENT.get()
-        result["toolUsage"] = context["toolUsage"]
-        result.setdefault("metrics", {})
-        result["metrics"].update(
-            calls=current.calls,
-            tools=context["toolUsage"],
-            ack=context.get("ack"),
-            ackMs=context.get("ackMs"),
-            firstBubbleMs=context.get("ackMs", round((time.monotonic() - context["started"]) * 1000)),
-            speculativeStarted=speculative is not None,
-            speculativeAdopted=result["metrics"].get("speculativeAdopted", False),
-            agentOutputTokens=sum(call["output"] for call in current.calls if call["purpose"] == "agent"),
-            judgeOutputTokens=sum(call["output"] for call in current.calls if call["purpose"] == "judge"),
-            cachedTokens=sum(call["cached"] for call in current.calls),
-            historyTokens=current.segments.get("history", 0),
-        )
+    async def compute(self, request, emit):
+        result = None
+        async for event in self.stream(request):
+            if event["event"] == "result":
+                result = event["data"]
+            elif event["event"] == "error":
+                raise ValueError("AI_UNAVAILABLE")
+            else:
+                await emit(event)
         return result
 
     async def stream(self, request):
-        queue = asyncio.Queue(maxsize=16)
-
-        async def compute():
-            token = CURRENT.set(
-                RoundUsage(
-                    request.user_id,
-                    request.character,
-                    request.turn_id,
-                    request.time_zone,
-                    session=request.session_id,
-                )
+        token = CURRENT.set(
+            RoundUsage(
+                request.user_id,
+                request.character,
+                request.turn_id,
+                request.time_zone,
+                session=request.session_id,
             )
-            try:
-                async with asyncio.timeout(100):
-                    result = await self.compute(request, queue.put)
-                await queue.put({"event": "result", "data": result})
-            except Exception as error:
-                cause = error
-                chain = []
-                while cause is not None and len(chain) < 4:
-                    chain.append(type(cause).__name__)
-                    cause = cause.__cause__
-                LOG.warning("companion_round_failed error_types=%s", "/".join(chain))
-                await queue.put({"event": "error", "data": {"code": "AI_UNAVAILABLE"}})
-            finally:
-                CURRENT.reset(token)
-                await queue.put(None)
-
-        task = asyncio.create_task(compute())
+        )
         try:
-            while (event := await queue.get()) is not None:
-                yield event
+            context = await self.context(request)
+            async with asyncio.timeout(100):
+                async for mode, value in self.graph.astream(
+                    {}, context=Context(context), stream_mode=["custom", "values"]
+                ):
+                    if mode == "custom":
+                        yield value
+                    elif "result" in value:
+                        result = value["result"]
+                        current = CURRENT.get()
+                        result["metrics"].update(
+                            calls=current.calls,
+                            tools=context["toolUsage"],
+                            firstBubbleMs=round((time.monotonic() - context["started"]) * 1000),
+                            agentOutputTokens=sum(
+                                c["output"] for c in current.calls if c["purpose"] == "agent"
+                            ),
+                            judgeOutputTokens=sum(
+                                c["output"] for c in current.calls if c["purpose"] == "judge"
+                            ),
+                            cachedTokens=sum(c["cached"] for c in current.calls),
+                            historyTokens=current.segments.get("history", 0),
+                        )
+                        yield {"event": "result", "data": result}
+        except Exception as error:
+            LOG.warning("companion_round_failed error_type=%s", type(error).__name__)
+            yield {"event": "error", "data": {"code": "AI_UNAVAILABLE"}}
         finally:
-            if not task.done():
-                task.cancel()
-            await asyncio.gather(task, return_exceptions=True)
+            CURRENT.reset(token)
 
     async def retrieve(self, request):
         ranked = await self.models.rerank.rank(

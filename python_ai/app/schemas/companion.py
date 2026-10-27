@@ -7,7 +7,7 @@ from pydantic import Field, field_validator
 
 from app.schemas.models import Schema
 
-Character = str
+Character = Literal["NEKO"]
 Label = Literal["PASS", "SEXUAL", "JAILBREAK", "ROMANCE_PUSH", "CRISIS"]
 
 
@@ -19,8 +19,7 @@ class Turn(Schema):
 class ReplyRequest(Schema):
     user_id: int = Field(gt=0)
     session_id: int = Field(default=0, ge=0)
-    character: Character
-    stage: int = Field(ge=1, le=5)
+    character: Character = "NEKO"
     nickname: str = Field(max_length=50)
     mood: str = Field(default="", max_length=500)
     memories: list[str] = Field(default_factory=list, max_length=1000)
@@ -29,29 +28,17 @@ class ReplyRequest(Schema):
     history: list[Turn] = Field(default_factory=list)
     content: str = Field(min_length=1, max_length=1000)
     images: list[str] = Field(default_factory=list, max_length=3)
-    tools: list[str] = Field(default_factory=list)
     message_allowed: bool = True
-    level: int = Field(default=2, ge=1, le=3)
     card: dict = Field(default_factory=dict)
     profile: str = Field(default="", max_length=300)
     recalled: list[dict] = Field(default_factory=list, max_length=20)
     examples: list[dict] = Field(default_factory=list, max_length=30)
-    works: list[dict] = Field(default_factory=list, max_length=30)
-    due: list[dict] = Field(default_factory=list, max_length=1)
-    daily: str = Field(default="", max_length=300)
-    previous_feeling: str = Field(default="", max_length=100)
-    level_changed: bool = False
     time_zone: str = "Asia/Taipei"
     turn_id: str = Field(default="", max_length=80)
     recent_replies: list[str] = Field(default_factory=list, max_length=30)
-    shared_memory: dict = Field(default_factory=dict)
     context_snapshot: dict = Field(default_factory=dict)
     new_memories: list[dict] = Field(default_factory=list)
-    threads: list[str] = Field(default_factory=list, max_length=5)
     controls: list[str] = Field(default_factory=list)
-    poke: bool = False
-    spontaneous_allowed: bool = True
-    tool_limits: dict[str, int] = Field(default_factory=dict)
 
     @field_validator("images")
     @classmethod

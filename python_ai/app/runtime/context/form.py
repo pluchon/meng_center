@@ -12,7 +12,7 @@ def style_feedback(request):
     for tic in request.card.get("tics", []):
         if not isinstance(tic, dict) or not tic.get("text"):
             continue
-        target = tic.get("frequency", [0.3] * 3)[request.level - 1]
+        target = tic.get("frequency", 0.3)
         projected = (sum(tic["text"] in reply for reply in replies) + 1) / (len(replies) + 1)
         if projected > target:
             repeated.append("“" + tic["text"] + "”")
@@ -31,8 +31,7 @@ def style_feedback(request):
 
 def sample(request, scene, rng=None):
     rng = rng or random
-    level = request.card.get("levels", [{}] * 3)[request.level - 1]
-    distribution = level.get("form", {}) if isinstance(level, dict) else {}
+    distribution = request.card.get("form", {})
     count = rng.choices([1, 2, 3], weights=distribution.get("bubbles", [7, 2, 1]))[0]
     question = rng.random() < distribution.get("question", 0.3)
     length = "很短" if len(request.content) < 20 else "简短"
