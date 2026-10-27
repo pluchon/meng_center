@@ -84,7 +84,7 @@ def build():
         review = state.get("judgment")
         return "fallback" if review is None or not review.safe else "emit"
 
-    def result(state, runtime: Runtime[Context], fixed=None):
+    def result(state, runtime: Runtime[Context], fixed=None, *, billable=True):
         ctx = runtime.context.data
         adopted = fixed is None and "reply" not in state
         value = state.get("reply") or state.get("draft")
@@ -100,7 +100,7 @@ def build():
                 if fixed is None
                 else [],
                 toolUsage=ctx["toolUsage"],
-                billable=label != "CRISIS" if fixed and label != "PASS" else fixed is None,
+                billable=billable,
                 promptVersion=ctx["service"].prompt_version(ctx["request"]),
                 model="fixed"
                 if fixed
@@ -127,11 +127,19 @@ def build():
     def block(state, runtime: Runtime[Context]):
         card = runtime.context.data["request"].card
         key = "crisis" if state["directive"].label == "CRISIS" else "refusal"
-        return result(state, runtime, card.get(key, "这个话题先停下来。"))
+        return result(
+            state,
+            runtime,
+            card.get(key, "这个话题先停下来。"),
+            billable=state["directive"].label != "CRISIS",
+        )
 
     def fallback(state, runtime: Runtime[Context]):
         return result(
-            state, runtime, runtime.context.data["request"].card.get("fallback", "刚才没说清楚，等一下再说。")
+            state,
+            runtime,
+            runtime.context.data["request"].card.get("fallback", "刚才没说清楚，等一下再说。"),
+            billable=False,
         )
 
     graph = StateGraph(State, context_schema=Context)

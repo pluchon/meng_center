@@ -103,6 +103,16 @@ async def test_judge_failure_never_emits_unchecked_text():
     assert result["model"] == "fixed" and not result["billable"]
 
 
+@pytest.mark.parametrize("label", ["PASS", "ROMANCE_PUSH"])
+@pytest.mark.parametrize("failed", ["speak", "judge"])
+async def test_fallback_never_consumes_message_quota(label, failed):
+    value = service()
+    value.agent.run.return_value = Directive(label=label)
+    getattr(value, failed).side_effect = RuntimeError("offline failure")
+    result = await value.compute(request(), AsyncMock())
+    assert result["model"] == "fixed" and not result["billable"]
+
+
 async def test_tool_status_streams_and_draft_is_discarded_without_cancellation():
     from langgraph.config import get_stream_writer
 
