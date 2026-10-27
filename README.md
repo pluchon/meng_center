@@ -99,6 +99,8 @@ flowchart TD
 
 发送失败可恢复原文字和图片并重试；记忆按当前有效事实去重，清空后可以重新记住，召回时区分向量模型版本。开发验证只调用离线假模型，真实冒烟和验收按文档中的授权额度执行。
 
+运行时的每日看板可通过 `verification/Export-AiRuntimeDashboard.ps1` 只读导出；帖子向量迁移状态通过 `verification/Test-VectorEncoding.ps1` 检查。这两个命令都不调用模型，具体用法见 [验证说明](verification/README.md)。
+
 ## 架构
 
 后端按业务域拆成六个 Java 服务，加一个 Python 的 AI 服务。每个服务有自己的数据库，不直接读别人的表。

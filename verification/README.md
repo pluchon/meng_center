@@ -47,6 +47,10 @@ npm --prefix verification ci
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 | `node verification/Test-CompanionStream.mjs` | 奶糖助手前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
 | `node verification/Test-CompanionComposer.mjs` | 执行真实组件的 Vue 响应式交互，检查发送失败恢复文字与图片、保留新草稿、复用原消息编号和防止重复重试；不启动浏览器或调用模型 |
+| `node verification/Test-AiRuntimeDashboard.mjs` | 离线检查每日看板的日期、token、比率、无样本状态和隐私边界 |
+| `./verification/Export-AiRuntimeDashboard.ps1 -EndDay yyyy-MM-dd -Days 7 -Output <路径.html>` | 只读导出按 UTC 自然日汇总的奶糖运行时看板；默认输出在 `test-output/`，不覆盖已有文件，不调用模型 |
+| `node verification/Test-VectorEncoding.mjs` | 离线检查索引状态判断，防止仅凭 Redis 标记把旧编码误判为迁移完成 |
+| `./verification/Test-VectorEncoding.ps1` | 只读比较公开帖子、当前向量索引的覆盖范围与版本、维度和重建进度；不触发重算或切换别名 |
 | `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证奶糖助手迁移、旧数据隔离、删除旧表列、来源与窗口初始化、消息幂等键、outbox 唯一键和未发送图片的数量及过期筛选；结束删除验证库，不改业务库 |
 | `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、两个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败。离线开发已暂停记忆维护时显式使用 `-AllowPausedMemoryMaintenance`，其他约束保持不变 |
 | `./verification/Test-Companion.ps1 -SelectMouthModels -Smoke -Character NEKO -EvaluationTokenBudget <不超过30000> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 开发期真实接通检查：只用当前默认说话模型，奶糖五轮，不盲评，不生成质量或选型结论；本期最多三次，到额即停。默认说话模型关闭降级链；工具使用录制结果，不调用业务接口或真实生图，第五轮附带固定小图检查官方图片输入 |
@@ -59,6 +63,8 @@ npm --prefix verification ci
 验收用例固定在 `python_ai/evals/companion/forum_cases.json`，覆盖闲聊、求安慰、分享好消息、吐槽、问事和休息。原文短摘和完整 URL 放仓库外，仓库内只保留匿名短发言及来源站点；报告可以核对语料版本与 SHA-256。用例的未请求工具调用、生成失败或质量失败都会停止当次执行，不重新生成已有回复。
 
 冒烟与验收使用同一个本期编号；次数保存在 Redis，不能更换本期编号来规避限制。`--resume --output <原报告>` 沿用授权编号和生成条件续接；已完成报告拒绝重复运行，已有失败回复不重新生成。请求中断且没有完整回复时保留 `pendingTurn` 并停止，不能自动从头开始。旧 `-SmallModelSample` 参数拒绝执行。
+
+重排离线检查：在 `python_ai/` 执行 `uv run --frozen pytest tests/test_retrieval_calibration.py -q`。已有真实分数后，用 `uv run --frozen python -m evals.retrieval.calibrate --scores <原报告.json> --model <原模型名> --output <新报告.json>` 生成建议，不调用模型、不修改配置。采集分数必须等仓库主人授权验收，在既有 `Invoke-ModelEvaluation.ps1 -Task station` 的 `-EvaluationArguments` 中加入 `--with-retrieval`；36 次重排请求共用该批次的授权编号、预算、本期次数与检查点，失败即停，不另开批次规避限制。
 
 仓库主人明确追加冒烟预算后，可在 `Invoke-ModelEvaluation.ps1` 的 `-EvaluationArguments` 中同时指定 `--resume --continue-budget-stop --output <原报告>`。仅允许续接因 `EvaluationLimit` 停止、没有待确认请求、且末轮没有完整回复的原报告。此时 `-TokenBudget` 表示本次新增额度，仍不超过 30000；历史扣减和未确认调用的预留继续累计，成功回复不重新生成，原未完成尝试保存在该轮的 `attempts`，报告的 `continuations` 保留追加前状态。这个开关不能用于完整评测或重试已有失败回复。
 

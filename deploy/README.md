@@ -111,6 +111,8 @@ companion 使用新增迁移 `V20261027001__naitang_assistant` 删除旧能力�
 
 `V20261027002__version_companion_memory_facts` 将记忆去重限定为当前有效事实，保留失效、取代和清空记录；`V20261027003__track_memory_embedding_model` 扩展向量版本字段，记录模型、维度和编码版本。模型或编码变化后，维护任务补齐向量，召回不混用不同版本。
 
+`V20261027004__record_runtime_compactions` 保存 UTC 自然日的成功压缩次数，与会话窗口更新同事务提交。运行 `verification/Export-AiRuntimeDashboard.ps1 -EndDay yyyy-MM-dd -Days 7 -Output <仓库外路径.html>` 导出只读每日看板；输出已存在时拒绝覆盖。导出不调用模型，私有数据不进入看板。
+
 ## 搜索引擎
 
 Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装同版本 IK。堆 512 MB、容器上限 1 GB，数据卷为 `elasticsearch-data`，仅映射本机 9200。Java 客户端由 Boot 管理，版本为 9.2.9。
