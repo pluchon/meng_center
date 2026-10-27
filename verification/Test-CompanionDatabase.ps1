@@ -24,7 +24,7 @@ INSERT INTO companion_message(session_id,role,content,completed) VALUES(2,'USER'
 INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id) VALUES(42,'TSUNDERE','旧事实',SHA2('旧事实',256),2);
 
 '@ | & docker exec -i -e MYSQL_PWD $container mysql -uroot $database
-    foreach ($name in @('V20261017002__companion_runtime.sql','V20261017003__seed_companion_cards.sql','V20261023001__companion_context_tier.sql','V20261023002__companion_style.sql','V20261023003__companion_cards.sql','V20261025001__companion_runtime_v2.sql','V20261027001__naitang_assistant.sql')) {
+    foreach ($name in @('V20261017002__companion_runtime.sql','V20261017003__seed_companion_cards.sql','V20261023001__companion_context_tier.sql','V20261023002__companion_style.sql','V20261023003__companion_cards.sql','V20261025001__companion_runtime_v2.sql','V20261027001__naitang_assistant.sql','V20261027002__version_companion_memory_facts.sql')) {
         Get-Content -LiteralPath "$migrationRoot/$name" -Raw | & docker exec -i -e MYSQL_PWD $container mysql -uroot $database
         if ($LASTEXITCODE -ne 0) { throw "Companion migration failed: $name" }
     }
@@ -56,6 +56,13 @@ BEGIN
  IF (SELECT COUNT(*) FROM companion_image i WHERE i.user_id=41 AND i.delete_state=0 AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id))))<>2 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Pending images count failed'; END IF;
  IF (SELECT COUNT(*) FROM companion_image i WHERE i.user_id=42 AND i.delete_state=0 AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id))))<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Image ownership isolation failed'; END IF;
  IF (SELECT COUNT(*) FROM companion_image i WHERE i.user_id=41 AND i.delete_state=0 AND i.create_time<DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 DAY) AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id))))<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Expired pending images selection failed'; END IF;
+ INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id) VALUES(41,'NEKO','喜欢蓝色',SHA2('喜欢蓝色',256),1);
+ SET @fresh_memory=LAST_INSERT_ID();
+ INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id) VALUES(41,'NEKO','喜欢蓝色',SHA2('喜欢蓝色',256),1) ON DUPLICATE KEY UPDATE last_used_time=CURRENT_TIMESTAMP(6);
+ IF (SELECT id FROM companion_memory WHERE user_id=41 AND character_code='NEKO' AND active_content_hash=SHA2('喜欢蓝色',256))<>@fresh_memory THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Active fact duplicate did not return its identifier'; END IF;
+ UPDATE companion_memory SET delete_state=1,invalid_at=UTC_TIMESTAMP(6) WHERE user_id=41;
+ INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id) VALUES(41,'NEKO','喜欢蓝色',SHA2('喜欢蓝色',256),1);
+ IF LAST_INSERT_ID()=@fresh_memory OR (SELECT COUNT(*) FROM companion_memory WHERE user_id=41 AND content_hash=SHA2('喜欢蓝色',256))<>3 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Cleared or invalidated fact could not be remembered again'; END IF;
  SELECT 'Naitang migration, legacy isolation, idempotency, outbox and private image limits passed.';
 END$$
 DELIMITER ;

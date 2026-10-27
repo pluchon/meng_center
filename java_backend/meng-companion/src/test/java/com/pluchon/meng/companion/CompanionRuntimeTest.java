@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 import com.pluchon.meng.companion.client.*;
 import com.pluchon.meng.companion.config.CompanionProperties;
 import com.pluchon.meng.companion.controller.CompanionDTO;
+import com.pluchon.meng.companion.entity.Rows;
 import com.pluchon.meng.companion.mapper.*;
 import com.pluchon.meng.companion.service.*;
 import java.nio.charset.StandardCharsets;
@@ -366,6 +367,90 @@ public class CompanionRuntimeTest {
         release.countDown();
         until(() -> count("turn_state='FAILED'") == 1);
         assertEquals(0, count("role='CHARACTER'"));
+    }
+
+    private Rows.Memory fact(String content) {
+        var memory = new Rows.Memory();
+        memory.setUserId(41L);
+        memory.setCharacterCode("NEKO");
+        memory.setContent(content);
+        memory.setContentHash(content);
+        memory.setSourceMessageId(1L);
+        memory.setSourceSessionId(1L);
+        return memory;
+    }
+
+    @Test
+    void memoryInsertReturnsNewAndExistingIdentifiers() {
+        var mapper = (CompanionMapper) ReflectionTestUtils.getField(
+            replies,
+            "mapper"
+        );
+        var first = fact("喜欢蓝色");
+        mapper.insertMemory(first);
+        assertNotNull(first.getId());
+        var duplicate = fact("喜欢蓝色");
+        mapper.insertMemory(duplicate);
+        assertEquals(first.getId(), duplicate.getId());
+        assertEquals(1, mapper.memories(41, "NEKO").size());
+    }
+
+    @Test
+    void supersededFactRetainsAReferenceToItsReplacement() {
+        var mapper = (CompanionMapper) ReflectionTestUtils.getField(
+            replies,
+            "mapper"
+        );
+        var runtime = (RuntimeMapper) ReflectionTestUtils.getField(
+            replies,
+            "runtime"
+        );
+        var first = fact("喜欢蓝色");
+        var replacement = fact("现在喜欢红色");
+        mapper.insertMemory(first);
+        mapper.insertMemory(replacement);
+        assertEquals(
+            1,
+            runtime.supersedeMemory(
+                replacement.getId(),
+                first.getId(),
+                41,
+                "NEKO"
+            )
+        );
+        assertEquals(
+            replacement.getId(),
+            jdbc.queryForObject(
+                "SELECT superseded_by FROM companion_memory WHERE id=?",
+                Long.class,
+                first.getId()
+            )
+        );
+        var rememberedAgain = fact("喜欢蓝色");
+        mapper.insertMemory(rememberedAgain);
+        assertNotEquals(first.getId(), rememberedAgain.getId());
+    }
+
+    @Test
+    void clearingMemoryAllowsRememberingTheSameFactAsANewRecord() {
+        var mapper = (CompanionMapper) ReflectionTestUtils.getField(
+            replies,
+            "mapper"
+        );
+        var first = fact("喜欢蓝色");
+        mapper.insertMemory(first);
+        service.clearMemories(41);
+        var rememberedAgain = fact("喜欢蓝色");
+        mapper.insertMemory(rememberedAgain);
+        assertNotEquals(first.getId(), rememberedAgain.getId());
+        assertEquals(1, mapper.memories(41, "NEKO").size());
+        assertEquals(
+            2,
+            jdbc.queryForObject(
+                "SELECT COUNT(*) FROM companion_memory",
+                Integer.class
+            )
+        );
     }
 
     private CompanionBackground background(PrivateImageStorage ignored) {

@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.SelectKey;
 import org.apache.ibatis.annotations.Update;
 
 // 所有查询限定当前用户，行锁保护关系变更、重置与会话数量
@@ -143,6 +144,10 @@ public interface CompanionMapper {
         ON DUPLICATE KEY UPDATE last_used_time=CURRENT_TIMESTAMP(6)
         """
     )
+    @SelectKey(
+        statement = "SELECT id FROM companion_memory WHERE user_id=#{userId} AND character_code=#{characterCode} AND active_content_hash=#{contentHash}",
+        keyProperty = "id", before = false, resultType = Long.class
+    )
     void insertMemory(Rows.Memory memory);
 
     @Update(
@@ -199,21 +204,30 @@ public interface CompanionMapper {
     )
     String image(@Param("id") long id, @Param("user") long user);
 
-    @Select("""
+    @Select(
+        """
         SELECT i.file_path FROM companion_image i WHERE i.user_id=#{user} AND i.delete_state=0
         AND i.create_time < #{cutoff} AND NOT EXISTS(
           SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id
           WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id)))
-        """)
-    List<String> expiredPendingImages(@Param("user") long user, @Param("cutoff") LocalDateTime cutoff);
+        """
+    )
+    List<String> expiredPendingImages(
+        @Param("user") long user,
+        @Param("cutoff") LocalDateTime cutoff
+    );
 
-    @Update("UPDATE companion_image SET delete_state=1 WHERE user_id=#{user} AND file_path=#{path} AND delete_state=0")
+    @Update(
+        "UPDATE companion_image SET delete_state=1 WHERE user_id=#{user} AND file_path=#{path} AND delete_state=0"
+    )
     void expireImage(@Param("user") long user, @Param("path") String path);
 
-    @Select("""
+    @Select(
+        """
         SELECT COUNT(*) FROM companion_image i WHERE i.user_id=#{user} AND i.delete_state=0
         AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id
           WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id)))
-        """)
+        """
+    )
     long pendingImageCount(@Param("user") long user);
 }
