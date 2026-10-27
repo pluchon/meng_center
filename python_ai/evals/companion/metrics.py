@@ -101,14 +101,19 @@ def compare(current, baseline):
 
 
 def baseline_metrics(report, fallback_card_loader):
+    records = {
+        model: [row for row in rows if row["card"] == "NEKO"] for model, rows in report["records"].items()
+    }
     catalog = report.get("catalog")
+    loader = fallback_card_loader
     if catalog:
         cards = {row["code"]: row["card"] for row in catalog["characters"]}
-        return summarize(report["records"], cards.__getitem__)
-    # 旧报告缺少目录快照时保留其原始风格统计，不能借新卡改写旧频率目标。
-    recomputed = summarize(report["records"], fallback_card_loader)
+        loader = cards.__getitem__
+    recomputed = summarize(records, loader)
+    # 旧报告的风格统计保留原目标，仅重算奶糖的延迟和调用口径。
     for model, values in report.get("metrics", {}).items():
-        if model in recomputed and "characters" in values:
-            for code, character in values["characters"].items():
-                recomputed[model]["characters"].setdefault(code, {}).update(character)
+        if model in recomputed:
+            saved = values.get("characters", {}).get("NEKO")
+            if saved:
+                recomputed[model]["characters"].setdefault("NEKO", {}).update(saved)
     return recomputed

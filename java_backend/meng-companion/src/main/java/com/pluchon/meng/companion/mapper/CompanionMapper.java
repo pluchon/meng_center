@@ -198,4 +198,22 @@ public interface CompanionMapper {
         "SELECT file_path FROM companion_image WHERE id=#{id} AND user_id=#{user} AND delete_state=0"
     )
     String image(@Param("id") long id, @Param("user") long user);
+
+    @Select("""
+        SELECT i.file_path FROM companion_image i WHERE i.user_id=#{user} AND i.delete_state=0
+        AND i.create_time < #{cutoff} AND NOT EXISTS(
+          SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id
+          WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id)))
+        """)
+    List<String> expiredPendingImages(@Param("user") long user, @Param("cutoff") LocalDateTime cutoff);
+
+    @Update("UPDATE companion_image SET delete_state=1 WHERE user_id=#{user} AND file_path=#{path} AND delete_state=0")
+    void expireImage(@Param("user") long user, @Param("path") String path);
+
+    @Select("""
+        SELECT COUNT(*) FROM companion_image i WHERE i.user_id=#{user} AND i.delete_state=0
+        AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id
+          WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id)))
+        """)
+    long pendingImageCount(@Param("user") long user);
 }

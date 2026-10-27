@@ -143,7 +143,7 @@ public class CompanionContext {
             .toList();
     }
 
-    // 「今天的她」由后台任务按日期生成；还没生成时不放这一项，不用固定句子顶替。
+
 
     public static String zone(String zone) {
         try {

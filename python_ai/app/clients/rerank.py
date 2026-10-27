@@ -55,4 +55,9 @@ class RerankClient:
                 "reranked": True,
             }
         except Exception:
-            return {"indexes": list(range(min(limit, len(documents)))), "scores": [], "reranked": False}
+            fallback_limit = min(limit, 3) if scene == "recall" else limit
+            return {
+                "indexes": list(range(min(fallback_limit, len(documents)))),
+                "scores": [],
+                "reranked": False,
+            }

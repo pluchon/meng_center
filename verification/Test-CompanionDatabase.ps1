@@ -50,7 +50,13 @@ BEGIN
  UPDATE companion_session SET context_snapshot=JSON_OBJECT('profile','原文'),snapshot_time=UTC_TIMESTAMP(6) WHERE id=1;
  UPDATE companion_message SET sources=JSON_ARRAY(JSON_OBJECT('postId',12,'title','站内来源')) WHERE id=1;
  IF (SELECT JSON_LENGTH(sources) FROM companion_message WHERE id=1)<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Site sources failed'; END IF;
- SELECT 'Naitang migration, source backfill, legacy isolation, idempotency and outbox checks passed.';
+ INSERT INTO companion_image(user_id,file_path) VALUES(41,'sent.png'),(41,'pending.png'),(41,'expired.png'),(42,'other.png');
+ UPDATE companion_image SET create_time=DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 2 DAY) WHERE file_path='expired.png';
+ UPDATE companion_message SET image_ids=JSON_ARRAY(1,4) WHERE id=1;
+ IF (SELECT COUNT(*) FROM companion_image i WHERE i.user_id=41 AND i.delete_state=0 AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id))))<>2 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Pending images count failed'; END IF;
+ IF (SELECT COUNT(*) FROM companion_image i WHERE i.user_id=42 AND i.delete_state=0 AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id))))<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Image ownership isolation failed'; END IF;
+ IF (SELECT COUNT(*) FROM companion_image i WHERE i.user_id=41 AND i.delete_state=0 AND i.create_time<DATE_SUB(UTC_TIMESTAMP(6),INTERVAL 1 DAY) AND NOT EXISTS(SELECT 1 FROM companion_message m JOIN companion_session s ON s.id=m.session_id WHERE s.user_id=i.user_id AND JSON_CONTAINS(m.image_ids,JSON_ARRAY(i.id))))<>1 THEN SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='Expired pending images selection failed'; END IF;
+ SELECT 'Naitang migration, legacy isolation, idempotency, outbox and private image limits passed.';
 END$$
 DELIMITER ;
 CALL verify_runtime();

@@ -486,6 +486,4 @@ public class CompanionBackground {
         }
     }
 
-    // 用户时区覆盖 UTC-12 到 UTC+14，「今天」最多落在 UTC 日期的前后各一天，三天都备好。
-
 }

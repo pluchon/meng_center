@@ -14,6 +14,7 @@ if ($Task -eq 'companion') {
 } elseif ('--acceptance' -notin $EvaluationArguments) {
     throw 'Batch model evaluations require explicitly authorized --acceptance.'
 }
+if ('--phase-id' -notin $EvaluationArguments) { throw 'Evaluations require a fixed --phase-id.' }
 $repository = Split-Path $PSScriptRoot -Parent
 . "$repository/deploy/scripts/Environment.ps1"
 Import-MengEnvironment

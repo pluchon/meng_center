@@ -219,7 +219,7 @@
 | `DELETE /companion/sessions/{id}` | 删除对话（逻辑删除），不删除记忆 |
 | `GET /companion/sessions/{id}/messages?before=&size=` | 消息分页，游标向前翻 |
 | `POST /companion/sessions/{id}/messages` | 发消息，响应是 SSE（第 8.2 节） |
-| `POST /companion/images` | 上传对话图片（`multipart/form-data` 的 `file`），返回图片编号；未发送的上传图数量有限，超出返回 429 |
+| `POST /companion/images` | 上传对话图片（`multipart/form-data` 的 `file`），返回图片编号；未发送的上传图最多 20 张，超出返回 429；再次上传时清除超过 24 小时仍未发送的图片 |
 | `GET /companion/images/{id}` | 鉴权读取私人图片，只有上传者能读 |
 | `DELETE /companion/memories` | 清空记忆 |
 | `GET /companion/usage` | 今日剩余次数、冷却剩余秒数 |

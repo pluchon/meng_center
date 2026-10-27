@@ -14,7 +14,7 @@ from app.config.settings import Settings
 from app.graphs.moderation import confirm_content
 from app.runtime.tasks.structured import build_chain
 from app.schemas.models import Moderation, Understanding
-from evals.companion.budget import EvaluationGateway, evaluation_settings
+from evals.companion.budget import EvaluationGateway, claim_run, evaluation_settings, save_checkpoint
 
 LOG = logging.getLogger(__name__)
 
@@ -30,7 +30,12 @@ async def evaluate(args) -> None:
         decode_responses=True,
     )
     http = httpx.AsyncClient()
-    models = ModelFactory(settings, redis, http, EvaluationGateway(settings, redis, key, args.token_budget))
+    gateway = EvaluationGateway(settings, redis, key, args.token_budget)
+    if await asyncio.to_thread(args.output.exists):
+        await redis.aclose()
+        await http.aclose()
+        raise ValueError("已有站内评测报告，不能覆盖或重新生成")
+    models = ModelFactory(settings, redis, http, gateway)
     chains = {
         "moderate_text": build_chain(models.judge, Moderation, "moderate_text", settings.structured_method),
         "understand": build_chain(models.judge, Understanding, "understand", settings.structured_method),
@@ -38,7 +43,25 @@ async def evaluate(args) -> None:
     correct = blocked = caught = false_positive = normal = topic_hits = topic_total = total = 0
     reviews = overturned = 0
     records = []
+
+    async def checkpoint(complete=False, **extra):
+        await save_checkpoint(
+            args.output,
+            dict(
+                usage=await gateway.usage_summary(),
+                complete=complete,
+                budgetKey=key,
+                records=records,
+                **extra,
+            ),
+        )
+
     try:
+        if not args.phase_id:
+            raise ValueError("站内评测需要本期固定 phase-id")
+        args.smoke, args.resume = False, False
+        await claim_run(redis, args, key)
+        await checkpoint()
         for file in (Path(__file__).parent / "moderation.jsonl", Path(__file__).parent / "topics.jsonl"):
             content = await asyncio.to_thread(file.read_text, encoding="utf-8")
             for line in content.splitlines():
@@ -76,6 +99,7 @@ async def evaluate(args) -> None:
                         word.casefold() in " ".join(result.topics).casefold()
                         for word in row["expectedTopics"]
                     )
+                await checkpoint()
                 print(f"station task={task} sample={total + topic_total}", flush=True)
         metrics = {
             "accuracy": correct / total,
@@ -87,12 +111,7 @@ async def evaluate(args) -> None:
             "blockReviews": reviews,
             "blockOverturnRate": overturned / max(1, reviews),
         }
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        await asyncio.to_thread(
-            args.output.write_text,
-            json.dumps(dict(**metrics, budgetKey=key, records=records), ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        await checkpoint(complete=True, **metrics)
         LOG.info("evaluation=%s", json.dumps(metrics, ensure_ascii=False))
         if baseline:
             previous = json.loads(await asyncio.to_thread(baseline.read_text, encoding="utf-8"))
@@ -101,6 +120,9 @@ async def evaluate(args) -> None:
                 or metrics["falsePositiveRate"] > previous["falsePositiveRate"]
             ):
                 raise SystemExit("Evaluation regression: do not merge")
+    except Exception as error:
+        await checkpoint(stopReason=type(error).__name__)
+        raise
     finally:
         await redis.aclose()
         await http.aclose()
@@ -115,4 +137,5 @@ if __name__ == "__main__":
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--budget-id", required=True)
     parser.add_argument("--acceptance", action="store_true")
+    parser.add_argument("--phase-id", required=True)
     asyncio.run(evaluate(parser.parse_args()))

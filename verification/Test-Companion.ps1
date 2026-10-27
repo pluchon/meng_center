@@ -16,7 +16,7 @@ if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and -not ($
 if ($Smoke -and (-not $SelectMouthModels -or $Acceptance -or -not $Character -or $CompareModel -or $EvaluationTokenBudget -gt 30000)) {
     throw 'Smoke requires SelectMouthModels, one Character, current model, and at most 30000 tokens.'
 }
-if (($SelectMouthModels -or $EvaluateModels) -and -not $EvaluationPhaseId) { throw 'EvaluationPhaseId is required.' }
+if (($SelectMouthModels -or $EvaluateModels -or $EvaluateDecisions) -and -not $EvaluationPhaseId) { throw 'EvaluationPhaseId is required.' }
 . "$PSScriptRoot/../deploy/scripts/Environment.ps1"
 Import-MengEnvironment
 foreach ($entry in (Get-MengPorts).GetEnumerator()) {
@@ -39,7 +39,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'AI dependencies unavailable.' }
     & uv run --frozen ruff check app tests evals
     if ($LASTEXITCODE -ne 0) { throw 'AI static checks failed.' }
-    & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_review.py tests/test_naitang_tools.py tests/test_retrieval.py tests/test_model_routing.py -q
+    & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_evaluation_safety.py tests/test_companion_review.py tests/test_naitang_tools.py tests/test_retrieval.py tests/test_model_routing.py -q
     if ($LASTEXITCODE -ne 0) { throw 'Companion graph tests failed.' }
     if ($EvaluateModels) {
         $arguments = @('--acceptance', '--phase-id', $EvaluationPhaseId)
@@ -61,6 +61,6 @@ try {
         & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task companion -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments $selectionArguments
     }
     if ($EvaluateDecisions) {
-        & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task decisions -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments @('--acceptance')
+        & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task decisions -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments @('--acceptance', '--phase-id', $EvaluationPhaseId)
     }
 } finally { Pop-Location }

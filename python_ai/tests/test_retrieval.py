@@ -8,7 +8,7 @@ from pydantic import SecretStr
 from app.clients.embedding import EmbeddingClient
 from app.clients.rerank import RerankClient
 from app.config.settings import Settings
-from app.runtime.models.gateway import ModelGateway
+from app.runtime.models.gateway import ModelGateway, ModelUnavailable
 
 
 @pytest.mark.parametrize(
@@ -59,3 +59,28 @@ async def test_native_embeddings_preserve_explicit_encoding_and_order(text_type)
             ["甲", "乙"], text_type
         )
     assert result[0][0] == 1.0 and result[1][0] == 2.0
+
+
+async def test_unavailable_recall_keeps_three_candidates_and_does_not_repeat_gateway_retries():
+    from app.runtime.models.retry import transient
+
+    settings = Settings.model_construct(api_key=SecretStr("fixture"))
+    redis = AsyncMock()
+    redis.exists.return_value = False
+    redis.eval.return_value = 1
+    redis.incr.return_value = 1
+    calls = []
+
+    def unavailable(request):
+        calls.append(request)
+        raise httpx.ConnectError("offline", request=request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(unavailable)) as http:
+        gateway = ModelGateway(settings, redis)
+        result = await RerankClient(settings, http, gateway).rank("问题", list("甲乙丙丁戊"))
+        assert result == {"indexes": [0, 1, 2], "scores": [], "reranked": False}
+        assert len(calls) == 2
+        with pytest.raises(ModelUnavailable) as stopped:
+            await EmbeddingClient(settings, http, gateway).encode(["甲"], "query")
+        assert not transient(stopped.value)
+        assert len(calls) == 4

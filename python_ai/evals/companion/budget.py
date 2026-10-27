@@ -1,8 +1,21 @@
 import asyncio
+import json
 import re
 from contextvars import ContextVar
+from pathlib import Path
 
 from app.runtime.models.gateway import ModelGateway
+
+
+async def save_checkpoint(path, report):
+    def write():
+        output = Path(path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        temporary = output.with_suffix(output.suffix + ".tmp")
+        temporary.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(output)
+
+    await asyncio.to_thread(write)
 
 
 class EvaluationLimit(Exception):
@@ -42,7 +55,7 @@ def validate_mode(args):
         if not 0 < args.token_budget <= 30_000:
             raise ValueError("冒烟 token 上限为30000")
     elif not args.acceptance or args.small_sample or args.character:
-        raise ValueError("完整评测需要明确验收，固定三个角色各35轮；开发期使用smoke")
+        raise ValueError("完整评测需要明确验收，固定奶糖35轮；开发期使用smoke")
 
 
 async def claim_run(redis, args, key):
@@ -51,6 +64,8 @@ async def claim_run(redis, args, key):
 
     from app.runtime.context.cache import digest
 
+    if not re.fullmatch(r"[a-zA-Z0-9._-]{1,100}", args.phase_id or ""):
+        raise ValueError("评测必须指定有效的本期固定 phase-id")
     mode = "smoke" if args.smoke else "acceptance"
     path = await asyncio.to_thread(Path(args.output).resolve)
     ident = digest([str(path), key])

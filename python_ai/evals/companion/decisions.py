@@ -2,7 +2,6 @@
 
 import argparse
 import asyncio
-import json
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -19,7 +18,7 @@ from app.runtime.safety.redline import has_contact
 from app.runtime.tools.registry import TOOLS
 from app.schemas.companion import ConsolidationRequest, ReplyRequest, Turn
 from app.services.companion import Companion
-from evals.companion.budget import EvaluationGateway, evaluation_settings
+from evals.companion.budget import EvaluationGateway, claim_run, evaluation_settings, save_checkpoint
 from evals.companion.cards import card_payload
 
 CASES = [
@@ -68,11 +67,26 @@ async def run(args):
         decode_responses=True,
     )
     rows = []
+    gateway = EvaluationGateway(settings, redis, key, args.token_budget)
+    output = Path(args.output)
+    if await asyncio.to_thread(output.exists):
+        await redis.aclose()
+        raise ValueError("已有决策评测报告，不能覆盖或重新生成")
+
+    async def checkpoint(complete=False, **extra):
+        report = dict(
+            usage=await gateway.usage_summary(), complete=complete, cases=rows, budgetKey=key, **extra
+        )
+        await save_checkpoint(output, report)
+
     try:
+        if not args.phase_id:
+            raise ValueError("决策评测需要本期固定 phase-id")
+        args.smoke, args.resume = False, False
+        await claim_run(redis, args, key)
+        await checkpoint()
         async with httpx.AsyncClient() as http:
-            models = ModelFactory(
-                settings, redis, http, EvaluationGateway(settings, redis, key, args.token_budget)
-            )
+            models = ModelFactory(settings, redis, http, gateway)
             owner = SimpleNamespace(models=models, executor=Fixtures())
             agent = Agent(owner)
             cases = [("NEKO", *case) for case in CASES]
@@ -119,7 +133,10 @@ async def run(args):
                         result=result,
                     )
                 )
+                await checkpoint()
                 print(f"decision case={name} character={code} passed={passed}", flush=True)
+                if not passed:
+                    return 1
             service = MemoryProbe(SimpleNamespace(models=models), http)
             for name, content in (
                 ("remember", "请记住：我一直喜欢蓝色。"),
@@ -156,17 +173,17 @@ async def run(args):
                 finally:
                     CURRENT.reset(token)
                 rows.append(dict(case=name, passed=passed, result=result, phases=service.phases))
+                await checkpoint()
                 print(f"memory case={name} passed={passed}", flush=True)
+                if not passed:
+                    return 1
+        await checkpoint(complete=True)
+        return 0
+    except Exception as error:
+        await checkpoint(stopReason=type(error).__name__)
+        return 1
     finally:
         await redis.aclose()
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    await asyncio.to_thread(
-        output.write_text,
-        json.dumps(dict(cases=rows, budgetKey=key), ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    return 0 if all(row["passed"] for row in rows) else 1
 
 
 if __name__ == "__main__":
@@ -174,6 +191,7 @@ if __name__ == "__main__":
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--budget-id", required=True)
     parser.add_argument("--acceptance", action="store_true")
+    parser.add_argument("--phase-id", required=True)
     parser.add_argument("--output", default="../test-output/companion-decisions.json")
     parser.add_argument(
         "--case",

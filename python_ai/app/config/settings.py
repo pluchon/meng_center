@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     embedding_url: str = (
         "https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding"
     )
-    rerank_thresholds: dict[str, float] = {"search": 0.35, "related": 0.4, "recall": 0.3, "web": 0.2}
+    rerank_thresholds: dict[str, float] = {"search": 0.35, "related": 0.4, "recall": 0.3}
     rerank_instructions: dict[str, str] = Field(default_factory=dict)
     requests_per_minute: int = Field(default=1200, ge=1)
     tokens_per_minute: int = Field(default=1_000_000, ge=1)

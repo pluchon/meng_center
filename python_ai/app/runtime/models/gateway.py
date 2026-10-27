@@ -214,7 +214,8 @@ class ModelGateway:
         try:
             return await operation.ainvoke(None)
         except RetryableRequest as error:
-            raise error.__cause__ from error
+            # 网关已经重试一次，外层状态图不能再重复这一批请求。
+            raise ModelUnavailable("模型请求重试后仍不可用") from error.__cause__
 
 
 class GatewayChatOpenAI(ChatOpenAI):
