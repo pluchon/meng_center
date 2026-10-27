@@ -53,6 +53,7 @@ def factory(verdict: str = "PASS") -> SimpleNamespace:
         ),
         vision=model("Moderation", {"verdict": "SUSPECT", "labels": ["暴力"], "reason": "待人工确认"}),
         embed=embed,
+        embedding_client=SimpleNamespace(version="fixture-override:1024:doc-v1"),
         semaphores={
             role: asyncio.Semaphore(2) for role in ("judge", "vision", "writer", "image", "review", "assist")
         },
@@ -101,6 +102,7 @@ async def test_analysis_returns_complete_vector_and_preserves_version() -> None:
     assert result["result"]["version"] == post().version
     assert result["result"]["verdict"] == "PASS"
     assert result["result"]["analyzeState"] == "SUCCESS"
+    assert result["result"]["modelVersion"].endswith(":fixture-override:1024:doc-v1")
 
 
 async def test_missing_embedding_never_emits_partial_success() -> None:
@@ -111,6 +113,25 @@ async def test_missing_embedding_never_emits_partial_success() -> None:
             {"post": post()},
             context=Context(prepare(models), UsageMetadataCallbackHandler()),
         )
+
+
+async def test_query_embedding_response_uses_actual_client_version():
+    from app.routes.internal import embeddings
+    from app.schemas.models import EmbeddingsRequest
+
+    models = factory()
+    from contextlib import asynccontextmanager
+
+    @asynccontextmanager
+    async def usage():
+        yield None
+
+    models.usage = usage
+    request = SimpleNamespace(
+        app=SimpleNamespace(state=SimpleNamespace(assistant=SimpleNamespace(models=models)))
+    )
+    result = await embeddings(EmbeddingsRequest(texts=["问题"], text_type="query"), request)
+    assert result["modelVersion"] == "fixture-override:1024:doc-v1"
 
 
 async def test_text_failure_uses_neutral_features_but_keeps_vector() -> None:

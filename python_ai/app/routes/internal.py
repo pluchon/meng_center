@@ -31,7 +31,7 @@ async def embeddings(body: EmbeddingsRequest, request: Request) -> dict:
         vectors = await models.embed(body.texts, body.text_type)
     return {
         "vectors": vectors,
-        "modelVersion": f"{models.settings.embedding_model}:{models.settings.embedding_dimensions}:doc-v1",
+        "modelVersion": models.embedding_client.version,
     }
 
 

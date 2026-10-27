@@ -40,7 +40,7 @@ def build_graph():
             embedding=state["vector"],
             imagesChanged=post.images_changed,
             modelVersion=f"{VERSION}:{settings.judge_model}:{settings.vision_model}:"
-            f"{settings.embedding_model}:{settings.embedding_dimensions}:doc-v1",
+            f"{runtime.context.models.embedding_client.version}",
             analyzeState="FAILED" if child.get("errors") else "SUCCESS",
             moderationState="FAILED" if child.get("errors") else "SUCCESS",
         )
