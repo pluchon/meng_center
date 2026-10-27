@@ -62,7 +62,10 @@ async def test_memory_review_distinguishes_privacy_from_subject_matter_and_autho
     assert result["profile"] == ""
     assert service.structured.await_count == 2
     assert service.structured.await_args_list[0].args[0] is Consolidation
-    assert [call.kwargs["purpose"] for call in service.structured.await_args_list] == ["memory", "judge"]
+    assert [call.args[0] for call in service.structured.await_args_list] == [
+        Consolidation,
+        ConsolidationReview,
+    ]
 
 
 @pytest.mark.parametrize("review", [None, SummaryReview(safe=False)])

@@ -71,13 +71,11 @@ def factory(verdict: str = "PASS") -> SimpleNamespace:
 
 
 def prepare(models):
-    from app.runtime.tasks.registry import TASKS
-    from app.runtime.tasks.structured import build_chain
+    from app.runtime.tasks.structured import TaskRuntime
 
+    models.task_runtime = TaskRuntime(models)
     models.task_chains = {
-        name: build_chain(getattr(models, spec.purpose), spec.schema, name, "function_calling")
-        for name, spec in TASKS.items()
-        if name in {"understand", "moderate_text", "cover_plan"}
+        name: models.task_runtime.chain(name) for name in ("understand", "moderate_text", "cover_plan")
     }
     return models
 
@@ -220,7 +218,7 @@ async def test_same_writer_model_does_not_retry_as_its_own_fallback(
         calls.append(payload)
         raise RuntimeError("unavailable")
 
-    monkeypatch.setattr("app.services.assistant.build_chain", lambda *args: RunnableLambda(unavailable))
+    monkeypatch.setattr("app.services.assistant.TaskRuntime.chain", lambda *args: RunnableLambda(unavailable))
     models = factory()
     models.writer = models.judge
     assistant = Assistant(models, SimpleNamespace())

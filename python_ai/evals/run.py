@@ -12,7 +12,7 @@ from redis.asyncio import Redis
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
 from app.graphs.moderation import confirm_content
-from app.runtime.tasks.structured import build_chain
+from app.runtime.tasks.structured import TaskRuntime
 from app.schemas.models import Moderation, Understanding
 from evals.companion.budget import EvaluationGateway, claim_run, evaluation_settings, save_checkpoint
 
@@ -36,10 +36,8 @@ async def evaluate(args) -> None:
         await http.aclose()
         raise ValueError("已有站内评测报告，不能覆盖或重新生成")
     models = ModelFactory(settings, redis, http, gateway)
-    chains = {
-        "moderate_text": build_chain(models.judge, Moderation, "moderate_text", settings.structured_method),
-        "understand": build_chain(models.judge, Understanding, "understand", settings.structured_method),
-    }
+    models.task_runtime = TaskRuntime(models)
+    chains = {name: models.task_runtime.chain(name) for name in ("moderate_text", "understand")}
     correct = blocked = caught = false_positive = normal = topic_hits = topic_total = total = 0
     reviews = overturned = 0
     records = []

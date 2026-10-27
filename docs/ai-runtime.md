@@ -277,7 +277,7 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 
 ### 9.1 任务注册表与链
 
-`runtime/tasks/registry.py` 登记每个单次调用的任务：提示词版本、输出 Schema、模型用途、温度、超时、重试次数、降级方式、评测集路径。每个任务是一条 LCEL 链 `prompt | model.with_structured_output(Schema)`，全部经同一个结构化调用函数执行（`runtime/tasks/structured.py`），不在各服务里各写一套。
+`runtime/tasks/registry.py` 登记每个单次调用的任务：提示词版本、输出 Schema、模型用途、温度、超时、重试次数、降级方式、评测集路径。每个任务是一条 LCEL 链 `prompt | model.with_structured_output(Schema)`，全部经同一个结构化调用函数执行（`runtime/tasks/structured.py`），不在各服务里各写一套。注册表参数实际绑定到 LCEL 链：先应用用途级 `model_overrides`，再应用任务级 `task_overrides`；重试次数只允许 0 或 1，结构校验和网络请求分别受该次数约束。记忆审核的候选下标校验共用这一次结构重试，不叠加重试。每次调用的元数据记录任务名、提示词版本和评测集路径。
 
 | 任务 | `purpose` | 用在 |
 |---|---|---|
@@ -288,7 +288,8 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 | `memory_consolidate` / `memory_review` / `summary` | `memory` / `judge` / `memory` | 奶糖的记忆整理与审核、空闲压缩 |
 | `moderate_text` / `understand` | `judge` | 审核子图的文字节点（第 9.3 节） |
 | `moderate_image` | `vision` | 审核子图的审图节点 |
-| `moderate_confirm` | `review` | 审核子图的 BLOCK 复核 |
+| `moderate_confirm` | `review` | 审核子图的 BLOCK 复核；调用失败降级为 SUSPECT |
+| `reply_judge` / `tool_facts` | `judge` | 奶糖输出检查、工具资料提炼 |
 
 - 提示词只写正面要求。成长总结和创作总结只描述统计直接支持的活动，用定性的说法，数字由页面展示；数字和等级的句子由 Schema 校验去掉，一句不剩就重试一次。
 - 待处理的正文以**分隔块里的纯文本**传入（`<post>标题…\n正文…</post>`），不用 `model_dump_json` 把整个对象转义成 JSON 字符串。

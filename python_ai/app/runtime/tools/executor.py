@@ -28,7 +28,10 @@ class Executor:
             version=self.service.prompt_version(request),
             model=getattr(settings, "judge_model", ""),
             modelOptions=getattr(settings, "model_overrides", {}),
-            taskOptions=getattr(settings, "task_overrides", {}),
+            taskOptions={
+                name: options.model_dump(exclude_none=True) if hasattr(options, "model_dump") else options
+                for name, options in getattr(settings, "task_overrides", {}).items()
+            },
         )
         digest = hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
         return f"meng:companion:tool:{request.user_id}:{digest}"

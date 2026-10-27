@@ -1,9 +1,17 @@
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
-from pydantic import Field, SecretStr
+from pydantic import BaseModel, ConfigDict, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class TaskOptions(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    temperature: float | None = Field(default=None, ge=0, le=2)
+    timeout: float | None = Field(default=None, gt=0, le=60)
+    retries: int | None = Field(default=None, ge=0, le=1)
+    fallback: Literal["unavailable", "suspect"] | None = None
 
 
 class Settings(BaseSettings):
@@ -20,6 +28,7 @@ class Settings(BaseSettings):
     assist_model: str = "qwen3.8-flash"
     memory_model: str = "qwen3.8-flash"
     model_overrides: dict[str, dict] = Field(default_factory=dict)
+    task_overrides: dict[str, TaskOptions] = Field(default_factory=dict)
     tool_cache_seconds: dict[str, Annotated[int, Field(ge=0, le=3600)]] = Field(default_factory=dict)
     rerank_model: str = "qwen3.7-text-rerank"
     rerank_url: str = "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"

@@ -119,6 +119,7 @@ class ModelGateway:
             user=current.user if current else 0,
             character=current.character if current else "",
             turn=current.turn if current else "",
+            **usage.get("_task", {}),
         )
         if purpose == "speech" and cache:
             record["segmentHashes"] = public_hashes(cache)
@@ -243,6 +244,8 @@ class GatewayChatOpenAI(ChatOpenAI):
         return usage
 
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
+        retries = kwargs.pop("_runtime_retries", 1)
+        metadata = getattr(run_manager, "metadata", {}) or {}
         estimate = int(self.max_tokens or 1600) + sum(tokens(str(m.content)) for m in messages)
         estimate += tokens(str(kwargs.get("tools", [])))
         if estimate > self._context_tokens:
@@ -266,9 +269,14 @@ class GatewayChatOpenAI(ChatOpenAI):
                     call,
                     lambda result: {
                         **self.chat_usage(result),
+                        "_task": {
+                            key: metadata[key]
+                            for key in ("task", "taskVersion", "evaluationSet")
+                            if key in metadata
+                        },
                         **({"_cache_segments": fingerprints(messages)} if self._purpose == "speech" else {}),
                     },
-                    retry=self._purpose != "agent",
+                    retry=self._purpose != "agent" and retries > 0,
                 )
 
             return RunnableLambda(invoke)

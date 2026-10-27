@@ -13,7 +13,7 @@ from app.graphs.post_analysis import Context
 from app.prompts.templates import TASKS as PROMPTS
 from app.prompts.templates import VERSION
 from app.runtime.tasks.registry import TASKS, payload
-from app.runtime.tasks.structured import build_chain
+from app.runtime.tasks.structured import TaskRuntime
 from app.runtime.tasks.tags import normalize
 from app.schemas.models import (
     CoverRequest,
@@ -35,13 +35,9 @@ class Assistant:
         self.post_graph = post_analysis.build_graph()
         self.moderation_graph = moderation.build_graph()
         self.cover_graph = cover.build_graph()
-        self.chains = {
-            name: build_chain(
-                getattr(models, spec.purpose), spec.schema, name, models.settings.structured_method
-            )
-            for name, spec in TASKS.items()
-            if name in PROMPTS
-        }
+        self.tasks = TaskRuntime(models)
+        self.chains = {name: self.tasks.chain(name) for name in PROMPTS}
+        models.task_runtime = self.tasks
         models.task_chains = self.chains
 
     async def suggest(self, task: str, request: BaseModel) -> dict[str, Any]:

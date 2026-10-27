@@ -9,5 +9,6 @@
   "cover_model": "qwen-image-3.0-pro",
   "rerank_thresholds": {"search": 0.35, "related": 0.4, "recall": 0.3},
   "model_overrides": {},
+  "task_overrides": {},
   "tool_cache_seconds": {"recall": 60, "search_posts": 30, "read_post": 60, "my_recent_posts": 30, "my_growth": 30}
 }

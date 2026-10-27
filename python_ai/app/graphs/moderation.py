@@ -12,7 +12,7 @@ from langgraph.types import Send
 from app.runtime.models.retry import MODEL_RETRY
 from app.runtime.safety.policy import POLICY
 from app.runtime.tasks.registry import payload
-from app.runtime.tasks.structured import structured
+from app.runtime.tasks.structured import REVIEW_UNAVAILABLE
 from app.schemas.models import Moderation, ModerationInput, PostInput, Understanding, Verdict
 
 
@@ -39,7 +39,7 @@ async def review_text(factory, value, callback, task="moderate_text"):
 
 async def review_image(factory, image, callback):
     async with factory.semaphores["vision"]:
-        return await structured(factory.vision, Moderation, factory.settings.structured_method).ainvoke(
+        return await factory.task_runtime.output("moderate_image").ainvoke(
             [
                 SystemMessage(POLICY + "\n审核这张图片。"),
                 HumanMessage(
@@ -136,17 +136,17 @@ async def confirm(state, runtime: Runtime[Context]):
 async def confirm_content(factory, content, callback):
     try:
         async with factory.semaphores["review"]:
-            checked = await structured(
-                factory.review, Moderation, factory.settings.structured_method
-            ).ainvoke(
+            checked = await factory.task_runtime.output("moderate_confirm").ainvoke(
                 [SystemMessage(POLICY + "\n独立审核目标内容，语境只作参考。"), HumanMessage(content)],
                 config={"callbacks": [callback] if callback else []},
             )
         if checked is None:
             raise ValueError("缺少复核结果")
-        return "" if checked.verdict == Verdict.BLOCK else "初审与复核不一致"
+        if checked.verdict == Verdict.BLOCK:
+            return ""
+        return REVIEW_UNAVAILABLE if checked.reason == REVIEW_UNAVAILABLE else "初审与复核不一致"
     except Exception:
-        return "复核暂不可用，等待人工审核"
+        return REVIEW_UNAVAILABLE
 
 
 def build_graph():

@@ -106,7 +106,9 @@ async def test_station_provider_failure_preserves_previous_result_and_stops(monk
             raise ModelUnavailable("offline")
         return Moderation(verdict="PASS")
 
-    monkeypatch.setattr(station, "build_chain", lambda *args: RunnableLambda(invoke))
+    monkeypatch.setattr(
+        station, "TaskRuntime", lambda *args: SimpleNamespace(chain=lambda name: RunnableLambda(invoke))
+    )
     output = tmp_path / "station.json"
     args = argparse.Namespace(
         baseline=None, output=output, token_budget=100, budget_id="fixture", phase_id="fixture-phase"

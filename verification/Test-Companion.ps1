@@ -39,7 +39,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'AI dependencies unavailable.' }
     & uv run --frozen ruff check app tests evals
     if ($LASTEXITCODE -ne 0) { throw 'AI static checks failed.' }
-    & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_evaluation_safety.py tests/test_companion_review.py tests/test_naitang_tools.py tests/test_retrieval.py tests/test_model_routing.py -q
+    & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_evaluation_safety.py tests/test_companion_review.py tests/test_naitang_tools.py tests/test_task_runtime.py tests/test_retrieval.py tests/test_model_routing.py -q
     if ($LASTEXITCODE -ne 0) { throw 'Companion graph tests failed.' }
     if ($EvaluateModels) {
         $arguments = @('--acceptance', '--phase-id', $EvaluationPhaseId)
