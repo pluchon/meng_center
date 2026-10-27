@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from pydantic import PrivateAttr
 
@@ -182,9 +183,12 @@ class ModelGateway:
             await self.redis.set(f"meng:ai:circuit:{model}", "1", ex=self.settings.circuit_seconds)
 
     async def invoke(self, model, purpose, estimate, call, usage, retry=True):
-        start = time.monotonic()
-        for attempt in range(2 if retry else 1):
+        class RetryableRequest(Exception):
+            pass
+
+        async def invoke_once(_):
             await self.acquire(model, estimate)
+            start = time.monotonic()
             try:
                 result = await call()
             except Exception as error:
@@ -196,12 +200,21 @@ class ModelGateway:
                     getattr(error, "status_code", 0),
                 )
                 await self.failure(model)
-                if attempt or not retry or not self.retryable(error):
-                    raise
-                await asyncio.sleep(0.15)
-                continue
+                if retry and self.retryable(error):
+                    raise RetryableRequest() from error
+                raise
             await self.record(model, purpose, usage(result), time.monotonic() - start)
             return result
+
+        operation = RunnableLambda(invoke_once).with_retry(
+            stop_after_attempt=2 if retry else 1,
+            retry_if_exception_type=(RetryableRequest,),
+            exponential_jitter_params={"multiplier": 0.15, "max": 0.5},
+        )
+        try:
+            return await operation.ainvoke(None)
+        except RetryableRequest as error:
+            raise error.__cause__ from error
 
 
 class GatewayChatOpenAI(ChatOpenAI):
@@ -233,17 +246,16 @@ class GatewayChatOpenAI(ChatOpenAI):
         estimate += tokens(str(kwargs.get("tools", [])))
         if estimate > self._context_tokens:
             raise ModelUnavailable("请求超过模型上下文窗口，需要先压缩历史")
-        last = None
-        for model in dict.fromkeys((self.model_name, *self._fallbacks)):
-            try:
 
-                async def call(selected=model):
-                    if selected in self._clients:
-                        return await self._clients[selected]._agenerate(
+        def operation(model):
+            async def invoke(_):
+                async def call():
+                    if model in self._clients:
+                        return await self._clients[model]._agenerate(
                             messages, stop=stop, run_manager=run_manager, **kwargs
                         )
                     return await super(GatewayChatOpenAI, self)._agenerate(
-                        messages, stop=stop, run_manager=run_manager, **{**kwargs, "model": selected}
+                        messages, stop=stop, run_manager=run_manager, **kwargs
                     )
 
                 return await self._gateway.invoke(
@@ -255,7 +267,17 @@ class GatewayChatOpenAI(ChatOpenAI):
                         **self.chat_usage(result),
                         **({"_cache_segments": fingerprints(messages)} if self._purpose == "speech" else {}),
                     },
+                    retry=self._purpose != "agent",
                 )
-            except Exception as error:
-                last = error
-        raise ModelUnavailable("模型及其降级链均不可用") from last
+
+            return RunnableLambda(invoke)
+
+        primary, *fallbacks = [
+            operation(model) for model in dict.fromkeys((self.model_name, *self._fallbacks))
+        ]
+        try:
+            return await primary.with_fallbacks(fallbacks).ainvoke(None)
+        except Exception as error:
+            if self._purpose == "agent":
+                raise
+            raise ModelUnavailable("模型及其降级链均不可用") from error

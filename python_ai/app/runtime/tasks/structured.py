@@ -32,9 +32,11 @@ def build_chain(model: Runnable, schema: type[BaseModel], task: str, method: str
         [
             (
                 "system",
-                (POLICY if task in {"understand", "moderate", "cover"} else SAFETY) + "\n" + TASKS[task],
+                (POLICY if task in {"understand", "moderate_text", "cover_plan"} else SAFETY)
+                + "\n"
+                + TASKS[task],
             ),
-            ("human", "<input>\n{payload}\n</input>"),
+            ("human", "<post>\n{payload}\n</post>"),
         ]
     )
     return prompt | structured(model, schema, method)

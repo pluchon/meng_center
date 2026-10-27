@@ -22,6 +22,7 @@ from app.runtime.safety.redline import crosses_red_line, has_contact
 from app.runtime.speech.parse import parse
 from app.runtime.speech.signals import signals
 from app.runtime.speech.slop import signals as slop_signals
+from app.runtime.tasks.structured import structured
 from app.runtime.tools.executor import Executor
 from app.schemas.companion import (
     Consolidation,
@@ -66,13 +67,11 @@ class Companion:
             else json.dumps(payload, ensure_ascii=False, sort_keys=True)
         )
         async with self.models.semaphores[purpose]:
-            return (
-                await getattr(self.models, purpose)
-                .with_structured_output(schema, method=self.models.settings.structured_method)
-                .ainvoke(
-                    [SystemMessage(prompt), HumanMessage(content)],
-                    config={"callbacks": [callback] if callback else []},
-                )
+            return await structured(
+                getattr(self.models, purpose), schema, self.models.settings.structured_method
+            ).ainvoke(
+                [SystemMessage(prompt), HumanMessage(content)],
+                config={"callbacks": [callback] if callback else []},
             )
 
     async def plain(self, purpose, prompt, payload):
@@ -142,13 +141,14 @@ class Companion:
         )
         inputs.insert(2, SystemMessage(PROMPT))
         async with self.models.semaphores["judge"]:
-            checked = await self.models.judge.with_structured_output(
+            checked = await structured(
+                self.models.judge,
                 {
                     "name": "Judgment",
                     "description": Judgment.__doc__,
                     "parameters": Judgment.compact_tool_schema(),
                 },
-                method=self.models.settings.structured_method,
+                self.models.settings.structured_method,
             ).ainvoke(inputs)
         if checked is None:
             raise ValueError("缺少输出检查")

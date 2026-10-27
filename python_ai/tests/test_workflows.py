@@ -71,13 +71,13 @@ def factory(verdict: str = "PASS") -> SimpleNamespace:
 
 
 def prepare(models):
-    from app.chains.structured import build_chain
     from app.runtime.tasks.registry import TASKS
+    from app.runtime.tasks.structured import build_chain
 
     models.task_chains = {
         name: build_chain(getattr(models, spec.purpose), spec.schema, name, "function_calling")
         for name, spec in TASKS.items()
-        if name in {"understand", "moderate", "cover"}
+        if name in {"understand", "moderate_text", "cover_plan"}
     }
     return models
 
@@ -163,6 +163,29 @@ async def test_profile_moderation_keeps_avatar_review_for_java_reuse() -> None:
     assert result["result"]["avatarChanged"] is True
     assert result["result"]["verdict"] == "SUSPECT"
     assert result["result"]["imageReviews"][0]["imageId"] == 9
+
+
+async def test_block_confirmation_happens_once_after_text_and_images_merge():
+    models = prepare(factory("BLOCK"))
+    models.vision = model("Moderation", {"verdict": "BLOCK", "labels": ["暴力"], "reason": "图片问题"})
+    models.review = model("Moderation", {"verdict": "PASS", "labels": [], "reason": "正常创作"})
+    item = PostInput.model_validate({**post().model_dump(), "image_thumbs": [{"id": 8, "data": "/9j/"}]})
+    result = await post_analysis.build_graph().ainvoke(
+        {"post": item}, context=Context(models, UsageMetadataCallbackHandler())
+    )
+    assert result["result"]["verdict"] == "SUSPECT"
+    assert result["result"]["reason"] == "初审与复核不一致"
+    assert result["result"]["imageReviews"][0]["verdict"] == "SUSPECT"
+
+
+async def test_failed_block_confirmation_never_punishes_automatically():
+    models = prepare(factory("BLOCK"))
+    models.review = ToolModel(messages=iter(["invalid output"] * 5))
+    result = await post_analysis.build_graph().ainvoke(
+        {"post": post()}, context=Context(models, UsageMetadataCallbackHandler())
+    )
+    assert result["result"]["verdict"] == "SUSPECT"
+    assert "人工" in result["result"]["reason"]
 
 
 async def test_rejected_cover_never_calls_image_provider() -> None:

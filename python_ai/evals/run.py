@@ -9,10 +9,10 @@ from pathlib import Path
 import httpx
 from redis.asyncio import Redis
 
-from app.chains.structured import build_chain
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
-from app.runtime.safety.escalate import confirm
+from app.graphs.moderation import confirm_content
+from app.runtime.tasks.structured import build_chain
 from app.schemas.models import Moderation, Understanding
 from evals.companion.budget import EvaluationGateway, evaluation_settings
 
@@ -32,7 +32,7 @@ async def evaluate(args) -> None:
     http = httpx.AsyncClient()
     models = ModelFactory(settings, redis, http, EvaluationGateway(settings, redis, key, args.token_budget))
     chains = {
-        "moderate": build_chain(models.judge, Moderation, "moderate", settings.structured_method),
+        "moderate_text": build_chain(models.judge, Moderation, "moderate_text", settings.structured_method),
         "understand": build_chain(models.judge, Understanding, "understand", settings.structured_method),
     }
     correct = blocked = caught = false_positive = normal = topic_hits = topic_total = total = 0
@@ -44,7 +44,7 @@ async def evaluate(args) -> None:
             for line in content.splitlines():
                 row = json.loads(line)
                 schema = Moderation if "verdict" in row else Understanding
-                task = "moderate" if schema is Moderation else "understand"
+                task = "moderate_text" if schema is Moderation else "understand"
                 chain = chains[task]
                 async with models.usage() as callback:
                     result = await chain.ainvoke(
@@ -52,7 +52,10 @@ async def evaluate(args) -> None:
                         config={"callbacks": [callback], "run_name": "local-evaluation", "tags": ["eval"]},
                     )
                     initial = result.verdict
-                    result = await confirm(models, result, row["input"], callback)
+                    if initial == "BLOCK":
+                        reason = await confirm_content(models, row["input"], callback)
+                        if reason:
+                            result = result.model_copy(update={"verdict": "SUSPECT", "reason": reason})
                 reviews += initial == "BLOCK"
                 overturned += initial == "BLOCK" and result.verdict != "BLOCK"
                 records.append(

@@ -6,13 +6,14 @@ from typing import Any
 
 from pydantic import BaseModel
 
-from app.chains.structured import build_chain
 from app.clients.cover_image import CoverImageClient
 from app.clients.models import ModelFactory
 from app.graphs import cover, moderation, post_analysis
 from app.graphs.post_analysis import Context
 from app.prompts.templates import VERSION
 from app.runtime.tasks.registry import TASKS, payload
+from app.runtime.tasks.structured import build_chain
+from app.runtime.tasks.tags import normalize
 from app.schemas.models import (
     CoverRequest,
     ModerationInput,
@@ -52,6 +53,14 @@ class Assistant:
                 {"payload": payload(request, excluded)},
                 config={"callbacks": [callback], "run_name": task, "tags": ["assistant"], "metadata": {}},
             )
+        if task == "tags":
+            names = normalize([tag.name for tag in result.tags], request.candidates)
+            result.tags = [
+                tag.model_copy(update={"name": name, "existing": name in request.candidates})
+                for name in names
+                for tag in result.tags
+                if normalize([tag.name], request.candidates)[0] == name
+            ][:3]
         if task == "growth" and len(result.suggestions) != 1:
             result.suggestions = result.suggestions[:1]
         LOG.info(

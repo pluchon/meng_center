@@ -25,12 +25,12 @@ class TaskSpec:
 
 TASKS = {
     "understand": TaskSpec("judge", Understanding, evaluation="evals/topics.jsonl"),
-    "moderate": TaskSpec("judge", Moderation),
+    "moderate_text": TaskSpec("judge", Moderation),
     "moderate_image": TaskSpec("vision", Moderation),
     "moderate_confirm": TaskSpec("review", Moderation, fallback="suspect"),
     "tags": TaskSpec("assist", Tags),
     "inspirations": TaskSpec("writer", Inspirations, temperature=0.7, timeout=15),
-    "cover": TaskSpec("writer", CoverPlan, temperature=0.7, timeout=15),
+    "cover_plan": TaskSpec("writer", CoverPlan, temperature=0.7, timeout=15),
     "growth": TaskSpec("assist", GrowthSummary),
     "creator": TaskSpec("assist", Summary),
     "retrieval": TaskSpec("rerank", dict, fallback="vector"),
