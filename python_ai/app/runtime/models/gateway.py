@@ -285,7 +285,16 @@ class GatewayChatOpenAI(ChatOpenAI):
             operation(model) for model in dict.fromkeys((self.model_name, *self._fallbacks))
         ]
         try:
-            return await primary.with_fallbacks(fallbacks).ainvoke(None)
+            result = await primary.with_fallbacks(fallbacks).ainvoke(None)
+            if self._purpose == "speech":
+                result.generations[0].message.response_metadata["contextBudget"] = {
+                    "limit": self._context_tokens,
+                    "estimated": estimate,
+                    # 下一轮用户原文最多 1000 字，另保留一次完整生成的空间。
+                    "compactAfterRound": estimate + int(self.max_tokens or 1600) + 1000
+                    >= self._context_tokens,
+                }
+            return result
         except Exception as error:
             if self._purpose == "agent":
                 raise

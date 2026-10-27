@@ -26,7 +26,3 @@ class Segment:
     name: str
     stability: Stability
     content: str
-
-
-def should_compact(idle_seconds, history_tokens, context_limit=600_000):
-    return history_tokens >= min(600_000, context_limit) or (idle_seconds >= 1800 and history_tokens > 8000)

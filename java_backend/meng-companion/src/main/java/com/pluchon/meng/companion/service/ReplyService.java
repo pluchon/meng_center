@@ -575,18 +575,20 @@ public class ReplyService {
                 turns
                     .get(turns.size() - 1)
                     .get("role")
-                    .equals(message.getRole())
+                    .equals(message.getRole()) &&
+                turns
+                    .get(turns.size() - 1)
+                    .get("content")
+                    .length() +
+                    1 +
+                    message.getContent().length() <=
+                    6000
             ) {
                 var previous = turns.remove(turns.size() - 1);
                 String content =
                     previous.get("content") + "\n" + message.getContent();
                 turns.add(
-                    Map.of(
-                        "role",
-                        message.getRole(),
-                        "content",
-                        content.substring(0, Math.min(6000, content.length()))
-                    )
+                    Map.of("role", message.getRole(), "content", content)
                 );
             } else turns.add(
                 Map.of(

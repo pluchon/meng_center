@@ -81,3 +81,25 @@ def test_official_cache_usage_preserves_total_and_cached_tokens():
     assert GatewayChatOpenAI.chat_usage(result) == dict(
         input_tokens=100, output_tokens=8, total_tokens=108, input_token_details={"cache_read": 64}
     )
+
+
+@pytest.mark.parametrize("size,expected", [(1000, False), (7000, True)])
+async def test_speech_reports_full_request_window_pressure(monkeypatch, size, expected):
+    settings = Settings.model_construct(
+        api_key=SecretStr("fixture"),
+        deepseek_api_key=SecretStr("fixture"),
+        model_overrides={"speech": {"context_tokens": 10000}},
+    )
+    redis = AsyncMock()
+    redis.exists.return_value = False
+    redis.eval.return_value = 1
+
+    async def generate(*args, **kwargs):
+        return ChatResult(generations=[ChatGeneration(message=AIMessage(content="收到。"))])
+
+    monkeypatch.setattr(ChatOpenAI, "_agenerate", generate)
+    factory = ModelFactory(settings, redis, http=AsyncMock())
+    result = await factory.speech.ainvoke("甲" * size)
+    budget = result.response_metadata["contextBudget"]
+    assert budget["limit"] == 10000 and budget["compactAfterRound"] == expected
+    assert budget["estimated"] < budget["limit"]

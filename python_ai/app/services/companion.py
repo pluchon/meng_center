@@ -156,6 +156,7 @@ class Companion:
         async with self.models.semaphores["speech"]:
             output = await self.models.speech.ainvoke(inputs)
         sizes["speechModel"] = output.response_metadata.get("model_name", self.models.settings.speech_model)
+        sizes["contextBudget"] = output.response_metadata.get("contextBudget", {})
         return parse(
             output.content, {row["name"] for row in emotions}, request.controls, request.card.get("name", "")
         ), sizes

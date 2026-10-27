@@ -5,7 +5,6 @@ from app.runtime.agent.directive import Directive, Fact, validate
 from app.runtime.context.card import prefixes
 from app.runtime.context.companion import provided_memory_ids
 from app.runtime.context.form import style_feedback
-from app.runtime.context.segments import should_compact
 from app.runtime.speech.parse import parse
 
 
@@ -72,14 +71,6 @@ def test_new_and_due_memories_are_usable_but_unretrieved_candidates_are_not():
     assert validate(directive, set(), ids, True) is directive
     with pytest.raises(ValueError):
         validate(directive.model_copy(update={"mention_memory_id": 4}), set(), ids, True)
-
-
-@pytest.mark.parametrize(
-    "idle,size,expected",
-    [(1799, 9000, False), (1800, 8001, True), (1800, 7999, False), (0, 600000, True), (0, 200000, False)],
-)
-def test_compaction_only_happens_at_documented_boundaries(idle, size, expected):
-    assert should_compact(idle, size) == expected
 
 
 def test_v2_character_constraints_and_control_protocol_reach_speech():

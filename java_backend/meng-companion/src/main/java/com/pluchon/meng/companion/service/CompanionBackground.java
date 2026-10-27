@@ -125,6 +125,12 @@ public class CompanionBackground {
             for (var item : batch) markProcessed(item.eventId());
             return;
         }
+        // 窗口整理不依赖长期记忆提取成功；先处理轮后容量，再执行可独立失败的记忆任务。
+        for (long sourceSession : history
+            .stream()
+            .map(Rows.Message::getSessionId)
+            .collect(java.util.stream.Collectors.toSet()))
+            summarize(user, sourceSession, bond.getRevision());
         var old = new ArrayList<>(mapper.memories(user, code));
         String query = history
             .stream()
@@ -281,11 +287,6 @@ public class CompanionBackground {
             for (var item : batch) markProcessed(item.eventId());
             redis.delete("meng:companion:memo:" + user);
         });
-        for (long sourceSession : history
-            .stream()
-            .map(Rows.Message::getSessionId)
-            .collect(java.util.stream.Collectors.toSet()))
-            summarize(user, sourceSession, bond.getRevision());
     }
 
     public static void validateDecisions(
@@ -460,8 +461,9 @@ public class CompanionBackground {
                 .compareTo(
                     LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
                 ) <= 0;
-        if (total < 600000 && (!idle || total <= 8000)) return;
-        int keep = total >= 600000 ? total / 2 : 8000;
+        boolean pressured = total >= 600000 || contextPressure(history);
+        if (!pressured && (!idle || total <= 8000)) return;
+        int keep = pressured ? total / 2 : 8000;
         int accumulated = 0,
             boundary = history.size();
         while (boundary > 0 && accumulated < keep)
@@ -493,6 +495,27 @@ public class CompanionBackground {
                 session.getSummaryUntilMessageId()
             );
         });
+    }
+
+    private boolean contextPressure(List<Rows.Message> history) {
+        for (int i = history.size() - 1; i >= 0; i--) {
+            var message = history.get(i);
+            if (
+                !"CHARACTER".equals(message.getRole()) ||
+                message.getMetrics() == null
+            ) continue;
+            try {
+                return json
+                    .readTree(message.getMetrics())
+                    .path("layers")
+                    .path("contextBudget")
+                    .path("compactAfterRound")
+                    .asBoolean();
+            } catch (RuntimeException ignored) {
+                return false;
+            }
+        }
+        return false;
     }
 
     public void maintain() {
