@@ -48,7 +48,8 @@ public class CompanionBackground {
     @Autowired
     private CompanionOutbox outbox;
 
-    @Autowired private CompanionRuntimeV2 v2;
+    @Autowired
+    private CompanionRuntimeV2 v2;
 
     @Autowired
     private StringRedisTemplate redis;
@@ -130,14 +131,34 @@ public class CompanionBackground {
             .filter(m -> "USER".equals(m.getRole()))
             .map(Rows.Message::getContent)
             .collect(java.util.stream.Collectors.joining(" "));
-        JsonNode queryVector=null;
+        JsonNode queryVector = null;
         if (!old.isEmpty()) try {
-            queryVector=ai.compute("embeddings",Map.of("texts",List.of(query.substring(0,Math.min(1000,query.length()))),
-                "textType","query")).path("vectors").get(0);
-        } catch (RuntimeException ignored) { }
-        final JsonNode vector=queryVector;
-        old.sort(Comparator.comparingDouble((Rows.Memory m) -> vector!=null && m.getEmbedding()!=null ?
-            CompanionContext.cosine(vector,json.readTree(m.getEmbedding())) : m.getImportance()).reversed());
+            queryVector = ai
+                .compute(
+                    "embeddings",
+                    Map.of(
+                        "texts",
+                        List.of(
+                            query.substring(0, Math.min(1000, query.length()))
+                        ),
+                        "textType",
+                        "query"
+                    )
+                )
+                .path("vectors")
+                .get(0);
+        } catch (RuntimeException ignored) {}
+        final JsonNode vector = queryVector;
+        old.sort(
+            Comparator.comparingDouble((Rows.Memory m) ->
+                vector != null && m.getEmbedding() != null
+                    ? CompanionContext.cosine(
+                          vector,
+                          json.readTree(m.getEmbedding())
+                      )
+                    : m.getImportance()
+            ).reversed()
+        );
         if (old.size() > 20) old.subList(20, old.size()).clear();
         String zone = CompanionContext.zone(body.path("timeZone").asString());
         var result = ai.compute(
@@ -308,13 +329,18 @@ public class CompanionBackground {
             String kind = d.path("kind").asString(),
                 evidence = d.path("evidence").asString();
             if (
-                !Set.of("NAME", "LIKE", "LIFE", "DATE", "SELF").contains(
-                    kind
-                )
+                !Set.of("NAME", "LIKE", "LIFE", "DATE", "SELF").contains(kind)
             ) throw new IllegalArgumentException("Invalid memory kind");
             if (
                 evidence.isBlank() ||
-                messages.stream().noneMatch(m -> ("SELF".equals(kind) ? "CHARACTER" : "USER").equals(m.getRole()) && m.getContent().contains(evidence))
+                messages
+                    .stream()
+                    .noneMatch(
+                        m ->
+                            ("SELF".equals(kind) ? "CHARACTER" : "USER").equals(
+                                m.getRole()
+                            ) && m.getContent().contains(evidence)
+                    )
             ) throw new IllegalArgumentException("Missing original evidence");
             if (
                 !"INVALIDATE".equals(action) &&
@@ -343,8 +369,10 @@ public class CompanionBackground {
             for (var d : decisions) texts.add(d.path("content").asString());
             if (texts.isEmpty()) return List.of();
             var result = ai
-                .compute("embeddings", Map.of("textType", "document",
-                        "texts", texts))
+                .compute(
+                    "embeddings",
+                    Map.of("textType", "document", "texts", texts)
+                )
                 .path("vectors");
             var vectors = new ArrayList<String>();
             for (var v : result)
@@ -384,14 +412,29 @@ public class CompanionBackground {
         var history = new ArrayList<>(
             runtime.window(sessionId, session.getWindowStartMessageId())
         );
-        int total=history.stream().mapToInt(m -> CompanionRuntimeV2.tokens(m.getContent())).sum();
-        boolean idle=session.getLastMessageTime()!=null && session.getLastMessageTime().plusMinutes(30).compareTo(LocalDateTime.ofInstant(clock.instant(),ZoneOffset.UTC))<=0;
-        if(total<600000 && (!idle || total<=8000)) return;
-        int keep=total>=600000?total/2:8000;
-        int accumulated=0, boundary=history.size();
-        while(boundary>0 && accumulated<keep) accumulated+=CompanionRuntimeV2.tokens(history.get(--boundary).getContent());
-        while(boundary>0 && !"USER".equals(history.get(boundary).getRole())) boundary--;
-        var half=new ArrayList<>(history.subList(0,boundary));
+        int total = history
+            .stream()
+            .mapToInt(m -> CompanionRuntimeV2.tokens(m.getContent()))
+            .sum();
+        boolean idle =
+            session.getLastMessageTime() != null &&
+            session
+                .getLastMessageTime()
+                .plusMinutes(30)
+                .compareTo(
+                    LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
+                ) <= 0;
+        if (total < 600000 && (!idle || total <= 8000)) return;
+        int keep = total >= 600000 ? total / 2 : 8000;
+        int accumulated = 0,
+            boundary = history.size();
+        while (boundary > 0 && accumulated < keep)
+            accumulated += CompanionRuntimeV2.tokens(
+                history.get(--boundary).getContent()
+            );
+        while (boundary > 0 && !"USER".equals(history.get(boundary).getRole()))
+            boundary--;
+        var half = new ArrayList<>(history.subList(0, boundary));
         if (half.isEmpty()) return;
         String summary = ai.summarize(
             session.getSummary(),
@@ -403,7 +446,10 @@ public class CompanionBackground {
             if (
                 bond.getRevision() == revision &&
                 mapper.lockSession(sessionId, user) != null &&
-                Objects.equals(mapper.session(sessionId,user).getLastMessageTime(),session.getLastMessageTime())
+                Objects.equals(
+                    mapper.session(sessionId, user).getLastMessageTime(),
+                    session.getLastMessageTime()
+                )
             ) mapper.summary(
                 sessionId,
                 summary,
@@ -420,7 +466,8 @@ public class CompanionBackground {
                 .compute(
                     "embeddings",
                     Map.of(
-                        "textType", "document",
+                        "textType",
+                        "document",
                         "texts",
                         missing.stream().map(Rows.Memory::getContent).toList()
                     )
@@ -430,22 +477,28 @@ public class CompanionBackground {
                 int i = 0;
                 i < Math.min(missing.size(), vectors.size());
                 i++
-            ) if (vectors.get(i).size() == 1024) runtime.writeMemoryVector(
-                vectors.get(i).toString(),
-                missing.get(i).getId(),
-                missing.get(i).getContentHash()
-            );
+            ) if (
+                vectors.get(i).size() == 1024 &&
+                runtime.writeMemoryVector(
+                    vectors.get(i).toString(),
+                    missing.get(i).getId(),
+                    missing.get(i).getContentHash()
+                ) > 0
+            ) redis.delete("meng:companion:memo:" + missing.get(i).getUserId());
         } catch (RuntimeException ignored) {}
         for (var row : runtime.idleSessions()) {
             long session = ((Number) row.get("id")).longValue(),
                 user = ((Number) row.get("user_id")).longValue();
             String code = row.get("character_code").toString();
             var bond = mapper.bond(user, code);
-            summarize(user,session,bond.getRevision());
+            summarize(user, session, bond.getRevision());
             transactions.executeWithoutResult(status -> {
-                var live=mapper.lockSession(session,user);
-                if(live!=null && mapper.lockBond(user,code).getRevision()==bond.getRevision())
-                    v2.snapshot(live,bond,true);
+                var live = mapper.lockSession(session, user);
+                if (
+                    live != null &&
+                    mapper.lockBond(user, code).getRevision() ==
+                        bond.getRevision()
+                ) v2.snapshot(live, bond, true);
             });
         }
         archiveExpired();
@@ -485,5 +538,4 @@ public class CompanionBackground {
             });
         }
     }
-
 }

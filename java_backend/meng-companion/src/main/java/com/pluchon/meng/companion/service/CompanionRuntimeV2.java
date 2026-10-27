@@ -1,11 +1,10 @@
 package com.pluchon.meng.companion.service;
 
 import com.pluchon.meng.companion.entity.Rows;
-import com.pluchon.meng.companion.mapper.CompanionMapper;
+import com.pluchon.meng.companion.mapper.RuntimeV2Mapper;
 import java.time.*;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import com.pluchon.meng.companion.mapper.RuntimeV2Mapper;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -13,67 +12,125 @@ import tools.jackson.databind.json.JsonMapper;
 // 快照保存原文，记忆失效和用户编辑后刷新，热聊期间保持前缀不变。
 @Service
 public class CompanionRuntimeV2 {
-    @Autowired private RuntimeV2Mapper state;
-    @Autowired private Clock clock;
-    @Autowired private CompanionMapper mapper;
-    private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();
 
-    public JsonNode snapshot(Rows.Session session, Rows.Bond bond, boolean force) {
-        var all = mapper.memories(session.getUserId(), session.getCharacterCode());
+    @Autowired
+    private RuntimeV2Mapper state;
+
+    @Autowired
+    private Clock clock;
+
+    @Autowired
+    private CompanionMemoryCache memoryCache;
+
+    private final JsonMapper json = JsonMapper.builder()
+        .findAndAddModules()
+        .build();
+
+    public JsonNode snapshot(
+        Rows.Session session,
+        Rows.Bond bond,
+        boolean force
+    ) {
+        var all = memoryCache.get(
+            session.getUserId(),
+            session.getCharacterCode()
+        );
         var current = new LinkedHashMap<Long, Rows.Memory>();
         all.forEach(m -> current.put(m.getId(), m));
-        JsonNode previous = session.getContextSnapshot() == null ? null : json.readTree(session.getContextSnapshot());
-        boolean refresh = force || previous == null || session.getSnapshotTime() == null ||
-            !session.getSnapshotTime().atOffset(ZoneOffset.UTC).atZoneSameInstant(ZoneId.of(bond.getTimeZone())).toLocalDate()
-                .equals(clock.instant().atZone(ZoneId.of(bond.getTimeZone())).toLocalDate());
+        JsonNode previous =
+            session.getContextSnapshot() == null
+                ? null
+                : json.readTree(session.getContextSnapshot());
+        boolean refresh =
+            force ||
+            previous == null ||
+            session.getSnapshotTime() == null ||
+            !session
+                .getSnapshotTime()
+                .atOffset(ZoneOffset.UTC)
+                .atZoneSameInstant(ZoneId.of(bond.getTimeZone()))
+                .toLocalDate()
+                .equals(
+                    clock
+                        .instant()
+                        .atZone(ZoneId.of(bond.getTimeZone()))
+                        .toLocalDate()
+                );
         if (previous != null) {
             for (var old : previous.path("memories")) {
                 var now = current.get(old.path("id").asLong());
-                if (now == null || !now.getContent().equals(old.path("content").asString()) ||
-                    now.isPinned() != old.path("pinned").asBoolean()) refresh = true;
+                if (
+                    now == null ||
+                    !now.getContent().equals(old.path("content").asString()) ||
+                    now.isPinned() != old.path("pinned").asBoolean()
+                ) refresh = true;
             }
-
         }
         if (!refresh) return previous;
-        var memories = new ArrayList<Map<String,Object>>();
+        var memories = new ArrayList<Map<String, Object>>();
         for (var m : all) {
             if (!m.isPinned() && !"SELF".equals(m.getKind())) continue;
-            var row = new LinkedHashMap<String,Object>();
-            row.put("id", m.getId()); row.put("kind", m.getKind()); row.put("content", m.getContent());
-            row.put("pinned", m.isPinned()); row.put("validFrom", m.getValidFrom()); memories.add(row);
+            var row = new LinkedHashMap<String, Object>();
+            row.put("id", m.getId());
+            row.put("kind", m.getKind());
+            row.put("content", m.getContent());
+            row.put("pinned", m.isPinned());
+            row.put("validFrom", m.getValidFrom());
+            memories.add(row);
         }
-        var value = json.valueToTree(Map.of("profile", Objects.requireNonNullElse(bond.getProfile(), ""), "memories", memories));
+        var value = json.valueToTree(
+            Map.of(
+                "profile",
+                Objects.requireNonNullElse(bond.getProfile(), ""),
+                "memories",
+                memories
+            )
+        );
         state.snapshot(
-            value.toString(), LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC), session.getId(), session.getUserId());
+            value.toString(),
+            LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC),
+            session.getId(),
+            session.getUserId()
+        );
         session.setContextSnapshot(value.toString());
-        session.setSnapshotTime(LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
+        session.setSnapshotTime(
+            LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
+        );
         return value;
     }
 
-    public void invalidate(long user,String code) { state.invalidateSnapshots(user,code); }
+    public void invalidate(long user, String code) {
+        state.invalidateSnapshots(user, code);
+    }
 
     public void metadata(Rows.Message message, JsonNode result) {
-        message.setSources(json.writeValueAsString(sources(result.path("sources"))));
+        message.setSources(
+            json.writeValueAsString(sources(result.path("sources")))
+        );
         state.metadata(message.getSources(), message.getId());
     }
 
-    public List<Map<String,Object>> sources(JsonNode nodes) {
+    public List<Map<String, Object>> sources(JsonNode nodes) {
         if (nodes.isMissingNode() || nodes.isNull()) return List.of();
-        if (!nodes.isArray() || nodes.size()>5) throw new IllegalArgumentException("来源数量不合法");
-        var result = new ArrayList<Map<String,Object>>();
+        if (
+            !nodes.isArray() || nodes.size() > 5
+        ) throw new IllegalArgumentException("来源数量不合法");
+        var result = new ArrayList<Map<String, Object>>();
         for (var source : nodes) {
-            long postId=source.path("postId").asLong();
-            String title=source.path("title").asString();
-            if (postId<=0 || title.isBlank() || title.length()>200) throw new IllegalArgumentException("帖子来源不合法");
-            result.add(Map.of("postId",postId,"title",title));
+            long postId = source.path("postId").asLong();
+            String title = source.path("title").asString();
+            if (
+                postId <= 0 || title.isBlank() || title.length() > 200
+            ) throw new IllegalArgumentException("帖子来源不合法");
+            result.add(Map.of("postId", postId, "title", title));
         }
         return result;
     }
 
     public static int tokens(String value) {
-        if(value==null) return 0;
-        double size=0;
-        for(int c:value.codePoints().toArray()) size+=c>127?1:0.25;
-        return (int)Math.ceil(size);
+        if (value == null) return 0;
+        double size = 0;
+        for (int c : value.codePoints().toArray()) size += c > 127 ? 1 : 0.25;
+        return (int) Math.ceil(size);
     }
 }

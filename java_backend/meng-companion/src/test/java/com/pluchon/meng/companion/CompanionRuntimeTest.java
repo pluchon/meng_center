@@ -60,8 +60,11 @@ public class CompanionRuntimeTest {
         jdbc.execute(
             "CREATE ALIAS UTC_TIMESTAMP FOR 'com.pluchon.meng.companion.CompanionRuntimeTest.utcTimestamp'"
         );
-        var schema=new ClassPathResource("naitang-schema.sql").getContentAsString(StandardCharsets.UTF_8);
-        for(String statement:schema.split(";")) if(!statement.isBlank()) jdbc.execute(statement);
+        var schema = new ClassPathResource(
+            "naitang-schema.sql"
+        ).getContentAsString(StandardCharsets.UTF_8);
+        for (String statement : schema.split(";"))
+            if (!statement.isBlank()) jdbc.execute(statement);
         var configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CompanionMapper.class);
@@ -97,17 +100,26 @@ public class CompanionRuntimeTest {
         var redis = mock(
             org.springframework.data.redis.core.StringRedisTemplate.class
         );
+        @SuppressWarnings("unchecked")
+        org.springframework.data.redis.core.ValueOperations<
+            String,
+            String
+        > cacheValues = mock(
+            org.springframework.data.redis.core.ValueOperations.class
+        );
+        when(redis.opsForValue()).thenReturn(cacheValues);
         inject(outbox, "runtime", runtime, "limits", limits, "redis", redis);
         doNothing().when(outbox).enqueue(anyString(), anyString(), any());
         var clock = Clock.fixed(
             Instant.parse("2026-10-17T04:00:00Z"),
             ZoneOffset.UTC
         );
+        var memoryCache = new CompanionMemoryCache(mapper, redis);
         var context = new CompanionContext();
         inject(
             context,
-            "mapper",
-            mapper,
+            "memoryCache",
+            memoryCache,
             "runtime",
             runtime,
             "ai",
@@ -116,15 +128,7 @@ public class CompanionRuntimeTest {
             clock
         );
         var v2 = new CompanionRuntimeV2();
-        inject(
-            v2,
-            "state",
-            state,
-            "mapper",
-            mapper,
-            "clock",
-            clock
-        );
+        inject(v2, "state", state, "memoryCache", memoryCache, "clock", clock);
         service = new CompanionService();
         inject(service, "snapshots", v2);
         inject(
@@ -244,7 +248,9 @@ public class CompanionRuntimeTest {
     }
 
     private JsonNode result(String ignored) {
-        return json.readTree("{\"label\":\"PASS\",\"bubbles\":[\"歇会儿，喝点水喵。\"],\"billable\":true,\"metrics\":{},\"model\":\"recorded\",\"promptVersion\":\"test\"}");
+        return json.readTree(
+            "{\"label\":\"PASS\",\"bubbles\":[\"歇会儿，喝点水喵。\"],\"billable\":true,\"metrics\":{},\"model\":\"recorded\",\"promptVersion\":\"test\"}"
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -334,12 +340,21 @@ public class CompanionRuntimeTest {
 
     @Test
     void invalidBubbleRollsBackTheWholeReply() throws Exception {
-        when(ai.reply(anyMap(),any())).thenReturn(json.readTree(
-            "{\"label\":\"PASS\",\"bubbles\":[\"先写入\",\"\"],\"billable\":true}"));
-        replies.send(41,1,send("invalid-bubble","普通输入"),"Asia/Taipei","test");
-        until(() -> count("turn_state='FAILED'")==1 && locks.isEmpty());
-        assertEquals(0,count("role='CHARACTER'"));
-        verify(limits).finish(any(),eq(List.of()));
+        when(ai.reply(anyMap(), any())).thenReturn(
+            json.readTree(
+                "{\"label\":\"PASS\",\"bubbles\":[\"先写入\",\"\"],\"billable\":true}"
+            )
+        );
+        replies.send(
+            41,
+            1,
+            send("invalid-bubble", "普通输入"),
+            "Asia/Taipei",
+            "test"
+        );
+        until(() -> count("turn_state='FAILED'") == 1 && locks.isEmpty());
+        assertEquals(0, count("role='CHARACTER'"));
+        verify(limits).finish(any(), eq(List.of()));
     }
 
     @Test
@@ -354,13 +369,26 @@ public class CompanionRuntimeTest {
     }
 
     private CompanionBackground background(PrivateImageStorage ignored) {
-        var value=new CompanionBackground();
-        inject(value,"mapper",ReflectionTestUtils.getField(replies,"mapper"),
-            "runtime",ReflectionTestUtils.getField(replies,"runtime"),"ai",ai,
-            "transactions",ReflectionTestUtils.getField(replies,"transactions"),
-            "outbox",outbox,"redis",mock(org.springframework.data.redis.core.StringRedisTemplate.class),
-            "clock",Clock.fixed(Instant.parse("2026-10-17T04:00:00Z"),ZoneOffset.UTC),
-            "v2",ReflectionTestUtils.getField(replies,"v2"));
+        var value = new CompanionBackground();
+        inject(
+            value,
+            "mapper",
+            ReflectionTestUtils.getField(replies, "mapper"),
+            "runtime",
+            ReflectionTestUtils.getField(replies, "runtime"),
+            "ai",
+            ai,
+            "transactions",
+            ReflectionTestUtils.getField(replies, "transactions"),
+            "outbox",
+            outbox,
+            "redis",
+            mock(org.springframework.data.redis.core.StringRedisTemplate.class),
+            "clock",
+            Clock.fixed(Instant.parse("2026-10-17T04:00:00Z"), ZoneOffset.UTC),
+            "v2",
+            ReflectionTestUtils.getField(replies, "v2")
+        );
         return value;
     }
 
@@ -547,11 +575,22 @@ public class CompanionRuntimeTest {
         var catalog = new CompanionCatalog();
         inject(catalog, "runtime", runtime);
         catalog.run(null);
-        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM companion_card",Integer.class));
-        var bond=new com.pluchon.meng.companion.entity.Rows.Bond();
+        assertEquals(
+            1,
+            jdbc.queryForObject(
+                "SELECT COUNT(*) FROM companion_card",
+                Integer.class
+            )
+        );
+        var bond = new com.pluchon.meng.companion.entity.Rows.Bond();
         bond.setCharacterCode("NEKO");
-        var context=(CompanionContext)ReflectionTestUtils.getField(service,"context");
-        assertTrue(context.examples(bond,context.card(41,"NEKO")).size()>=3);
+        var context = (CompanionContext) ReflectionTestUtils.getField(
+            service,
+            "context"
+        );
+        assertTrue(
+            context.examples(bond, context.card(41, "NEKO")).size() >= 3
+        );
         jdbc.update(
             "UPDATE companion_card SET active=FALSE WHERE character_code='NEKO'"
         );

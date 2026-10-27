@@ -2,22 +2,17 @@ package com.pluchon.meng.companion.service;
 
 import com.pluchon.meng.companion.client.AiClient;
 import com.pluchon.meng.companion.entity.Rows;
-import com.pluchon.meng.companion.mapper.CompanionMapper;
 import com.pluchon.meng.companion.mapper.RuntimeMapper;
 import java.time.Clock;
 import java.time.Duration;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.JsonNode;
@@ -28,7 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class CompanionContext {
 
     @Autowired
-    private CompanionMapper mapper;
+    private CompanionMemoryCache memoryCache;
 
     @Autowired
     private RuntimeMapper runtime;
@@ -38,9 +33,6 @@ public class CompanionContext {
 
     @Autowired
     private Clock clock;
-
-    @Autowired
-    private org.springframework.data.redis.core.StringRedisTemplate redis;
 
     private final JsonMapper json = JsonMapper.builder()
         .findAndAddModules()
@@ -56,17 +48,43 @@ public class CompanionContext {
         return json.readTree(card);
     }
 
-    public record Memories(List<Map<String,Object>> recalled, List<Long> used) {}
+    public record Memories(
+        List<Map<String, Object>> recalled,
+        List<Long> used
+    ) {}
 
-    public Memories memories(long user, String code, String query, String zone, String turn) {
-        var all = new ArrayList<>(mapper.memories(user, code));
+    public List<Rows.Memory> allMemories(long user, String code) {
+        return memoryCache.get(user, code);
+    }
+
+    public Memories memories(
+        long user,
+        String code,
+        String query,
+        String zone,
+        String turn
+    ) {
+        var all = new ArrayList<>(allMemories(user, code));
         JsonNode vector = null;
         if (!all.isEmpty()) try {
-            vector = ai.compute("embeddings",Map.of("texts",List.of(query),"textType","query")).path("vectors").get(0);
-        } catch (RuntimeException ignored) { }
+            vector = ai
+                .compute(
+                    "embeddings",
+                    Map.of("texts", List.of(query), "textType", "query")
+                )
+                .path("vectors")
+                .get(0);
+        } catch (RuntimeException ignored) {}
         final JsonNode q = vector;
-        all.sort(Comparator.comparingDouble((Rows.Memory m) -> score(m,q)).reversed());
-        return new Memories(all.stream().limit(20).map(this::memory).toList(),List.of());
+        all.sort(
+            Comparator.comparingDouble((Rows.Memory m) ->
+                score(m, q)
+            ).reversed()
+        );
+        return new Memories(
+            all.stream().limit(20).map(this::memory).toList(),
+            List.of()
+        );
     }
 
     private Map<String, Object> memory(Rows.Memory m) {
@@ -142,8 +160,6 @@ public class CompanionContext {
             })
             .toList();
     }
-
-
 
     public static String zone(String zone) {
         try {

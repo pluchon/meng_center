@@ -64,7 +64,8 @@ public class ReplyService {
     @Autowired
     private CompanionTelemetry telemetry;
 
-    @Autowired private CompanionRuntimeV2 v2;
+    @Autowired
+    private CompanionRuntimeV2 v2;
 
     private final JsonMapper json = JsonMapper.builder()
         .findAndAddModules()
@@ -356,7 +357,9 @@ public class ReplyService {
             var request = context(user, prepared, reservation);
             runtime.groupState(turn, "GENERATING");
             var current = prepared;
-            JsonNode result = ai.reply(request, (type,data) -> broadcast(current,type,data));
+            JsonNode result = ai.reply(request, (type, data) ->
+                broadcast(current, type, data)
+            );
             if (!limits.locked(sessionId, token)) throw new BusinessException(
                 CompanionError.AI_UNAVAILABLE
             );
@@ -381,7 +384,10 @@ public class ReplyService {
             boolean billable =
                 result.path("billable").asBoolean(true) &&
                 !"CRISIS".equals(result.path("label").asString());
-            limits.finish(reservation,billable ? List.of("message") : List.of());
+            limits.finish(
+                reservation,
+                billable ? List.of("message") : List.of()
+            );
             reservation = null;
             for (var event : output)
                 broadcast(
@@ -484,20 +490,49 @@ public class ReplyService {
             .instant()
             .atZone(ZoneId.of(zone))
             .truncatedTo(java.time.temporal.ChronoUnit.MINUTES);
-        request.put("mood","当地时间："+local.toLocalDateTime()+"，星期"+
-            "一二三四五六日".charAt(local.getDayOfWeek().getValue()-1)+"；距上一条消息："+
-            (session.getLastMessageTime()==null ? "首次对话" : Duration.between(
-                session.getLastMessageTime(),now()).toMinutes()+"分钟"));
+        request.put(
+            "mood",
+            "当地时间：" +
+                local.toLocalDateTime() +
+                "，星期" +
+                "一二三四五六日".charAt(local.getDayOfWeek().getValue() - 1) +
+                "；距上一条消息：" +
+                (session.getLastMessageTime() == null
+                    ? "首次对话"
+                    : Duration.between(
+                          session.getLastMessageTime(),
+                          now()
+                      ).toMinutes() + "分钟")
+        );
         request.put("timeZone", zone);
         request.put("turnId", p.inputs().get(0).getId().toString());
-        var snapshot = v2.snapshot(session,p.bond(),false);
+        var snapshot = v2.snapshot(session, p.bond(), false);
         request.put("contextSnapshot", snapshot);
-        var nowMemories = mapper.memories(user,session.getCharacterCode());
-        var newMemories=nowMemories.stream().filter(m -> session.getSnapshotTime()!=null &&
-            m.getValidFrom()!=null && m.getValidFrom().isAfter(session.getSnapshotTime())).map(m -> Map.of(
-                "id",m.getId(),"content",m.getContent(),"kind",m.getKind())).toList();
-        request.put("newMemories",newMemories);
-        request.put("controls",List.of("sticker"));
+        var nowMemories = contexts.allMemories(
+            user,
+            session.getCharacterCode()
+        );
+        var newMemories = nowMemories
+            .stream()
+            .filter(
+                m ->
+                    session.getSnapshotTime() != null &&
+                    m.getValidFrom() != null &&
+                    m.getValidFrom().isAfter(session.getSnapshotTime())
+            )
+            .map(m ->
+                Map.of(
+                    "id",
+                    m.getId(),
+                    "content",
+                    m.getContent(),
+                    "kind",
+                    m.getKind()
+                )
+            )
+            .toList();
+        request.put("newMemories", newMemories);
+        request.put("controls", List.of("sticker"));
         request.put("profile", p.bond().getProfile());
         request.put("recalled", memories.recalled());
         request.put("examples", contexts.examples(p.bond(), card));
@@ -510,13 +545,21 @@ public class ReplyService {
         );
         request.put("images", p.images());
         request.put("messageAllowed", reservation.messageAllowed());
-        var allowedMemoryIds=new java.util.HashSet<Long>(memories.used());
+        var allowedMemoryIds = new java.util.HashSet<Long>(memories.used());
         for (var memory : snapshot.path("memories"))
-            if (memory.path("id").isIntegralNumber()) allowedMemoryIds.add(memory.path("id").asLong());
-        newMemories.forEach(m -> allowedMemoryIds.add(((Number)m.get("id")).longValue()));
-        memories.recalled().stream().map(m -> m.get("id")).filter(id -> id instanceof Number)
-            .forEach(id -> allowedMemoryIds.add(((Number)id).longValue()));
-        request.put("memoryIds",List.copyOf(allowedMemoryIds));
+            if (memory.path("id").isIntegralNumber()) allowedMemoryIds.add(
+                memory.path("id").asLong()
+            );
+        newMemories.forEach(m ->
+            allowedMemoryIds.add(((Number) m.get("id")).longValue())
+        );
+        memories
+            .recalled()
+            .stream()
+            .map(m -> m.get("id"))
+            .filter(id -> id instanceof Number)
+            .forEach(id -> allowedMemoryIds.add(((Number) id).longValue()));
+        request.put("memoryIds", List.copyOf(allowedMemoryIds));
         return request;
     }
 
@@ -557,63 +600,150 @@ public class ReplyService {
         return turns;
     }
 
-    private List<Map<String,Object>> persist(long user,Prepared p,JsonNode result,
-        CompanionLimits.Reservation reservation,List<Long> memoryIds) {
+    private List<Map<String, Object>> persist(
+        long user,
+        Prepared p,
+        JsonNode result,
+        CompanionLimits.Reservation reservation,
+        List<Long> memoryIds
+    ) {
         return transactions.execute(status -> {
-            var session=p.session();
-            var bond=mapper.lockBond(user,session.getCharacterCode());
-            if (bond.getRevision()!=p.bond().getRevision() || mapper.lockSession(session.getId(),user)==null)
-                throw new BusinessException(CommonErrorCode.CONFLICT);
-            String label=result.path("label").asString();
-            if (!Set.of("PASS","ROMANCE_PUSH","CRISIS","SEXUAL","JAILBREAK").contains(label))
-                throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-            var bubbles=result.path("bubbles");
-            if (!bubbles.isArray() || bubbles.isEmpty() || bubbles.size()>3)
-                throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-            boolean billable=result.path("billable").asBoolean() && !"CRISIS".equals(label);
-            if (billable && !reservation.messageAllowed())
-                throw new BusinessException(CompanionError.COMPANION_QUOTA_EXCEEDED);
-            long turn=p.inputs().get(0).getId();
-            var output=new ArrayList<Map<String,Object>>();
-            int count=p.inputs().size();
-            for(var input:p.inputs()) mapper.completeMessage(input.getId(),label);
-            for(var bubble:bubbles) {
-                if (!bubble.isString() || bubble.asString().isBlank() || bubble.asString().length()>500)
-                    throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-                var message=character(session.getId(),turn,bubble.asString(),label,result);
-                v2.metadata(message,result);
-                output.add(Map.of("event","bubble","data",CompanionConverter.message(message,true)));
+            var session = p.session();
+            var bond = mapper.lockBond(user, session.getCharacterCode());
+            if (
+                bond.getRevision() != p.bond().getRevision() ||
+                mapper.lockSession(session.getId(), user) == null
+            ) throw new BusinessException(CommonErrorCode.CONFLICT);
+            String label = result.path("label").asString();
+            if (
+                !Set.of(
+                    "PASS",
+                    "ROMANCE_PUSH",
+                    "CRISIS",
+                    "SEXUAL",
+                    "JAILBREAK"
+                ).contains(label)
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            var bubbles = result.path("bubbles");
+            if (
+                !bubbles.isArray() || bubbles.isEmpty() || bubbles.size() > 3
+            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+            boolean billable =
+                result.path("billable").asBoolean() && !"CRISIS".equals(label);
+            if (
+                billable && !reservation.messageAllowed()
+            ) throw new BusinessException(
+                CompanionError.COMPANION_QUOTA_EXCEEDED
+            );
+            long turn = p.inputs().get(0).getId();
+            var output = new ArrayList<Map<String, Object>>();
+            int count = p.inputs().size();
+            for (var input : p.inputs())
+                mapper.completeMessage(input.getId(), label);
+            for (var bubble : bubbles) {
+                if (
+                    !bubble.isString() ||
+                    bubble.asString().isBlank() ||
+                    bubble.asString().length() > 500
+                ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                var message = character(
+                    session.getId(),
+                    turn,
+                    bubble.asString(),
+                    label,
+                    result
+                );
+                v2.metadata(message, result);
+                output.add(
+                    Map.of(
+                        "event",
+                        "bubble",
+                        "data",
+                        CompanionConverter.message(message, true)
+                    )
+                );
                 count++;
             }
-            String sticker=result.path("sticker").asString("");
+            String sticker = result.path("sticker").asString("");
             if (!sticker.isBlank()) {
-                if (!sticker.matches("[^\\s\\[\\]]{1,12}")) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-                var message=character(session.getId(),turn,"",label,result);
-                outbox.sticker(message.getId(),sticker);
+                if (
+                    !sticker.matches("[^\\s\\[\\]]{1,12}")
+                ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
+                var message = character(
+                    session.getId(),
+                    turn,
+                    "",
+                    label,
+                    result
+                );
+                outbox.sticker(message.getId(), sticker);
                 message.setKind("STICKER");
                 message.setSticker(sticker);
-                output.add(Map.of("event","bubble","data",CompanionConverter.message(message,true)));
+                output.add(
+                    Map.of(
+                        "event",
+                        "bubble",
+                        "data",
+                        CompanionConverter.message(message, true)
+                    )
+                );
                 count++;
             }
-            mapper.advanceSession(session.getId(),p.content().substring(0,Math.min(20,p.content().length())),count,now());
-            runtime.unread(session.getId(),user,true);
+            mapper.advanceSession(
+                session.getId(),
+                p.content().substring(0, Math.min(20, p.content().length())),
+                count,
+                now()
+            );
+            runtime.unread(session.getId(), user, true);
             if (!"PASS".equals(label)) {
-                mapper.safety(user,session.getCharacterCode(),turn,label);
-                if (Set.of("SEXUAL","JAILBREAK").contains(label))
-                    outbox.checkCooldown(user,session.getCharacterCode(),turn,
-                        clock.instant().atZone(ZoneId.of(p.inputs().get(0).getTimeZone())).toLocalDate());
+                mapper.safety(user, session.getCharacterCode(), turn, label);
+                if (
+                    Set.of("SEXUAL", "JAILBREAK").contains(label)
+                ) outbox.checkCooldown(
+                    user,
+                    session.getCharacterCode(),
+                    turn,
+                    clock
+                        .instant()
+                        .atZone(ZoneId.of(p.inputs().get(0).getTimeZone()))
+                        .toLocalDate()
+                );
             }
-            if (billable && Set.of("PASS","ROMANCE_PUSH").contains(label)) outbox.enqueue("turn.committed","turn-"+turn,
-                Map.of("userId",user,"characterCode",session.getCharacterCode(),"sessionId",session.getId(),
-                    "messageId",turn,"revision",bond.getRevision(),"timeZone",p.inputs().get(0).getTimeZone()));
-            outbox.messageContext(turn,memoryIds);
-            outbox.touch(user,session.getCharacterCode(),memoryIds);
+            if (
+                billable && Set.of("PASS", "ROMANCE_PUSH").contains(label)
+            ) outbox.enqueue(
+                "turn.committed",
+                "turn-" + turn,
+                Map.of(
+                    "userId",
+                    user,
+                    "characterCode",
+                    session.getCharacterCode(),
+                    "sessionId",
+                    session.getId(),
+                    "messageId",
+                    turn,
+                    "revision",
+                    bond.getRevision(),
+                    "timeZone",
+                    p.inputs().get(0).getTimeZone()
+                )
+            );
+            outbox.messageContext(turn, memoryIds);
+            outbox.touch(user, session.getCharacterCode(), memoryIds);
             return output;
         });
     }
 
-    private Rows.Message character(long session,long turn,String content,String label,JsonNode result) {
-        var message=new Rows.Message();
+    private Rows.Message character(
+        long session,
+        long turn,
+        String content,
+        String label,
+        JsonNode result
+    ) {
+        var message = new Rows.Message();
         message.setSessionId(session);
         message.setTurnId(turn);
         message.setRole("CHARACTER");
