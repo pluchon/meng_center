@@ -22,15 +22,12 @@ class ReplyRequest(Schema):
     character: Character = "NEKO"
     nickname: str = Field(max_length=50)
     mood: str = Field(default="", max_length=500)
-    memories: list[str] = Field(default_factory=list, max_length=1000)
-    memory_items: list[dict] = Field(default_factory=list, max_length=1000)
     summary: str = Field(default="", max_length=3000)
     history: list[Turn] = Field(default_factory=list)
     content: str = Field(min_length=1, max_length=1000)
     images: list[str] = Field(default_factory=list, max_length=3)
     message_allowed: bool = True
     card: dict = Field(default_factory=dict)
-    profile: str = Field(default="", max_length=300)
     recalled: list[dict] = Field(default_factory=list, max_length=20)
     examples: list[dict] = Field(default_factory=list, max_length=30)
     time_zone: str = "Asia/Taipei"

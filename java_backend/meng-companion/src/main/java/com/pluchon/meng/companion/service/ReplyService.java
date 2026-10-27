@@ -533,7 +533,6 @@ public class ReplyService {
             .toList();
         request.put("newMemories", newMemories);
         request.put("controls", List.of("sticker"));
-        request.put("profile", p.bond().getProfile());
         request.put("recalled", memories.recalled());
         request.put("examples", contexts.examples(p.bond(), card));
         request.put("recentReplies", runtime.recentReplies(session.getId()));
