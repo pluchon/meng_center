@@ -89,6 +89,7 @@ def build():
         adopted = fixed is None and "reply" not in state
         value = state.get("reply") or state.get("draft")
         parsed, sizes = value if value else (None, {})
+        sizes = {**sizes, "memoryIds": sorted(ctx["memoryIds"]) if fixed is None else []}
         review = state.get("judgment") or state.get("prejudgment")
         label = state["directive"].label
         return {

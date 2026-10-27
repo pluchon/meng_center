@@ -142,6 +142,22 @@ async def test_image_skips_prejudge_and_is_rechecked_against_agent_note():
     assert result["billable"]
 
 
+async def test_recalled_memory_ids_are_reported_for_usage_tracking():
+    value = service()
+
+    async def decide(context):
+        context["memoryIds"].add(17)
+        context["toolUsage"].append(dict(name="recall", success=True))
+        return Directive(label="PASS")
+
+    value.agent.run = decide
+    result = await value.compute(request(), AsyncMock())
+    assert result["metrics"]["layers"]["memoryIds"] == [17]
+    value.judge.side_effect = RuntimeError("offline")
+    fallback = await value.compute(request(), AsyncMock())
+    assert fallback["metrics"]["layers"]["memoryIds"] == []
+
+
 async def test_second_unsafe_reply_falls_back_but_style_only_failure_is_recorded():
     value = service()
     value.judge.return_value = Judgment(safe=False, character=5, artificial=1)
