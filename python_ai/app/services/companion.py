@@ -236,18 +236,27 @@ class Companion:
         return {"ranked": ranked.pop("indexes"), **ranked}
 
     async def embeddings(self, request):
-        vectors = await self.models.embed(request.texts, request.text_type) if request.texts else []
-        ranked = (
-            await self.models.rerank.rank(request.query, request.candidates)
-            if request.query
-            else {"indexes": [], "scores": [], "reranked": True}
+        token = (
+            CURRENT.set(RoundUsage(request.user_id, request.character, request.turn_id, request.time_zone))
+            if request.user_id and CURRENT.get() is None
+            else None
         )
-        return {
-            "vectors": vectors,
-            "ranked": ranked.pop("indexes"),
-            **ranked,
-            "modelVersion": self.models.embedding_client.version,
-        }
+        try:
+            vectors = await self.models.embed(request.texts, request.text_type) if request.texts else []
+            ranked = (
+                await self.models.rerank.rank(request.query, request.candidates)
+                if request.query
+                else {"indexes": [], "scores": [], "reranked": True}
+            )
+            return {
+                "vectors": vectors,
+                "ranked": ranked.pop("indexes"),
+                **ranked,
+                "modelVersion": self.models.embedding_client.version,
+            }
+        finally:
+            if token is not None:
+                CURRENT.reset(token)
 
     async def summary(self, request: SummaryRequest) -> dict:
         async with self.models.usage() as callback:

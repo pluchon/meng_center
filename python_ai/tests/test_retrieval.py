@@ -103,3 +103,28 @@ async def test_embedding_version_metadata_does_not_invoke_a_model():
     assert result["vectors"] == [] and result["modelVersion"] == "embedding-model-v2:1024:doc-v1"
     factory.embed.assert_not_awaited()
     factory.http.post.assert_not_awaited()
+
+
+@pytest.mark.parametrize("fail", [False, True])
+async def test_pre_round_retrieval_keeps_user_attribution_and_resets_context(fail):
+    from app.runtime.models.gateway import CURRENT
+
+    settings = Settings.model_construct(api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture"))
+    factory = ModelFactory(settings, AsyncMock(), http=AsyncMock())
+
+    async def encode(*args):
+        assert (CURRENT.get().user, CURRENT.get().turn) == (42, "turn-1")
+        if fail:
+            raise ValueError("offline")
+        return [[0.1] * 1024]
+
+    factory.embed = encode
+    service = Companion(SimpleNamespace(models=factory), None)
+    request = EmbeddingRequest(text_type="query", texts=["蓝色"], user_id=42, turn_id="turn-1")
+    before = CURRENT.get()
+    if fail:
+        with pytest.raises(ValueError):
+            await service.embeddings(request)
+    else:
+        assert len((await service.embeddings(request))["vectors"]) == 1
+    assert CURRENT.get() is before
