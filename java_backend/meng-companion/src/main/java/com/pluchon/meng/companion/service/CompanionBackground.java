@@ -48,14 +48,7 @@ public class CompanionBackground {
     @Autowired
     private CompanionOutbox outbox;
 
-    @Autowired
-    private WorkStorage storage;
-
-    @Autowired
-    private CompanionLimits limits;
-
     @Autowired private CompanionRuntimeV2 v2;
-    @Autowired private com.pluchon.meng.companion.mapper.RuntimeV2Mapper state;
 
     @Autowired
     private StringRedisTemplate redis;
@@ -137,15 +130,14 @@ public class CompanionBackground {
             .filter(m -> "USER".equals(m.getRole()))
             .map(Rows.Message::getContent)
             .collect(java.util.stream.Collectors.joining(" "));
-        old.sort(
-            Comparator.comparingLong((Rows.Memory m) ->
-                query
-                    .codePoints()
-                    .distinct()
-                    .filter(c -> m.getContent().indexOf(c) >= 0)
-                    .count()
-            ).reversed()
-        );
+        JsonNode queryVector=null;
+        if (!old.isEmpty()) try {
+            queryVector=ai.compute("embeddings",Map.of("texts",List.of(query.substring(0,Math.min(1000,query.length()))),
+                "textType","query")).path("vectors").get(0);
+        } catch (RuntimeException ignored) { }
+        final JsonNode vector=queryVector;
+        old.sort(Comparator.comparingDouble((Rows.Memory m) -> vector!=null && m.getEmbedding()!=null ?
+            CompanionContext.cosine(vector,json.readTree(m.getEmbedding())) : m.getImportance()).reversed());
         if (old.size() > 20) old.subList(20, old.size()).clear();
         String zone = CompanionContext.zone(body.path("timeZone").asString());
         var result = ai.compute(
@@ -168,20 +160,6 @@ public class CompanionBackground {
             )
         );
         validateDecisions(result, old, history);
-        var today = clock.instant().atZone(ZoneId.of(zone)).toLocalDate();
-        for (var d : result.path("decisions"))
-            if (
-                !d.path("dueDate").isNull() &&
-                !d.path("dueDate").isMissingNode()
-            ) {
-                var date = LocalDate.parse(d.path("dueDate").asString());
-                if (
-                    (!Set.of("PROMISE", "DATE").contains(d.path("kind").asString())) ||
-                    ("PROMISE".equals(d.path("kind").asString()) && (
-                    date.isAfter(today.plusDays(90)) ||
-                    (!d.path("done").asBoolean() && date.isBefore(today))))
-                ) throw new IllegalArgumentException("Invalid promise date");
-            }
         var vectors = embed(result.path("decisions"));
         transactions.executeWithoutResult(status -> {
             var current = mapper.lockBond(user, code);
@@ -242,15 +220,6 @@ public class CompanionBackground {
                     .orElseThrow();
                 memory.setSourceMessageId(source.getId());
                 memory.setSourceSessionId(source.getSessionId());
-                memory.setDone(decision.path("done").asBoolean());
-                if (
-                    !decision.path("dueDate").isNull() &&
-                    !decision.path("dueDate").asString().isBlank()
-                ) memory.setDueDate(
-                    "DATE".equals(memory.getKind())
-                        ? LocalDate.parse(decision.path("dueDate").asString()).withYear(2000)
-                        : LocalDate.parse(decision.path("dueDate").asString())
-                );
                 if (index < vectors.size()) memory.setEmbedding(
                     vectors.get(index)
                 );
@@ -276,7 +245,6 @@ public class CompanionBackground {
                         current.getProfileRevision() / 5)
             ) runtime.writeProfile(profile, current.getId());
             runtime.advanceProfileRevision(changed, current.getId());
-            for (long id : state.excessBits(user, code)) runtime.evictMemory(id);
             var all = mapper.memories(user, code);
             int count = 0;
             for (var m : all)
@@ -284,7 +252,7 @@ public class CompanionBackground {
                     m.getId()
                 );
             for (var item : batch) markProcessed(item.eventId());
-            redis.delete("meng:companion:memo:" + user + ":" + code);
+            redis.delete("meng:companion:memo:" + user);
         });
         for (long sourceSession : history
             .stream()
@@ -340,13 +308,13 @@ public class CompanionBackground {
             String kind = d.path("kind").asString(),
                 evidence = d.path("evidence").asString();
             if (
-                !Set.of("NAME", "LIKE", "LIFE", "PROMISE", "DATE", "BIT", "SELF").contains(
+                !Set.of("NAME", "LIKE", "LIFE", "DATE", "SELF").contains(
                     kind
                 )
             ) throw new IllegalArgumentException("Invalid memory kind");
             if (
                 evidence.isBlank() ||
-                !("SELF".equals(kind) ? replies : users).contains(evidence)
+                messages.stream().noneMatch(m -> ("SELF".equals(kind) ? "CHARACTER" : "USER").equals(m.getRole()) && m.getContent().contains(evidence))
             ) throw new IllegalArgumentException("Missing original evidence");
             if (
                 !"INVALIDATE".equals(action) &&
@@ -364,10 +332,6 @@ public class CompanionBackground {
                 value.put("content", m.getContent());
                 value.put("kind", m.getKind());
                 value.put("pinned", m.isPinned());
-                if (m.getDueDate() != null) value.put(
-                    "dueDate",
-                    m.getDueDate().toString()
-                );
                 return (Map<String, Object>) value;
             })
             .toList();
@@ -449,108 +413,7 @@ public class CompanionBackground {
         });
     }
 
-    public void draw(EventEnvelope<JsonNode> event) {
-        long message = event.body().path("messageId").asLong();
-        var rows = runtime.drawingJobs(message);
-        if (rows.isEmpty()) return;
-        var job = rows.get(0);
-        if (!"PENDING".equals(job.get("status"))) return;
-        if (runtime.startDrawing(message) == 0) return;
-        long user = ((Number) job.get("user_id")).longValue(),
-            sessionId = ((Number) job.get("session_id")).longValue();
-        var reservation = json.readValue(
-            job.get("reservation").toString(),
-            CompanionLimits.Reservation.class
-        );
-        String file = null;
-        boolean committed = false;
-        try {
-            file = storage
-                .save(ai.draw(job.get("instruction").toString()))
-                .name();
-            String saved = file;
-            transactions.executeWithoutResult(status -> {
-                var session = mapper.session(sessionId, user);
-                if (session == null) throw new IllegalStateException(
-                    "Session deleted"
-                );
-                var bond = mapper.lockBond(user, session.getCharacterCode());
-                mapper.lockSession(sessionId, user);
-                if (
-                    bond.getRevision() !=
-                    ((Number) job.get("revision")).longValue()
-                ) throw new IllegalStateException("Relationship changed");
-                var work = new Rows.Work();
-                work.setUserId(user);
-                work.setCharacterCode(session.getCharacterCode());
-                work.setSessionId(sessionId);
-                work.setKind("IMAGE");
-                work.setTitle("萌萌的画");
-                work.setFilePath(saved);
-                mapper.insertWork(work);
-                var m = new Rows.Message();
-                m.setSessionId(sessionId);
-                m.setRole("CHARACTER");
-                m.setContent(work.getTitle());
-                m.setWorkId(work.getId());
-                m.setCompleted(true);
-                m.setTurnId(message);
-                mapper.insertMessage(m);
-                runtime.completeDrawing(work.getId(), message);
-                runtime.unread(sessionId, user, true);
-                mapper.advanceSession(
-                    sessionId,
-                    "",
-                    1,
-                    LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC)
-                );
-                var c = mapper
-                    .characters()
-                    .stream()
-                    .filter(v -> v.getCode().equals(session.getCharacterCode()))
-                    .findFirst()
-                    .orElseThrow();
-                outbox.enqueue(
-                    "companion.drawing-finished",
-                    "drawing-finished-" + message,
-                    Map.of(
-                        "userId",
-                        user,
-                        "characterCode",
-                        c.getCode(),
-                        "characterName",
-                        c.getName(),
-                        "sessionId",
-                        sessionId,
-                        "workId",
-                        work.getId(),
-                        "title",
-                        work.getTitle()
-                    )
-                );
-            });
-            committed = true;
-        } catch (RuntimeException error) {
-            runtime.failDrawing(message);
-            if (mapper.session(sessionId, user) != null) {
-                var m = new Rows.Message();
-                m.setSessionId(sessionId);
-                m.setRole("SYSTEM");
-                m.setContent("这张图没画成，画图次数已经退回。");
-                m.setCompleted(true);
-                mapper.insertMessage(m);
-            }
-        } finally {
-            limits.finish(
-                reservation,
-                committed ? List.of("image") : List.of()
-            );
-            if (!committed && file != null) storage.delete(file);
-        }
-    }
-
     public void maintain() {
-        dailies();
         var missing = runtime.missingMemoryVectors();
         if (!missing.isEmpty()) try {
             var vectors = ai
@@ -573,90 +436,21 @@ public class CompanionBackground {
                 missing.get(i).getContentHash()
             );
         } catch (RuntimeException ignored) {}
-        for(var episode:state.missingEpisodes()) try {
-            var vector=ai.compute("embeddings",Map.of("texts",List.of(episode.get("summary").toString()),"textType","document")).path("vectors").get(0);
-            if(vector!=null && vector.size()==1024) state.episodeVector(vector.toString(),((Number)episode.get("id")).longValue(),episode.get("summary").toString());
-        } catch(RuntimeException ignored) { }
         for (var row : runtime.idleSessions()) {
             long session = ((Number) row.get("id")).longValue(),
                 user = ((Number) row.get("user_id")).longValue();
             String code = row.get("character_code").toString();
             var bond = mapper.bond(user, code);
-            long until = (
-                (Number) row.get("episode_until_message_id")
-            ).longValue();
-            var history = new ArrayList<>(runtime.window(session, until));
-            if (history.isEmpty()) continue;
             summarize(user,session,bond.getRevision());
             transactions.executeWithoutResult(status -> {
                 var live=mapper.lockSession(session,user);
                 if(live!=null && mapper.lockBond(user,code).getRevision()==bond.getRevision())
                     v2.snapshot(live,bond,true);
             });
-            var result = ai.compute(
-                "consolidations",
-                Map.of(
-                    "turns",
-                    ReplyService.turns(history),
-                    "memories",
-                    List.of(),
-                    "profile",
-                    bond.getProfile(),
-                    "episode",
-                    true,
-                    "localDate",
-                    clock
-                        .instant()
-                        .atZone(ZoneId.of(bond.getTimeZone()))
-                        .toLocalDate()
-                        .toString(),
-                    "timeZone",
-                    bond.getTimeZone()
-                )
-            );
-            String summary = result.path("episode").asString();
-            if (
-                summary.isBlank() || !result.path("reviewed").asBoolean()
-            ) continue;
-            long last = history.get(history.size() - 1).getId();
-            transactions.executeWithoutResult(status -> {
-                if (
-                    mapper.lockBond(user, code).getRevision() !=
-                        bond.getRevision() ||
-                    mapper.lockSession(session, user) == null
-                ) return;
-                runtime.insertEpisode(
-                    user,
-                    code,
-                    session,
-                    history.get(0).getCreateTime(),
-                    history.get(history.size() - 1).getCreateTime(),
-                    summary,
-                    result.path("emotion").asString(),
-                    result.path("openThreads").asString(),
-                    last
-                );
-                runtime.advanceEpisodeWindow(last, session, until);
-            });
         }
-        runtime.decayEpisodes();
-        runtime.expirePromises();
         archiveExpired();
         // 原文到期后清除；摘要计算失败保留旧摘要，不延长原文保留期。
         runtime.purgeExpiredMessages();
-        for (var row : runtime.staleDrawings()) {
-            if (
-                runtime.failStaleDrawing(
-                    ((Number) row.get("message_id")).longValue()
-                ) > 0
-            ) limits.finish(
-                json.readValue(
-                    row.get("reservation").toString(),
-                    CompanionLimits.Reservation.class
-                ),
-                List.of()
-            );
-        }
     }
 
     private void archiveExpired() {
@@ -693,81 +487,5 @@ public class CompanionBackground {
     }
 
     // 用户时区覆盖 UTC-12 到 UTC+14，「今天」最多落在 UTC 日期的前后各一天，三天都备好。
-    private void dailies() {
-        var today = clock.instant().atZone(ZoneOffset.UTC).toLocalDate();
-        for (var character : mapper.characters())
-            for (var date : List.of(today.minusDays(1), today, today.plusDays(1))) {
-                String code = character.getCode();
-                if (runtime.daily(code, date) != null) continue;
-                String card = runtime.card(code, 0L);
-                if (card == null) continue;
-                try {
-                    var week=date.with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-                    var arcs=this.state.arcs(code,week);
-                    JsonNode outline;
-                    if(arcs.isEmpty()) {
-                        outline=ai.compute("dailies",Map.of("character",code,"card",json.readTree(card),"date",date.toString(),
-                            "mode","ARC","weekStart",week.toString())).path("outline");
-                        if(!outline.isArray() || outline.size()!=7) continue;
-                        this.state.arc(code,week,outline.toString());
-                    } else outline=json.readTree(arcs.get(0));
-                    var daily=ai.compute("dailies",Map.of("character",code,"card",json.readTree(card),"date",date.toString(),
-                        "outline",outline,"recent",runtime.recentDailies(code,date)));
-                    String content=daily.path("content").asString().strip(), state=daily.path("status").asString();
-                    if(!content.isBlank() && content.length()<=120 && state.length()<=60) {
-                        runtime.insertDaily(code,date,content);
-                        this.state.dailyStatus(state,code,date);
-                    }
-                } catch (RuntimeException ignored) {
-                    // 生成失败下次任务再补；这期间上下文里没有「今天的她」。
-                }
-            }
-    }
 
-    public void promises() {
-        var rows = runtime.pendingPromises();
-        for (var m : rows) {
-            var bond = mapper.bond(m.getUserId(), m.getCharacterCode());
-            if (
-                bond == null ||
-                m.getDueDate() == null ||
-                !m
-                    .getDueDate()
-                    .equals(
-                        clock
-                            .instant()
-                            .atZone(ZoneId.of(bond.getTimeZone()))
-                            .toLocalDate()
-                    )
-            ) continue;
-            transactions.executeWithoutResult(status -> {
-                mapper.lockBond(m.getUserId(), m.getCharacterCode());
-                if (runtime.notifyPromise(m.getId()) == 0) return;
-                var c = mapper
-                    .characters()
-                    .stream()
-                    .filter(v -> v.getCode().equals(m.getCharacterCode()))
-                    .findFirst()
-                    .orElseThrow();
-                outbox.enqueue(
-                    "companion.promise-due",
-                    "promise-" + m.getId(),
-                    Map.of(
-                        "userId",
-                        m.getUserId(),
-                        "characterCode",
-                        c.getCode(),
-                        "characterName",
-                        c.getName(),
-                        "memoryId",
-                        m.getId(),
-                        "content",
-                        m.getContent(),
-                        "dueDate",
-                        m.getDueDate().toString()
-                    )
-                );
-            });
-        }
-    }
 }

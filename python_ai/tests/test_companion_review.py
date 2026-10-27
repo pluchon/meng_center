@@ -33,8 +33,6 @@ async def test_memory_review_distinguishes_privacy_from_subject_matter_and_autho
             MemoryDecision(action="ADD", content="每天熬夜", evidence="昨晚没睡", pinned=True),
         ],
         profile="手机号为0912345678",
-        episode="手机号为0912345678",
-        open_threads="个人联系方式",
     )
     service.structured = create_autospec(
         service.structured,
@@ -44,7 +42,6 @@ async def test_memory_review_distinguishes_privacy_from_subject_matter_and_autho
                 reason="仅第一项有明确原文和置顶授权，其余涉及隐私或推断。",
                 approved=[MemoryApproval(index=0, pinned=True)],
                 profile_safe=False,
-                episode_safe=False,
             ),
         ],
     )
@@ -62,7 +59,7 @@ async def test_memory_review_distinguishes_privacy_from_subject_matter_and_autho
     assert result["reviewed"] is True
     assert [d["content"] for d in result["decisions"]] == ["学习电话号码脱敏"]
     assert result["decisions"][0]["pinned"] is True
-    assert result["profile"] == result["episode"] == result["openThreads"] == ""
+    assert result["profile"] == ""
     assert service.structured.await_count == 2
     assert service.structured.await_args_list[0].args[0] is Consolidation
     assert [call.kwargs["purpose"] for call in service.structured.await_args_list] == ["memory", "judge"]
@@ -113,9 +110,7 @@ async def test_invalid_candidate_index_retries_review_only_and_preserves_scope()
     proposed = Consolidation(
         decisions=[MemoryDecision(action="ADD", content="喜欢蓝色", evidence="喜欢蓝色")]
     )
-    invalid = ConsolidationReview(
-        reason="错把旧记忆当候选", approved=[MemoryApproval(index=1)], profile_safe=True, episode_safe=True
-    )
+    invalid = ConsolidationReview(reason="无效下标", approved=[MemoryApproval(index=1)], profile_safe=True)
     valid = invalid.model_copy(update={"approved": [MemoryApproval(index=0)]})
     service.structured = AsyncMock(side_effect=[proposed, invalid, valid])
     result = await service.consolidate(
@@ -136,9 +131,7 @@ async def test_invalid_candidate_index_retries_review_only_and_preserves_scope()
 async def test_invalid_review_fails_closed_after_one_retry():
     service = Companion(SimpleNamespace(models=factory()), None)
     proposed = Consolidation(profile="喜欢蓝色")
-    invalid = ConsolidationReview(
-        reason="无效下标", approved=[MemoryApproval(index=0)], profile_safe=True, episode_safe=True
-    )
+    invalid = ConsolidationReview(reason="无效下标", approved=[MemoryApproval(index=0)], profile_safe=True)
     service.structured = AsyncMock(side_effect=[proposed, invalid, invalid])
     with pytest.raises(ValueError, match="候选下标"):
         await service.consolidate(

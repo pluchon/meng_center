@@ -55,14 +55,12 @@ class ReplyRequest(Schema):
 class MemoryDecision(Schema):
     action: Literal["ADD", "SUPERSEDE", "INVALIDATE", "NOOP"]
     old_id: int | None = Field(default=None, description="仅引用已提供的旧记忆编号；ADD 时为 null")
-    kind: Literal["NAME", "LIKE", "LIFE", "PROMISE", "DATE", "BIT", "SELF"] = "LIFE"
+    kind: Literal["NAME", "LIKE", "LIFE", "DATE", "SELF"] = "LIFE"
     content: str = Field(default="", max_length=60)
     evidence: str = Field(default="", max_length=500)
     keywords: list[str] = Field(default_factory=list, max_length=8)
     importance: int = Field(default=5, ge=0, le=10)
     pinned: bool = False
-    due_date: date | None = None
-    done: bool = False
 
 
 class ConsolidationRequest(Schema):
@@ -71,15 +69,11 @@ class ConsolidationRequest(Schema):
     profile: str = Field(default="", max_length=300)
     local_date: date
     time_zone: str = "Asia/Taipei"
-    episode: bool = False
 
 
 class Consolidation(Schema):
     decisions: list[MemoryDecision] = Field(default_factory=list, max_length=20)
     profile: str = Field(default="", max_length=300)
-    episode: str = Field(default="", max_length=1000)
-    emotion: str = Field(default="", max_length=100)
-    open_threads: str = Field(default="", max_length=300)
 
 
 class MemoryApproval(Schema):
@@ -93,7 +87,6 @@ class ConsolidationReview(Schema):
     reason: str = Field(min_length=1, max_length=300, description="先说明原文依据及需要排除的推断")
     approved: list[MemoryApproval] = Field(max_length=20)
     profile_safe: bool
-    episode_safe: bool
 
 
 class SummaryReview(Schema):

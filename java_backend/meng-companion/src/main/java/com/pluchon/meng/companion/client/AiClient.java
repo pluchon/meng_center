@@ -177,9 +177,7 @@ public class AiClient {
         if (
             !java.util.Set.of(
                 "consolidations",
-                "dailies",
-                "embeddings",
-                "memory-reviews"
+                "embeddings"
             ).contains(operation)
         ) throw new IllegalArgumentException("Unknown computation");
         try {
@@ -210,33 +208,4 @@ public class AiClient {
         }
     }
 
-    public byte[] draw(String instruction) {
-        try {
-            var request = HttpRequest.newBuilder(endpoint("drawings"))
-                .timeout(Duration.ofSeconds(90))
-                .header("Content-Type", "application/json")
-                .POST(
-                    HttpRequest.BodyPublishers.ofString(
-                        json.writeValueAsString(
-                            Map.of("instruction", instruction)
-                        )
-                    )
-                )
-                .build();
-            var response = http.send(
-                request,
-                HttpResponse.BodyHandlers.ofByteArray()
-            );
-            if (
-                response.statusCode() != 200 ||
-                response.body().length > 10_000_000
-            ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-            return response.body();
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-        } catch (Exception exception) {
-            throw new BusinessException(CompanionError.AI_UNAVAILABLE);
-        }
-    }
 }

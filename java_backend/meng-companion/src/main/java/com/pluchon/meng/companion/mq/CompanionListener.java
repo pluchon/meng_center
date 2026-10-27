@@ -31,11 +31,4 @@ public class CompanionListener {
         background.consolidate(event);
     }
 
-    @RabbitListener(queues = "meng.companion.drawings", concurrency = "2")
-    public void drawing(EventEnvelope<JsonNode> event) {
-        if (
-            !"drawing.requested".equals(event.eventType())
-        ) throw new IllegalArgumentException("Wrong drawing event");
-        background.draw(event);
-    }
 }

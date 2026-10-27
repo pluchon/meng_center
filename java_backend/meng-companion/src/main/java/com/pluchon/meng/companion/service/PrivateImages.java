@@ -18,27 +18,11 @@ import org.springframework.web.multipart.MultipartFile;
 @Service
 public class PrivateImages {
     @Autowired
-    private WorkStorage storage;
+    private PrivateImageStorage storage;
     @Autowired
     private CompanionMapper mapper;
     @Autowired
     private StringRedisTemplate redis;
-
-    @Autowired private com.pluchon.meng.companion.mapper.RuntimeV2Mapper state;
-
-    public long web(long user,tools.jackson.databind.JsonNode image) {
-        if(!CompanionRuntimeV2.validUrl(image.path("sourceUrl").asString()) ||
-            !CompanionRuntimeV2.validUrl(image.path("pageUrl").asString())) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-        String name=storage.saveWebp(java.util.Base64.getDecoder().decode(image.path("data").asString()));
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override public void afterCompletion(int status) { if(status!=STATUS_COMMITTED) storage.delete(name); }
-        });
-        mapper.insertImage(user,name);
-        long id=mapper.imageId(user,name);
-        state.webImage(
-            image.path("sourceUrl").asString(),image.path("pageUrl").asString(),id,user);
-        return id;
-    }
 
     @Transactional(rollbackFor=Exception.class)
     public Map<String, Object> upload(long user, MultipartFile file) throws IOException {

@@ -30,13 +30,6 @@ public class CompanionMqConfiguration {
                     .with("turn.committed." + i)
             );
         }
-        var drawings = QueueBuilder.durable("meng.companion.drawings")
-            .deadLetterExchange("meng.companion.dead")
-            .build();
-        all.add(drawings);
-        all.add(
-            BindingBuilder.bind(drawings).to(exchange).with("drawing.requested")
-        );
         return new Declarables(all);
     }
 }

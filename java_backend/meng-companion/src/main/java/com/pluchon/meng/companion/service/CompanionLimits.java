@@ -62,24 +62,6 @@ public class CompanionLimits {
             """,
             Long.class
         );
-    private static final DefaultRedisScript<Long> PLAY =
-        new DefaultRedisScript<>(
-            """
-            local last=tonumber(redis.call('HGET',KEYS[1],'last') or ARGV[1])
-            local gap=tonumber(ARGV[1])-last
-            local delta=0
-            if gap > 0 and gap <= 600 then delta=gap end
-            local chain=tonumber(redis.call('HGET',KEYS[1],'chain') or '0')
-            if gap > 600 then chain=0 redis.call('HSET',KEYS[1],'reminded',0) end
-            if chain+delta >= 3600 then redis.call('HSET',KEYS[1],'reminded',1) end
-            redis.call('HSET',KEYS[1],'last',ARGV[1],'chain',chain+delta)
-            local total=redis.call('HINCRBY',KEYS[1],'seconds',delta)
-            redis.call('EXPIRE',KEYS[1],172800)
-            return total
-            """,
-            Long.class
-        );
-
     public record Reservation(
         long user,
         String date,
@@ -219,52 +201,11 @@ public class CompanionLimits {
     }
 
     public Reservation reserve(long user, String zone) {
-        String date = date(zone);
-        String token = UUID.randomUUID().toString();
-        List<String> kinds = new ArrayList<>();
-        try {
-            for (String kind : List.of("message", "toy", "image", "web:0", "web:1", "web:2", "web:3", "webImage:0", "webImage:1")) {
-                String base = kind.split(":")[0];
-                int daily = switch (base) {
-                    case "message" -> properties.getMessageDaily();
-                    case "toy" -> properties.getToyDaily();
-                    case "web" -> properties.getWebDaily();
-                    case "webImage" -> properties.getWebImageDaily();
-                    default -> properties.getImageDaily();
-                };
-                int minute = switch (base) {
-                    case "message" -> properties.getMessageMinute();
-                    case "toy" -> properties.getToyMinute();
-                    case "web" -> properties.getWebMinute();
-                    case "webImage" -> properties.getWebImageMinute();
-                    default -> properties.getImageMinute();
-                };
-                var result = redis.execute(
-                    RESERVE,
-                    keys(user, date, kind),
-                    Long.toString(clock.millis()),
-                    reservationToken(token, kind),
-                    Integer.toString(daily),
-                    Integer.toString(minute),
-                    base
-                );
-                if (Long.valueOf(1).equals(result)) kinds.add(kind);
-                else if ("message".equals(kind)) break;
-            }
-            return new Reservation(
-                user,
-                date,
-                token,
-                List.copyOf(kinds),
-                kinds.contains("message")
-            );
-        } catch (RuntimeException error) {
-            finish(
-                new Reservation(user, date, token, List.copyOf(kinds), false),
-                List.of()
-            );
-            throw error;
-        }
+        String date = date(zone), token = UUID.randomUUID().toString();
+        var result = redis.execute(RESERVE,keys(user,date,"message"),Long.toString(clock.millis()),token,
+            Integer.toString(properties.getMessageDaily()),Integer.toString(properties.getMessageMinute()),"message");
+        boolean allowed = Long.valueOf(1).equals(result);
+        return new Reservation(user,date,token,allowed ? List.of("message") : List.of(),allowed);
     }
 
     public void finish(Reservation r, List<String> used) {
@@ -278,128 +219,15 @@ public class CompanionLimits {
             );
     }
 
-    public List<String> tools(Reservation r) {
-        var tools = new ArrayList<>(List.of("search_posts","read_post","my_recent_posts","my_growth","recall"));
-        if (r.kinds().contains("toy")) tools.add("make_toy");
-        if (r.kinds().contains("image")) tools.add("draw_picture");
-        if (r.kinds().stream().anyMatch(k -> k.startsWith("web:"))) tools.addAll(List.of("web_search","read_link"));
-        if (r.kinds().stream().anyMatch(k -> k.startsWith("webImage:"))) tools.add("search_images");
-        return tools;
-    }
-
-    public Map<String,Long> toolLimits(Reservation r) {
-        var counts = new java.util.HashMap<String,Long>();
-        for(var kind:r.kinds()) counts.merge(kind.split(":")[0],1L,Long::sum);
-        return counts;
-    }
-
     private String reservationToken(String token,String kind) { return kind.contains(":")?token+":"+kind:token; }
 
-    public void checkPoke(long user) {
-        var result=redis.execute(new DefaultRedisScript<Long>(
-            "redis.call('ZREMRANGEBYSCORE',KEYS[1],'-inf',ARGV[1]-60000); " +
-            "if redis.call('ZCARD',KEYS[1])>=2 then return 0 end; " +
-            "redis.call('ZADD',KEYS[1],ARGV[1],ARGV[2]);redis.call('EXPIRE',KEYS[1],120);return 1",Long.class),
-            List.of("meng:companion:poke:"+user),Long.toString(clock.millis()),UUID.randomUUID().toString());
-        if(!Long.valueOf(1).equals(result)) throw new BusinessException(CompanionError.COMPANION_COOLDOWN);
-    }
+    public Map<String,Object> usage(long user) { return usage(user,"Asia/Taipei"); }
 
-    public boolean controlAvailable(long user,String zone,String kind) {
-        return !Boolean.TRUE.equals(redis.hasKey("meng:companion:"+kind+":"+user+":"+date(zone)));
-    }
-
-    public boolean useControl(long user,String zone,String kind) {
-        String key="meng:companion:"+kind+":"+user+":"+date(zone), token=UUID.randomUUID().toString();
-        if(!Boolean.TRUE.equals(redis.opsForValue().setIfAbsent(key,token,Duration.ofDays(2)))) return false;
-        if(org.springframework.transaction.support.TransactionSynchronizationManager.isSynchronizationActive())
-            org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override public void afterCompletion(int status) {
-                        if(status!=STATUS_COMMITTED) redis.execute(UNLOCK,List.of(key),token);
-                    }
-                });
-        return true;
-    }
-
-
-    public Map<String, Object> usage(long user) {
-        return usage(user, "Asia/Taipei");
-    }
-
-    public Map<String, Object> usage(long user, String zone) {
-        var counts = redis
-            .opsForHash()
-            .entries("meng:companion:usage:" + user + ":" + date(zone));
-        long seconds = number(
-            redis
-                .opsForHash()
-                .get(
-                    "meng:companion:play:" + user + ":" + date(zone),
-                    "seconds"
-                )
-        );
-        Long cooldown = redis.getExpire("meng:companion:cooldown:" + user);
-        return Map.of(
-            "messages",
-            Math.max(
-                0,
-                properties.getMessageDaily() - number(counts.get("message"))
-            ),
-            "toys",
-            Math.max(
-                0,
-                properties.getToyDaily() - number(counts.get("toy"))
-            ),
-            "images",
-            Math.max(
-                0,
-                properties.getImageDaily() - number(counts.get("image"))
-            ),
-            "chatSeconds",
-            seconds,
-            "dailyReminder",
-            seconds >= 7200,
-            "cooldownSeconds",
-            cooldown == null ? 0L : Math.max(0L, cooldown)
-        );
-    }
-
-    public boolean restReminder(long user) {
-        return restReminder(user, "Asia/Taipei");
-    }
-
-    public boolean restReminder(long user, String zone) {
-        var map = redis
-            .opsForHash()
-            .entries("meng:companion:play:" + user + ":" + date(zone));
-        long gap = clock.instant().getEpochSecond() - number(map.get("last"));
-        return (
-            gap <= 600 &&
-            number(map.get("reminded")) == 0 &&
-            number(map.get("chain")) + Math.max(0, gap) >= 3600
-        );
-    }
-
-    public void play(long user) {
-        play(user, "Asia/Taipei");
-    }
-
-    public void play(long user, String zone) {
-        redis.execute(
-            PLAY,
-            List.of("meng:companion:play:" + user + ":" + date(zone)),
-            Long.toString(clock.instant().getEpochSecond())
-        );
-    }
-
-    public void retainImage(Reservation r) {
-        redis
-            .opsForZSet()
-            .add(
-                keys(r.user(), r.date(), "image").get(1),
-                r.token(),
-                clock.millis() + 600_000
-            );
+    public Map<String,Object> usage(long user,String zone) {
+        var used=redis.opsForHash().get("meng:companion:usage:"+user+":"+date(zone),"message");
+        Long cooldown=redis.getExpire("meng:companion:cooldown:"+user);
+        return Map.of("messages",Math.max(0,properties.getMessageDaily()-number(used)),
+                      "cooldownSeconds",cooldown==null ? 0L : Math.max(0L,cooldown));
     }
 
     private long number(Object value) {

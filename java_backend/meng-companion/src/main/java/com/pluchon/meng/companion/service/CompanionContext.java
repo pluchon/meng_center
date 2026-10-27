@@ -56,46 +56,17 @@ public class CompanionContext {
         return json.readTree(card);
     }
 
-    public record Memories(
-        List<String> stable,
-        List<Map<String, Object>> items,
-        List<Map<String, Object>> recalled,
-        List<Long> used,
-        List<Map<String, Object>> due,
-        Map<String, Object> shared,
-        int tokens
-    ) {}
+    public record Memories(List<Map<String,Object>> recalled, List<Long> used) {}
 
-    public Memories memories(
-        long user,
-        String code,
-        String query,
-        String zone,
-        String turn
-    ) {
+    public Memories memories(long user, String code, String query, String zone, String turn) {
         var all = new ArrayList<>(mapper.memories(user, code));
-        var stable = all.stream().filter(m -> m.isPinned() || "SELF".equals(m.getKind()) || "BIT".equals(m.getKind())).toList();
         JsonNode vector = null;
-        if (all.size()>20) try {
+        if (!all.isEmpty()) try {
             vector = ai.compute("embeddings",Map.of("texts",List.of(query),"textType","query")).path("vectors").get(0);
         } catch (RuntimeException ignored) { }
         final JsonNode q = vector;
         all.sort(Comparator.comparingDouble((Rows.Memory m) -> score(m,q)).reversed());
-        var candidates = new ArrayList<Map<String,Object>>();
-        all.stream().limit(15).map(this::memory).forEach(candidates::add);
-        for(var episode:runtime.recallEpisodes(user,code)) {
-            var item = new LinkedHashMap<String,Object>();
-            item.put("id","episode-"+episode.get("id")); item.put("kind","EPISODE"); item.put("content",episode.get("summary"));
-            candidates.add(item);
-        }
-        runtime.recallMessages(user,code).stream().limit(2).forEach(m -> candidates.add(Map.of(
-            "id","message-"+m.get("id"),"kind","MESSAGE","content",m.get("content"))));
-        var date = clock.instant().atZone(ZoneId.of(zone)).toLocalDate();
-        var due = all.stream().filter(m -> "PROMISE".equals(m.getKind()) && !m.isDone() && m.getDueDate()!=null &&
-            !m.getDueDate().isAfter(date) && !m.getDueDate().isBefore(date.minusDays(2))).limit(1).map(this::memory).toList();
-        return new Memories(stable.stream().map(Rows.Memory::getContent).toList(),
-            stable.stream().map(this::memory).toList(), candidates.subList(0,Math.min(20,candidates.size())),
-            stable.stream().map(Rows.Memory::getId).toList(),due,Map.of(),0);
+        return new Memories(all.stream().limit(20).map(this::memory).toList(),List.of());
     }
 
     private Map<String, Object> memory(Rows.Memory m) {
@@ -107,10 +78,6 @@ public class CompanionContext {
         if (m.getValidFrom() != null) value.put(
             "validFrom",
             m.getValidFrom().toString() + "Z"
-        );
-        if (m.getDueDate() != null) value.put(
-            "dueDate",
-            m.getDueDate().toString()
         );
         return value;
     }
@@ -157,12 +124,10 @@ public class CompanionContext {
     }
 
     public List<JsonNode> examples(Rows.Bond bond, JsonNode card) {
-        // 同一角色、阶段、档位使用整组示例，Python 按场景固定排序。
+        // 所有用户使用同一组示例，Python 按场景固定排序。
         return runtime
             .lines(
                 bond.getCharacterCode(),
-                bond.getLevel(),
-                bond.getStage(),
                 card
                     .path("lineVersion")
                     .asString(card.path("version").asString())
@@ -179,10 +144,6 @@ public class CompanionContext {
     }
 
     // 「今天的她」由后台任务按日期生成；还没生成时不放这一项，不用固定句子顶替。
-    public String daily(String code, String zone) {
-        var date = clock.instant().atZone(ZoneId.of(zone)).toLocalDate();
-        return Objects.requireNonNullElse(runtime.daily(code, date), "");
-    }
 
     public static String zone(String zone) {
         try {

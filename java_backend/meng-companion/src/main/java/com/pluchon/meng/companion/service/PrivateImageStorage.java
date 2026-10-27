@@ -15,9 +15,9 @@ import org.springframework.stereotype.Component;
 
 // 图片重新编码后存到仓库外，公开路径只接受数据库生成的文件名
 @Component
-public class WorkStorage {
+public class PrivateImageStorage {
     private final Path root;
-    public WorkStorage() {
+    public PrivateImageStorage() {
         String configured = System.getenv("MENG_COMPANION_WORK_ROOT");
         if (configured == null || configured.isBlank()) throw new IllegalStateException("Missing MENG_COMPANION_WORK_ROOT");
         root = Path.of(configured).toAbsolutePath().normalize();
@@ -80,16 +80,6 @@ public class WorkStorage {
         Path path = root.resolve(name).normalize();
         if (!path.getParent().equals(root)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         return path;
-    }
-
-    public String saveWebp(byte[] data) {
-        if (data.length<16 || data.length>5_000_000 ||
-            !new String(data,0,4,java.nio.charset.StandardCharsets.US_ASCII).equals("RIFF") ||
-            !new String(data,8,4,java.nio.charset.StandardCharsets.US_ASCII).equals("WEBP"))
-            throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-        String name=UUID.randomUUID()+".webp";
-        try { Files.createDirectories(root); Files.write(path(name),data); return name; }
-        catch(IOException error) { throw new BusinessException(CompanionError.AI_UNAVAILABLE); }
     }
 
     public void delete(String name) {

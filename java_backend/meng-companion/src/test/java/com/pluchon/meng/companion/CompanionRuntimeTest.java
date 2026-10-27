@@ -60,33 +60,8 @@ public class CompanionRuntimeTest {
         jdbc.execute(
             "CREATE ALIAS UTC_TIMESTAMP FOR 'com.pluchon.meng.companion.CompanionRuntimeTest.utcTimestamp'"
         );
-        for (String file : List.of(
-            "V20261017001__create_companion.sql",
-            "V20261017002__companion_runtime.sql",
-            "V20261025001__companion_runtime_v2.sql"
-        )) {
-            String sql = new ClassPathResource(
-                "db/migration/" + file
-            ).getContentAsString(StandardCharsets.UTF_8);
-            for (String statement : sql.split(";")) {
-                String value = statement.strip().replace(" JSON", " CLOB");
-                if (
-                    value.isBlank() ||
-                    value.startsWith("UPDATE companion_memory m JOIN")
-                ) continue;
-                if (value.startsWith("ALTER TABLE")) {
-                    var match = java.util.regex.Pattern.compile(
-                        "ALTER TABLE (\\w+)\\s+(.*)",
-                        java.util.regex.Pattern.DOTALL
-                    ).matcher(value);
-                    assertTrue(match.matches());
-                    for (String alteration : splitColumns(match.group(2)))
-                        jdbc.execute(
-                            "ALTER TABLE " + match.group(1) + " " + alteration
-                        );
-                } else jdbc.execute(value);
-            }
-        }
+        var schema=new ClassPathResource("naitang-schema.sql").getContentAsString(StandardCharsets.UTF_8);
+        for(String statement:schema.split(";")) if(!statement.isBlank()) jdbc.execute(statement);
         var configuration = new org.apache.ibatis.session.Configuration();
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CompanionMapper.class);
@@ -104,7 +79,6 @@ public class CompanionRuntimeTest {
             com.pluchon.meng.companion.mapper.RuntimeV2Mapper.class
         );
         var runtime = spy(session.getMapper(RuntimeMapper.class));
-        doReturn(null).when(runtime).feeling(anyLong());
         var transactions = new TransactionTemplate(
             new DataSourceTransactionManager(source)
         );
@@ -149,12 +123,10 @@ public class CompanionRuntimeTest {
             "mapper",
             mapper,
             "clock",
-            clock,
-            "properties",
-            new CompanionProperties()
+            clock
         );
         service = new CompanionService();
-        inject(service, "v2", v2);
+        inject(service, "snapshots", v2);
         inject(
             service,
             "mapper",
@@ -166,13 +138,7 @@ public class CompanionRuntimeTest {
             "redis",
             redis,
             "clock",
-            clock,
-            "properties",
-            new CompanionProperties(),
-            "ai",
-            ai,
-            "transactions",
-            transactions
+            clock
         );
         executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
@@ -227,16 +193,8 @@ public class CompanionRuntimeTest {
                 41,
                 "2026-10-17",
                 "r",
-                List.of("message", "toy", "image"),
+                List.of("message"),
                 true
-            )
-        );
-        when(limits.tools(any())).thenReturn(
-            List.of(
-                "search_posts",
-                "write_document",
-                "revise_work",
-                "draw_picture"
             )
         );
         when(limits.usage(anyLong(), anyString())).thenReturn(
@@ -285,12 +243,8 @@ public class CompanionRuntimeTest {
         );
     }
 
-    private JsonNode result(String works) {
-        return json.readTree(
-            "{\"label\":\"PASS\",\"bubbles\":[\"歇会儿，喝点水喵。\"],\"works\":" +
-                works +
-                ",\"drawings\":[],\"affection\":3,\"billable\":true,\"metrics\":{},\"model\":\"recorded\",\"promptVersion\":\"test\"}"
-        );
+    private JsonNode result(String ignored) {
+        return json.readTree("{\"label\":\"PASS\",\"bubbles\":[\"歇会儿，喝点水喵。\"],\"billable\":true,\"metrics\":{},\"model\":\"recorded\",\"promptVersion\":\"test\"}");
     }
 
     @SuppressWarnings("unchecked")
@@ -379,20 +333,13 @@ public class CompanionRuntimeTest {
     }
 
     @Test
-    void malformedWorkRollsBackBubblesAndAffection() throws Exception {
-        record("[{\"kind\":\"DOCUMENT\",\"title\":\"\",\"body\":\"正文\"}]");
-        replies.send(41, 1, send("invalid", "写点东西"), "Asia/Taipei", "test");
-        release.countDown();
-        until(() -> count("turn_state='FAILED'") == 1);
-        assertEquals(0, count("role='CHARACTER'"));
-        assertEquals(
-            0,
-            jdbc.queryForObject(
-                "SELECT affection FROM companion_bond WHERE user_id=41",
-                Integer.class
-            )
-        );
-        verify(limits).finish(any(), eq(List.of()));
+    void invalidBubbleRollsBackTheWholeReply() throws Exception {
+        when(ai.reply(anyMap(),any())).thenReturn(json.readTree(
+            "{\"label\":\"PASS\",\"bubbles\":[\"先写入\",\"\"],\"billable\":true}"));
+        replies.send(41,1,send("invalid-bubble","普通输入"),"Asia/Taipei","test");
+        until(() -> count("turn_state='FAILED'")==1 && locks.isEmpty());
+        assertEquals(0,count("role='CHARACTER'"));
+        verify(limits).finish(any(),eq(List.of()));
     }
 
     @Test
@@ -400,299 +347,21 @@ public class CompanionRuntimeTest {
         record("[]");
         replies.send(41, 1, send("reset", "喜欢蓝色"), "Asia/Taipei", "test");
         assertTrue(entered.await(5, TimeUnit.SECONDS));
-        service.clearMemories(41, "NEKO");
+        service.clearMemories(41);
         release.countDown();
         until(() -> count("turn_state='FAILED'") == 1);
         assertEquals(0, count("role='CHARACTER'"));
     }
 
-    @Test
-    @SuppressWarnings("unchecked")
-    void exposedSnapshotNewAndDueMemoriesAreAllowedOutsideRecallCandidates()
-        throws Exception {
-        var before = LocalDateTime.of(2026, 10, 17, 3, 0);
-        for (int i = 0; i < 16; i++) jdbc.update(
-            "INSERT INTO companion_memory(user_id,character_code,kind,content,content_hash,importance,valid_from,source_message_id) VALUES(41,'NEKO','LIKE',?,?,10,?,1)",
-            "旧喜好" + i,
-            "old-" + i,
-            before
-        );
-        jdbc.update(
-            "UPDATE companion_session SET context_snapshot=?,snapshot_time=? WHERE id=1",
-            "{\"profile\":\"\",\"memories\":[{\"id\":90002,\"content\":\"曾经喜欢绿色\",\"kind\":\"LIKE\"}]}",
-            before.plusMinutes(30)
-        );
-        jdbc.update(
-            "INSERT INTO companion_memory(id,user_id,character_code,kind,content,content_hash,importance,valid_from,source_message_id) VALUES(90002,41,'NEKO','LIKE','曾经喜欢绿色','snapshot-green',1,?,1)",
-            before
-        );
-        jdbc.update(
-            "INSERT INTO companion_memory(id,user_id,character_code,kind,content,content_hash,importance,valid_from,due_date,source_message_id) VALUES(90003,41,'NEKO','PROMISE','今天看展览','due-exhibition',1,?,'2026-10-17',1)",
-            before
-        );
-        jdbc.update(
-            "INSERT INTO companion_memory(id,user_id,character_code,kind,content,content_hash,importance,valid_from,source_message_id) VALUES(90001,41,'NEKO','LIKE','喜欢蓝色','new-blue',1,?,1)",
-            before.plusMinutes(45)
-        );
-        record("[]");
-        release.countDown();
-        replies.send(
-            41,
-            1,
-            send("new-memory", "聊点别的"),
-            "Asia/Taipei",
-            "test"
-        );
-        until(() -> !requests.isEmpty() && locks.isEmpty());
-        assertEquals(1L, requests.get(0).get("sessionId"));
-        assertTrue(
-            ((List<Long>) requests.get(0).get("memoryIds")).containsAll(
-                List.of(90001L, 90002L, 90003L)
-            )
-        );
-        assertFalse(
-            ((List<Map<String, Object>>) requests.get(0).get("recalled"))
-                .stream()
-                .anyMatch(m ->
-                    List.of(90001L, 90002L, 90003L).contains(m.get("id"))
-                )
-        );
-        assertTrue(
-            ((List<Map<String, Object>>) requests.get(0).get("newMemories"))
-                .stream()
-                .anyMatch(m -> Long.valueOf(90001).equals(m.get("id")))
-        );
-        assertEquals(
-            90003L,
-            ((List<Map<String, Object>>) requests.get(0).get("due"))
-                .get(0)
-                .get("id")
-        );
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void acknowledgmentHasValidJsonMetricsAndDoesNotBlockFinalReply()
-        throws Exception {
-        when(ai.reply(anyMap(), any())).thenAnswer(invocation -> {
-            var progress = (java.util.function.BiConsumer<
-                String,
-                JsonNode
-            >) invocation.getArgument(1);
-            progress.accept(
-                "status",
-                json.valueToTree(
-                    Map.of("kind", "ACK", "content", "准备查一查。")
-                )
-            );
-            return result("[]");
-        });
-        replies.send(
-            41,
-            1,
-            send("valid-ack", "看看最近的消息"),
-            "Asia/Taipei",
-            "test"
-        );
-        until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
-        assertEquals(2, count("role='CHARACTER'"));
-        var metrics = json.readTree(
-            jdbc.queryForObject(
-                "SELECT metrics FROM companion_message WHERE prompt_version='ack-v2'",
-                String.class
-            )
-        );
-        assertTrue(metrics.isObject());
-        assertTrue(metrics.path("ack").asBoolean());
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    void clearingMemoryAlsoRejectsAnInflightAcknowledgment() throws Exception {
-        when(ai.reply(anyMap(), any())).thenAnswer(invocation -> {
-            entered.countDown();
-            assertTrue(release.await(5, TimeUnit.SECONDS));
-            var progress = (java.util.function.BiConsumer<
-                String,
-                JsonNode
-            >) invocation.getArgument(1);
-            progress.accept(
-                "status",
-                json.valueToTree(
-                    Map.of("kind", "ACK", "content", "准备查一查。")
-                )
-            );
-            return result("[]");
-        });
-        replies.send(
-            41,
-            1,
-            send("reset-ack", "看看最近的消息"),
-            "Asia/Taipei",
-            "test"
-        );
-        assertTrue(entered.await(5, TimeUnit.SECONDS));
-        service.clearMemories(41, "NEKO");
-        release.countDown();
-        until(() -> count("turn_state='FAILED'") == 1 && locks.isEmpty());
-        assertEquals(0, count("role='CHARACTER'"));
-    }
-
-    @Test
-    void regenerationReplacesOneRoundWithoutRepeatingAffection()
-        throws Exception {
-        record("[]");
-        release.countDown();
-        replies.send(
-            41,
-            1,
-            send("original", "今天有点累"),
-            "Asia/Taipei",
-            "test"
-        );
-        until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
-        long old = jdbc.queryForObject(
-            "SELECT id FROM companion_message WHERE role='CHARACTER'",
-            Long.class
-        );
-        int affection = jdbc.queryForObject(
-            "SELECT affection FROM companion_bond WHERE user_id=41",
-            Integer.class
-        );
-        replies.regenerate(41, old, "Asia/Taipei", "test");
-        until(() -> count("turn_state='COMMITTED'") == 2 && locks.isEmpty());
-        assertEquals(1, count("role='USER' AND delete_state=0"));
-        assertEquals(1, count("role='CHARACTER' AND delete_state=0"));
-        assertEquals(
-            affection,
-            jdbc.queryForObject(
-                "SELECT affection FROM companion_bond WHERE user_id=41",
-                Integer.class
-            )
-        );
-        assertEquals(
-            1,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_feedback WHERE replacement_message_id IS NOT NULL",
-                Integer.class
-            )
-        );
-        long replacement = jdbc.queryForObject(
-            "SELECT id FROM companion_message WHERE role='CHARACTER' AND delete_state=0",
-            Long.class
-        );
-        assertThrows(
-            com.pluchon.meng.common.core.error.BusinessException.class,
-            () -> replies.regenerate(41, replacement, "Asia/Taipei", "test")
-        );
-    }
-
-    private CompanionBackground background(WorkStorage storage) {
-        var service = new CompanionBackground();
-        inject(
-            service,
-            "mapper",
-            ReflectionTestUtils.getField(replies, "mapper"),
-            "runtime",
-            ReflectionTestUtils.getField(replies, "runtime"),
-            "ai",
-            ai,
-            "transactions",
-            ReflectionTestUtils.getField(replies, "transactions"),
-            "outbox",
-            outbox,
-            "storage",
-            storage,
-            "limits",
-            limits,
-            "redis",
-            mock(org.springframework.data.redis.core.StringRedisTemplate.class),
-            "clock",
-            Clock.fixed(Instant.parse("2026-10-17T04:00:00Z"), ZoneOffset.UTC)
-        );
-        var v2 = ReflectionTestUtils.getField(replies, "v2");
-        inject(
-            service,
-            "v2",
-            v2,
-            "state",
-            ReflectionTestUtils.getField(v2, "state")
-        );
-        return service;
-    }
-
-    @Test
-    void reactionOnlyCommitsUserTurnWithoutEmptyCharacterMessage()
-        throws Exception {
-        jdbc.update("UPDATE companion_bond SET character_code='GENKI'");
-        jdbc.update("UPDATE companion_session SET character_code='GENKI'");
-        var response = (tools.jackson.databind.node.ObjectNode) result("[]");
-        response.set("bubbles", json.createArrayNode());
-        response.put("reaction", "好耶");
-        when(ai.reply(anyMap(), any())).thenReturn(response);
-        replies.send(
-            41,
-            1,
-            send("reaction-only", "事情已经做好了"),
-            "Asia/Taipei",
-            "test"
-        );
-        until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
-        assertEquals(
-            "好耶",
-            jdbc.queryForObject(
-                "SELECT reaction FROM companion_message WHERE role='USER'",
-                String.class
-            )
-        );
-        assertEquals(0, count("role='CHARACTER' AND content=''"));
-    }
-
-    @Test
-    void bitEvictionUsesRecencyInsteadOfImportance() {
-        for (int i = 0; i < 7; i++) jdbc.update(
-            "INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id,kind,importance,last_used_time) VALUES(41,'NEKO',?,?,1,'BIT',?,?)",
-            "共同梗" + i,
-            "bit-" + i,
-            10 - i,
-            LocalDateTime.of(2026, 10, 1 + i, 0, 0)
-        );
-        var v2 = ReflectionTestUtils.getField(replies, "v2");
-        var state = (RuntimeV2Mapper) ReflectionTestUtils.getField(v2, "state");
-        var ids = state.excessBits(41, "NEKO");
-        assertEquals(2, ids.size());
-        for (long id : ids)
-            assertTrue(
-                jdbc.queryForObject(
-                    "SELECT importance FROM companion_memory WHERE id=?",
-                    Integer.class,
-                    id
-                ) >= 9
-            );
-    }
-
-    @Test
-    void reactionWindowCountsCommittedRoundsInsteadOfQueuedMessages() {
-        jdbc.update(
-            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state,reaction) VALUES(1,'USER','第一轮',100,'COMMITTED','好耶')"
-        );
-        for (int i = 0; i < 5; i++) jdbc.update(
-            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state) VALUES(1,'USER','同一轮排队输入',200,'COMMITTED')"
-        );
-        for (int i = 0; i < 5; i++) jdbc.update(
-            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state) VALUES(1,'USER','失败输入',?,'FAILED')",
-            300 + i
-        );
-        var runtime = (RuntimeMapper) ReflectionTestUtils.getField(
-            replies,
-            "runtime"
-        );
-        assertEquals(1, runtime.recentReactions(1));
-        for (int i = 0; i < 4; i++) jdbc.update(
-            "INSERT INTO companion_message(session_id,role,content,turn_id,turn_state) VALUES(1,'USER','后续完成轮次',?,'COMMITTED')",
-            400 + i
-        );
-        assertEquals(0, runtime.recentReactions(1));
+    private CompanionBackground background(PrivateImageStorage ignored) {
+        var value=new CompanionBackground();
+        inject(value,"mapper",ReflectionTestUtils.getField(replies,"mapper"),
+            "runtime",ReflectionTestUtils.getField(replies,"runtime"),"ai",ai,
+            "transactions",ReflectionTestUtils.getField(replies,"transactions"),
+            "outbox",outbox,"redis",mock(org.springframework.data.redis.core.StringRedisTemplate.class),
+            "clock",Clock.fixed(Instant.parse("2026-10-17T04:00:00Z"),ZoneOffset.UTC),
+            "v2",ReflectionTestUtils.getField(replies,"v2"));
+        return value;
     }
 
     @Test
@@ -735,7 +404,7 @@ public class CompanionRuntimeTest {
                     )
                 )
             );
-        var background = background(mock(WorkStorage.class));
+        var background = background(mock(PrivateImageStorage.class));
         background.consolidate(event);
         background.consolidate(event);
         assertEquals(
@@ -760,38 +429,6 @@ public class CompanionRuntimeTest {
             )
         );
         verify(ai, times(1)).compute(eq("consolidations"), any());
-    }
-
-    @Test
-    void promiseNotificationUsesLocalDayAndOnlyPublishesOnce() {
-        jdbc.update("UPDATE companion_bond SET time_zone='Pacific/Honolulu'");
-        jdbc.update(
-            "INSERT INTO companion_memory(user_id,character_code,content,content_hash,source_message_id,kind,due_date) VALUES(41,'NEKO','今天看展','p',1,'PROMISE','2026-10-17')"
-        );
-        var background = background(mock(WorkStorage.class));
-        background.promises();
-        assertEquals(
-            0,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_memory WHERE notified=1",
-                Integer.class
-            )
-        );
-        jdbc.update("UPDATE companion_bond SET time_zone='Asia/Taipei'");
-        background.promises();
-        background.promises();
-        assertEquals(
-            1,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_memory WHERE notified=1",
-                Integer.class
-            )
-        );
-        verify(outbox, times(1)).enqueue(
-            eq("companion.promise-due"),
-            anyString(),
-            any()
-        );
     }
 
     @Test
@@ -854,7 +491,7 @@ public class CompanionRuntimeTest {
                     )
                 )
             );
-        background(mock(WorkStorage.class)).consolidate(event);
+        background(mock(PrivateImageStorage.class)).consolidate(event);
         assertEquals(
             "",
             jdbc.queryForObject(
@@ -868,66 +505,6 @@ public class CompanionRuntimeTest {
                 "SELECT COUNT(*) FROM companion_memory WHERE invalid_at IS NOT NULL",
                 Integer.class
             )
-        );
-    }
-
-    @Test
-    void backgroundDrawingPublishesAndChargesExactlyOnce() throws Exception {
-        record("[]");
-        release.countDown();
-        replies.send(41, 1, send("draw", "画朵云"), "Asia/Taipei", "test");
-        until(() -> count("turn_state='COMMITTED'") == 1 && locks.isEmpty());
-        long input = jdbc.queryForObject(
-            "SELECT id FROM companion_message WHERE role='USER'",
-            Long.class
-        );
-        var reservation = new CompanionLimits.Reservation(
-            41,
-            "2026-10-17",
-            "image-r",
-            List.of("image"),
-            false
-        );
-        jdbc.update(
-            "INSERT INTO companion_drawing(user_id,session_id,message_id,instruction,reservation,revision) VALUES(41,1,?,'一朵云',?,0)",
-            input,
-            json.writeValueAsString(reservation)
-        );
-        var storage = mock(WorkStorage.class);
-        when(storage.save(any())).thenReturn(
-            new WorkStorage.Saved("saved.png", "thumb")
-        );
-        when(ai.draw(anyString())).thenReturn(new byte[] { 1 });
-        var event =
-            new com.pluchon.meng.common.core.event.EventEnvelope<JsonNode>(
-                "draw-test",
-                "drawing.requested",
-                Instant.now(),
-                "test",
-                json.valueToTree(Map.of("messageId", input))
-            );
-        var background = background(storage);
-        background.draw(event);
-        background.draw(event);
-        assertEquals(
-            "COMPLETED",
-            jdbc.queryForObject(
-                "SELECT status FROM companion_drawing",
-                String.class
-            )
-        );
-        assertEquals(
-            1,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_work",
-                Integer.class
-            )
-        );
-        verify(limits, times(1)).finish(eq(reservation), eq(List.of("image")));
-        verify(outbox, times(1)).enqueue(
-            eq("companion.drawing-finished"),
-            anyString(),
-            any()
         );
     }
 
@@ -970,47 +547,11 @@ public class CompanionRuntimeTest {
         var catalog = new CompanionCatalog();
         inject(catalog, "runtime", runtime);
         catalog.run(null);
-        assertEquals(
-            3,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_card",
-                Integer.class
-            )
-        );
-        assertEquals(
-            180,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_line",
-                Integer.class
-            )
-        );
-        assertEquals(
-            45,
-            jdbc
-                .queryForList(
-                    "SELECT character_code,level,stage,COUNT(*) FROM companion_line GROUP BY character_code,level,stage HAVING COUNT(*)>=3"
-                )
-                .size()
-        );
-        var bond = new com.pluchon.meng.companion.entity.Rows.Bond();
-        bond.setCharacterCode("TSUNDERE");
-        bond.setLevel(2);
-        bond.setStage(1);
-        var context = (CompanionContext) ReflectionTestUtils.getField(
-            service,
-            "context"
-        );
-        var examples = context.examples(bond, context.card(41, "TSUNDERE"));
-        assertEquals(4, examples.size());
-        assertTrue(
-            examples
-                .stream()
-                .anyMatch(item ->
-                    "作业写不动".equals(
-                        item.path("dialogue").path("user").asString()
-                    )
-                )
-        );
+        assertEquals(1,jdbc.queryForObject("SELECT COUNT(*) FROM companion_card",Integer.class));
+        var bond=new com.pluchon.meng.companion.entity.Rows.Bond();
+        bond.setCharacterCode("NEKO");
+        var context=(CompanionContext)ReflectionTestUtils.getField(service,"context");
+        assertTrue(context.examples(bond,context.card(41,"NEKO")).size()>=3);
         jdbc.update(
             "UPDATE companion_card SET active=FALSE WHERE character_code='NEKO'"
         );
@@ -1029,107 +570,12 @@ public class CompanionRuntimeTest {
     }
 
     @Test
-    void fullRolloutRetiresOlderCardsButPartialRolloutKeepsFallback()
-        throws Exception {
-        var runtime = (RuntimeMapper) ReflectionTestUtils.getField(
-            replies,
-            "runtime"
-        );
-        jdbc.update(
-            "INSERT INTO companion_card(id,character_code,version,content,active,rollout_percent) VALUES(-1,'TSUNDERE','legacy','{\"version\":\"legacy\"}',TRUE,100)"
-        );
-        jdbc.update(
-            "UPDATE companion_card SET rollout_percent=50 WHERE character_code='TSUNDERE' AND version<>'legacy'"
-        );
-        var catalog = new CompanionCatalog();
-        inject(catalog, "runtime", runtime);
-        catalog.run(null);
-        assertEquals(
-            "legacy",
-            json
-                .readTree(runtime.card("TSUNDERE", 77))
-                .path("version")
-                .asString()
-        );
-        assertNotEquals(
-            "legacy",
-            json
-                .readTree(runtime.card("TSUNDERE", 41))
-                .path("version")
-                .asString()
-        );
-        jdbc.update(
-            "UPDATE companion_card SET rollout_percent=100 WHERE character_code='TSUNDERE' AND version<>'legacy'"
-        );
-        catalog.run(null);
-        assertEquals(
-            0,
-            jdbc.queryForObject(
-                "SELECT COUNT(*) FROM companion_card WHERE version='legacy' AND active=TRUE",
-                Integer.class
-            )
-        );
-        assertNotEquals(
-            "legacy",
-            json
-                .readTree(runtime.card("TSUNDERE", 77))
-                .path("version")
-                .asString()
-        );
-    }
-
-    @Test
     void unreviewedMemoryBatchCannotBeWritten() {
         assertThrows(IllegalArgumentException.class, () ->
             CompanionBackground.validateDecisions(
                 json.readTree("{\"decisions\":[]}"),
                 List.of(),
                 List.of()
-            )
-        );
-    }
-
-    @Test
-    void manualMemoryEditsRequireSemanticApprovalAndOwnership() {
-        jdbc.update(
-            "INSERT INTO companion_memory(id,user_id,character_code,content,content_hash,source_message_id) VALUES(9001,41,'NEKO','喜欢蓝色',REPEAT('a',64),1)"
-        );
-        var edit = new CompanionDTO.Memory("研究电话号码脱敏", null);
-        assertThrows(
-            com.pluchon.meng.common.core.error.BusinessException.class,
-            () -> service.editMemory(42, 9001, edit)
-        );
-        verify(ai, never()).compute(eq("memory-reviews"), any());
-        when(ai.compute(eq("memory-reviews"), any())).thenReturn(
-            json.readTree("{\"safe\":true}")
-        );
-        assertThrows(
-            com.pluchon.meng.common.core.error.BusinessException.class,
-            () -> service.editMemory(41, 9001, edit)
-        );
-        when(ai.compute(eq("memory-reviews"), any())).thenReturn(
-            json.readTree("{\"safe\":false,\"reviewed\":true}")
-        );
-        assertThrows(
-            com.pluchon.meng.common.core.error.BusinessException.class,
-            () -> service.editMemory(41, 9001, edit)
-        );
-        assertEquals(
-            "喜欢蓝色",
-            jdbc.queryForObject(
-                "SELECT content FROM companion_memory WHERE id=9001",
-                String.class
-            )
-        );
-        when(ai.compute(eq("memory-reviews"), any())).thenReturn(
-            json.readTree("{\"safe\":true,\"reviewed\":true}")
-        );
-        service.editMemory(41, 9001, edit);
-        assertEquals(
-            "研究电话号码脱敏",
-            jdbc.queryForObject(
-                "SELECT content FROM companion_memory WHERE id=9001",
-                String.class
             )
         );
     }

@@ -33,12 +33,10 @@ class RuntimeV2Test {
         verify(state,times(2)).snapshot(anyString(),any(),eq(1L),eq(42L));
     }
 
-    @Test void sourceLinksRejectScriptsCredentialsAndRelativePaths() {
-        for(String link:List.of("javascript:alert(1)","/private","https://a:b@example.com/","file:///secret"))
-            assertFalse(CompanionRuntimeV2.validUrl(link));
-        assertTrue(CompanionRuntimeV2.validUrl("https://example.com/article"));
+    @Test void sourcesOnlyAcceptSitePosts() {
         var service=new CompanionRuntimeV2();
-        assertThrows(IllegalArgumentException.class,() -> service.sources(JsonMapper.builder().build().readTree(
-            "[{\"url\":\"javascript:alert(1)\"}]")));
+        var json=JsonMapper.builder().build();
+        assertThrows(IllegalArgumentException.class,() -> service.sources(json.readTree("[{\"postId\":0,\"title\":\"无效\"}]")));
+        assertEquals(2L,service.sources(json.readTree("[{\"postId\":2,\"title\":\"配色记录\"}]")).get(0).get("postId"));
     }
 }

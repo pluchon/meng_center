@@ -41,7 +41,7 @@ public class CompanionOutbox {
     private Clock clock;
 
     @Autowired
-    private WorkStorage storage;
+    private PrivateImageStorage storage;
 
     @Autowired
     private CompanionMapper mapper;
@@ -187,39 +187,6 @@ public class CompanionOutbox {
         }
     }
 
-    public void drawing(
-        long user,
-        long session,
-        long message,
-        String instruction,
-        CompanionLimits.Reservation reservation,
-        long revision
-    ) {
-        if (
-            instruction.isBlank() || instruction.length() > 2000
-        ) throw new IllegalArgumentException("Invalid drawing instruction");
-        var image = new CompanionLimits.Reservation(
-            user,
-            reservation.date(),
-            reservation.token(),
-            List.of("image"),
-            false
-        );
-        runtime.insertDrawing(
-            user,
-            session,
-            message,
-            instruction,
-            json.writeValueAsString(image),
-            revision
-        );
-        enqueue(
-            "drawing.requested",
-            "drawing-" + message,
-            Map.of("messageId", message)
-        );
-    }
-
     public void checkCooldown(
         long user,
         String code,
@@ -240,41 +207,12 @@ public class CompanionOutbox {
     public void touch(long user, String code, List<Long> ids) {
         for (long id : ids) runtime.touchMemory(id, user, code);
         if (!ids.isEmpty()) redis.delete(
-            "meng:companion:memo:" + user + ":" + code
+            "meng:companion:memo:" + user
         );
-    }
-
-    public boolean feedback(
-        long user,
-        long message,
-        String kind,
-        String rejected
-    ) {
-        return runtime.insertFeedback(user, message, kind, rejected) > 0;
-    }
-
-    public boolean regenerated(long user, long turn) {
-        return runtime.regenerationCount(user, turn) > 0;
-    }
-
-    public void replace(
-        long user,
-        long rejected,
-        long newTurn,
-        long replacement
-    ) {
-        var previous = runtime.rejectedTurn(rejected);
-        runtime.hideCharacterTurn(previous);
-        runtime.hideUserTurn(newTurn);
-        runtime.markRegeneration(rejected, newTurn);
-        runtime.feedbackReplacement(replacement, user, rejected);
     }
 
     public void messageContext(long turn, Object ids) {
         runtime.messageMemories(json.writeValueAsString(ids), turn);
     }
 
-    public void mentioned(long user, String code, long id) {
-        runtime.mentionMemory(id, user, code);
-    }
 }

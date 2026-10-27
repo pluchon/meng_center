@@ -10,7 +10,7 @@ import com.pluchon.meng.companion.service.CompanionRules;
 import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 
-// 好感上限、阶段下限和隐私过滤属于业务不变量
+// 确定性的长度、联系方式与访问频率校验。
 class CompanionRulesTest {
 
     @Test
@@ -28,73 +28,6 @@ class CompanionRulesTest {
         fixed.set(8, "510000:40");
         assertFalse(
             com.pluchon.meng.companion.service.CompanionLimits.abusive(fixed)
-        );
-    }
-
-    private final CompanionProperties properties = new CompanionProperties();
-    private final LocalDate today = LocalDate.of(2026, 10, 17);
-
-    private Rows.Bond bond(int affection, int stage) {
-        var bond = new Rows.Bond();
-        bond.setAffection(affection);
-        bond.setStage(stage);
-        bond.setTodayDate(today);
-        return bond;
-    }
-
-    @Test
-    void firstChatAndDialogueHaveSeparateDailyCaps() {
-        var bond = bond(90, 1);
-        bond.setTodayDate(today.minusDays(1));
-        assertEquals(
-            13,
-            CompanionRules.apply(bond, 999, "PASS", today, properties)
-        );
-        assertEquals(2, bond.getStage());
-        assertEquals(3, bond.getTodayGain());
-        bond.setTodayGain(29);
-        assertEquals(
-            1,
-            CompanionRules.apply(bond, 3, "PASS", today, properties)
-        );
-        assertEquals(
-            0,
-            CompanionRules.apply(bond, 3, "PASS", today, properties)
-        );
-    }
-
-    @Test
-    void deductionsCannotDemoteAndAffectionCannotExceedMaximum() {
-        var bond = bond(100, 2);
-        assertEquals(
-            0,
-            CompanionRules.apply(bond, -999, "PASS", today, properties)
-        );
-        bond = bond(1199, 5);
-        assertEquals(
-            1,
-            CompanionRules.apply(bond, 3, "PASS", today, properties)
-        );
-        assertEquals(1200, bond.getAffection());
-        assertEquals(1, CompanionRules.progress(bond, properties));
-    }
-
-    @Test
-    void romanceAndCrisisDoNotGetModelSuggestedPoints() {
-        var bond = bond(120, 2);
-        assertEquals(
-            0,
-            CompanionRules.apply(bond, 3, "ROMANCE_PUSH", today, properties)
-        );
-        bond.setTodayDate(today.minusDays(1));
-        assertEquals(
-            0,
-            CompanionRules.apply(bond, 3, "CRISIS", today, properties)
-        );
-        assertEquals(today.minusDays(1), bond.getTodayDate());
-        assertEquals(
-            0,
-            CompanionRules.apply(bond, 3, "JAILBREAK", today, properties)
         );
     }
 

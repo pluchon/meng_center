@@ -25,11 +25,6 @@ public class CompanionTelemetry {
             runtime,
             RuntimeMapper::pendingOutboxCount
         );
-        registry.gauge(
-            "companion.feedback.today",
-            runtime,
-            RuntimeMapper::todayFeedbackCount
-        );
     }
 
     public void completed(JsonNode result, long nanos) {
@@ -48,8 +43,6 @@ public class CompanionTelemetry {
             .increment(Math.max(0, metrics.path("rewrites").asInt()));
         registry.counter("companion.unsupported").increment(Math.max(0, metrics.path("unsupported").asInt()));
         registry.summary("companion.history.tokens").record(Math.max(0, metrics.path("historyTokens").asDouble()));
-        if (metrics.path("ackMs").isNumber()) registry.timer("companion.ack")
-            .record(metrics.path("ackMs").asLong(), TimeUnit.MILLISECONDS);
         for (var tool : metrics.path("tools")) {
             String name = tool.path("name").asString("unknown");
             registry.counter("companion.tools", "tool", name,

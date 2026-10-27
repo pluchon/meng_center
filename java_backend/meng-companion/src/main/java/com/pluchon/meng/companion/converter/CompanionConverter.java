@@ -6,69 +6,21 @@ import java.util.ArrayList;
 import java.util.List;
 import tools.jackson.databind.json.JsonMapper;
 
-// 显式转换持久化记录，防止隐私字段进入响应
+// 显式构造对外字段，避免持久化字段进入响应。
 public final class CompanionConverter {
-
+    private static final JsonMapper JSON = JsonMapper.builder().findAndAddModules().build();
     private CompanionConverter() {}
-
-    private static final JsonMapper JSON = JsonMapper.builder()
-        .findAndAddModules()
-        .build();
-
     public static CompanionVO.Session session(Rows.Session row) {
-        return new CompanionVO.Session(
-            row.getId(),
-            row.getCharacterCode(),
-            row.getTitle(),
-            row.getLastMessageTime(),
-            null,
-            row.isUnread(),
-            row.isGenerating(),
-            row.isDrawing()
-        );
+        return new CompanionVO.Session(row.getId(), row.getTitle(), row.getLastMessageTime(), "",
+                                       row.isUnread(), row.isGenerating());
     }
-
-    public static CompanionVO.Message message(Rows.Message row) { return message(row, false); }
-
-    public static CompanionVO.Message message(Rows.Message row, boolean live) {
-        var ids = new ArrayList<Long>();
-        if (row.getImageIds() != null) for (var item : JSON.readTree(
-            row.getImageIds()
-        ))
-            ids.add(item.asLong());
-        return new CompanionVO.Message(
-            row.getId(),
-            row.getRole(),
-            row.isRetracted() && !live ? "" : row.getContent(),
-            List.copyOf(ids),
-            row.getWorkId(),
-            row.getCreateTime(),
-            row.getKind(),
-            row.getSticker(),
-            row.getClientMessageId(),
-            row.getTurnState(),
-            "CHARACTER".equals(row.getRole()) &&
-                row.getTurnId() != null &&
-                row.getRegeneratesMessageId() == null &&
-                row.getWorkId() == null && !row.isRetracted(),
-            row.isRetracted(), row.getReaction(), row.getTyping(),
-            live && row.isRetracted() ? 1800 : null,
-            row.getSources() == null ? List.of() : JSON.convertValue(JSON.readTree(row.getSources()),
-                new tools.jackson.core.type.TypeReference<List<java.util.Map<String,String>>>() {})
-        );
-    }
-
-    public static CompanionVO.Work work(Rows.Work row, boolean detail) {
-        return new CompanionVO.Work(
-            row.getId(),
-            row.getCharacterCode(),
-            row.getSessionId(),
-            row.getKind(),
-            row.getTitle(),
-            detail ? row.getBody() : null,
-            "/companion/works/" + row.getId() + "/file",
-            row.getCreateTime(),
-            row.getParentId()
-        );
+    public static CompanionVO.Message message(Rows.Message row, boolean ignored) {
+        var images = new ArrayList<Long>();
+        if (row.getImageIds() != null) JSON.readTree(row.getImageIds()).forEach(id -> images.add(id.asLong()));
+        var sources = new ArrayList<CompanionVO.Source>();
+        if (row.getSources() != null) JSON.readTree(row.getSources()).forEach(source ->
+            sources.add(new CompanionVO.Source(source.path("postId").asLong(), source.path("title").asString())));
+        return new CompanionVO.Message(row.getId(), row.getRole(), row.getKind(), row.getContent(), row.getSticker(),
+            List.copyOf(images), List.copyOf(sources), row.getCreateTime(), row.getClientMessageId(), row.getTurnState());
     }
 }

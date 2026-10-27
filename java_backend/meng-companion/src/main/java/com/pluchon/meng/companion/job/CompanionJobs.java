@@ -29,8 +29,4 @@ public class CompanionJobs {
         background.maintain();
     }
 
-    @XxlJob("companionPromiseNotify")
-    public void promises() {
-        background.promises();
-    }
 }

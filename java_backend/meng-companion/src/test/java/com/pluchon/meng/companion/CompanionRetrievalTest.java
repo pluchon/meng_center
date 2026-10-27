@@ -49,12 +49,6 @@ class CompanionRetrievalTest {
             memories.add(memory);
         }
         when(mapper.memories(42, "NEKO")).thenReturn(memories);
-        when(runtime.recallEpisodes(anyLong(), anyString())).thenReturn(
-            List.of()
-        );
-        when(runtime.recallMessages(anyLong(), anyString())).thenReturn(
-            new ArrayList<>()
-        );
         when(ai.compute(eq("embeddings"), any())).thenAnswer(call -> {
             Map<?, ?> data = call.getArgument(1);
             if (data.containsKey("candidates")) return json.readTree(
@@ -81,12 +75,8 @@ class CompanionRetrievalTest {
             "Asia/Taipei",
             "fixture"
         );
-        assertEquals(15, result.recalled().size());
-        org.mockito.Mockito.verifyNoInteractions(ai);
-        assertEquals(List.of(), result.used());
-        assertEquals(15,result.recalled().size());
-        assertEquals(List.of(),result.items());
-        org.mockito.Mockito.verifyNoInteractions(ai);
-
+        assertEquals(16,result.recalled().size());
+        assertEquals(List.of(),result.used());
+        org.mockito.Mockito.verify(ai).compute(eq("embeddings"),any());
     }
 }
