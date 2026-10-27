@@ -272,10 +272,25 @@ export default defineComponent({
     function drop(event) {
       if (!blocked.value) addFiles([...event.dataTransfer.files])
     }
+    function matchesInput(body) {
+      return (
+        input.value.trim() === body.content &&
+        attachments.value.length === body.imageIds.length &&
+        attachments.value.every((image, index) => image.id === body.imageIds[index])
+      )
+    }
+    function clearInput() {
+      input.value = ''
+      attachments.value.forEach((image) => URL.revokeObjectURL(image.preview))
+      attachments.value = []
+    }
     async function transmit(id, body, optimistic) {
+      if (optimistic.pending) return
+      if (selected.value === id && matchesInput(body)) clearInput()
       const controller = new AbortController()
       controllers.add(controller)
       sending.value++
+      optimistic.pending = true
       optimistic.failed = false
       failure.value = null
       const session = sessions.value.find((item) => item.id === id)
@@ -315,6 +330,14 @@ export default defineComponent({
         if (!disposed && !error.cancelled && selected.value === id) {
           optimistic.failed = true
           failure.value = error
+          // 不覆盖请求期间新输入的内容；附件用已鉴权的上传地址恢复，避免保留临时对象 URL。
+          if (!input.value && !attachments.value.length) {
+            input.value = body.content
+            attachments.value = body.imageIds.map((imageId) => ({
+              id: imageId,
+              preview: companionImage(imageId),
+            }))
+          }
           if (error.code === CompanionError.QUOTA) usage.value.messages = 0
           if (error.code === CompanionError.COOLDOWN)
             usage.value = await companionApi.usage().catch(() => usage.value)
@@ -322,6 +345,7 @@ export default defineComponent({
       } finally {
         controllers.delete(controller)
         sending.value--
+        optimistic.pending = false
         if (!disposed && selected.value === id) {
           typing.value = false
           if (!sending.value && !optimistic.failed) {
@@ -335,6 +359,10 @@ export default defineComponent({
     }
     async function send() {
       if (!canSend.value) return
+      const failed = messages.value.findLast(
+        (message) => message.failed && message.retryBody && matchesInput(message.retryBody),
+      )
+      if (failed) return transmit(selected.value, failed.retryBody, failed)
       const body = {
         clientMessageId: crypto.randomUUID(),
         content: input.value.trim(),
@@ -351,9 +379,7 @@ export default defineComponent({
         retryBody: body,
       }
       messages.value.push(message)
-      input.value = ''
-      attachments.value.forEach((image) => URL.revokeObjectURL(image.preview))
-      attachments.value = []
+      clearInput()
       await bottom(true)
       await transmit(selected.value, body, messages.value.at(-1))
     }

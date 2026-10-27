@@ -46,6 +46,7 @@ npm --prefix verification ci
 | `./verification/Test-SocialPoints.ps1` | 关注与粉丝（幂等、不能关注自己、计数精确、列表关系标记与翻页）、关注通知每对只一条、收藏夹默认私密与公开私密切换对别人主页的影响、别人主页的帖子和数量、积分的签到发帖评论获得、每件事只算一次、明细筛选与翻页、余额和规则；结束后清理随机账号和数据 |
 | `./verification/Test-Secrets.ps1` | 扫描仓库里有没有环境变量里的密钥字面值 |
 | `node verification/Test-CompanionStream.mjs` | 奶糖助手前端 SSE：中文按字节分块、CRLF、多行 data、心跳、业务错误、异常断流和异步气泡顺序；不调用模型 |
+| `node verification/Test-CompanionComposer.mjs` | 执行真实组件的 Vue 响应式交互，检查发送失败恢复文字与图片、保留新草稿、复用原消息编号和防止重复重试；不启动浏览器或调用模型 |
 | `./verification/Test-CompanionDatabase.ps1` | 在随机独立 MySQL 库验证奶糖助手迁移、旧数据隔离、删除旧表列、来源与窗口初始化、消息幂等键、outbox 唯一键和未发送图片的数量及过期筛选；结束删除验证库，不改业务库 |
 | `./verification/Test-CompanionDeployment.ps1` | 只读核对运行实例与构建时间、健康状态、Flyway、当前角色卡及台词覆盖、两个定时任务和 9107 执行器注册；发现旧进程或未部署迁移时失败 |
 | `./verification/Test-Companion.ps1 -SelectMouthModels -Smoke -Character NEKO -EvaluationTokenBudget <不超过30000> -EvaluationBudgetId <固定授权编号> -EvaluationPhaseId <本期固定编号> -EvaluationOutput <JSON路径>` | 开发期真实接通检查：只用当前默认说话模型，奶糖五轮，不盲评，不生成质量或选型结论；本期最多三次，到额即停。默认说话模型关闭降级链；工具使用录制结果，不调用业务接口或真实生图，第五轮附带固定小图检查官方图片输入 |
