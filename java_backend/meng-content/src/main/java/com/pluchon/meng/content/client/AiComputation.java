@@ -66,7 +66,9 @@ public final class AiComputation {
         long postCount,
         List<Map<String, Object>> bestPosts,
         List<Map<String, Object>> categories,
-        List<Map<String, Object>> postingHours
+        List<Map<String, Object>> postingHours,
+        List<String> writtenTopics,
+        List<String> interestTopics
     ) {}
 
     public record SummaryResponse(String summary, List<String> suggestions) {}

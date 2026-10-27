@@ -234,6 +234,8 @@ public class ContentAssistantService {
                 end
             )
         );
+        body.put("writtenTopics",writtenTopics(user,start,end));
+        body.put("interestTopics",interestTopics(user));
         String key = "content:ai:creator-review:" + user + ":" + days;
         String digest = org.springframework.util.DigestUtils.md5DigestAsHex(
             json.writeValueAsBytes(body)
@@ -257,6 +259,34 @@ public class ContentAssistantService {
                 Duration.between(now, end.toInstant().atZone(now.getZone()))
             );
         return response;
+    }
+
+    // 从作者本人近期帖子的主题中统计方向，每篇帖子对同一主题只计一次。
+    private List<String> writtenTopics(long user,java.sql.Timestamp start,java.sql.Timestamp end) {
+        var counts=new java.util.HashMap<String,Long>();
+        for (var row:jdbc.queryForList(
+            "SELECT f.topics FROM post_ai_feature f JOIN post p ON p.id=f.post_id WHERE p.author_id=? AND p.delete_state=0 AND f.delete_state=0 AND p.create_time>=? AND p.create_time<? ORDER BY p.create_time DESC,p.id DESC",
+            user,start,end)) {
+            var unique=new java.util.HashSet<String>();
+            var topics=json.readTree(row.get("topics").toString());
+            if (topics.isArray()) for (var topic:topics) if (topic.isString() && !topic.asString().isBlank())
+                unique.add(topic.asString());
+            unique.forEach(topic -> counts.merge(topic,1L,Long::sum));
+        }
+        return counts.entrySet().stream().sorted(Map.Entry.<String,Long>comparingByValue().reversed()
+            .thenComparing(Map.Entry.comparingByKey())).limit(3).map(Map.Entry::getKey).toList();
+    }
+
+    // 画像只提供主题名称，不把权重或其他用户资料交给模型。
+    private List<String> interestTopics(long user) {
+        return redis.opsForHash().entries("content:rec:profile:"+user).entrySet().stream()
+            .filter(e -> e.getKey().toString().startsWith("t:") && e.getValue() instanceof String)
+            .filter(e -> e.getValue().toString().matches("[0-9]+(?:\\.[0-9]+)?"))
+            .filter(e -> Double.parseDouble(e.getValue().toString())>0)
+            .sorted(java.util.Comparator.<Map.Entry<Object,Object>>comparingDouble(
+                e -> Double.parseDouble(e.getValue().toString())).reversed()
+                .thenComparing(e -> e.getKey().toString()))
+            .limit(3).map(e -> e.getKey().toString().substring(2)).toList();
     }
 
     // 统一模型拒绝、超时与不可用语义

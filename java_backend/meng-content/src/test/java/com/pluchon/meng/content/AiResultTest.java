@@ -118,14 +118,8 @@ class AiResultTest {
         when(jdbc.update(anyString(), any(Object[].class))).thenReturn(1);
         service.post("event-block", result("BLOCK"));
         assertEquals("NORMAL", post.getReviewState().name());
-        verify(vectors).write(
-            eq(post),
-            anyList(),
-            eq(List.of("Vue")),
-            eq(3),
-            eq("BLOCK"),
-            eq("model:v1")
-        );
+        verify(vectors).delete(3L);
+        org.mockito.Mockito.verify(vectors,org.mockito.Mockito.never()).write(any(),anyList(),anyList(),org.mockito.ArgumentMatchers.anyInt(),anyString(),anyString());
     }
 
     @Test
@@ -163,7 +157,7 @@ class AiResultTest {
             List.of()
         , "SUCCESS");
         service.post("text-edit", edited);
-        verify(vectors).write(eq(post), anyList(), anyList(), eq(3), eq("BLOCK"), anyString());
+        verify(vectors).delete(3L);
     }
 
     @Test

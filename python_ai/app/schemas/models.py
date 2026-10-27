@@ -88,6 +88,8 @@ class CreatorStats(Schema):
     best_posts: list[dict[str, Any]] = Field(max_length=3)
     categories: list[dict[str, Any]] = Field(max_length=5)
     posting_hours: list[dict[str, Any]] = Field(max_length=24)
+    written_topics: list[str] = Field(default_factory=list, max_length=3)
+    interest_topics: list[str] = Field(default_factory=list, max_length=3)
 
 
 _SENTENCE_END = re.compile(r"(?<=[。！？!?；;\n])")

@@ -124,6 +124,7 @@ public class AiResultService {
         );
         if (enforce && "BLOCK".equals(effectiveVerdict)) {
             long draftId = postService.withdrawToDraft(post);
+            vectors.delete(post.getId());
             notify(
                 "post.review-changed",
                 Map.<String, Object>of(
@@ -176,6 +177,12 @@ public class AiResultService {
                     0
                 )
             );
+        }
+        // 审核开关只控制可见状态，明确违规的内容始终不进入向量索引。
+        if ("BLOCK".equals(effectiveVerdict)) {
+            vectors.delete(post.getId());
+            events.publishEvent(new Indexed(post.getId()));
+            return;
         }
         vectors.write(
             post,
