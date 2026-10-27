@@ -1,18 +1,20 @@
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import httpx
+import pytest
 from pydantic import SecretStr
 
 from app.clients.cover_image import CoverImageClient
+from app.config.settings import Settings
 from app.runtime.models.gateway import ModelGateway
 from app.schemas.models import CoverPlan
 
 
-async def test_qwen_cover_uses_sync_contract_and_downloads_provider_image() -> None:
+@pytest.mark.parametrize("model,request_seconds", [("qwen-image-3.0-pro", 52), ("image-model-v2", 3)])
+async def test_qwen_cover_uses_sync_contract_and_downloads_provider_image(model, request_seconds) -> None:
     calls: list[str] = []
     image_url = "https://dashscope-result.oss-cn-beijing.aliyuncs.com/cover.png"
     image_bytes = b"\x89PNG\r\n\x1a\n"
@@ -21,7 +23,8 @@ async def test_qwen_cover_uses_sync_contract_and_downloads_provider_image() -> N
         calls.append(request.method)
         if request.method == "POST":
             body = json.loads(request.content)
-            assert body["model"] == "qwen-image-3.0-pro"
+            assert body["model"] == model
+            assert request.extensions["timeout"]["read"] == request_seconds
             assert body["input"]["messages"][0]["content"] == [{"text": "水色天空和云朵"}]
             assert body["parameters"] == {
                 "size": "1664*928",
@@ -39,10 +42,11 @@ async def test_qwen_cover_uses_sync_contract_and_downloads_provider_image() -> N
         assert "Authorization" not in request.headers
         return httpx.Response(200, content=image_bytes)
 
-    settings = SimpleNamespace(
+    settings = Settings.model_construct(
         cover_model="qwen-image-3.0-pro",
         cover_url="https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation",
         api_key=SecretStr("unit-test"),
+        model_overrides={"image": {"model": model, "timeout": request_seconds}},
     )
     async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
         gateway = ModelGateway(settings, AsyncMock())
