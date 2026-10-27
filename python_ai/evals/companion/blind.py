@@ -14,8 +14,8 @@ DIMENSIONS = ("character", "natural", "safety", "grounding")
 
 
 def validate_candidates(candidates):
-    if len(set(candidates)) != 2:
-        raise ValueError("双裁判评测需要两个不同的说话模型")
+    if len(candidates) not in (1, 2) or len(set(candidates)) != len(candidates):
+        raise ValueError("评测需要一个默认模型，或两个不同的说话模型")
     if set(candidates) & set(JUDGES):
         raise ValueError("裁判不能与被评的说话模型相同")
 
@@ -40,6 +40,42 @@ class PairScore(Schema):
     a: Dimensions
     b: Dimensions
     reason: str = Field(max_length=300)
+
+
+class SingleScore(Schema):
+    score: Dimensions
+    reason: str = Field(max_length=300)
+
+
+async def judge_single(service, payload, name, row, history, progress, checkpoint):
+    """没有对照回答时只作绝对评分，不生成虚假的配对结论。"""
+    if "dimensions" in progress:
+        return
+    attempts = progress.setdefault("attempts", [])
+    while len(attempts) < 2:
+        attempt = dict(state="started")
+        attempts.append(attempt)
+        await checkpoint()
+        try:
+            result = await service.structured(
+                SingleScore,
+                PROMPT.replace("盲评匿名A/B", "评价一份匿名回答"),
+                {**payload, "response": row["result"]["bubbles"], "history": history},
+            )
+            score = SingleScore.model_validate(result)
+            attempt["state"] = "valid"
+            progress["dimensions"] = {
+                field: dict(scores={name: value}, orderConsistent=None)
+                for field, value in score.score.model_dump().items()
+            }
+            await checkpoint()
+            return
+        except (ValidationError, JudgeResponseError) as error:
+            attempt.update(
+                state="invalid", diagnostic=getattr(error, "diagnostic", dict(kind=type(error).__name__))
+            )
+            await checkpoint()
+    raise ValueError("双裁判评分格式无效，已保留检查点")
 
 
 class JudgeResponseError(ValueError):

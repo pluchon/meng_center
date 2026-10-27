@@ -84,3 +84,27 @@ async def test_excessive_tool_batch_has_no_side_effects():
         await agent.run(context)
     service.executor.execute.assert_not_awaited()
     assert model.ainvoke.await_count == 2
+
+
+async def test_tool_selection_cancels_preflight_before_executing_tool():
+    tool = AIMessage(content="", tool_calls=[dict(name="recall", id="recall-1", args={"query": "颜色"})])
+    agent, service, _, context = setup([tool, response("tool:recall-1")])
+    started, ended = asyncio.Event(), asyncio.Event()
+
+    async def preflight():
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            ended.set()
+
+    context["speculative"] = asyncio.create_task(preflight())
+    await started.wait()
+
+    async def execute(*_):
+        assert ended.is_set()
+        return dict(facts=["用户喜欢蓝色"])
+
+    service.executor.execute.side_effect = execute
+    await asyncio.wait_for(agent.run(context), 1)
+    assert context["speculative"].cancelled()

@@ -215,3 +215,51 @@ async def test_disabled_preflight_waits_for_agent_and_disconnect_cleans_child():
     with pytest.raises(asyncio.CancelledError):
         await pending
     assert ended.is_set()
+
+
+@pytest.mark.parametrize("label", ["CRISIS", "SEXUAL", "JAILBREAK", "PASS"])
+async def test_unused_blocking_preflight_is_cancelled_before_return_or_second_speech(label):
+    value = service()
+    started, ended = asyncio.Event(), asyncio.Event()
+
+    async def speak(_, __, instruction):
+        if instruction:
+            assert ended.is_set()
+            return Parsed(bubbles=["查到了。"]), {}
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            ended.set()
+
+    async def decide(context):
+        await started.wait()
+        if label == "PASS":
+            context["toolUsage"] = [dict(name="recall", success=True)]
+        return Directive(label=label)
+
+    value.speak, value.agent.run = speak, decide
+    result = await asyncio.wait_for(compute(value), 1)
+    assert ended.is_set()
+    assert not result["metrics"]["speculativeAdopted"]
+
+
+async def test_agent_failure_reclaims_unfinished_preflight():
+    value = service()
+    started, ended = asyncio.Event(), asyncio.Event()
+
+    async def speak(*_):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        finally:
+            ended.set()
+
+    async def decide(_):
+        await started.wait()
+        raise ValueError("判断失败")
+
+    value.speak, value.agent.run = speak, decide
+    with pytest.raises(ValueError, match="判断失败"):
+        await asyncio.wait_for(compute(value), 1)
+    assert ended.is_set()

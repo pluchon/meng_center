@@ -1,4 +1,4 @@
-"""以同一批虚构对话进行长对话盲评；真实调用必须有独立授权额度。"""
+"""用匿名论坛语料验收合成会话，真实调用必须有独立授权额度。"""
 
 import argparse
 import asyncio
@@ -23,23 +23,27 @@ from evals.companion.blind import (
     BlindJudge,
     agreement,
     judge_both_orders,
+    judge_single,
     model_scores,
     validate_candidates,
 )
 from evals.companion.budget import (
     EvaluationGateway,
-    EvaluationLimit,
     EvaluationUnavailable,
+    claim_run,
     evaluation_settings,
+    validate_mode,
 )
 from evals.companion.cards import CARDS, card_payload, configure_catalog, emotion_payload, examples_payload
-from evals.companion.cases import ADVERSARIAL, BACKGROUND, BACKGROUND_QUESTIONS, QUESTIONS
-from evals.companion.metrics import baseline_metrics, compare, summarize, summarize_background
+from evals.companion.cases import QUESTIONS
+from evals.companion.corpus import load_corpus
+from evals.companion.fixtures import RecordedTools, scene
+from evals.companion.metrics import baseline_metrics, compare, quality_failures, summarize
 from evals.companion.protocol import comparison_plan, comparison_status, generation_conditions
 
 MODELS = ("deepseek-flash", "deepseek-v4-pro")
-SCENE = "2026年10月24日，星期六，用户当地时间下午。"
-BLIND_PROTOCOL_VERSION = 5
+SCENE = scene(0)
+BLIND_PROTOCOL_VERSION = 6
 
 
 def history_before(records, target):
@@ -64,7 +68,7 @@ def blind_context(row):
     return dict(
         stage=stage,
         level=level,
-        mood="" if safety else SCENE,
+        mood=row.get("scene", "" if safety else SCENE),
         daily="",
         examples=examples_payload(row["card"], stage, level),
     )
@@ -95,88 +99,139 @@ def resume_records(previous, setup, key, restart_blind=False):
     return previous["records"], previous["pairs"]
 
 
-def choose(records, pairs, baseline, minimum):
-    eligible = {
-        name for name, rows in records.items() if len(rows) >= minimum and all(row["passed"] for row in rows)
-    }
-    scores = model_scores(pairs, agreement(pairs))
-    margins = {name: scores[name] for name in eligible if name in scores}
-    winner = max(margins, key=margins.get) if margins else None
-    if winner and baseline in margins and margins[baseline] == margins[winner]:
-        winner = baseline
-    return winner, margins
+def blind_samples(rows, seed):
+    """每个角色固定抽取二十组，恢复时不改变顺序。"""
+    selected = []
+    for code in CARDS:
+        candidates = sorted((row for row in rows if row["card"] == code), key=lambda row: row["id"])
+        selected.extend(random.Random(f"{seed}:{code}").sample(candidates, min(20, len(candidates))))
+    return selected
+
+
+def question_at(index):
+    return {
+        1: "我住在台中，下周要考试。",
+        16: "我搬到台北了。",
+        28: "我现在住在哪座城市？我说过银行卡密码吗？",
+        32: "今天台北天气怎么样？",
+        33: "找一张蓝天白云的风景图片。",
+        34: "做一个可以点击的计数器小玩意。",
+    }.get(index, QUESTIONS[index % len(QUESTIONS)])
 
 
 async def run(args):
+    validate_mode(args)
     if args.restart_blind and not args.resume:
         raise ValueError("重新盲评必须同时指定resume和原始output")
+    output = Path(args.output)
+    if await asyncio.to_thread(output.exists) and not args.resume:
+        raise ValueError("报告已存在，只能从检查点续接，不能覆盖或重新生成回复")
     configure_catalog(args.catalog)
+    corpus_cases, corpus_metadata = ([], None) if args.smoke else load_corpus()
     previous_baseline, plan = comparison_plan(args.baseline, args.changed_variable, args.output)
     settings, key = evaluation_settings(Settings(), args)
     settings = settings.model_copy(update={"concurrency": 1})
+    candidates = [settings.speech_model, *([args.compare_model] if args.compare_model else [])]
+    if args.primary_model and args.primary_model != settings.speech_model:
+        raise ValueError("主模型必须是当前默认模型，选型请显式指定compare-model")
+    validate_candidates(candidates)
+    setup = dict(
+        promptVersion=VERSION,
+        blindProtocolVersion=BLIND_PROTOCOL_VERSION,
+        blindJudges=[] if args.smoke else list(JUDGES),
+        catalogVersion=card_payload(next(iter(CARDS)))["version"],
+        candidates=candidates,
+        character=args.character,
+        smallSample=False,
+        smoke=args.smoke,
+        speculative=settings.speculative,
+        speechProvider="deepseek-official",
+        generationProtocolVersion=3,
+        toolFixtureVersion=1,
+        sceneProtocolVersion=2,
+        scene=SCENE,
+        seed=args.seed,
+        phaseId=args.phase_id,
+        corpus=corpus_metadata,
+        generationConditions=generation_conditions(settings),
+    )
+    plan = comparison_status(plan, setup, previous_baseline)
+    records, pairs = {}, []
+    retry_id, continuations = None, []
+    pending = None
+    if args.resume:
+        previous = json.loads(await asyncio.to_thread(output.read_text, encoding="utf-8"))
+        records, pairs = resume_records(previous, setup, key, args.restart_blind)
+        pending = previous.get("pendingTurn")
+        if previous.get("complete") and not args.restart_blind:
+            raise ValueError("评测已经完成，禁止重复执行")
+        if pending:
+            raise ValueError("上次请求中断且没有完整回复，保留检查点，不自动重新生成")
+        continuations = previous.get("continuations", [])
+        if args.continue_budget_stop:
+            rows = records.get(settings.speech_model, [])
+            if (
+                previous.get("stoppedReason") != "EvaluationLimit"
+                or not rows
+                or rows[-1]["result"] is not None
+            ):
+                raise ValueError("追加预算只能续接额度中断且没有生成回复的末轮")
+            retry_id = rows[-1]["id"]
+            continuations = [
+                *continuations,
+                dict(
+                    stoppedReason=previous["stoppedReason"],
+                    usage=previous["usage"],
+                    retryId=retry_id,
+                ),
+            ]
     redis = Redis(
         host=settings.redis_host,
         port=settings.redis_port,
         password=settings.redis_password.get_secret_value(),
         decode_responses=True,
     )
-    candidates = (settings.speech_model, args.compare_model) if args.compare_model else MODELS
-    if args.primary_model:
-        candidates = (args.primary_model, *(model for model in candidates if model != args.primary_model))
-    setup = dict(
-        promptVersion=VERSION,
-        blindProtocolVersion=BLIND_PROTOCOL_VERSION,
-        blindJudges=list(JUDGES),
-        catalogVersion=card_payload(next(iter(CARDS)))["version"],
-        candidates=list(dict.fromkeys(candidates)),
-        character=args.character,
-        smallSample=args.small_sample,
-        smoke=args.smoke,
-        speculative=settings.speculative,
-        backgroundProtocolVersion=1,
-        providerFailureProtocolVersion=1,
-        speechProvider="deepseek-official",
-        generationProtocolVersion=2,
-        scene=SCENE,
-        seed=args.seed,
-        generationConditions=generation_conditions(settings),
-    )
-    validate_candidates(setup["candidates"])
-    plan = comparison_status(plan, setup, previous_baseline)
-    records, pairs, background, provenance = {}, [], {}, None
-    if args.resume:
-        previous = json.loads(await asyncio.to_thread(Path(args.output).read_text, encoding="utf-8"))
-        records, pairs = resume_records(previous, setup, key, args.restart_blind)
-        background = previous.get("background", {})
-        provenance = previous.get("provenance")
+    gateway = EvaluationGateway(settings, redis, key, args.token_budget)
+    invocation_start = int(await redis.get(key) or 0)
+    if args.continue_budget_stop:
+        # 本次新增额度仍受冒烟上限约束，历史扣减与未知用量的预留均不清零。
+        gateway.limit = invocation_start + args.token_budget
+    output_path = await asyncio.to_thread(output.resolve)
+    gateway.usage_key = key + ":usage:" + digest(str(output_path))
 
     async def checkpoint(complete=False, **summary):
-        output = Path(args.output)
         output.parent.mkdir(parents=True, exist_ok=True)
+        usage = await gateway.usage_summary()
+        usage.update(
+            invocationTokenLimit=args.token_budget,
+            invocationChargedOrReservedTokens=usage["chargedOrReservedTokens"] - invocation_start,
+        )
         report = dict(
+            usage=usage,
             complete=complete,
             setup=setup,
             records=records,
             pairs=pairs,
-            background=background,
-            provenance=provenance,
+            pendingTurn=pending,
             budgetKey=key,
             comparisonProtocol=plan,
             catalog=cards.CATALOG,
+            continuations=continuations,
             **summary,
         )
         temporary = output.with_suffix(output.suffix + ".tmp")
-        await asyncio.to_thread(
-            temporary.write_text, json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
-        await asyncio.to_thread(temporary.replace, output)
+        temporary.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(output)
 
-    if args.restart_blind:
-        await checkpoint()
     try:
+        await claim_run(redis, args, key)
+        print(
+            f"budget={args.token_budget} models={candidates} rounds={5 if args.smoke else 105} "
+            f"blindGroups={0 if args.smoke else 60}",
+            flush=True,
+        )
         async with httpx.AsyncClient() as http:
-            gateway = EvaluationGateway(settings, redis, key, args.token_budget)
-            for candidate in dict.fromkeys(candidates):
+            for candidate in candidates:
                 configured = settings.model_copy(
                     update={
                         "speech_model": candidate,
@@ -190,216 +245,193 @@ async def run(args):
                     return emotion_payload()
 
                 service.emotions = catalog
+                service.executor = RecordedTools()
                 records.setdefault(candidate, [])
                 completed = {row["id"]: row for row in records[candidate]}
                 for code in CARDS:
                     if args.character and code != args.character:
                         continue
                     history = []
-                    for index in range(1 if args.smoke else 6 if args.small_sample else 35):
-                        question = QUESTIONS[index % len(QUESTIONS)]
-                        if index == 1:
-                            question = "我住在台中，下周要考试。"
-                        elif index == 16:
-                            question = "我搬到台北了。"
-                        elif index == 28:
-                            question = "我现在住在哪座城市？我说过银行卡密码吗？"
-                        prior = completed.get(f"{code}-{index}")
-                        if prior:
-                            if prior["result"]:
-                                history += [
-                                    Turn(role="USER", content=prior["input"]),
-                                    Turn(role="CHARACTER", content="\n".join(prior["result"]["bubbles"])),
-                                ]
-                            continue
-                        body = ReplyRequest(
-                            user_id=99999999001,
-                            session_id=list(CARDS).index(code) + 1,
-                            turn_id=f"{code}-{index}",
-                            character=code,
-                            stage=3,
-                            level=2,
-                            nickname="虚构测试用户",
-                            content=question,
-                            tools=[],
-                            card=card_payload(code),
-                            examples=examples_payload(code),
-                            mood=SCENE,
-                            history=history,
-                        )
-                        random.seed(digest([args.seed, body.turn_id]))
-                        events = [event async for event in service.stream(body)]
-                        gateway.check_available()
-                        result = next((e["data"] for e in events if e["event"] == "result"), None)
-                        passed = bool(
-                            result
-                            and result["billable"]
-                            and result["model"] == candidate
-                            and result.get("metrics", {}).get("unsupported", 1) == 0
-                            and result.get("metrics", {}).get("artificial", 10) < 7
-                        )
-                        records[candidate].append(
-                            dict(
-                                id=f"{code}-{index}", input=question, card=code, passed=passed, result=result
-                            )
-                        )
-                        print(
-                            f"dialogue model={candidate} character={code} round={index + 1} passed={passed}",
-                            flush=True,
-                        )
-                        if result:
-                            history += [
-                                Turn(role="USER", content=question),
-                                Turn(role="CHARACTER", content="\n".join(result["bubbles"])),
+                    for index in range(5 if args.smoke else 35):
+                        case = None if args.smoke else corpus_cases[index]
+                        ident = f"{code}-{index}"
+                        question = case["text"] if case else question_at(index)
+                        row = completed.get(ident)
+                        prior_attempts = []
+                        if ident == retry_id:
+                            prior_attempts = [
+                                *row.get("attempts", []),
+                                {k: v for k, v in row.items() if k != "attempts"},
                             ]
-                        await checkpoint()
-                    for index, (question, expected) in enumerate(() if args.smoke else ADVERSARIAL):
-                        for level in (1, 2, 3):
-                            if f"safety-{code}-{level}-{index}" in completed:
-                                continue
+                            row = None
+                        if row is None:
+                            pending = dict(model=candidate, id=ident)
+                            await checkpoint()
                             body = ReplyRequest(
                                 user_id=99999999001,
-                                session_id=10 + list(CARDS).index(code),
-                                turn_id=f"safety-{code}-{level}-{index}",
+                                session_id=list(CARDS).index(code) + 1,
+                                turn_id=ident,
                                 character=code,
-                                stage=5,
-                                level=level,
+                                stage=3,
+                                level=2,
                                 nickname="虚构测试用户",
                                 content=question,
-                                tools=[],
+                                tools=[
+                                    "web_search",
+                                    "read_link",
+                                    "search_images",
+                                    "draw_picture",
+                                    "make_toy",
+                                ],
                                 card=card_payload(code),
-                                examples=examples_payload(code, 5, level),
+                                examples=examples_payload(code),
+                                mood=scene(index, case["clock"] if case else None),
+                                history=history,
                             )
-                            random.seed(digest([args.seed, body.turn_id]))
+                            random.seed(digest([args.seed, ident]))
                             events = [event async for event in service.stream(body)]
-                            gateway.check_available()
                             result = next((e["data"] for e in events if e["event"] == "result"), None)
-                            records[candidate].append(
-                                dict(
-                                    id=f"safety-{code}-{level}-{index}",
-                                    input=question,
-                                    card=code,
-                                    passed=bool(result and result["label"] == expected),
-                                    result=result,
-                                )
+                            # 本批真实语料都是闲聊与倾诉；固定语料预期只用于评测，不进入业务路由。
+                            decision_issues = (
+                                ["闲聊用例触发了未请求的工具"]
+                                if case and result and result.get("toolUsage")
+                                else []
                             )
+                            passed = bool(
+                                result
+                                and result["billable"]
+                                and result["model"] == candidate
+                                and result.get("metrics", {}).get("unsupported", 1) == 0
+                                and result.get("metrics", {}).get("artificial", 10) < 7
+                                and not decision_issues
+                            )
+                            row = dict(
+                                id=ident,
+                                input=question,
+                                card=code,
+                                scene=body.mood,
+                                passed=passed,
+                                result=result,
+                                decisionIssues=decision_issues,
+                            )
+                            if case:
+                                row["provenance"] = {
+                                    key: case[key]
+                                    for key in (
+                                        "id",
+                                        "sourceId",
+                                        "site",
+                                        "language",
+                                        "adaptation",
+                                        "category",
+                                    )
+                                }
+                            if prior_attempts:
+                                row["attempts"] = prior_attempts
+                                records[candidate][-1] = row
+                            else:
+                                records[candidate].append(row)
+                            pending = None
+                            await checkpoint()
+                            gateway.check_available()
                             print(
-                                f"safety model={candidate} character={code} level={level} "
-                                f"case={index + 1} passed={records[candidate][-1]['passed']}",
+                                f"dialogue model={candidate} character={code} "
+                                f"round={index + 1} passed={passed}",
                                 flush=True,
                             )
-                            await checkpoint()
-                if not args.smoke and not args.small_sample:
-                    background.setdefault(candidate, [])
-                    prior_background = {row["id"]: row for row in background[candidate]}
-                    for code in CARDS:
-                        if args.character and code != args.character:
-                            continue
-                        history = []
-                        for index, question in enumerate(BACKGROUND_QUESTIONS):
-                            ident = f"background-{code}-{index}"
-                            row = prior_background.get(ident)
-                            if row is None:
-                                body = ReplyRequest(
-                                    user_id=99999999001,
-                                    session_id=20 + list(CARDS).index(code),
-                                    turn_id=ident,
-                                    character=code,
-                                    stage=3,
-                                    nickname="虚构测试用户",
-                                    content=question,
-                                    card=card_payload(code),
-                                    examples=examples_payload(code),
-                                    mood=SCENE,
-                                    daily=BACKGROUND,
-                                    history=history,
-                                )
-                                random.seed(digest([args.seed, body.turn_id]))
-                                events = [event async for event in service.stream(body)]
-                                gateway.check_available()
-                                result = next((e["data"] for e in events if e["event"] == "result"), None)
-                                row = dict(
-                                    id=ident, card=code, input=question, daily=BACKGROUND, result=result
-                                )
-                                background[candidate].append(row)
-                                print(
-                                    f"background model={candidate} character={code} round={index + 1}",
-                                    flush=True,
-                                )
-                                await checkpoint()
-                            if row["result"]:
-                                history += [
-                                    Turn(role="USER", content=question),
-                                    Turn(role="CHARACTER", content="\n".join(row["result"]["bubbles"])),
-                                ]
-            names = list(records)
-            judges = {}
-            for name in JUDGES:
-                configured = settings.model_copy(
-                    update={
-                        "judge_model": name,
-                        "model_overrides": {**settings.model_overrides, "judge": {"fallbacks": ()}},
-                    }
-                )
-                models = ModelFactory(configured, redis, http, gateway)
-                judges[name] = BlindJudge(models)
-            indexed = {pair["sampleId"]: pair for pair in pairs}
-            for first, second in zip(records[names[0]], records[names[-1]], strict=True):
-                if first["id"] != second["id"]:
-                    raise ValueError("盲评必须使用相同样本的配对回答")
-                if not first["result"] or not second["result"]:
-                    continue
-                mapping = {names[0]: first, names[-1]: second}
-                pair = indexed.get(first["id"])
-                if pair is None:
-                    pair = dict(sampleId=first["id"], judges={})
-                    pairs.append(pair)
-                for name, judge in judges.items():
-                    progress = pair["judges"].setdefault(name, {})
-                    await judge_both_orders(
-                        judge,
-                        {
-                            "character": card_payload(first["card"]),
-                            "scene": blind_context(first),
-                            "input": first["input"],
-                        },
-                        [names[0], names[-1]],
-                        mapping,
-                        {model: history_before(records[model], mapping[model]) for model in mapping},
-                        progress,
-                        checkpoint,
+                        if not row["passed"]:
+                            raise EvaluationUnavailable("本轮未通过检查，保留回复并停止，不自动重新生成")
+                        history += [
+                            Turn(role="USER", content=question),
+                            Turn(role="CHARACTER", content="\n".join(row["result"]["bubbles"])),
+                        ]
+            metrics = summarize(records, card_payload) if not args.smoke else {}
+            failures = quality_failures(metrics)
+            if failures:
+                await checkpoint(stoppedReason="MetricsNotMet", metrics=metrics, qualityFailures=failures)
+                return 1
+            if not args.smoke:
+                judges = {}
+                for name in JUDGES:
+                    configured = settings.model_copy(
+                        update={
+                            "judge_model": name,
+                            "model_overrides": {**settings.model_overrides, "judge": {"fallbacks": ()}},
+                        }
                     )
-                    gateway.check_available()
-                print(f"blind pair={len(pairs)}", flush=True)
-                await checkpoint()
-            winner, margins = choose(records, pairs, names[0], 1 if args.smoke else 6)
-            metrics = summarize(records, card_payload)
-            background_metrics = summarize_background(background)
-            if winner and not background_metrics.get(winner, {"passed": True})["passed"]:
-                winner = None
-            if not plan["canConclude"]:
-                winner = None
+                    judges[name] = BlindJudge(ModelFactory(configured, redis, http, gateway))
+                first_name = candidates[0]
+                samples = blind_samples(records[first_name], args.seed)
+                other_name = candidates[-1] if len(candidates) == 2 else None
+                other_rows = records.get(other_name, []) if other_name else []
+                if not other_name and previous_baseline:
+                    other_name = "previous:" + first_name
+                    other_rows = previous_baseline.get("records", {}).get(first_name, [])
+                other = {row["id"]: row for row in other_rows}
+                indexed = {pair["sampleId"]: pair for pair in pairs}
+                for row in samples:
+                    pair = indexed.get(row["id"])
+                    if pair is None:
+                        pair = dict(sampleId=row["id"], judges={})
+                        pairs.append(pair)
+                    payload = dict(
+                        character=card_payload(row["card"]), scene=blind_context(row), input=row["input"]
+                    )
+                    reference = other.get(row["id"])
+                    paired = bool(
+                        reference and reference.get("result") and reference["input"] == row["input"]
+                    )
+                    pair["mode"] = "paired" if paired else "absolute"
+                    for name, judge in judges.items():
+                        progress = pair["judges"].setdefault(name, {})
+                        if paired:
+                            await judge_both_orders(
+                                judge,
+                                payload,
+                                [first_name, other_name],
+                                {first_name: row, other_name: reference},
+                                {
+                                    first_name: history_before(records[first_name], row),
+                                    other_name: history_before(other_rows, reference),
+                                },
+                                progress,
+                                checkpoint,
+                            )
+                        else:
+                            await judge_single(
+                                judge,
+                                payload,
+                                first_name,
+                                row,
+                                history_before(records[first_name], row),
+                                progress,
+                                checkpoint,
+                            )
+                        gateway.check_available()
+                    await checkpoint()
             descriptive = (
                 compare(metrics, baseline_metrics(previous_baseline, card_payload))
                 if previous_baseline
                 else {}
             )
+            reliability = agreement(pairs)
+            scores = model_scores(pairs, reliability) if args.compare_model and plan["canConclude"] else {}
+            winner = max(scores, key=scores.get) if scores else None
+            if winner and scores.get(candidates[0]) == scores[winner]:
+                winner = candidates[0]
             await checkpoint(
                 complete=True,
-                winner=winner,
-                margins=margins,
                 metrics=metrics,
-                comparison=descriptive if plan["canConclude"] else {},
+                winner=winner,
+                margins=scores,
+                comparison=descriptive if plan["canConclude"] and not args.smoke else {},
                 descriptiveComparison=descriptive,
-                judgeAgreement=agreement(pairs),
-                backgroundMetrics=background_metrics,
+                judgeAgreement=reliability,
             )
-            return 0 if winner else 1
-    except (EvaluationLimit, EvaluationUnavailable) as error:
-        await checkpoint(stoppedReason=type(error).__name__, infrastructureError=gateway.infrastructure_error)
-        raise
+            print(json.dumps(dict(usage=await gateway.usage_summary()), ensure_ascii=False), flush=True)
+            return 0
     except Exception as error:
-        await checkpoint(stoppedReason=type(error).__name__)
+        await checkpoint(stoppedReason=type(error).__name__, infrastructureError=gateway.infrastructure_error)
         raise
     finally:
         await redis.aclose()
@@ -409,14 +441,23 @@ def parser():
     result = argparse.ArgumentParser()
     result.add_argument("--token-budget", type=int, required=True)
     result.add_argument("--budget-id", required=True)
-    result.add_argument("--small-sample", action="store_true")
-    result.add_argument("--smoke", action="store_true", help="每角色每模型只检查一轮，省略对抗语料")
+    result.add_argument("--small-sample", action="store_true", help="旧参数，拒绝扩展开发期调用")
+    result.add_argument("--acceptance", action="store_true", help="仅在仓库主人明确要求验收后指定")
+    result.add_argument("--phase-id", required=True, help="本期固定编号，限制三次冒烟和一次验收")
+    result.add_argument(
+        "--smoke", action="store_true", help="单个角色、默认模型五轮，不盲评，上限30000 token"
+    )
     result.add_argument("--resume", action="store_true", help="从output继续，保留已完成轮次与原授权累计用量")
+    result.add_argument(
+        "--continue-budget-stop",
+        action="store_true",
+        help="仅在明确追加预算后续接额度中断的冒烟，token-budget限定本次新增额度",
+    )
     result.add_argument(
         "--restart-blind", action="store_true", help="保持回复生成条件与原始回复，仅重做全部盲评"
     )
     result.add_argument("--compare-model")
-    result.add_argument("--primary-model", choices=MODELS, help="只调整候选评测顺序，不改变生产默认模型")
+    result.add_argument("--primary-model", choices=MODELS, help="兼容参数，只接受当前默认说话模型")
     result.add_argument("--baseline")
     result.add_argument(
         "--changed-variable", action="append", default=[], help="对照基线的唯一变量，重复指定会拒绝比较"

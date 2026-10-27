@@ -182,6 +182,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--budget-id", required=True)
+    parser.add_argument("--acceptance", action="store_true")
     parser.add_argument("--output", default="../test-output/companion-decisions.json")
     parser.add_argument(
         "--case",

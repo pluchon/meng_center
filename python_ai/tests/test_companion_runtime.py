@@ -23,9 +23,25 @@ def test_repeated_tics_produce_plain_speech_feedback_without_numeric_quotas():
     assert "用普通语气词代替“喵”" in feedback and "颜文字" in feedback
     assert not any(char.isdigit() for char in feedback)
     body.recent_replies = ["嗯，听着呢。(=´ω｀=)"] * 30
-    assert style_feedback(body) == ""
+    feedback = style_feedback(body)
+    assert "情绪合适时，可以自然带出“喵”" in feedback and "颜文字" not in feedback
     body.recent_replies = ["喵"] * 4
     assert style_feedback(body) == ""
+
+
+def test_style_feedback_uses_level_targets_recent_emotion_and_zero_target():
+    body = request(recent_replies=["嗯。"] * 25 + ["哼。"] * 5)
+    body.card["tics"] = [dict(text="哼", frequency=[0, 0.3, 0.6])]
+    body.card["kaomoji"] = ["(≧▽≦)"]
+    body.level = 1
+    assert "用普通语气词代替“哼”" in style_feedback(body)
+    body.recent_replies = ["嗯。"] * 30
+    assert "自然带出" not in style_feedback(body)
+    body.level = 3
+    assert "自然带出“哼”" in style_feedback(body)
+    body.recent_replies = ["(≧▽≦)"] + ["嗯。"] * 29
+    assert "颜文字" in style_feedback(body)
+    assert not any(char.isdigit() for char in style_feedback(body))
 
 
 def test_controls_keep_actions_and_reject_unknown_names():

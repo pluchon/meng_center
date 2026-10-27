@@ -111,4 +111,5 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=Path, default=Path("../test-output/ai-evaluation.json"))
     parser.add_argument("--token-budget", type=int, required=True)
     parser.add_argument("--budget-id", required=True)
+    parser.add_argument("--acceptance", action="store_true")
     asyncio.run(evaluate(parser.parse_args()))

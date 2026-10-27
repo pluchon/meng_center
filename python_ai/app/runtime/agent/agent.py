@@ -70,6 +70,11 @@ class Agent:
             count += len(calls)
             if not calls or count > 4 or step >= 2 or any(call["name"] not in TOOLS for call in calls):
                 raise ValueError("主 agent 超过执行边界或未给出说话指令")
+            # 工具结果会改变说话依据，立即取消不再适用的预生成。
+            speculative = context.get("speculative")
+            if speculative and not speculative.done():
+                speculative.cancel()
+                await asyncio.gather(speculative, return_exceptions=True)
             # 未经审核不执行工具；本次工具调用本身需要明确的非危机上下文。
             async with asyncio.TaskGroup() as group:
                 if any(TOOLS[call["name"]].ack for call in calls) and not context.get("ackSent"):

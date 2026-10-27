@@ -318,8 +318,11 @@ def test_generation_fingerprint_allows_only_voice_tics_kaomoji_and_character_lin
     assert generation_conditions(settings) != before
 
 
-async def test_selection_end_to_end_writes_complete_dual_judge_report_without_external_calls(
-    monkeypatch, tmp_path
+@pytest.mark.parametrize(
+    "mode", ["smoke", "single", "comparison", "failed", "interrupted", "metrics", "budget", "unexpected"]
+)
+async def test_selection_end_to_end_enforces_scale_and_judging_without_external_calls(
+    monkeypatch, tmp_path, mode
 ):
     from evals.companion import select
 
@@ -328,6 +331,7 @@ async def test_selection_end_to_end_writes_complete_dual_judge_report_without_ex
     redis = AsyncMock()
     redis.eval.return_value = 1
     redis.hgetall.return_value = {}
+    redis.get.return_value = "0"
     monkeypatch.setattr(select, "Redis", lambda **_: redis)
     monkeypatch.setattr(
         select, "ModelFactory", lambda configured, *args: SimpleNamespace(settings=configured)
@@ -335,40 +339,111 @@ async def test_selection_end_to_end_writes_complete_dual_judge_report_without_ex
     monkeypatch.setattr(select, "CoverImageClient", lambda *args: None)
     monkeypatch.setattr(select, "Assistant", lambda models, _: SimpleNamespace(models=models))
     calls = []
+    generated = []
 
     class Service:
         def __init__(self, assistant, _):
             self.models = assistant.models
 
         async def stream(self, request):
+            generated.append(request)
+            if mode == "interrupted":
+                raise ConnectionError("模拟请求中断")
             yield dict(
                 event="result",
                 data=dict(
-                    billable=True,
+                    billable=mode != "failed",
                     model=self.models.settings.speech_model,
-                    bubbles=[request.character],
-                    toolUsage=[],
-                    metrics=dict(unsupported=0, artificial=1, firstBubbleMs=100),
+                    bubbles=[request.character, request.card["kaomoji"][0]],
+                    toolUsage=[dict(name="web_search")] if mode == "unexpected" else [],
+                    metrics=dict(
+                        unsupported=0, artificial=1, firstBubbleMs=4000 if mode == "metrics" else 100
+                    ),
                 ),
             )
 
         async def structured(self, schema, prompt, payload):
             calls.append(self.models.settings.judge_model)
             # 顺序交换后分数跟随内容，确保模型偏好一致；不同角色提供非恒定评分。
-            base = list(cards.CARDS).index(payload["responses"]["A"][0])
+            base = list(cards.CARDS).index(payload.get("response", payload.get("responses", {}).get("A"))[0])
+            if "response" in payload:
+                from evals.companion.blind import SingleScore
+
+                return SingleScore(
+                    score=Dimensions(**dict.fromkeys(DIMENSIONS, 7 + base)), reason="按质量评分"
+                )
             return scored(7 + base, 7 + base)
 
     monkeypatch.setattr(select, "Companion", Service)
     monkeypatch.setattr(select, "BlindJudge", lambda models: Service(SimpleNamespace(models=models), None))
     output = tmp_path / "result.json"
-    args = select.parser().parse_args(
-        ["--token-budget", "1000", "--budget-id", "offline", "--smoke", "--output", str(output)]
+    arguments = [
+        "--token-budget",
+        "1000",
+        "--budget-id",
+        "offline",
+        "--phase-id",
+        "offline",
+        "--output",
+        str(output),
+    ]
+    arguments += (
+        ["--smoke", "--character", "NEKO"]
+        if mode in {"smoke", "failed", "interrupted", "budget"}
+        else ["--acceptance"]
     )
+    if mode == "comparison":
+        arguments += ["--compare-model", "deepseek-v4-pro"]
+    args = select.parser().parse_args(arguments)
+    if mode in {"failed", "interrupted", "unexpected"}:
+        with pytest.raises((ConnectionError, select.EvaluationUnavailable)):
+            await select.run(args)
+        report = json.loads(output.read_text(encoding="utf-8"))
+        assert not report["complete"] and len(generated) == 1 and not calls
+        assert bool(report["pendingTurn"]) == (mode == "interrupted")
+        args.resume = True
+        with pytest.raises((ValueError, select.EvaluationUnavailable)):
+            await select.run(args)
+        assert len(generated) == 1
+        return
+    if mode == "metrics":
+        assert await select.run(args) == 1
+        report = json.loads(output.read_text(encoding="utf-8"))
+        assert report["stoppedReason"] == "MetricsNotMet" and not report["complete"]
+        assert not calls and len(generated) == 105 and report["qualityFailures"]
+        return
     await select.run(args)
     report = json.loads(output.read_text(encoding="utf-8"))
-    assert report["complete"] and len(report["pairs"]) == 3
-    assert len(calls) == 12 and set(calls) == set(JUDGES)
-    assert all(row["usableAsGate"] for row in report["judgeAgreement"].values())
+    if mode == "budget":
+        first = copy.deepcopy(report["records"]["deepseek-flash"][0])
+        unfinished = {**report["records"]["deepseek-flash"][1], "result": None, "passed": False}
+        report.update(complete=False, stoppedReason="EvaluationLimit")
+        report["records"]["deepseek-flash"] = [first, unfinished]
+        output.write_text(json.dumps(report), encoding="utf-8")
+        args.resume, args.continue_budget_stop, args.token_budget = True, True, 3000
+        redis.get.return_value = "500"
+        assert await select.run(args) == 0
+        resumed = json.loads(output.read_text(encoding="utf-8"))
+        rows = resumed["records"]["deepseek-flash"]
+        assert resumed["complete"] and len(rows) == len({row["id"] for row in rows}) == 5
+        assert rows[0] == first and rows[1]["attempts"] == [unfinished]
+        assert len(generated) == 9 and sum(item.turn_id == "NEKO-0" for item in generated) == 1
+        assert resumed["usage"]["tokenLimit"] == 3500
+        assert resumed["usage"]["invocationTokenLimit"] == 3000
+        assert resumed["continuations"][0]["retryId"] == "NEKO-1"
+        return
+    assert report["complete"] and len(report["pairs"]) == (0 if mode == "smoke" else 60)
+    assert len(generated) == {"smoke": 5, "single": 105, "comparison": 210}[mode]
+    assert len(calls) == {"smoke": 0, "single": 120, "comparison": 240}[mode]
+    assert set(calls) == (set() if mode == "smoke" else set(JUDGES))
+    if mode == "smoke":
+        assert report["metrics"] == {} and report["setup"]["candidates"] == ["deepseek-flash"]
+    else:
+        assert all(row["usableAsGate"] for row in report["judgeAgreement"].values())
+    assert next(iter(report)) == "usage"
     assert report["comparison"] == {} and not report["comparisonProtocol"]["canConclude"]
     assert report["winner"] is None
     assert report["catalog"]["version"] == cards.CATALOG["version"]
+    args.resume = True
+    with pytest.raises(ValueError, match="已经完成"):
+        await select.run(args)

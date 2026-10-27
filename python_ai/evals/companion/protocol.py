@@ -16,6 +16,9 @@ def generation_conditions(settings):
     files = sorted((root / "app").rglob("*.py")) + [
         Path(__file__).with_name("cases.py"),
         Path(__file__).with_name("cards.py"),
+        Path(__file__).with_name("fixtures.py"),
+        Path(__file__).with_name("corpus.py"),
+        Path(__file__).with_name("forum_cases.json"),
     ]
     code = {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest() for path in files}
     catalog = copy.deepcopy(cards.CATALOG)
@@ -84,8 +87,11 @@ def comparison_status(plan, current_setup, previous):
         "blindJudges",
         "backgroundProtocolVersion",
         "providerFailureProtocolVersion",
+        "sceneProtocolVersion",
+        "toolFixtureVersion",
         "scene",
         "seed",
+        "corpus",
     )
     differences = [name for name in checked if prior.get(name) != current_setup.get(name)]
     if "generationConditions" not in prior:

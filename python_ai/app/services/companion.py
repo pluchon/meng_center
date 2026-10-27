@@ -244,17 +244,32 @@ class Companion:
         speculative = None
         if getattr(self.models.settings, "speculative", True) and request.message_allowed:
             speculative = asyncio.create_task(self.speak(request, context["emotions"], {}))
+            context["speculative"] = speculative
         try:
             return await self.finish_round(request, context, speculative)
         finally:
             if speculative:
-                # 即使结果废弃也等待计量完成；断开连接则取消，并回收本轮子任务。
-                if asyncio.current_task().cancelling() and not speculative.done():
+                # 回收未采用或中断的请求；已经完成的调用保留原有计量。
+                if not speculative.done():
                     speculative.cancel()
                 await asyncio.gather(speculative, return_exceptions=True)
 
     async def finish_round(self, request, context, speculative):
         directive = await self.agent.run(context)
+        needs_facts = bool(
+            context.get("toolResults")
+            or context["toolUsage"]
+            or directive.facts
+            or directive.mention_memory_id
+        )
+        adopted = (
+            speculative is not None
+            and not needs_facts
+            and directive.label not in {"CRISIS", "SEXUAL", "JAILBREAK"}
+        )
+        if speculative and not adopted:
+            speculative.cancel()
+            await asyncio.gather(speculative, return_exceptions=True)
         instruction = directive.model_dump()
         if context.get("toolResults"):
             instruction["toolResults"] = context["toolResults"]
@@ -286,13 +301,6 @@ class Companion:
             raise ValueError("消息次数用完")
         else:
             try:
-                needs_facts = bool(
-                    context.get("toolResults")
-                    or context["toolUsage"]
-                    or directive.facts
-                    or directive.mention_memory_id
-                )
-                adopted = speculative is not None and not needs_facts
                 if adopted:
                     parsed, sizes = await speculative
                 else:
@@ -355,7 +363,7 @@ class Companion:
                 LOG.warning(
                     "speech_round_failed error_type=%s fields=%s", type(error).__name__, ",".join(fields)
                 )
-                result["bubbles"] = [request.card.get("fallback", "先休息一会儿，喝点水。")]
+                result["bubbles"] = [request.card.get("fallback", "刚才没说清楚，等一下再说。")]
         if speculative:
             await asyncio.gather(speculative, return_exceptions=True)
         current = CURRENT.get()

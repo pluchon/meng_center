@@ -2,12 +2,21 @@ param([switch]$EvaluateModels, [string]$CompareModel, [string]$Baseline,
     [ValidateSet('TSUNDERE', 'GENKI', 'NEKO')][string]$Character, [string]$MavenPath,
     [switch]$SelectMouthModels, [switch]$EvaluateDecisions, [switch]$SmallModelSample, [ValidateRange(0,2147483647)][int]$EvaluationTokenBudget=0,
     [string]$EvaluationBudgetId, [string]$EvaluationOutput,
-    [string]$ChangedVariable, [string]$Catalog)
+    [string]$ChangedVariable, [string]$Catalog, [switch]$Smoke, [switch]$Acceptance,
+    [ValidatePattern('^[a-zA-Z0-9._-]{1,100}$')][string]$EvaluationPhaseId)
 $ErrorActionPreference = 'Stop'
 if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and ($EvaluationTokenBudget -le 0 -or $EvaluationBudgetId -notmatch '^[a-zA-Z0-9._-]{1,100}$')) {
     throw 'Real model evaluations require an explicitly authorized -EvaluationTokenBudget and a fixed -EvaluationBudgetId.'
 }
 if ($SelectMouthModels -and ([bool]$Baseline -ne [bool]$ChangedVariable)) { throw 'Mouth comparisons require both Baseline and ChangedVariable.' }
+if ($SmallModelSample) { throw 'SmallModelSample is no longer allowed; use Smoke for development.' }
+if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and -not ($Smoke -or $Acceptance)) {
+    throw 'Real evaluations require explicit Acceptance; development must use Smoke.'
+}
+if ($Smoke -and (-not $SelectMouthModels -or $Acceptance -or -not $Character -or $CompareModel -or $EvaluationTokenBudget -gt 30000)) {
+    throw 'Smoke requires SelectMouthModels, one Character, current model, and at most 30000 tokens.'
+}
+if (($SelectMouthModels -or $EvaluateModels) -and -not $EvaluationPhaseId) { throw 'EvaluationPhaseId is required.' }
 . "$PSScriptRoot/../deploy/scripts/Environment.ps1"
 Import-MengEnvironment
 foreach ($entry in (Get-MengPorts).GetEnumerator()) {
@@ -33,15 +42,17 @@ try {
     & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_speculative.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_review.py tests/test_retrieval.py tests/test_model_routing.py -q
     if ($LASTEXITCODE -ne 0) { throw 'Companion graph tests failed.' }
     if ($EvaluateModels) {
-        $arguments = @()
+        $arguments = @('--acceptance', '--phase-id', $EvaluationPhaseId)
         if ($CompareModel) { $arguments += @('--compare-model', $CompareModel) }
         if ($Baseline) { $arguments += @('--baseline', $Baseline) }
         if ($Character) { $arguments += @('--character', $Character) }
         & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task companion -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments $arguments
     }
     if ($SelectMouthModels) {
-        $selectionArguments = @()
-        if ($SmallModelSample) { $selectionArguments += '--small-sample' }
+        $selectionArguments = @('--phase-id', $EvaluationPhaseId)
+        if ($Smoke) { $selectionArguments += '--smoke' }
+        if ($Acceptance) { $selectionArguments += '--acceptance' }
+        if ($CompareModel) { $selectionArguments += @('--compare-model', $CompareModel) }
         if ($Baseline) { $selectionArguments += @('--baseline', $Baseline) }
         if ($ChangedVariable) { $selectionArguments += @('--changed-variable', $ChangedVariable) }
         if ($Catalog) { $selectionArguments += @('--catalog', $Catalog) }
@@ -50,6 +61,6 @@ try {
         & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task companion -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments $selectionArguments
     }
     if ($EvaluateDecisions) {
-        & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task decisions -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId
+        & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task decisions -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments @('--acceptance')
     }
 } finally { Pop-Location }

@@ -1,6 +1,7 @@
-param([switch]$EvaluateModels,[string]$Baseline,[switch]$Integration,[switch]$Covers,[int]$EvaluationTokenBudget=0,[string]$EvaluationBudgetId)
+param([switch]$EvaluateModels,[string]$Baseline,[switch]$Integration,[switch]$Covers,[int]$EvaluationTokenBudget=0,[string]$EvaluationBudgetId,[switch]$Acceptance)
 $ErrorActionPreference = 'Stop'
 if($EvaluateModels -and ($EvaluationTokenBudget -le 0 -or $EvaluationBudgetId -notmatch '^[a-zA-Z0-9._-]{1,100}$')) { throw 'Real model evaluations require an authorized token budget and fixed budget id.' }
+if($EvaluateModels -and -not $Acceptance) { throw 'Batch model evaluations require explicit Acceptance.' }
 . "$PSScriptRoot/../deploy/scripts/Environment.ps1"
 Import-MengEnvironment
 foreach($entry in (Get-MengPorts).GetEnumerator()) { [Environment]::SetEnvironmentVariable($entry.Key,[string]$entry.Value,'Process') }
@@ -13,7 +14,7 @@ try {
     & uv run --frozen pytest -q
     if($LASTEXITCODE -ne 0){throw 'AI tests failed.'}
     if($EvaluateModels){
-        $taskEvalArgs=@()
+        $taskEvalArgs=@('--acceptance')
         if($Baseline){$taskEvalArgs+=@('--baseline',$Baseline)}
         & "$PSScriptRoot/Invoke-ModelEvaluation.ps1" -Task station -TokenBudget $EvaluationTokenBudget -BudgetId $EvaluationBudgetId -EvaluationArguments $taskEvalArgs
     }

@@ -6,6 +6,14 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if (-not $Task -or -not $TokenBudget -or -not $BudgetId) { throw 'Task, TokenBudget and BudgetId are required.' }
+if ($Task -eq 'companion') {
+    if ('--smoke' -notin $EvaluationArguments -and '--acceptance' -notin $EvaluationArguments) {
+        throw 'Companion evaluations require --smoke or explicitly authorized --acceptance.'
+    }
+    if ('--phase-id' -notin $EvaluationArguments) { throw 'Companion evaluations require a fixed --phase-id.' }
+} elseif ('--acceptance' -notin $EvaluationArguments) {
+    throw 'Batch model evaluations require explicitly authorized --acceptance.'
+}
 $repository = Split-Path $PSScriptRoot -Parent
 . "$repository/deploy/scripts/Environment.ps1"
 Import-MengEnvironment

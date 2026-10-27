@@ -25,6 +25,131 @@ def test_evaluation_requires_explicit_authorization(limit, ident):
         evaluation_settings(None, SimpleNamespace(token_budget=limit, budget_id=ident))
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        dict(token_budget=30001),
+        dict(character=None),
+        dict(compare_model="deepseek-v4-pro"),
+        dict(acceptance=True),
+        dict(primary_model="deepseek-v4-pro"),
+        dict(small_sample=True),
+        dict(phase_id=""),
+    ],
+)
+def test_smoke_rejects_expansion_before_any_connection(changes):
+    from evals.companion.budget import validate_mode
+
+    values = dict(
+        token_budget=30000,
+        phase_id="one-phase",
+        smoke=True,
+        acceptance=False,
+        compare_model=None,
+        primary_model=None,
+        character="NEKO",
+        small_sample=False,
+        restart_blind=False,
+    )
+    with pytest.raises(ValueError):
+        validate_mode(SimpleNamespace(**(values | changes)))
+
+
+def test_full_evaluation_requires_explicit_acceptance():
+    from evals.companion.budget import validate_mode
+
+    values = dict(phase_id="one-phase", smoke=False, acceptance=False, character=None, small_sample=False)
+    with pytest.raises(ValueError, match="明确验收"):
+        validate_mode(SimpleNamespace(**values))
+    validate_mode(SimpleNamespace(**(values | dict(acceptance=True))))
+
+
+@pytest.mark.parametrize("smoke,resume", [(False, True), (True, False), (False, False)])
+def test_additional_budget_cannot_start_new_run_or_full_evaluation(smoke, resume):
+    from evals.companion.budget import validate_mode
+
+    with pytest.raises(ValueError, match="追加预算"):
+        validate_mode(SimpleNamespace(continue_budget_stop=True, smoke=smoke, resume=resume))
+
+
+async def test_usage_summary_separates_confirmed_tokens_from_unconfirmed_calls():
+    redis = AsyncMock()
+    redis.hgetall.return_value = {
+        "speech:calls": "2",
+        "speech:completed": "1",
+        "speech:input_tokens": "100",
+        "speech:output_tokens": "10",
+        "agent:calls": "1",
+        "agent:completed": "1",
+        "agent:input_tokens": "20",
+        "agent:output_tokens": "5",
+    }
+    redis.get.return_value = "900"
+    gateway = EvaluationGateway(Settings.model_construct(api_key=SecretStr("fixture")), redis, "fixed", 1000)
+    summary = await gateway.usage_summary()
+    assert summary["calls"] == 3 and summary["confirmedTokens"] == 135
+    assert summary["unconfirmedCalls"] == 1 and summary["chargedOrReservedTokens"] == 900
+
+
+def test_blind_sample_is_fixed_and_selects_twenty_per_character():
+    from evals.companion.cards import CARDS
+    from evals.companion.select import blind_samples
+
+    rows = [dict(id=f"{code}-{i}", card=code) for code in CARDS for i in range(35)]
+    first = blind_samples(rows, 42)
+    assert first == blind_samples(list(reversed(rows)), 42)
+    assert first != blind_samples(rows, 43)
+    assert len(first) == len({row["id"] for row in first}) == 60
+    assert all(sum(row["card"] == code for row in first) == 20 for code in CARDS)
+
+
+def test_fixed_clock_matches_time_sensitive_cases_even_when_question_sequence_repeats():
+    from evals.companion.fixtures import scene
+
+    assert "早上八点" in scene(0) and "星期六" in scene(0)
+    assert "凌晨两点" in scene(20) and "晚上七点" in scene(10)
+    assert "早上八点" in scene(30) and scene(30) != scene(0)
+
+
+def test_acceptance_corpus_has_fixed_anonymous_sources_and_shared_clock():
+    from evals.companion.corpus import load_corpus
+    from evals.companion.fixtures import scene
+
+    cases, metadata = load_corpus()
+    assert len(cases) == len({row["id"] for row in cases}) == 35
+    assert len(metadata["sha256"]) == 64
+    assert {row["language"] for row in cases} == {"zh-Hant", "ja"}
+    assert {row["category"] for row in cases} >= {"comfort", "daily", "question", "good_news", "rest"}
+    assert all("http" not in row["text"] and "username" not in row for row in cases)
+    assert "晚上七点" in scene(10, cases[10]["clock"])
+
+
+async def test_recorded_tools_return_success_and_recall_only_existing_history():
+    from test_companion import request
+
+    from app.schemas.companion import Turn
+    from evals.companion.fixtures import RecordedTools
+
+    context = dict(request=request(), images=[], works=[], drawings=[], toolUsage=[])
+    executor = RecordedTools()
+    for name, args in [
+        ("search_posts", dict(query="Vue")),
+        ("web_search", dict(query="天气")),
+        ("search_images", dict(query="风景")),
+        ("make_toy", dict(instruction="计数器")),
+    ]:
+        result = await executor.execute(dict(id=name, name=name, args=args), context)
+        assert result["success"] and result["facts"]
+    call = dict(id="r", name="recall", args=dict(query="城市"))
+    assert not (await executor.execute(call, context))["facts"]
+    context["request"].history = [Turn(role="USER", content="我住在台中，下周要考试。")]
+    assert "台北" not in str((await executor.execute(call, context))["facts"])
+    context["request"].history.append(Turn(role="USER", content="我搬到台北了。"))
+    assert "台北" in str((await executor.execute(call, context))["facts"])
+    assert context["images"] and context["works"]
+    assert all(row["success"] and row["recorded"] for row in context["toolUsage"])
+
+
 async def test_evaluation_limit_is_separate_from_business_gateway():
     redis = AsyncMock()
     redis.exists.return_value = False

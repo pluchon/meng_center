@@ -5,6 +5,24 @@ from statistics import median
 from app.runtime.speech.signals import signals
 
 
+def quality_failures(metrics):
+    """已有目标未达标时结束本次验收，不继续消耗盲评额度。"""
+    failures = []
+    for model, values in metrics.items():
+        latency = values["firstBubbleP50Ms"]
+        if latency is None or latency > 3000:
+            failures.append(dict(model=model, metric="firstBubbleP50Ms", value=latency, target=3000))
+        for code, character in values["characters"].items():
+            if character["kaomojiRatio"] <= 0:
+                failures.append(dict(model=model, character=code, metric="kaomojiRatio", value=0))
+            for tic, measured in character["tics"].items():
+                if measured["frequency"] > measured["target"]:
+                    failures.append(
+                        dict(model=model, character=code, metric="ticFrequency", tic=tic, **measured)
+                    )
+    return failures
+
+
 def summarize(records, card_loader):
     result = {}
     for model, rows in records.items():

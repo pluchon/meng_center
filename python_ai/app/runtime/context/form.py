@@ -8,7 +8,7 @@ def style_feedback(request):
     )[-30:]
     if len(replies) < 5:
         return ""
-    repeated = []
+    repeated, missing = [], []
     for tic in request.card.get("tics", []):
         if not isinstance(tic, dict) or not tic.get("text"):
             continue
@@ -16,11 +16,15 @@ def style_feedback(request):
         projected = (sum(tic["text"] in reply for reply in replies) + 1) / (len(replies) + 1)
         if projected > target:
             repeated.append("“" + tic["text"] + "”")
+        elif target > 0 and sum(tic["text"] in reply for reply in replies) / len(replies) < target / 2:
+            missing.append("“" + tic["text"] + "”")
     lines = []
     if repeated:
         lines.append("这轮用普通语气词代替" + "、".join(repeated) + "，直接接住对方的话。")
+    if missing:
+        lines.append("情绪合适时，可以自然带出" + "、".join(missing) + "，沿用角色卡里的使用场合。")
     kaomoji = request.card.get("kaomoji", [])
-    if kaomoji and not any(item in reply for item in kaomoji for reply in replies):
+    if kaomoji and not any(item in reply for item in kaomoji for reply in replies[-5:]):
         lines.append("轻松回应时，可以用角色常用的颜文字表达心情。")
     return "".join(lines)
 

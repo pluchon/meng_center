@@ -1,0 +1,393 @@
+{
+  "version": "20261027.1",
+  "description": "公开论坛匿名短发言组成的合成会话；不代表同一真实用户，不保留作者及个人信息。",
+  "sources": [
+    {
+      "id": "tw-energy",
+      "site": "dcard.tw",
+      "language": "zh-Hant"
+    },
+    {
+      "id": "tw-happy",
+      "site": "dcard.tw",
+      "language": "zh-Hant"
+    },
+    {
+      "id": "tw-tired",
+      "site": "dcard.tw",
+      "language": "zh-Hant"
+    },
+    {
+      "id": "tw-friend",
+      "site": "dcard.tw",
+      "language": "zh-Hant"
+    },
+    {
+      "id": "tw-exam",
+      "site": "dcard.tw",
+      "language": "zh-Hant"
+    },
+    {
+      "id": "tw-misunderstood",
+      "site": "dcard.tw",
+      "language": "zh-Hant"
+    },
+    {
+      "id": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja"
+    }
+  ],
+  "cases": [
+    {
+      "id": "forum-00",
+      "text": "早上好呀。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "greeting",
+      "clock": "早上八点"
+    },
+    {
+      "id": "forum-01",
+      "text": "今天準時下班",
+      "sourceId": "tw-happy",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "good_news",
+      "clock": "下午六点"
+    },
+    {
+      "id": "forum-02",
+      "text": "跟一只流浪猫熟起来了，玩完还是得洗手。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-03",
+      "text": "好累提不起勁",
+      "sourceId": "tw-energy",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "comfort",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-04",
+      "text": "明明没怎么熬夜，还是睡过头了。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "complaint",
+      "clock": "早上九点"
+    },
+    {
+      "id": "forum-05",
+      "text": "最後是過了哈哈",
+      "sourceId": "tw-exam",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "good_news",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-06",
+      "text": "真的不想被朋友討厭啊啊啊",
+      "sourceId": "tw-friend",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "comfort",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-07",
+      "text": "我喜欢这里可以轻松聊天的感觉。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-08",
+      "text": "跟朋友聚在一起很快樂",
+      "sourceId": "tw-happy",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "good_news",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-09",
+      "text": "这个软糖真好吃。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-10",
+      "text": "晚上好呀。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "greeting",
+      "clock": "晚上七点"
+    },
+    {
+      "id": "forum-11",
+      "text": "下班就莫名很累",
+      "sourceId": "tw-tired",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "complaint",
+      "clock": "下午六点"
+    },
+    {
+      "id": "forum-12",
+      "text": "你自己试试看嘛。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-13",
+      "text": "被誤會如何釋懷",
+      "sourceId": "tw-misunderstood",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "question",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-14",
+      "text": "今天想听点开心的事情，来聊聊轻松的话题吧。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "comfort",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-15",
+      "text": "騎車出去玩",
+      "sourceId": "tw-energy",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-16",
+      "text": "什么都没做，一上午就过去了。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "complaint",
+      "clock": "中午十二点"
+    },
+    {
+      "id": "forum-17",
+      "text": "超開心🥳",
+      "sourceId": "tw-exam",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "good_news",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-18",
+      "text": "大家辛苦啦，值夜班的也加油呀。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "晚上七点"
+    },
+    {
+      "id": "forum-19",
+      "text": "不用加班",
+      "sourceId": "tw-tired",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "good_news",
+      "clock": "下午六点"
+    },
+    {
+      "id": "forum-20",
+      "text": "怎么啦？",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "question",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-21",
+      "text": "好人一生平安",
+      "sourceId": "tw-friend",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-22",
+      "text": "就一天而已，应该也没什么吧？",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "question",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-23",
+      "text": "最近的生活搞得我沒辦法喘氣",
+      "sourceId": "tw-energy",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "comfort",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-24",
+      "text": "确实是这样呢。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-25",
+      "text": "考試考好很快樂",
+      "sourceId": "tw-happy",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "good_news",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-26",
+      "text": "周一真让人难过啊。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "complaint",
+      "clock": "早上九点"
+    },
+    {
+      "id": "forum-27",
+      "text": "只想回家睡覺",
+      "sourceId": "tw-tired",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "rest",
+      "clock": "晚上九点"
+    },
+    {
+      "id": "forum-28",
+      "text": "感觉什么都没做，一天就结束了。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "complaint",
+      "clock": "晚上九点"
+    },
+    {
+      "id": "forum-29",
+      "text": "真的好委屈",
+      "sourceId": "tw-misunderstood",
+      "site": "dcard.tw",
+      "language": "zh-Hant",
+      "adaptation": "繁体原文短摘",
+      "category": "comfort",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-30",
+      "text": "好，今天决定出门喝一杯。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "晚上七点"
+    },
+    {
+      "id": "forum-31",
+      "text": "刚看的那个勇者故事还挺有意思的。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "daily",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-32",
+      "text": "早上好，又没能按时起床。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "greeting",
+      "clock": "早上九点"
+    },
+    {
+      "id": "forum-33",
+      "text": "感觉好可惜啊。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "complaint",
+      "clock": "下午三点"
+    },
+    {
+      "id": "forum-34",
+      "text": "数羊数到天文数字了，我去睡啦，晚安。",
+      "sourceId": "ja-chat",
+      "site": "reddit.com/r/lowlevelaware",
+      "language": "ja",
+      "adaptation": "中文口语改写",
+      "category": "rest",
+      "clock": "晚上十点"
+    }
+  ]
+}
