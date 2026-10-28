@@ -83,6 +83,58 @@ def test_official_cache_usage_preserves_total_and_cached_tokens():
     )
 
 
+@pytest.mark.parametrize("purpose,model,explicit", [
+    ("agent", "qwen3.8-flash", True), ("judge", "qwen3.8-flash", False),
+    ("speech", "deepseek-flash", False), ("agent", "other-model", False),
+])
+async def test_explicit_cache_wire_format_preserves_messages_and_tool_definitions(purpose, model, explicit):
+    import json
+
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    settings = Settings.model_construct(
+        api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture")
+    )
+    redis = AsyncMock()
+    redis.exists.return_value = False
+    redis.eval.return_value = 1
+    captured = []
+
+    def respond(request):
+        captured.append(json.loads(request.content))
+        return httpx.Response(200, json=dict(
+            id="offline", object="chat.completion", created=0, model=model,
+            choices=[dict(index=0, finish_reason="stop", message=dict(role="assistant", content="收到。"))],
+            usage=dict(prompt_tokens=1700, completion_tokens=1, total_tokens=1701,
+                       prompt_tokens_details=dict(cached_tokens=1000, cache_creation_input_tokens=500)),
+        ))
+
+    messages = [SystemMessage("固定审核规则。" * 300), HumanMessage("原始用户输入")]
+    tools = [dict(type="function", function=dict(name="read_post", description="读取帖子",
+                 parameters=dict(type="object", properties={}, required=[])))]
+    async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as client:
+        gateway = ModelGateway(settings, redis)
+        chat = GatewayChatOpenAI(model=model, api_key="fixture", base_url="https://offline.invalid/v1",
+                                 http_async_client=client, max_retries=0).configure_gateway(gateway, purpose)
+        await chat.bind_tools(tools).ainvoke(messages)
+    first = captured[0]["messages"][0]["content"]
+    assert first == ([dict(type="text", text=messages[0].content,
+                          cache_control=dict(type="ephemeral"))] if explicit else messages[0].content)
+    assert captured[0]["messages"][1] == dict(role="user", content="原始用户输入")
+    assert captured[0]["tools"] == tools
+    assert isinstance(messages[0].content, str)
+
+
+def test_cache_creation_usage_is_preserved_separately_from_actual_cache_hits():
+    result = ChatResult(generations=[ChatGeneration(message=AIMessage(
+        content="收到。", usage_metadata=dict(input_tokens=1700, output_tokens=1, total_tokens=1701,
+                                             input_token_details=dict(cache_read=1000)),
+    ))], llm_output=dict(token_usage=dict(prompt_tokens_details=dict(cache_creation_input_tokens=500))))
+    usage = GatewayChatOpenAI.chat_usage(result)
+    assert usage["input_tokens"] == 1700 and usage["output_tokens"] == 1
+    assert usage["input_token_details"] == dict(cache_read=1000, cache_creation=500)
+
+
 @pytest.mark.parametrize("size,expected", [(1000, False), (7000, True)])
 async def test_speech_reports_full_request_window_pressure(monkeypatch, size, expected):
     settings = Settings.model_construct(

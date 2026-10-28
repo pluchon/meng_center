@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableLambda
 from langchain_openai import ChatOpenAI
 from pydantic import PrivateAttr
@@ -107,6 +108,7 @@ class ModelGateway:
             output=outgoing,
             cached=cached,
             cachedTokens=cached,
+            cacheCreationTokens=int(usage.get("input_token_details", {}).get("cache_creation", 0)),
             elapsedMs=round(elapsed * 1000),
             cost=(
                 (incoming - cached + cached * self.settings.cached_price_ratio)
@@ -241,7 +243,27 @@ class GatewayChatOpenAI(ChatOpenAI):
                 **usage.get("input_token_details", {}),
                 "cache_read": int(raw["prompt_cache_hit_tokens"]),
             }
+        created = (raw.get("prompt_tokens_details") or {}).get("cache_creation_input_tokens")
+        if created is not None:
+            usage["input_token_details"] = {
+                **usage.get("input_token_details", {}), "cache_creation": int(created),
+            }
         return usage
+
+    def cached_messages(self, model, messages):
+        # 只为已确认支持显式缓存的主决策模型标记稳定规则；不缓存滚动窗口或修改正文。
+        if (
+            self._purpose != "agent" or model != "qwen3.8-flash" or not messages
+            or not isinstance(messages[0], SystemMessage)
+            or not isinstance(messages[0].content, str)
+            or tokens(messages[0].content) < 1024
+        ):
+            return messages
+        stable = messages[0].model_copy(update={"content": [{
+            "type": "text", "text": messages[0].content,
+            "cache_control": {"type": "ephemeral"},
+        }]})
+        return [stable, *messages[1:]]
 
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
         retries = kwargs.pop("_runtime_retries", 1)
@@ -252,14 +274,16 @@ class GatewayChatOpenAI(ChatOpenAI):
             raise ModelUnavailable("请求超过模型上下文窗口，需要先压缩历史")
 
         def operation(model):
+            request_messages = self.cached_messages(model, messages)
+
             async def invoke(_):
                 async def call():
                     if model in self._clients:
                         return await self._clients[model]._agenerate(
-                            messages, stop=stop, run_manager=run_manager, **kwargs
+                            request_messages, stop=stop, run_manager=run_manager, **kwargs
                         )
                     return await super(GatewayChatOpenAI, self)._agenerate(
-                        messages, stop=stop, run_manager=run_manager, **kwargs
+                        request_messages, stop=stop, run_manager=run_manager, **kwargs
                     )
 
                 return await self._gateway.invoke(
