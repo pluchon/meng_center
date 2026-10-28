@@ -81,6 +81,24 @@ async def test_rewrite_preserves_user_facts_and_does_not_turn_feedback_into_new_
     value.models.speech.ainvoke.assert_awaited_once()
 
 
+async def test_compact_review_keeps_reply_current_input_and_tool_evidence():
+    value = service()
+    chain = SimpleNamespace(ainvoke=AsyncMock(return_value=Judgment(safe=True, character=8, artificial=1)))
+    value.tasks = SimpleNamespace(output=lambda _: chain)
+    body = request(content="那篇帖子的结论呢？", recent_replies=["之前的回复。"] * 10)
+    directive = dict(
+        facts=[dict(content="帖子讨论动画配色", source="tool:post-1")],
+        toolResults=[dict(name="read_post", id="post-1", facts=["帖子讨论动画配色"])],
+        imageNote="蓝色圆形",
+    )
+    await Companion.judge(value, body, [], directive, Parsed(bubbles=["主要讨论配色。"]))
+    current = chain.ainvoke.await_args.args[0][-1].content[0]["text"]
+    for evidence in (body.content, "主要讨论配色。", "帖子讨论动画配色", "tool:post-1", "蓝色圆形"):
+        assert evidence in current
+    assert "openingCount" in current and "trigramOverlap" in current
+    assert "firstHalf" not in current and "secondHalf" not in current
+
+
 async def test_pre_round_embedding_usage_is_kept_without_another_model_call():
     value = service()
     call = {"purpose": "embedding", "input": 12, "output": 0, "cached": 0}

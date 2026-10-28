@@ -4,6 +4,8 @@ from pydantic import Field
 
 from app.schemas.models import Schema
 
+VERSION = "20261028.10"
+
 
 class Judgment(Schema):
     """通过时只填safe、character、artificial，其余字段省略。"""

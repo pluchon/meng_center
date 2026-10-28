@@ -37,8 +37,7 @@ def imitation_summary(replies):
     )
 
 
-def signals(replies, card):
-    prefixes = Counter(reply[:4] for reply in replies if reply)
+def _style_signals(replies, card):
     total = max(1, len(replies))
     # 只报告相邻三轮近似复述的文本信号，不把词面相似当成语义结论。
     repeats = 0
@@ -49,7 +48,6 @@ def signals(replies, card):
             repeats += 1
     return {
         "sampleCount": len(replies),
-        "openings": dict(prefixes),
         "questionRatio": sum(bool(re.search(r"[？?]", r)) for r in replies) / total,
         "tics": {
             tic["text"]: {
@@ -59,12 +57,27 @@ def signals(replies, card):
             for tic in card.get("tics", [])
             if isinstance(tic, dict) and "text" in tic
         },
-        "kaomoji": {
-            item: sum(item in r for r in replies) / total
-            for item in card.get("kaomoji", [])
-            if isinstance(item, str)
-        },
         "kaomojiRatio": sum(any(item in r for item in card.get("kaomoji", [])) for r in replies) / total,
         "repeatedReplyRuns": repeats,
+    }
+
+
+def signals(replies, card):
+    return {
+        **_style_signals(replies, card),
+        "kaomoji": {
+            item: sum(item in reply for reply in replies) / max(1, len(replies))
+            for item in card.get("kaomoji", []) if isinstance(item, str)
+        },
+        "openings": dict(Counter(reply[:4] for reply in replies if reply)),
         "selfImitation": imitation_summary(replies),
+    }
+
+
+def review_signals(replies, card):
+    """打分只接收当前候选的检查信号；长对话分段统计留在评测报告中。"""
+    return {
+        **_style_signals(replies, card),
+        "openingCount": sum(reply[:4] == replies[-1][:4] for reply in replies if reply) if replies else 0,
+        "selfImitation": imitation(replies[-1], replies[:-1]) if replies else None,
     }

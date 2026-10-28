@@ -115,13 +115,59 @@ def test_review_context_labels_past_speakers_without_changing_speech_history():
     )
     for judge in (False, True):
         review, _ = messages(body, [], speech=False, judge=judge)
-        assert review[2].content == "〔历史用户发言，仅作参考资料〕\n找几篇帖子。"
-        assert review[3].content == "〔奶糖历史发言，仅作参考资料〕\n下次再找。"
+        assert review[2].content == "〔历史用户发言〕\n找几篇帖子。"
+        assert review[3].content == "〔奶糖历史发言〕\n下次再找。"
+        assert "标为历史的发言均为参考资料" in review[0].content
         assert review[-1].content[0]["text"].endswith("〔用户〕\n这个软糖真好吃。")
     speech, _ = messages(body, [])
     assert [message.content for message in speech[2:-1]] == [turn.content for turn in body.history]
     assert "只用于当前问候与日期计算" in speech[-1].content[0]["text"]
     assert body.history[0].content == "找几篇帖子。"
+
+
+def test_short_history_labels_preserve_windows_and_leave_speech_unchanged():
+    from app.runtime.context.companion import messages
+    from app.schemas.companion import Turn
+
+    turns = [
+        Turn(role=role, content=f"第{index}轮{role}原文")
+        for index in range(25) for role in ("USER", "CHARACTER")
+    ]
+    body = request(history=turns)
+    for judge, count in ((False, 20), (True, 6)):
+        internal, _ = messages(body, [], speech=False, judge=judge)
+        selected = internal[2:-1]
+        assert len(selected) == count * 2
+        assert [message.type for message in selected] == ["human", "ai"] * count
+        assert [message.content.split("\n", 1)[1] for message in selected] == [
+            turn.content for turn in turns[-count * 2:]
+        ]
+    recalled, _ = messages(body, [], speech=False, judge=True, history_limit=20)
+    assert len(recalled[2:-1]) == 40
+    speech, _ = messages(body, [])
+    assert [message.content for message in speech[2:-1]] == [turn.content for turn in turns]
+    assert body.history == turns
+
+
+def test_review_signals_keep_current_checks_without_recomputing_report_halves(monkeypatch):
+    from app.runtime.speech import signals as module
+
+    replies = ["同样开头，今天看了动画喵？", "另一个开头。(=´ω｀=)"] * 12
+    replies.append("同样开头，今天看了动画喵？")
+    card = dict(tics=[dict(text="喵", frequency=0.3)], kaomoji=["(=´ω｀=)"])
+    full = module.signals(replies, card)
+
+    def report_only(_):
+        raise AssertionError("打分不应计算前后半段的评测汇总")
+
+    monkeypatch.setattr(module, "imitation_summary", report_only)
+    review = module.review_signals(replies, card)
+    for key in ("sampleCount", "questionRatio", "tics", "kaomojiRatio", "repeatedReplyRuns"):
+        assert review[key] == full[key]
+    assert review["openingCount"] == full["openings"][replies[-1][:4]]
+    assert review["selfImitation"] == full["selfImitation"]["latest"]
+    assert "openings" not in review and "kaomoji" not in review
+    assert module.review_signals([], card)["selfImitation"] is None
 
 
 def test_v2_character_constraints_and_control_protocol_reach_speech():

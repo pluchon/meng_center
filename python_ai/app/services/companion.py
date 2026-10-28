@@ -20,7 +20,7 @@ from app.runtime.models.gateway import CURRENT, RoundUsage
 from app.runtime.safety.judge import PROMPT, Judgment
 from app.runtime.safety.redline import crosses_red_line, has_contact
 from app.runtime.speech.parse import parse
-from app.runtime.speech.signals import signals
+from app.runtime.speech.signals import review_signals
 from app.runtime.speech.slop import signals as slop_signals
 from app.runtime.tasks.structured import TaskRuntime
 from app.runtime.tools.executor import Executor
@@ -106,7 +106,7 @@ class Companion:
         instruction = "待核对的内部依据：" + text(directive)
         instruction += "\n回复：" + "\n\n".join(parsed.bubbles)
         instruction += "\n复读信号（包括当前候选）：" + text(
-            signals(
+            review_signals(
                 [
                     *(
                         request.recent_replies

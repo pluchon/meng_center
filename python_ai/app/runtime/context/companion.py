@@ -17,7 +17,7 @@ def history(request, limit=None, *, reference=False):
     for turn in turns:
         kind = HumanMessage if turn.role == "USER" else AIMessage
         label = "历史用户发言" if turn.role == "USER" else "奶糖历史发言"
-        content = f"〔{label}，仅作参考资料〕\n{turn.content}" if reference else turn.content
+        content = f"〔{label}〕\n{turn.content}" if reference else turn.content
         messages.append(kind(content))
     return messages
 

@@ -3,6 +3,7 @@ from dataclasses import dataclass, replace
 from app.config.settings import TaskOptions
 from app.prompts.companion import VERSION as COMPANION_VERSION
 from app.prompts.templates import VERSION
+from app.runtime.safety.judge import VERSION as REPLY_JUDGE_VERSION
 from app.runtime.safety.judge import Judgment
 from app.runtime.tools.facts import ToolFacts
 from app.schemas.companion import Consolidation, ConsolidationReview, SessionSummary, SummaryReview
@@ -69,7 +70,7 @@ TASKS = {
         "judge", SummaryReview, version=COMPANION_VERSION, evaluation="tests/test_companion_review.py"
     ),
     "reply_judge": TaskSpec(
-        "judge", Judgment, version=COMPANION_VERSION, compact=True, evaluation="tests/test_companion.py"
+        "judge", Judgment, version=REPLY_JUDGE_VERSION, compact=True, evaluation="tests/test_companion.py"
     ),
     "tool_facts": TaskSpec(
         "judge", ToolFacts, version=COMPANION_VERSION, evaluation="tests/test_naitang_tools.py"
