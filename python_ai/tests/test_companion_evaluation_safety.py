@@ -79,6 +79,29 @@ def test_agent_replay_can_diagnose_a_failed_round_without_a_complete_result():
     assert source["records"]["deepseek-flash"][0]["result"] is None
 
 
+async def test_failed_evaluation_preserves_raw_agent_output_and_already_charged_calls():
+    from langchain_core.messages import AIMessage
+    from test_companion import factory, request
+
+    from app.runtime.safety.judge import Judgment
+    from app.runtime.speech.parse import Parsed
+    from evals.companion.fixtures import RecordedCompanion
+
+    models = factory()
+    models.agent.messages = iter([AIMessage(content="没有使用结构化工具")])
+    service = RecordedCompanion(SimpleNamespace(models=models), None)
+    service.emotions = AsyncMock(return_value=[])
+    service.speak = AsyncMock(return_value=(Parsed(bubbles=["早上好。"]), {}))
+    service.judge = AsyncMock(return_value=Judgment(safe=True, character=8, artificial=1))
+    prior = [dict(purpose="embedding", input=7, output=0)]
+    events = [event async for event in service.stream(request(prior_calls=prior))]
+    assert events[-1] == dict(event="error", data=dict(code="AI_UNAVAILABLE"))
+    assert any(row["phase"] == "agent_model" and row["content"] == "没有使用结构化工具"
+               for row in service.generation_trace)
+    failed = next(row for row in service.generation_trace if row["phase"] == "runtime_error")
+    assert failed["calls"] == prior and failed["directiveIssues"] == []
+
+
 @pytest.mark.parametrize("rejected,expected_rejection", [(False, False), (True, True), (True, False)])
 async def test_review_only_calls_judge_and_preserves_expected_rejection(
     monkeypatch, tmp_path, rejected, expected_rejection

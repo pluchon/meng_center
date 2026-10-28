@@ -2,8 +2,11 @@
 
 from datetime import date, timedelta
 
+from langchain_core.callbacks import BaseCallbackHandler
+
 from app.runtime.context.card import memory_text
 from app.runtime.context.segments import text
+from app.runtime.models.gateway import CURRENT
 from app.runtime.tools.registry import TOOLS
 from app.services.companion import Companion
 
@@ -14,6 +17,23 @@ class RecordedCompanion(Companion):
     def __init__(self, *args):
         super().__init__(*args)
         self.generation_trace = []
+        self.round_context = {}
+
+    async def context(self, request):
+        context = await super().context(request)
+        context["callbacks"] = [AgentTrace(self.generation_trace)]
+        self.round_context = context
+        return context
+
+    async def stream(self, request):
+        async for event in super().stream(request):
+            if event["event"] == "error":
+                current = CURRENT.get()
+                self.generation_trace.append(dict(
+                    phase="runtime_error", calls=list(current.calls) if current else [],
+                    directiveIssues=self.round_context.get("directiveIssues", []),
+                ))
+            yield event
 
     async def speak(self, *args, **kwargs):
         try:
@@ -32,6 +52,26 @@ class RecordedCompanion(Companion):
             raise
         self.generation_trace.append(dict(phase="judge", result=result.model_dump(by_alias=True)))
         return result
+
+
+class AgentTrace(BaseCallbackHandler):
+    """只供合成评测保留原始模型输出，业务运行时不记录正文。"""
+
+    def __init__(self, trace):
+        self.trace = trace
+
+    def on_llm_end(self, response, **kwargs):
+        self.trace.extend(
+            dict(phase="agent_model", content=row.message.content,
+                 toolCalls=row.message.tool_calls, invalidToolCalls=row.message.invalid_tool_calls,
+                 finishReason=row.message.response_metadata.get("finish_reason"))
+            for batch in response.generations for row in batch
+        )
+
+    def on_chain_error(self, error, **kwargs):
+        item = dict(phase="agent_error", errorType=type(error).__name__)
+        if item not in self.trace:
+            self.trace.append(item)
 
 
 def scene(index, clock=None):
