@@ -22,6 +22,12 @@ def quality_failures(metrics):
         latency = values["firstBubbleP50Ms"]
         if latency is None or latency > 3000:
             failures.append(dict(model=model, metric="firstBubbleP50Ms", value=latency, target=3000))
+        for purpose, cache in values.get("cache", {}).items():
+            if cache["ratio"] is None or cache["ratio"] < cache["target"]:
+                failures.append(dict(
+                    model=model, metric="cacheHitRatio", purpose=purpose,
+                    value=cache["ratio"], target=cache["target"],
+                ))
         for code, character in values["characters"].items():
             if character["kaomojiRatio"] <= 0:
                 failures.append(dict(model=model, character=code, metric="kaomojiRatio", value=0))
@@ -31,6 +37,26 @@ def quality_failures(metrics):
                         dict(model=model, character=code, metric="ticFrequency", tic=tic, **measured)
                     )
     return failures
+
+
+def cache_summary(rows):
+    """按实际输入 token 加权；嘴限定连续十轮的第二至十轮，判断侧统计全部轮次。"""
+    result = {}
+    for purpose in ("speech", "agent", "judge"):
+        selected = rows[1:10] if purpose == "speech" else rows
+        calls = [
+            call for row in selected
+            for call in (row.get("result") or {}).get("metrics", {}).get("calls", [])
+            if call["purpose"] == purpose
+        ]
+        inputs = sum(call.get("input", 0) for call in calls)
+        cached = sum(call.get("cached", 0) for call in calls)
+        result[purpose] = dict(
+            calls=len(calls), inputTokens=inputs, cachedTokens=cached,
+            ratio=cached / inputs if inputs else None,
+            target=0.7 if purpose == "speech" else 0.6,
+        )
+    return result
 
 
 def summarize(records, card_loader):
@@ -86,6 +112,7 @@ def summarize(records, card_loader):
             speculativeStarted=started,
             speculativeAdopted=adopted,
             speculativeAdoptionRatio=adopted / started if started else None,
+            cache=cache_summary(normal),
             characters=characters,
         )
     return result

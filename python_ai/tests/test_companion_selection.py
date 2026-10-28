@@ -19,6 +19,43 @@ from evals.companion.select import (
 )
 
 
+def test_cache_acceptance_weights_tokens_and_keeps_cold_round_out_of_speech_target():
+    from evals.companion.metrics import cache_summary, quality_failures
+
+    def row(speech_input, speech_cached):
+        return dict(result=dict(metrics=dict(calls=[
+            dict(purpose="speech", input=speech_input, cached=speech_cached),
+            dict(purpose="agent", input=1000, cached=600),
+            dict(purpose="judge", input=1000, cached=500),
+        ])))
+
+    rows = [row(10000, 0), row(100, 100), row(900, 600)]
+    cache = cache_summary(rows)
+    assert cache["speech"]["ratio"] == 0.7
+    assert cache["agent"]["ratio"] == 0.6
+    assert cache["judge"]["ratio"] == 0.5
+    failures = quality_failures(dict(flash=dict(
+        firstBubbleP50Ms=2000, characters={}, cache=cache,
+    )))
+    assert failures == [dict(
+        model="flash", metric="cacheHitRatio", purpose="judge", value=0.5, target=0.6,
+    )]
+    assert cache_summary([*rows[:1], *[row(100, 70) for _ in range(9)], row(90000, 0)])[
+        "speech"
+    ]["ratio"] == 0.7
+
+
+def test_cache_without_input_is_unknown_and_cannot_pass_acceptance():
+    from evals.companion.metrics import cache_summary, quality_failures
+
+    cache = cache_summary([dict(result=dict(metrics=dict(calls=[])))])
+    assert all(value["ratio"] is None for value in cache.values())
+    failures = quality_failures(dict(flash=dict(
+        firstBubbleP50Ms=2000, characters={}, cache=cache,
+    )))
+    assert {row["purpose"] for row in failures} == {"speech", "agent", "judge"}
+
+
 @pytest.mark.parametrize("limit,ident", [(0, "id"), (10, None), (10, "../id")])
 def test_evaluation_requires_explicit_authorization(limit, ident):
     with pytest.raises(ValueError):

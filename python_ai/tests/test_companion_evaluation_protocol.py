@@ -319,7 +319,9 @@ def test_generation_fingerprint_allows_only_voice_tics_kaomoji_and_character_lin
 
 
 @pytest.mark.parametrize(
-    "mode", ["smoke", "single", "comparison", "failed", "interrupted", "metrics", "budget", "unexpected"]
+    "mode", [
+        "smoke", "single", "comparison", "failed", "interrupted", "metrics", "cache", "budget", "unexpected",
+    ]
 )
 async def test_selection_end_to_end_enforces_scale_and_judging_without_external_calls(
     monkeypatch, tmp_path, mode
@@ -357,7 +359,12 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
                     bubbles=[request.character, request.card["kaomoji"][0]],
                     toolUsage=[dict(name="search_posts")] if mode == "unexpected" else [],
                     metrics=dict(
-                        unsupported=0, artificial=1, firstBubbleMs=4000 if mode == "metrics" else 100
+                        unsupported=0, artificial=1, firstBubbleMs=4000 if mode == "metrics" else 100,
+                        calls=[dict(
+                            purpose=purpose, input=1000,
+                            cached=500 if mode == "cache" and purpose == "judge" else 700,
+                            output=40,
+                        ) for purpose in ("speech", "agent", "judge")],
                     ),
                 ),
             )
@@ -406,11 +413,16 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
             await select.run(args)
         assert len(generated) == 1
         return
-    if mode == "metrics":
+    if mode in {"metrics", "cache"}:
         assert await select.run(args) == 1
         report = json.loads(output.read_text(encoding="utf-8"))
         assert report["stoppedReason"] == "MetricsNotMet" and not report["complete"]
         assert not calls and len(generated) == 35 and report["qualityFailures"]
+        if mode == "cache":
+            assert report["qualityFailures"] == [dict(
+                model="deepseek-flash", metric="cacheHitRatio", purpose="judge",
+                value=0.5, target=0.6,
+            )]
         return
     await select.run(args)
     report = json.loads(output.read_text(encoding="utf-8"))
