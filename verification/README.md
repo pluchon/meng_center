@@ -66,6 +66,8 @@ npm --prefix verification ci
 
 仓库主人明确批准超出本期次数时，额外报告须逐份登记到原本期 `acceptance:authorized-reports` 哈希；字段沿用报告绝对路径与原预算键的摘要，值记录批准内容、原失败报告哈希和累计额度。登记只对指定报告生效，首次启动时原子消费并保存在原次数记录中；不能清空次数、扩大通用上限或更换授权编号。
 
+已保存的多轮工具误用可用决策参数 `--case conversation --conversation-report <原失败报告>` 定位。只读取成功前文与末轮原输入，不重新生成嘴的回复，也不重新评分旧回复；报告记录源文件 SHA-256 和轮次编号。这个入口仍受本期次数和原累计预算约束，失败后必须等仓库主人决定，不能自动复测。
+
 重排离线检查：在 `python_ai/` 执行 `uv run --frozen pytest tests/test_retrieval_calibration.py -q`。已有真实分数后，用 `uv run --frozen python -m evals.retrieval.calibrate --scores <原报告.json> --model <原模型名> --output <新报告.json>` 生成建议，不调用模型、不修改配置。采集分数必须等仓库主人授权验收，在既有 `Invoke-ModelEvaluation.ps1 -Task station` 的 `-EvaluationArguments` 中加入 `--with-retrieval`；36 次重排请求共用该批次的授权编号、预算、本期次数与检查点，失败即停，不另开批次规避限制。
 
 仓库主人明确追加冒烟预算后，可在 `Invoke-ModelEvaluation.ps1` 的 `-EvaluationArguments` 中同时指定 `--resume --continue-budget-stop --output <原报告>`。仅允许续接因 `EvaluationLimit` 停止、没有待确认请求、且末轮没有完整回复的原报告。此时 `-TokenBudget` 表示本次新增额度，仍不超过 30000；历史扣减和未确认调用的预留继续累计，成功回复不重新生成，原未完成尝试保存在该轮的 `attempts`，报告的 `continuations` 保留追加前状态。这个开关不能用于完整评测或重试已有失败回复。

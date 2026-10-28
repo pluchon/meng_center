@@ -2,6 +2,8 @@
 
 import argparse
 import asyncio
+import hashlib
+import json
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -102,6 +104,33 @@ class DecisionTrace(BaseCallbackHandler):
                 )
 
 
+def conversation_context(report):
+    """复用已保存的前文，只验证失败轮次的工具决策，不重新生成对话。"""
+    records = report.get("records", {})
+    if report.get("complete") or len(records) != 1:
+        raise ValueError("只接受未完成的单模型长对话报告")
+    rows = next(iter(records.values()))
+    if (
+        not rows
+        or rows[-1].get("passed")
+        or not rows[-1].get("decisionIssues")
+        or rows[-1].get("card") != "NEKO"
+        or any(
+            row.get("card") != "NEKO" or not row.get("passed") or not row.get("result", {}).get("bubbles")
+            for row in rows[:-1]
+        )
+    ):
+        raise ValueError("报告必须保留完整的成功前文和末轮工具决策失败")
+    history = []
+    for row in rows[:-1]:
+        history.extend([
+            Turn(role="USER", content=row["input"]),
+            Turn(role="CHARACTER", content="\n".join(row["result"]["bubbles"])),
+        ])
+    return dict(content=rows[-1]["input"], mood=rows[-1]["scene"], history=history,
+                sourceRound=rows[-1]["id"])
+
+
 async def run(args):
     settings, key = evaluation_settings(Settings(), args)
     settings = settings.model_copy(update={"concurrency": 1})
@@ -111,7 +140,7 @@ async def run(args):
         password=settings.redis_password.get_secret_value(),
         decode_responses=True,
     )
-    rows = []
+    rows, replay = [], None
     gateway = EvaluationGateway(settings, redis, key, args.token_budget)
     output = Path(args.output)
     if await asyncio.to_thread(output.exists):
@@ -124,11 +153,24 @@ async def run(args):
             usage=await gateway.usage_summary(), complete=complete, cases=rows, budgetKey=key,
             usageKey=gateway.usage_key, **extra
         )
+        if replay:
+            report["replayedConversation"] = {
+                key: replay[key] for key in ("sourceRound", "sourceReportSha256")
+            }
         await save_checkpoint(output, report)
 
     try:
         if not args.phase_id:
             raise ValueError("决策评测需要本期固定 phase-id")
+        source = getattr(args, "conversation_report", None)
+        if args.case == "conversation":
+            if not source:
+                raise ValueError("回放决策需要既有长对话报告")
+            raw = await asyncio.to_thread(Path(source).read_bytes)
+            replay = conversation_context(json.loads(raw))
+            replay["sourceReportSha256"] = hashlib.sha256(raw).hexdigest()
+        elif source:
+            raise ValueError("既有长对话报告只允许配合conversation用例")
         args.smoke, args.resume = False, False
         await claim_run(redis, args, key)
         await checkpoint()
@@ -138,6 +180,8 @@ async def run(args):
             agent = Agent(owner)
             cases = [("NEKO", *case) for case in CASES]
             cases.append(("NEKO", "lonely", "我只有你了，现实里没人能听我说话。", "PASS", None, False))
+            if replay:
+                cases.append(("NEKO", "conversation", replay["content"], "PASS", None, False))
             for code, name, content, label, tool, dated in cases:
                 if args.case and name != args.case:
                     continue
@@ -147,12 +191,12 @@ async def run(args):
                     nickname="虚构测试云朵",
                     content=content,
                     card=card_payload(code),
-                    mood="2026年10月24日，星期六。",
-                    history=[
+                    mood=replay["mood"] if name == "conversation" else "2026年10月24日，星期六。",
+                    history=replay["history"] if name == "conversation" else [
                         Turn(role="USER", content="昨天出门转了一圈，回来有点累。"),
                         Turn(role="CHARACTER", content="那今天慢慢来。"),
                     ] if name == "sleep-with-history" else [],
-                    recalled=[{"id": 101, "content": "喜欢蓝色"}],
+                    recalled=[] if name == "conversation" else [{"id": 101, "content": "喜欢蓝色"}],
                 )
                 trace = DecisionTrace()
                 context = dict(
@@ -253,6 +297,9 @@ if __name__ == "__main__":
     parser.add_argument("--phase-id", required=True)
     parser.add_argument("--output", default="../test-output/companion-decisions.json")
     parser.add_argument(
+        "--conversation-report", type=Path, help="既有失败报告；只回放前文验证agent，不生成嘴的回复"
+    )
+    parser.add_argument(
         "--case",
         choices=[
             *(case[0] for case in CASES),
@@ -262,6 +309,7 @@ if __name__ == "__main__":
             "operation_is_not_a_preference",
             "noop_confirmation",
             "memory",
+            "conversation",
         ],
     )
     raise SystemExit(asyncio.run(run(parser.parse_args())))

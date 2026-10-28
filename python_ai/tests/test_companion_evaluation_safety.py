@@ -32,6 +32,23 @@ async def test_decision_fixtures_expose_readable_post_ids_and_cover_every_busine
     assert context["toolUsage"][-1] == dict(name="read_post", success=False)
 
 
+def test_conversation_replay_uses_only_saved_successful_history_without_mutation():
+    first = dict(id="NEKO-0", card="NEKO", input="昨天有些累", passed=True,
+                 result=dict(bubbles=["歇一下。", "慢慢来。"]))
+    failed = dict(id="NEKO-1", input="今天又睡过头了", card="NEKO", scene="上午九点",
+                  passed=False, decisionIssues=["未请求工具"], result=dict(bubbles=["旧失败回复"]))
+    report = dict(complete=False, records={"fixture": [first, failed]})
+    original = copy.deepcopy(report)
+    replay = decisions.conversation_context(report)
+    assert replay["content"] == failed["input"] and replay["mood"] == failed["scene"]
+    assert [turn.content for turn in replay["history"]] == [first["input"], "歇一下。\n慢慢来。"]
+    assert report == original and "旧失败回复" not in str(replay)
+    for mutation in (dict(complete=True), dict(records={}),
+                     dict(records={"fixture": [{**first, "passed": False}, failed]})):
+        with pytest.raises(ValueError):
+            decisions.conversation_context({**report, **mutation})
+
+
 async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(monkeypatch, tmp_path):
     redis = AsyncMock()
     gateway = SimpleNamespace(usage_summary=AsyncMock(return_value={"chargedOrReservedTokens": 0}))
