@@ -363,7 +363,7 @@ python_ai/
 `GET /content/search/posts` 的 `RELEVANT` 排序使用向量候选加 rerank。搜索页和导航栏默认使用这个模式；`HOT`、`LATEST` 保留普通关键词搜索。
 
 - content 调 `/ai/internal/embeddings`（`textType=query`）计算查询向量，缓存 1 天，缓存键带编码类型；向量索引召回最多 20 条候选，不做 BM25、RRF、字符重合度或关键词融合。
-- content 重新校验帖子公开状态和逻辑删除标记，再把标题、摘要交给 `/ai/internal/retrievals`。ai 用 `qwen3.7-text-rerank` 重排，返回阈值（默认 0.35）以上的下标和分数，可以返回空结果。
+- content 重新校验帖子公开状态和逻辑删除标记，再把标题、摘要交给 `/ai/internal/retrievals`。ai 用 `qwen3.7-text-rerank` 重排，返回阈值（默认 0.45）以上的下标和分数，可以返回空结果。
 - 只能返回给定候选的下标；重复和越界都拒绝。业务端继续校验身份、公开性、归属、长度与额度。
 - 语义结果展示标题和摘要，不按查询词生成高亮。向量或 rerank 不可用时退回关键词检索（不重复计搜索次数），结果照常返回，响应带 `semantic=false`，前端不提示错误。
 - 奶糖助手的 `search_posts` 由 Python 先计算向量，调用 content 的只读向量候选接口，再用同一个 rerank 取最多五篇；content 内部工具接口不回调 AI，保持调用深度约束。
