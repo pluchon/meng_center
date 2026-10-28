@@ -1,15 +1,60 @@
 {
   "model": "deepseek-flash",
-  "promptVersion": "20261028.8",
+  "promptVersion": "20261028.9",
   "catalogVersion": "20261027.1",
-  "samples": 27,
-  "baselineSamples": 4987,
   "baselineSha256": "03b12469021db1ce493594e148c390fbe1cc2664588ee16d04b6a54d148a5a9b",
-  "evaluationSha256": "77fd05086967707dc22bc1e1d6449b08bd819254292fddb82fa2bd68bb55697d",
+  "evaluationSha256": "d3a229427e8c1a86137c5a735263a97cf7b70ed9fa8b06e49542f03594cb8a72",
+  "samples": 35,
+  "baselineSamples": 4987,
   "frequencyMethod": "连续中文2至4字重叠词组；按各长度总词组数归一；零频率以0.5次估计",
-  "candidates": [],
-  "reviewed": [],
-  "status": "PROFILED_PARTIAL",
-  "acceptanceComplete": false,
-  "reason": "基于获准生成的部分样本画像，没有达到频次门槛的候选；不代表完整验收通过。"
+  "candidates": [
+    {
+      "phrase": "吗喵",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 0,
+      "outputTotal": 721,
+      "baselineTotal": 48846,
+      "ratio": 677.4757281553398
+    },
+    {
+      "phrase": "听着",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 1,
+      "outputTotal": 721,
+      "baselineTotal": 48846,
+      "ratio": 338.7378640776699
+    },
+    {
+      "phrase": "确实",
+      "size": 2,
+      "count": 6,
+      "baselineCount": 11,
+      "outputTotal": 721,
+      "baselineTotal": 48846,
+      "ratio": 36.953221535745804
+    }
+  ],
+  "reviewed": [
+    {
+      "phrase": "吗喵",
+      "isSlop": false,
+      "reason": "疑问词与角色口癖的组合，语境分别为询问近况、用餐和休息；口癖另按30%目标统计，不把角色特征直接判为套话。"
+    },
+    {
+      "phrase": "听着",
+      "isSlop": false,
+      "reason": "分别表达倾听、对分享的感受及故事引起兴趣，存在具体语境，未形成固定无内容模板。"
+    },
+    {
+      "phrase": "确实",
+      "isSlop": false,
+      "reason": "分别承接轻松、疲劳、误会和考试等明确话题；通用程度副词，词组频率本身不足以判为套话。"
+    }
+  ],
+  "status": "PROFILED",
+  "acceptanceComplete": true,
+  "acceptancePassed": false,
+  "reason": "固定35轮输出已完成画像并逐条复核三个候选；整体性能验收仍有判断侧缓存目标未达标。"
 }
