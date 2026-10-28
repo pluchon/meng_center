@@ -240,5 +240,3 @@ java_backend/
 - MySQL 8.4 高于 Flyway 11.14.1 已验证的 8.1，启动时有提示。
 - 阿里云国际短信向八个地区的实际送达、Sender ID 要求和账户通道开通情况。
 - 阿里云对通知类短信（审核结果）的限制，尤其是个人认证的账号和境外号码。发不了的情况下只发验证码，审核结果让用户登录时看。
-- 生效帖子向量仍使用没有 `:doc-v1` 标记的旧编码，尚未完成 document 编码迁移。最后的真实模型阶段按 [ai.md](ai.md) 第 5.3 节执行 `recompute=true` 重建；只读状态检查见 `verification/Test-VectorEncoding.ps1`，不能只写就绪缓存代替重算。
-- DeepSeek 官方接口对图片输入的支持，开发时冒烟确认一次（[AI 公共运行时](ai-runtime.md)第 2 节）。

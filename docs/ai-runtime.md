@@ -32,7 +32,7 @@
 | `image` AI 封面 | `qwen-image-3.0-pro` | 无 | 当前账号可用的最好的 Qwen 生图模型 |
 
 - 奶糖说话用 DeepSeek，其余全部用 Qwen。用户图片由嘴直接看，不另设识图调用；主 agent 也看图，用来审核和决定工具。
-- DeepSeek 通过官方 `https://api.deepseek.com` 调用，使用 `DEEPSEEK_API_KEY`；官方名称 `deepseek-flash` 对应 V4.1 Flash 1017，请求传入 `thinking.type=disabled`。其余模型通过百炼调用，使用 `DASHSCOPE_API_KEY` 和 `enable_thinking=false`；跨供应商降级时同步切换地址、密钥和参数。DeepSeek 官方接口的图片输入在冒烟时确认一次。
+- DeepSeek 通过官方 `https://api.deepseek.com` 调用，使用 `DEEPSEEK_API_KEY`；官方名称 `deepseek-flash` 对应 V4.1 Flash 1017，请求传入 `thinking.type=disabled`，支持直接传入图片。其余模型通过百炼调用，使用 `DASHSCOPE_API_KEY` 和 `enable_thinking=false`；跨供应商降级时同步切换地址、密钥和参数。
 - 注册表（`runtime/models/registry.py`）为每个用途登记：模型名、温度、超时、`max_tokens`、是否开思考、能力（`n`、视觉、工具），以及降级链。
 - 换说话模型只改配置，是否换由仓库主人决定（第 11.2 节）。环境变量见 [setup.md](setup.md)。
 
@@ -81,6 +81,8 @@ merge ─┬─ CRISIS / SEXUAL / JAILBREAK ───────────►
   - `supportNeeded`、`identityQuestion`、`mentionMemoryId`（可选）。
 - 代码校验：工具与记忆出处必须在本轮已提供的编号内；`history` 指当前用户输入、场景信息和已有对话。非法指令带可用出处重试一次 `respond`，已经执行的工具不重复执行。
 - 主 agent 先判断本轮是否明确在问社区或过去的事，再选工具。用户陈述日常或情绪时直接回应，不为补充话题而查询。
+- 主 agent 使用内部审核与工具决策器的身份，角色资料只是审核对象；工具说明同时限定为用户明确提出的请求。讲述过去发生的日常和询问看法不构成检索任务，不能只因出现过去时态就召回记忆。
+- 工具授权以当前输入为准；历史只用于补全本轮明确查询的参数，不延续过去的请求、角色追问或先前的查询打算。
 
 ### 3.2 嘴
 
@@ -250,7 +252,7 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 所有「从候选里挑相关的」都是两段式：**向量召回 → `qwen3.7-text-rerank` 重排 → 按阈值截断**。奶糖的 `search_posts`、站内语义搜索、相关帖子共用这一条线。
 
 - 调用 DashScope 原生接口 `POST /api/v1/services/rerank/text-rerank/text-rerank`，`input.query`、`input.documents`，`parameters.top_n`、`parameters.instruct`；`instruct` 按场景配置。
-- 阈值放配置：帖子搜索 0.35、相关帖子 0.4、`recall` 0.3。可以返回空结果。
+- 阈值放配置：帖子搜索 0.45、相关帖子 0.43、`recall` 0.5。可以返回空结果。
 - 固定标注集在 `evals/retrieval/cases.jsonl`，三个场景各 8 条校准、4 条独立验证用例，含无答案和易混淆候选。`python -m evals.retrieval.calibrate` 只读取既有原始分数，按 0.01 网格最大化校准集 F1；并列时优先精确率、接近当前阈值。独立验证集只负责确认是否退化，不参与重新选阈值。报告保留当前值、候选值、验证结果，不自动修改配置。
 - 分数须完整覆盖固定标注集，并匹配按内容归一化的数据 SHA-256 和模型，并保留原始场景指令；缺失、重复、降级顺序、非法分数均拒绝形成结论。真实分数仅在已授权的站内验收批次中用 `--with-retrieval` 收集，与原批次共用预算和检查点，失败后停止。
 - rerank 不可用时按向量相似度的顺序返回，并标记 `reranked=false`；帖子语义搜索仍沿用「AI 不可用就退回关键词」。
@@ -483,4 +485,4 @@ python_ai/app/
 
 ## 14. 待做
 
-- **rerank 真实阈值确认**：离线标注集、采样与校准流程已具备；最后的授权验收采集真实分数后，按第 6.2 节确认阈值。没有真实分数时保留现有值。
+- **多轮上下文的工具触发约束**：当前尚未通过固定 35 轮长对话验收；带有既往经历的日常分享仍须验证不会触发 `recall`。单轮决策通过不能代替多轮验收，已有失败回复按第 11.2 节保留。

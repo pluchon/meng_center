@@ -143,3 +143,5 @@ Elasticsearch 单节点固定为 9.2.8，镜像按摘要锁定，构建时安装
 Windows 会锁定运行中的 JAR。更新时先停止对应实例，再打包并重新启动 companion、content、IM 和 Python AI；前端重新启动开发服务。`./verification/Test-CompanionDeployment.ps1` 只读核对进程和构建时间、迁移、表情目录、奶糖角色卡与示例、两个任务及执行器注册。开发验证不调用真实模型；真实冒烟和验收遵守运行时文档第 11.2 节。
 
 尚未授权真实模型调用时，在调度中心暂停 `companionMemoryMaintain`，防止补向量、摘要和记忆维护自动调用模型；发件箱任务保持启用。此时使用 `Test-CompanionDeployment.ps1 -AllowPausedMemoryMaintenance` 检查部署，脚本只允许维护任务暂停，不修改任务状态；默认检查仍要求两个任务启用。重新初始化任务会恢复启用，必须等模型验证阶段再执行。
+
+真实模型验证因错误或质量问题停止时，继续暂停记忆维护，保留评测报告、原本期编号和累计预算；服务健康不代表模型验收通过。修改 Python 提示词或运行时代码后重新启动 AI 服务，再执行部署检查。
