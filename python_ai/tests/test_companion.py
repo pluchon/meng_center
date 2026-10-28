@@ -64,6 +64,23 @@ async def test_chat_adopts_prejudged_draft():
     assert value.speak.await_count == value.judge.await_count == 1
 
 
+async def test_rewrite_preserves_user_facts_and_does_not_turn_feedback_into_new_background():
+    from langchain_core.messages import AIMessage
+
+    value = service()
+    value.models.speech = SimpleNamespace(ainvoke=AsyncMock(
+        return_value=AIMessage(content="周一确实会让人有点低落。")
+    ))
+    body = request(content="周一真让人难过啊。", mood="今天是星期四，早上九点。")
+    result, _ = await Companion.speak(value, body, [], {}, "不要把话题中的星期当作当前日期")
+    current = value.models.speech.ainvoke.await_args.args[0][-1].content[0]["text"]
+    assert "保留用户原话中的事实，不补充新的经历或背景" in current
+    assert "不要把话题中的星期当作当前日期" in current
+    assert current.endswith("〔用户〕\n周一真让人难过啊。")
+    assert result.bubbles == ["周一确实会让人有点低落。"]
+    value.models.speech.ainvoke.assert_awaited_once()
+
+
 async def test_pre_round_embedding_usage_is_kept_without_another_model_call():
     value = service()
     call = {"purpose": "embedding", "input": 12, "output": 0, "cached": 0}

@@ -147,7 +147,7 @@ class Companion:
     async def speak(self, request, emotions, directive, rewrite=""):
         instruction = dict(directive)
         if rewrite:
-            instruction["hint"] = "按检查意见重新说：" + rewrite
+            instruction["hint"] = "按检查意见重新说，保留用户原话中的事实，不补充新的经历或背景：" + rewrite
         form = sample(request, directive.get("scene", "CHAT"))
         form += "。" + style_feedback(request)
         inputs, sizes = messages(request, emotions, instruction, form=form)
