@@ -332,9 +332,17 @@ async def run(args):
                             pending = None
                             await checkpoint()
                             gateway.check_available()
+                            agent_calls = [
+                                call for call in (result or {}).get("metrics", {}).get("calls", [])
+                                if call["purpose"] == "agent"
+                            ]
+                            cache_created = sum(call.get("cacheCreationTokens", 0) for call in agent_calls)
                             print(
                                 f"dialogue model={candidate} character={code} "
-                                f"round={index + 1} passed={passed}",
+                                f"round={index + 1} passed={passed} "
+                                f"agentCached={sum(call['cached'] for call in agent_calls)} "
+                                f"agentInput={sum(call['input'] for call in agent_calls)} "
+                                f"agentCacheCreated={cache_created}",
                                 flush=True,
                             )
                         if not row["passed"]:

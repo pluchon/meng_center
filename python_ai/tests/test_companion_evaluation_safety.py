@@ -132,6 +132,10 @@ async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(
     monkeypatch.setattr(decisions, "claim_run", claim)
     monkeypatch.setattr(decisions, "ModelFactory", lambda *args: SimpleNamespace())
     async def reply(context):
+        from app.runtime.models.gateway import CURRENT
+
+        CURRENT.get().calls.append(dict(purpose="agent", input=100, output=1, cached=80,
+                                       cacheCreationTokens=20))
         if rejected:
             context["toolUsage"].append(dict(name="recall", success=False, rejected=True))
         return SimpleNamespace(label="PASS", model_dump=lambda **kwargs: {})
@@ -151,6 +155,9 @@ async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(
     assert report["usage"]["chargedOrReservedTokens"] == 0
     assert report["cases"][0]["passed"] is False
     assert bool(report["cases"][0]["toolUsage"]) == rejected
+    assert report["cases"][0]["calls"] == [dict(
+        purpose="agent", input=100, output=1, cached=80, cacheCreationTokens=20,
+    )]
     redis.aclose.assert_awaited_once()
 
 

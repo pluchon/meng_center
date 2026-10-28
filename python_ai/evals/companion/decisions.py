@@ -249,7 +249,8 @@ async def run(args):
                     observed=[],
                     callbacks=[trace],
                 )
-                token = CURRENT.set(RoundUsage(request.user_id, code, name))
+                round_usage = RoundUsage(request.user_id, code, name)
+                token = CURRENT.set(round_usage)
                 probe = None
                 try:
                     if review_probe:
@@ -313,6 +314,7 @@ async def run(args):
                         passed=passed,
                         observed=context["observed"],
                         toolUsage=context["toolUsage"],
+                        calls=round_usage.calls,
                         result=result,
                     )
                 )
