@@ -49,7 +49,10 @@ def test_conversation_replay_uses_only_saved_successful_history_without_mutation
             decisions.conversation_context({**report, **mutation})
 
 
-async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(monkeypatch, tmp_path):
+@pytest.mark.parametrize("case,rejected", [(None, False), ("weather", True), ("recall", True)])
+async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(
+    monkeypatch, tmp_path, case, rejected
+):
     redis = AsyncMock()
     gateway = SimpleNamespace(usage_summary=AsyncMock(return_value={"chargedOrReservedTokens": 0}))
     settings = SimpleNamespace(model_copy=lambda **kwargs: SimpleNamespace())
@@ -64,13 +67,16 @@ async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(mon
     claim = AsyncMock()
     monkeypatch.setattr(decisions, "claim_run", claim)
     monkeypatch.setattr(decisions, "ModelFactory", lambda *args: SimpleNamespace())
-    agent = SimpleNamespace(
-        run=AsyncMock(return_value=SimpleNamespace(label="PASS", model_dump=lambda **kwargs: {}))
-    )
+    async def reply(context):
+        if rejected:
+            context["toolUsage"].append(dict(name="recall", success=False, rejected=True))
+        return SimpleNamespace(label="PASS", model_dump=lambda **kwargs: {})
+
+    agent = SimpleNamespace(run=AsyncMock(side_effect=reply))
     monkeypatch.setattr(decisions, "Agent", lambda *args: agent)
     output = tmp_path / "decisions.json"
     args = argparse.Namespace(
-        token_budget=100, budget_id="fixture", phase_id="fixture-phase", output=str(output), case=None
+        token_budget=100, budget_id="fixture", phase_id="fixture-phase", output=str(output), case=case
     )
 
     assert await decisions.run(args) == 1
@@ -80,6 +86,7 @@ async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(mon
     assert not report["complete"] and len(report["cases"]) == 1
     assert report["usage"]["chargedOrReservedTokens"] == 0
     assert report["cases"][0]["passed"] is False
+    assert bool(report["cases"][0]["toolUsage"]) == rejected
     redis.aclose.assert_awaited_once()
 
 

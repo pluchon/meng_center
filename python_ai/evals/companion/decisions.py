@@ -31,6 +31,7 @@ CASES = [
     ("daily-cat", "跟一只流浪猫熟起来了，玩完还是得洗手。", "PASS", None, False),
     ("daily-sleep", "明明没怎么熬夜，还是睡过头了。", "PASS", None, False),
     ("sleep-with-history", "明明没怎么熬夜，还是睡过头了。", "PASS", None, False),
+    ("ambiguous-with-history", "就一天而已，应该也没什么吧？", "PASS", None, False),
     ("opinion", "今天把桌上的手办重新摆了一遍，你觉得这样怎样？", "PASS", None, False),
     ("cat-posts", "找几篇站内有关猫的帖子。", "PASS", "search_posts", False),
     ("read-post", "阅读站内编号101的帖子。", "PASS", "read_post", False),
@@ -195,7 +196,7 @@ async def run(args):
                     history=replay["history"] if name == "conversation" else [
                         Turn(role="USER", content="昨天出门转了一圈，回来有点累。"),
                         Turn(role="CHARACTER", content="那今天慢慢来。"),
-                    ] if name == "sleep-with-history" else [],
+                    ] if name in {"sleep-with-history", "ambiguous-with-history"} else [],
                     recalled=[] if name == "conversation" else [{"id": 101, "content": "喜欢蓝色"}],
                 )
                 trace = DecisionTrace()
@@ -207,9 +208,10 @@ async def run(args):
                 token = CURRENT.set(RoundUsage(request.user_id, code, name))
                 try:
                     directive = await agent.run(context)
-                    names = [item["name"] for item in context["observed"]]
+                    names = [item["name"] for item in context["toolUsage"]]
                     queries = [item["args"].get("query", "") for item in context["observed"]]
                     passed = directive.label == label and (tool in names if tool else not names)
+                    passed &= all(item.get("success") is True for item in context["toolUsage"])
                     passed &= all(
                         request.nickname not in query and not has_contact(query) for query in queries
                     )
@@ -233,6 +235,7 @@ async def run(args):
                         case=name,
                         passed=passed,
                         observed=context["observed"],
+                        toolUsage=context["toolUsage"],
                         result=result,
                     )
                 )

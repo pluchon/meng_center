@@ -124,13 +124,13 @@ def test_acceptance_corpus_has_fixed_anonymous_sources_and_shared_clock():
     assert "晚上七点" in scene(10, cases[10]["clock"])
 
 
-async def test_recorded_tools_return_success_and_recall_only_existing_history():
+async def test_recorded_tools_return_success_and_recall_only_provided_candidates():
     from test_companion import request
 
     from app.schemas.companion import Turn
     from evals.companion.fixtures import RecordedTools
 
-    context = dict(request=request(), toolUsage=[])
+    context = dict(request=request(), toolUsage=[], memoryIds=set())
     executor = RecordedTools()
     for name, args in [
         ("search_posts", dict(query="Vue")),
@@ -143,10 +143,28 @@ async def test_recorded_tools_return_success_and_recall_only_existing_history():
     call = dict(id="r", name="recall", args=dict(query="城市"))
     assert not (await executor.execute(call, context))["facts"]
     context["request"].history = [Turn(role="USER", content="我住在台中，下周要考试。")]
-    assert "台北" not in str((await executor.execute(call, context))["facts"])
+    assert not (await executor.execute(call, context))["facts"]
     context["request"].history.append(Turn(role="USER", content="我搬到台北了。"))
-    assert "台北" in str((await executor.execute(call, context))["facts"])
+    assert not (await executor.execute(call, context))["facts"] and not context["memoryIds"]
+    context["request"].recalled = [{"id": 41, "content": "不来自已有前文的候选"}]
+    recalled = await executor.execute(call, context)
+    assert "不来自已有前文的候选" in str(recalled["facts"])
+    assert recalled["speechFacts"] == ["不来自已有前文的候选"] and context["memoryIds"] == {41}
     assert all(row["success"] and row["recorded"] for row in context["toolUsage"])
+
+
+async def test_recorded_recall_keeps_the_same_five_candidate_limit_as_runtime():
+    from test_companion import request
+
+    from evals.companion.fixtures import RecordedTools
+
+    context = dict(
+        request=request(recalled=[dict(id=i, content=f"候选{i}") for i in range(1, 8)]),
+        toolUsage=[], memoryIds=set(),
+    )
+    result = await RecordedTools().execute(dict(id="r", name="recall", args=dict(query="候选")), context)
+    assert len(result["facts"]) == 5 and context["memoryIds"] == {1, 2, 3, 4, 5}
+    assert "候选6" not in str(result) and "候选7" not in str(result)
 
 
 async def test_evaluation_limit_is_separate_from_business_gateway():

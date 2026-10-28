@@ -2,6 +2,8 @@
 
 from datetime import date, timedelta
 
+from app.runtime.context.card import memory_text
+from app.runtime.context.segments import text
 from app.runtime.tools.registry import TOOLS
 
 
@@ -26,17 +28,17 @@ class RecordedTools:
             "my_growth": ["测试用户最近有签到和发帖记录。"],
             "recall": [],
         }
+        selected = []
         if name == "recall":
-            statements = [turn.content for turn in context["request"].history if turn.role == "USER"]
-            if "我搬到台北了。" in statements:
-                facts[name] = ["用户先前住在台中，后来明确说已搬到台北。"]
-            elif "我住在台中，下周要考试。" in statements:
-                facts[name] = ["用户说过住在台中，下周要考试。"]
+            # 录制重排选中前五条候选，不扩展真实工具只能读取本轮候选的边界。
+            selected = context["request"].recalled[:5]
+            facts[name] = [text(row) for row in selected]
+            context["memoryIds"].update(row["id"] for row in selected)
         context["toolUsage"].append(dict(name=name, success=True, recorded=True, elapsedMs=0))
         return dict(
             id=call["id"],
             success=True,
             facts=facts[name],
-            speechFacts=facts[name] if name == "recall" else [],
+            speechFacts=[memory_text(selected)] if selected else [],
             sources=[dict(postId=101, title="Vue 组件入门")] if name == "search_posts" else [],
         )

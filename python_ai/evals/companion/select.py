@@ -151,7 +151,7 @@ async def run(args):
         graphProtocol="naitang-stategraph-v1",
         speechProvider="deepseek-official",
         generationProtocolVersion=4,
-        toolFixtureVersion=3,
+        toolFixtureVersion=4,
         sceneProtocolVersion=2,
         scene=SCENE,
         seed=args.seed,
