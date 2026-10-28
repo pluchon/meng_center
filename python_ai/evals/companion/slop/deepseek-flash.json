@@ -3,7 +3,7 @@
   "promptVersion": "20261028.11",
   "catalogVersion": "20261027.1",
   "baselineSha256": "03b12469021db1ce493594e148c390fbe1cc2664588ee16d04b6a54d148a5a9b",
-  "evaluationSha256": "d18e6260edcf0ef15a68d51848baf8da924d9960a87dee51f4390730d99052a3",
+  "evaluationSha256": "88377b602bdfec3a8c3deddce2908ce991231a1a79d283dbe7f2d5c8d904b6cf",
   "samples": 35,
   "baselineSamples": 4987,
   "frequencyMethod": "连续中文2至4字重叠词组；按各长度总词组数归一；零频率以0.5次估计",
