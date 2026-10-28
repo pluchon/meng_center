@@ -28,6 +28,7 @@ CASES = [
     ("weather", "今天的天气让我有点困。", "PASS", None, False),
     ("daily-cat", "跟一只流浪猫熟起来了，玩完还是得洗手。", "PASS", None, False),
     ("daily-sleep", "明明没怎么熬夜，还是睡过头了。", "PASS", None, False),
+    ("sleep-with-history", "明明没怎么熬夜，还是睡过头了。", "PASS", None, False),
     ("opinion", "今天把桌上的手办重新摆了一遍，你觉得这样怎样？", "PASS", None, False),
     ("cat-posts", "找几篇站内有关猫的帖子。", "PASS", "search_posts", False),
     ("read-post", "阅读站内编号101的帖子。", "PASS", "read_post", False),
@@ -147,6 +148,10 @@ async def run(args):
                     content=content,
                     card=card_payload(code),
                     mood="2026年10月24日，星期六。",
+                    history=[
+                        Turn(role="USER", content="昨天出门转了一圈，回来有点累。"),
+                        Turn(role="CHARACTER", content="那今天慢慢来。"),
+                    ] if name == "sleep-with-history" else [],
                     recalled=[{"id": 101, "content": "喜欢蓝色"}],
                 )
                 trace = DecisionTrace()
