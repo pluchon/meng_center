@@ -119,7 +119,7 @@ def conversation_context(report, *, decision_only=True):
     if (
         not rows
         or rows[-1].get("passed")
-        or (decision_only and not rows[-1].get("decisionIssues"))
+        or (decision_only and not rows[-1].get("decisionIssues") and rows[-1].get("result") is not None)
         or rows[-1].get("card") != "NEKO"
         or any(
             row.get("card") != "NEKO" or not row.get("passed") or not row.get("result", {}).get("bubbles")

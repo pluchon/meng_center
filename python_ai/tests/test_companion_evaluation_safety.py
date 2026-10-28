@@ -70,6 +70,15 @@ def test_review_replay_keeps_actual_candidate_and_rejects_missing_evidence():
         decisions.review_context(report)
 
 
+def test_agent_replay_can_diagnose_a_failed_round_without_a_complete_result():
+    source = dict(complete=False, records={"deepseek-flash": [dict(
+        id="NEKO-0", card="NEKO", input="早上好呀。", scene="早上八点", passed=False, result=None,
+    )]})
+    context = decisions.conversation_context(source)
+    assert context["content"] == "早上好呀。" and context["history"] == []
+    assert source["records"]["deepseek-flash"][0]["result"] is None
+
+
 @pytest.mark.parametrize("rejected,expected_rejection", [(False, False), (True, True), (True, False)])
 async def test_review_only_calls_judge_and_preserves_expected_rejection(
     monkeypatch, tmp_path, rejected, expected_rejection

@@ -76,6 +76,8 @@ npm --prefix verification ci
 
 决策报告保留各用例的原始模型调用用量，包括缓存命中和显式缓存创建量。完整对话的进度日志只输出轮次、通过状态及 agent 的输入、命中、创建 token，供运行中观察；不要读取仍在写入的 JSON 检查点。日志字段变化只做离线检查，不因此重新调用模型。
 
+失败轮次没有生成完整结果时，也可通过上述 `conversation` 入口单独检查 agent；只复用原输入和成功前文，不生成角色回复，不将局部检查当作整轮验收通过。
+
 重排离线检查：在 `python_ai/` 执行 `uv run --frozen pytest tests/test_retrieval_calibration.py -q`。已有真实分数后，用 `uv run --frozen python -m evals.retrieval.calibrate --scores <原报告.json> --model <原模型名> --output <新报告.json>` 生成建议，不调用模型、不修改配置。采集分数必须等仓库主人授权验收，在既有 `Invoke-ModelEvaluation.ps1 -Task station` 的 `-EvaluationArguments` 中加入 `--with-retrieval`；36 次重排请求共用该批次的授权编号、预算、本期次数与检查点，失败即停，不另开批次规避限制。
 
 仓库主人明确追加冒烟预算后，可在 `Invoke-ModelEvaluation.ps1` 的 `-EvaluationArguments` 中同时指定 `--resume --continue-budget-stop --output <原报告>`。仅允许续接因 `EvaluationLimit` 停止、没有待确认请求、且末轮没有完整回复的原报告。此时 `-TokenBudget` 表示本次新增额度，仍不超过 30000；历史扣减和未确认调用的预留继续累计，成功回复不重新生成，原未完成尝试保存在该轮的 `attempts`，报告的 `continuations` 保留追加前状态。这个开关不能用于完整评测或重试已有失败回复。
