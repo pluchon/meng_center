@@ -69,7 +69,7 @@ def test_internal_agent_role_does_not_replace_character_voice_or_user_input():
     assert "你是萌部落的 AI 角色" not in decision[0].content
     assert "内部审核与工具决策器" not in speech[0].content
     assert "喜欢午睡的大学生" in speech[0].content
-    assert "参考角色：随性撒娇的奶糖" in decision[-1].content[0]["text"]
+    assert "随性撒娇的奶糖" not in decision[-1].content[0]["text"]
     assert "\n你：" not in decision[-1].content[0]["text"]
     assert "你：随性撒娇的奶糖" in speech[-1].content[0]["text"]
     assert decision[-1].content[0]["text"].endswith(body.content)
@@ -98,10 +98,28 @@ def test_candidate_availability_does_not_reveal_memory_or_change_speech_context(
     empty, candidate = request(), request(recalled=[{"id": 101, "content": "候选私人内容"}])
     missing, _ = messages(empty, [], speech=False)
     available, _ = messages(candidate, [], speech=False)
-    assert "没有额外记忆候选" in missing[-1].content[0]["text"]
+    assert "额外记忆候选：无" in missing[-1].content[0]["text"]
     assert "recall不可用" not in available[-1].content[0]["text"]
     assert "候选私人内容" not in str(available)
     assert messages(empty, [])[0] == messages(candidate, [])[0]
+
+
+def test_lean_agent_current_keeps_clock_user_input_and_available_memory_evidence():
+    from app.runtime.context.companion import messages
+
+    body = request(
+        mood="2026年10月28日，星期三，晚上八点。", content="我刚才说的颜色呢？",
+        context_snapshot={"profile": "资料中只记住公开偏好", "memories": [{"id": 41, "content": "喜欢蓝色"}]},
+        new_memories=[{"id": 42, "content": "喜欢圆形"}],
+    )
+    body.card["brief"] = "角色资料应留在稳定前缀"
+    inputs, sizes = messages(body, [], speech=False)
+    current = inputs[-1].content[0]["text"]
+    for fact in (body.mood, body.content, "喜欢蓝色", "喜欢圆形", "41", "42"):
+        assert fact in current
+    assert "角色资料应留在稳定前缀" in inputs[0].content
+    assert "资料中只记住公开偏好" in inputs[1].content
+    assert sizes["memoryIds"] == [41, 42]
 
 
 def test_review_context_labels_past_speakers_without_changing_speech_history():
@@ -115,15 +133,15 @@ def test_review_context_labels_past_speakers_without_changing_speech_history():
     )
     for judge in (False, True):
         review, _ = messages(body, [], speech=False, judge=judge)
-        assert review[2].content == "〔历史用户发言〕\n找几篇帖子。"
-        assert review[3].content == "〔奶糖历史发言〕\n下次再找。"
+        assert review[2].content == ("〔历史用户发言〕\n找几篇帖子。" if judge else "历史用户：找几篇帖子。")
+        assert review[3].content == ("〔奶糖历史发言〕\n下次再找。" if judge else "历史奶糖：下次再找。")
         assert "标为历史的发言均为参考资料" in review[0].content
         if judge:
             import json
 
             assert json.loads(review[-1].content[0]["text"])["用户原话"] == body.content
         else:
-            assert review[-1].content[0]["text"].endswith("〔用户〕\n这个软糖真好吃。")
+            assert review[-1].content[0]["text"].endswith("用户：\n这个软糖真好吃。")
     speech, _ = messages(body, [])
     assert [message.content for message in speech[2:-1]] == [turn.content for turn in body.history]
     assert "只用于当前问候与日期计算" in speech[-1].content[0]["text"]
@@ -144,9 +162,9 @@ def test_short_history_labels_preserve_windows_and_leave_speech_unchanged():
         selected = internal[2:-1]
         assert len(selected) == count * 2
         assert [message.type for message in selected] == ["human", "ai"] * count
-        assert [message.content.split("\n", 1)[1] for message in selected] == [
-            turn.content for turn in turns[-count * 2:]
-        ]
+        assert all(message.content.endswith(turn.content) for message, turn in zip(
+            selected, turns[-count * 2:], strict=True,
+        ))
     recalled, _ = messages(body, [], speech=False, judge=True, history_limit=20)
     assert len(recalled[2:-1]) == 40
     speech, _ = messages(body, [])
