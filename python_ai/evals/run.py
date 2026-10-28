@@ -12,6 +12,7 @@ from redis.asyncio import Redis
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
 from app.graphs.moderation import confirm_content
+from app.runtime.context.cache import digest
 from app.runtime.tasks.structured import TaskRuntime
 from app.schemas.models import Moderation, Understanding
 from evals.companion.budget import EvaluationGateway, claim_run, evaluation_settings, save_checkpoint
@@ -33,6 +34,7 @@ async def evaluate(args) -> None:
     )
     http = httpx.AsyncClient()
     gateway = EvaluationGateway(settings, redis, key, args.token_budget)
+    gateway.usage_key = key + ":usage:" + digest(str(await asyncio.to_thread(args.output.resolve)))
     if await asyncio.to_thread(args.output.exists):
         await redis.aclose()
         await http.aclose()

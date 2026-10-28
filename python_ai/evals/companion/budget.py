@@ -72,10 +72,14 @@ async def claim_run(redis, args, key):
     allowed = await redis.eval(
         "local old=redis.call('HGET',KEYS[1],ARGV[1]); "
         "if old then return tonumber(ARGV[3]) end; "
-        "if tonumber(ARGV[3])==1 or redis.call('HLEN',KEYS[1])>=tonumber(ARGV[2]) then return 0 end; "
-        "redis.call('HSET',KEYS[1],ARGV[1],1); return 1",
-        1,
+        "if tonumber(ARGV[3])==1 then return 0 end; "
+        "local grant=redis.call('HGET',KEYS[2],ARGV[1]); "
+        "if redis.call('HLEN',KEYS[1])>=tonumber(ARGV[2]) and not grant then return 0 end; "
+        "redis.call('HSET',KEYS[1],ARGV[1],grant or '1'); "
+        "if grant then redis.call('HDEL',KEYS[2],ARGV[1]) end; return 1",
+        2,
         f"meng:ai:evaluation-phase:{args.phase_id}:{mode}",
+        f"meng:ai:evaluation-phase:{args.phase_id}:{mode}:authorized-reports",
         ident,
         3 if args.smoke else 1,
         int(args.resume),
