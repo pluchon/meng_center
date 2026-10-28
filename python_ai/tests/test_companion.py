@@ -79,6 +79,8 @@ async def test_rewrite_preserves_user_facts_and_does_not_turn_feedback_into_new_
     assert current.endswith("〔用户〕\n周一真让人难过啊。")
     assert result.bubbles == ["周一确实会让人有点低落。"]
     value.models.speech.ainvoke.assert_awaited_once()
+    segments = value.models.speech.ainvoke.await_args.kwargs["config"]["metadata"]["contextSegments"]
+    assert segments["current"] > 0 and "speechModel" not in segments
 
 
 async def test_compact_review_keeps_reply_current_input_and_tool_evidence():
@@ -103,6 +105,8 @@ async def test_compact_review_keeps_reply_current_input_and_tool_evidence():
         assert evidence in current
     assert "openingCount" in current and "trigramOverlap" in current
     assert "firstHalf" not in current and "secondHalf" not in current
+    segments = chain.ainvoke.await_args.kwargs["config"]["metadata"]["contextSegments"]
+    assert segments["current"] > 0 and "speechModel" not in segments
 
 
 async def test_review_preserves_user_quotes_as_data_separate_from_candidate():

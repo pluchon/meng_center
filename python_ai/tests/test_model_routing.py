@@ -103,3 +103,47 @@ async def test_speech_reports_full_request_window_pressure(monkeypatch, size, ex
     budget = result.response_metadata["contextBudget"]
     assert budget["limit"] == 10000 and budget["compactAfterRound"] == expected
     assert budget["estimated"] < budget["limit"]
+
+
+async def test_parallel_calls_keep_their_own_segment_metrics_without_shared_fallback(monkeypatch):
+    import asyncio
+
+    from app.runtime.models.gateway import CURRENT, RoundUsage
+
+    settings = Settings.model_construct(
+        api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture")
+    )
+    redis = AsyncMock()
+    redis.exists.return_value = False
+    redis.eval.return_value = 1
+    entered = 0
+    ready = asyncio.Event()
+
+    async def generate(*args, **kwargs):
+        nonlocal entered
+        entered += 1
+        if entered == 3:
+            ready.set()
+        await asyncio.wait_for(ready.wait(), timeout=2)
+        return ChatResult(generations=[ChatGeneration(message=AIMessage(
+            content="收到。", usage_metadata=dict(input_tokens=100, output_tokens=1, total_tokens=101)
+        ))])
+
+    monkeypatch.setattr(ChatOpenAI, "_agenerate", generate)
+    factory = ModelFactory(settings, redis, http=AsyncMock())
+    current = RoundUsage(segments={"history": 999})
+    token = CURRENT.set(current)
+    try:
+        await asyncio.gather(
+            factory.agent.ainvoke("审核", config={"metadata": {"contextSegments": {"history": 20}}}),
+            factory.speech.ainvoke("接话", config={"metadata": {"contextSegments": {"history": 80}}}),
+            factory.judge.ainvoke("检查"),
+        )
+    finally:
+        CURRENT.reset(token)
+    assert {row["purpose"]: row["segments"] for row in current.calls} == {
+        "agent": {"history": 20}, "speech": {"history": 80}, "judge": {},
+    }
+    assert current.tokens == 303 and len(current.calls) == 3
+    current.segments["history"] = 0
+    assert next(row for row in current.calls if row["purpose"] == "speech")["segments"] == {"history": 80}

@@ -115,7 +115,7 @@ class ModelGateway:
             )
             / 1_000_000,
             images=usage.get("images", 0),
-            segments=current.segments if current else {},
+            segments=dict(usage.get("_segments", {})),
             user=current.user if current else 0,
             character=current.character if current else "",
             turn=current.turn if current else "",
@@ -269,6 +269,7 @@ class GatewayChatOpenAI(ChatOpenAI):
                     call,
                     lambda result: {
                         **self.chat_usage(result),
+                        "_segments": metadata.get("contextSegments", {}),
                         "_task": {
                             key: metadata[key]
                             for key in ("task", "taskVersion", "evaluationSet")

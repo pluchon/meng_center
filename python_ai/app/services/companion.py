@@ -123,7 +123,7 @@ class Companion:
             ),
         }
         recalled = any(item.get("name") == "recall" for item in directive.get("toolResults", []))
-        inputs, _ = messages(
+        inputs, sizes = messages(
             request,
             emotions,
             instruction,
@@ -133,7 +133,9 @@ class Companion:
         )
         inputs.insert(2, SystemMessage(PROMPT))
         async with self.models.semaphores["judge"]:
-            checked = await self.tasks.output("reply_judge").ainvoke(inputs)
+            checked = await self.tasks.output("reply_judge").ainvoke(
+                inputs, config={"metadata": {"contextSegments": sizes}}
+            )
         if checked is None:
             raise ValueError("缺少输出检查")
         checked = Judgment.model_validate(checked)
@@ -151,7 +153,9 @@ class Companion:
         if CURRENT.get():
             CURRENT.get().segments = sizes
         async with self.models.semaphores["speech"]:
-            output = await self.models.speech.ainvoke(inputs)
+            output = await self.models.speech.ainvoke(
+                inputs, config={"metadata": {"contextSegments": dict(sizes)}}
+            )
         sizes["speechModel"] = output.response_metadata.get("model_name", self.models.settings.speech_model)
         sizes["contextBudget"] = output.response_metadata.get("contextBudget", {})
         return parse(

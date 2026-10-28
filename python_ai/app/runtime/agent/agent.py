@@ -115,11 +115,14 @@ class Agent:
     async def run(self, context):
         token = ACTIVE.set(context)
         try:
-            conversation, _ = messages(context["request"], [], speech=False)
+            conversation, sizes = messages(context["request"], [], speech=False)
             result = await self.graph.ainvoke(
                 {"messages": conversation},
                 context=Context(context),
-                config={"callbacks": context.get("callbacks", [])},
+                config={
+                    "callbacks": context.get("callbacks", []),
+                    "metadata": {"contextSegments": sizes},
+                },
             )
             if "structured_response" not in result:
                 raise ValueError("主agent缺少说话指令")
