@@ -1,9 +1,15 @@
 {
   "model": "deepseek-flash",
-  "promptVersion": null,
-  "catalogVersion": null,
-  "samples": 0,
+  "promptVersion": "20261028.8",
+  "catalogVersion": "20261027.1",
+  "samples": 27,
+  "baselineSamples": 4987,
+  "baselineSha256": "03b12469021db1ce493594e148c390fbe1cc2664588ee16d04b6a54d148a5a9b",
+  "evaluationSha256": "77fd05086967707dc22bc1e1d6449b08bd819254292fddb82fa2bd68bb55697d",
+  "frequencyMethod": "连续中文2至4字重叠词组；按各长度总词组数归一；零频率以0.5次估计",
+  "candidates": [],
   "reviewed": [],
-  "status": "UNPROFILED",
-  "reason": "当前奶糖提示词尚未完成验收画像，旧多角色统计不适用。"
+  "status": "PROFILED_PARTIAL",
+  "acceptanceComplete": false,
+  "reason": "基于获准生成的部分样本画像，没有达到频次门槛的候选；不代表完整验收通过。"
 }
