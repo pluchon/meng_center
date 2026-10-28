@@ -92,6 +92,18 @@ def test_new_and_due_memories_are_usable_but_unretrieved_candidates_are_not():
         validate(directive.model_copy(update={"mention_memory_id": 4}), set(), ids, True)
 
 
+def test_candidate_availability_does_not_reveal_memory_or_change_speech_context():
+    from app.runtime.context.companion import messages
+
+    empty, candidate = request(), request(recalled=[{"id": 101, "content": "候选私人内容"}])
+    missing, _ = messages(empty, [], speech=False)
+    available, _ = messages(candidate, [], speech=False)
+    assert "没有额外记忆候选" in missing[-1].content[0]["text"]
+    assert "recall不可用" not in available[-1].content[0]["text"]
+    assert "候选私人内容" not in str(available)
+    assert messages(empty, [])[0] == messages(candidate, [])[0]
+
+
 def test_v2_character_constraints_and_control_protocol_reach_speech():
     from app.runtime.context.companion import messages
 

@@ -7,8 +7,10 @@ from langchain.agents.middleware import (
     ModelRetryMiddleware,
     ToolCallLimitMiddleware,
     wrap_model_call,
+    wrap_tool_call,
 )
 from langchain.agents.structured_output import ToolStrategy
+from langchain_core.messages import ToolMessage
 from pydantic import model_validator
 
 from app.runtime.agent.directive import Directive, validate
@@ -60,8 +62,28 @@ async def bound_call(request, handler):
     count = request.state.get("run_model_call_count", 0)
     if context.get("directiveRetried") or count >= 2:
         request = request.override(tools=[])
+    elif not context["request"].recalled:
+        request = request.override(tools=[tool for tool in request.tools if tool.name != "recall"])
     async with context["service"].models.semaphores["agent"]:
         return await handler(request)
+
+
+@wrap_tool_call
+async def available_memory(request, handler):
+    context = request.runtime.context.data
+    call = request.tool_call
+    if call["name"] == "recall" and not context["request"].recalled:
+        # 隐藏工具不能代替执行校验；拒绝记录仍参与用量统计和评测。
+        context["toolUsage"].append(
+            dict(name="recall", success=False, rejected=True, cached=False, elapsedMs=0)
+        )
+        return ToolMessage(
+            content="本轮没有可召回的记忆候选。已有对话可直接阅读；指代不明时询问，不再检索。",
+            name="recall",
+            tool_call_id=call["id"],
+            status="error",
+        )
+    return await handler(request)
 
 
 class Agent:
@@ -75,6 +97,7 @@ class Agent:
                 ModelCallLimitMiddleware(run_limit=3, exit_behavior="error"),
                 ToolCallLimitMiddleware(run_limit=4, exit_behavior="error"),
                 bound_call,
+                available_memory,
                 ModelRetryMiddleware(max_retries=1, retry_on=transient, on_failure="error"),
             ],
         )

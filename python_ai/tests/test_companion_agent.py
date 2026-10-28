@@ -5,7 +5,7 @@ import pytest
 from langchain_core.messages import AIMessage
 from test_companion import factory, request
 
-from app.runtime.agent.agent import Agent
+from app.runtime.agent.agent import Agent, Context
 
 
 def response(source="history"):
@@ -39,6 +39,7 @@ async def test_current_input_is_valid_evidence_and_chat_omits_facts():
 async def test_invalid_sources_retry_structured_response_without_repeating_tools():
     call = AIMessage(content="", tool_calls=[dict(name="recall", id="r1", args={"query": "喜欢的颜色"})])
     agent, service, context = setup([call, response("tool:foreign"), response("tool:r1")])
+    context["request"].recalled = [{"id": 101, "content": "喜欢蓝色"}]
     service.executor.execute.return_value = dict(id="r1", facts=["喜欢蓝色"])
     assert (await agent.run(context)).facts[0].source == "tool:r1"
     service.executor.execute.assert_awaited_once()
@@ -111,3 +112,49 @@ async def test_last_call_excludes_business_tools_and_keeps_structured_response()
     assert "search_posts" in bindings[0] and "read_post" in bindings[1]
     assert bindings[2] == ["Response"]
     assert '"source": "tool:p1"' in inputs[2][-1].content
+
+
+@pytest.mark.parametrize("content", ["就一天而已，应该也没什么吧？", "你还记得我喜欢什么颜色吗？"])
+async def test_memory_tool_availability_is_scoped_to_each_request(content):
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+
+    bindings = []
+
+    class RecordingModel(GenericFakeChatModel):
+        def bind_tools(self, tools, **kwargs):
+            bindings.append({tool.name for tool in tools})
+            return self
+
+    _, service, context = setup([])
+    service.models.agent = RecordingModel(messages=iter([response()] * 3))
+    context["request"].content = content
+    agent = Agent(service)
+    await agent.run(context)
+    context["request"].recalled = [{"id": 101, "content": "不会直接进入提示词的记忆"}]
+    await agent.run(context)
+    context["request"].recalled = []
+    await agent.run(context)
+    assert "recall" not in bindings[0] and "recall" in bindings[1] and "recall" not in bindings[2]
+    assert all(
+        {"Response", "search_posts", "read_post", "my_recent_posts", "my_growth"} <= tools
+        for tools in bindings
+    )
+    service.executor.execute.assert_not_awaited()
+
+
+async def test_unavailable_recall_is_rejected_without_hiding_the_attempt():
+    from langchain_core.messages import ToolMessage
+
+    call = AIMessage(content="", tool_calls=[dict(name="recall", id="r1", args={"query": "一天"})])
+    agent, service, context = setup([call, response()])
+    result = await agent.graph.ainvoke({"messages": []}, context=Context(context))
+    error = next(
+        message for message in result["messages"]
+        if isinstance(message, ToolMessage) and message.tool_call_id == "r1"
+    )
+    assert error.status == "error" and "没有可召回的记忆候选" in error.content
+    assert context["toolUsage"] == [
+        dict(name="recall", success=False, rejected=True, cached=False, elapsedMs=0)
+    ]
+    assert context["toolResults"] == [] and context["memoryIds"] == set()
+    service.executor.execute.assert_not_awaited()

@@ -61,6 +61,8 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
     )
     lines.extend(f"{name}：{value}" for name, value in optional if value)
     if not speech:
+        if not request.recalled:
+            lines.append("记忆检索：没有额外记忆候选，recall不可用；已有前文可直接阅读，指代不明时询问。")
         known = [*request.context_snapshot.get("memories", []), *request.new_memories]
         if known:
             lines.append("本轮可用记忆出处：" + text(known))
