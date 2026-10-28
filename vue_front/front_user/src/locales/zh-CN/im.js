@@ -37,6 +37,7 @@ export default {
   imagePreview: '[图片]',
   more: '加载更多',
   retry: '重试',
+  searchEmotion: '搜索表情',
   loading: '加载中…',
   earlier: '更早的消息',
   placeholder: '说点什么吧',

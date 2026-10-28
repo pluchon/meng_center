@@ -188,7 +188,7 @@ try {
    const id=await event('growth.level-changed',{userId:users[0],level:3}); await event('growth.level-changed',{userId:users[0],level:3},id);
    await event('user.approved',{userId:users[0]});
    await eventually(async()=>ok(await api('/im/notifications?channel=SYSTEM')).total===2,'system events');
-   const groups=ok(await api('/im/notification-groups?channel=SYSTEM')); assert.deepEqual(groups.map(row=>row.key),['GROWTH','REPORT','APPROVAL']);
+   const groups=ok(await api('/im/notification-groups?channel=SYSTEM')); assert.deepEqual(groups.map(row=>row.key),['GROWTH','REPORT','APPROVAL','FOLLOW']);
    ok(await api('/im/notifications/read',0,'PUT',{channel:'LIKE',source:'POST'})); assert.equal(ok(await api('/im/unread')).like,0);
    ok(await api('/im/notifications?channel=SYSTEM&category=BAD'),400);
    ok(await api('/im/notifications/read',0,'PUT',{channel:'SYSTEM'}),400);
@@ -233,6 +233,11 @@ try {
    await page.goto(frontOrigin+'/messages?with='+users[1]);
    await page.locator('.message-chat').waitFor(); await page.locator('.messages-view[data-connection="connected"]').waitFor();
    assert.match(await page.title(),/消息中心/); assert.equal(await page.locator('.vite-error-overlay').count(),0);
+   await page.getByRole('button',{name:'表情',exact:true}).click();
+   await page.getByRole('searchbox',{name:'搜索表情',exact:true}).fill('水滴');
+   const emotionGrid=page.getByRole('group',{name:'经典',exact:true});
+   await emotionGrid.getByRole('button',{name:'水滴',exact:true}).waitFor(); assert.equal(await emotionGrid.getByRole('button').count(),1);
+   await page.getByRole('button',{name:'表情',exact:true}).click();
    await page.getByRole('textbox',{name:'说点什么吧'}).fill('浏览器发送 [表情:水滴]'); await page.getByRole('button',{name:'发送',exact:true}).click();
    await eventually(async()=> (await api(`/im/conversations/${conversation}/messages`,1)).data.records.some(item=>item.content==='浏览器发送 [表情:水滴]'),'browser HTTP send');
    let failedClient, retryClient, failOnce=true;
@@ -246,6 +251,7 @@ try {
    await page.getByRole('tab',{name:/^评论/}).click(); await page.getByRole('button',{name:'第 2 页',exact:true}).click(); await eventually(()=>page.locator('.notice-card').count().then(count=>count===2),'notification second page'); await page.getByRole('button',{name:'第 1 页',exact:true}).click(); await page.getByRole('tab',{name:/^系统/}).click();
    await page.getByRole('button',{name:/举报通知/}).click(); await page.getByText('暂时没有通知',{exact:true}).waitFor();
    await page.getByRole('button',{name:/审核通知/}).click(); await page.getByText('注册申请通过啦',{exact:true}).first().waitFor();
+   assert.equal(await page.getByText('im.COMPANION',{exact:true}).count(),0); await page.getByRole('button',{name:/关注通知/}).waitFor();
    await page.getByRole('button',{name:'在线状态',exact:true}).click(); await page.getByRole('button',{name:'隐身',exact:true}).click(); await eventually(async()=>ok(await api('/im/settings')).hidden,'hidden setting');
    await page.getByRole('button',{name:'在线状态',exact:true}).click(); await page.getByRole('button',{name:'自动在线',exact:true}).click();
    await page.getByRole('link',{name:'回到首页'}).click(); await page.locator('.nav-messages').waitFor(); assert.equal(await page.locator('.nav-tools .nav-messages').count(),1);

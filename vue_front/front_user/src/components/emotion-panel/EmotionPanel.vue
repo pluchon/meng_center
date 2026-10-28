@@ -3,8 +3,8 @@
     <input
       v-model="query"
       type="search"
-      :placeholder="t('meng.searchEmotion')"
-      :aria-label="t('meng.searchEmotion')"
+      :placeholder="t('im.searchEmotion')"
+      :aria-label="t('im.searchEmotion')"
     >
     <button
       v-if="catalog.error"
@@ -12,7 +12,7 @@
       class="text-button"
       @click="catalog.load(true)"
     >
-      {{ t('meng.retry') }}
+      {{ t('im.retry') }}
     </button>
     <Transition
       name="emotion-swap"
