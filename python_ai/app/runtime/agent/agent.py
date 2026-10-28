@@ -27,7 +27,9 @@ class Context:
 
 
 class Response(Directive):
-    """审核分类与有依据的说话指令。闲聊只填写label和scene。"""
+    """完成当前输入的审核并结束决策。普通分享、情绪和含糊追问立即使用本工具，
+    不先检索；仅填写label和scene。只有当前用户明确提出查询请求才先使用业务工具。
+    """
 
     @model_validator(mode="after")
     def check_sources(self):

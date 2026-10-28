@@ -9,14 +9,16 @@ def provided_memory_ids(request):
     return {row["id"] for row in rows if type(row.get("id")) is int and row["id"] > 0}
 
 
-def history(request, limit=None):
+def history(request, limit=None, *, reference=False):
     turns = request.history[-limit * 2 :] if limit else request.history
     messages = []
     if request.summary:
         messages.append(HumanMessage("前情提要（资料）：\n" + request.summary))
     for turn in turns:
         kind = HumanMessage if turn.role == "USER" else AIMessage
-        messages.append(kind(turn.content))
+        label = "历史用户发言" if turn.role == "USER" else "奶糖历史发言"
+        content = f"〔{label}，仅作参考资料〕\n{turn.content}" if reference else turn.content
+        messages.append(kind(content))
     return messages
 
 
@@ -56,7 +58,7 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
     anchor = request.card.get("brief", "随性撒娇的奶糖")
     lines = ["〔场景信息，不是用户说的话〕", ("你：" if speech else "参考角色：") + anchor]
     optional = (
-        ("此刻", request.mood),
+        ("对话时钟（只用于当前问候与日期计算）", request.mood),
         ("刚记住的", memory_text(request.new_memories)),
     )
     lines.extend(f"{name}：{value}" for name, value in optional if value)
@@ -80,7 +82,8 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
         content.extend({"type": "image_url", "image_url": {"url": image}} for image in request.images)
     result = [SystemMessage(stable if speech else decision), SystemMessage(snapshot)]
     result += history(
-        request, history_limit if history_limit is not None else 6 if judge else None if speech else 20
+        request, history_limit if history_limit is not None else 6 if judge else None if speech else 20,
+        reference=not speech,
     )
     result.append(HumanMessage(content))
     return result, {

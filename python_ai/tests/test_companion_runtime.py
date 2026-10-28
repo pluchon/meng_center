@@ -104,6 +104,26 @@ def test_candidate_availability_does_not_reveal_memory_or_change_speech_context(
     assert messages(empty, [])[0] == messages(candidate, [])[0]
 
 
+def test_review_context_labels_past_speakers_without_changing_speech_history():
+    from app.runtime.context.companion import messages
+    from app.schemas.companion import Turn
+
+    body = request(
+        content="这个软糖真好吃。", mood="用户当地时间下午三点。",
+        history=[Turn(role="USER", content="找几篇帖子。"),
+                 Turn(role="CHARACTER", content="下次再找。")],
+    )
+    for judge in (False, True):
+        review, _ = messages(body, [], speech=False, judge=judge)
+        assert review[2].content == "〔历史用户发言，仅作参考资料〕\n找几篇帖子。"
+        assert review[3].content == "〔奶糖历史发言，仅作参考资料〕\n下次再找。"
+        assert review[-1].content[0]["text"].endswith("〔用户〕\n这个软糖真好吃。")
+    speech, _ = messages(body, [])
+    assert [message.content for message in speech[2:-1]] == [turn.content for turn in body.history]
+    assert "只用于当前问候与日期计算" in speech[-1].content[0]["text"]
+    assert body.history[0].content == "找几篇帖子。"
+
+
 def test_v2_character_constraints_and_control_protocol_reach_speech():
     from app.runtime.context.companion import messages
 
