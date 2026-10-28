@@ -3,14 +3,44 @@
   "promptVersion": "20261028.11",
   "catalogVersion": "20261027.1",
   "baselineSha256": "03b12469021db1ce493594e148c390fbe1cc2664588ee16d04b6a54d148a5a9b",
-  "evaluationSha256": "88377b602bdfec3a8c3deddce2908ce991231a1a79d283dbe7f2d5c8d904b6cf",
+  "evaluationSha256": "f2090aecbf24227900f7ba66098bbfee23ed3f169bf4a3f3411cd1bfbbbb7cbd",
   "samples": 35,
   "baselineSamples": 4987,
   "frequencyMethod": "连续中文2至4字重叠词组；按各长度总词组数归一；零频率以0.5次估计",
-  "candidates": [],
-  "reviewed": [],
+  "candidates": [
+    {
+      "phrase": "确实",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 11,
+      "outputTotal": 652,
+      "baselineTotal": 48846,
+      "ratio": 34.05326268823201
+    },
+    {
+      "phrase": "不用",
+      "size": 2,
+      "count": 5,
+      "baselineCount": 17,
+      "outputTotal": 652,
+      "baselineTotal": 48846,
+      "ratio": 22.03446409238542
+    }
+  ],
+  "reviewed": [
+    {
+      "phrase": "确实",
+      "isSlop": false,
+      "reason": "分别承接轻松聊天、一天休息、考试、周一和空落感等明确语境；属于通用程度副词，没有形成固定的空泛模板。"
+    },
+    {
+      "phrase": "不用",
+      "isSlop": false,
+      "reason": "包含对用户不用加班及其后续话题的直接承接，其余用于误会、休息和可惜等具体话题；普通否定词不能仅凭频率判为套话。"
+    }
+  ],
   "status": "PROFILED",
-  "acceptanceComplete": false,
-  "acceptancePassed": false,
-  "reason": "固定35轮输出已按原中文基线完成画像，没有达到筛选阈值的候选；主决策器缓存未达标，尚未进入当前版本的20组双裁判评分。"
+  "acceptanceComplete": true,
+  "acceptancePassed": true,
+  "reason": "对应版本的固定35轮与20组双裁判评分已完成，质量与性能检查通过；两个频率候选已逐条复核，裁判一致度不足的维度仅作参考。"
 }
