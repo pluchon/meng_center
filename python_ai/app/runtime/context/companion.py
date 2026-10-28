@@ -54,7 +54,7 @@ def speech_facts(instruction):
 def messages(request, emotions, instruction=None, speech=True, form="", judge=False, history_limit=None):
     stable, decision, snapshot = prefixes(request, emotions)
     anchor = request.card.get("brief", "随性撒娇的奶糖")
-    lines = ["〔场景信息，不是用户说的话〕", "你：" + anchor]
+    lines = ["〔场景信息，不是用户说的话〕", ("你：" if speech else "参考角色：") + anchor]
     optional = (
         ("此刻", request.mood),
         ("刚记住的", memory_text(request.new_memories)),

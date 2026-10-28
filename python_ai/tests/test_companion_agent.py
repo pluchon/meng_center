@@ -62,3 +62,52 @@ async def test_missing_structured_response_fails_closed():
     agent, _, context = setup([AIMessage(content="未结束")] * 5)
     with pytest.raises(Exception, match="缺少说话指令"):
         await agent.run(context)
+
+
+async def test_search_then_read_can_finish_within_three_model_calls():
+    search = AIMessage(content="", tool_calls=[dict(name="search_posts", id="s1", args={"query": "新番"})])
+    read = AIMessage(content="", tool_calls=[dict(name="read_post", id="p1", args={"post_id": 101})])
+    agent, service, context = setup([search, read, response("tool:p1")])
+    service.executor.execute.side_effect = [
+        dict(id="s1", facts=["新番帖子"], sources=[dict(postId=101, title="新番讨论")]),
+        dict(id="p1", facts=["帖子正文"]),
+    ]
+    assert (await agent.run(context)).facts[0].source == "tool:p1"
+    assert service.executor.execute.await_count == 2
+
+
+@pytest.mark.parametrize("name", ["my_recent_posts", "my_growth"])
+async def test_empty_argument_tools_receive_runtime_context(name):
+    from app.runtime.tools.registry import TOOLS, declare
+
+    assert declare(TOOLS[name]).tool_call_schema.model_json_schema()["properties"] == {}
+    call = AIMessage(content="", tool_calls=[dict(name=name, id="empty1", args={})])
+    agent, service, context = setup([call, response("tool:empty1")])
+    service.executor.execute.return_value = dict(id="empty1", facts=["只读结果"])
+    assert (await agent.run(context)).facts[0].source == "tool:empty1"
+    assert service.executor.execute.await_args.args[0] == dict(id="empty1", name=name, args={})
+
+
+async def test_last_call_excludes_business_tools_and_keeps_structured_response():
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+
+    bindings, inputs = [], []
+
+    class RecordingModel(GenericFakeChatModel):
+        def bind_tools(self, tools, **kwargs):
+            bindings.append([tool.name for tool in tools])
+            return self
+
+        def _generate(self, messages, *args, **kwargs):
+            inputs.append(messages)
+            return super()._generate(messages, *args, **kwargs)
+
+    search = AIMessage(content="", tool_calls=[dict(name="search_posts", id="s1", args={"query": "新番"})])
+    read = AIMessage(content="", tool_calls=[dict(name="read_post", id="p1", args={"post_id": 101})])
+    _, service, context = setup([])
+    service.models.agent = RecordingModel(messages=iter([search, read, response("tool:p1")]))
+    service.executor.execute.side_effect = [dict(id="s1", facts=[]), dict(id="p1", facts=["正文"])]
+    await Agent(service).run(context)
+    assert "search_posts" in bindings[0] and "read_post" in bindings[1]
+    assert bindings[2] == ["Response"]
+    assert '"source": "tool:p1"' in inputs[2][-1].content

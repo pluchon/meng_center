@@ -57,6 +57,25 @@ def test_stable_prefix_does_not_change_with_time_or_new_memory():
     assert "私人记忆" not in prefixes(a, [])[0]
 
 
+def test_internal_agent_role_does_not_replace_character_voice_or_user_input():
+    from app.runtime.context.companion import messages
+
+    body = request(content="今天把桌上的手办重新摆了一遍。")
+    body.card.update(brief="随性撒娇的奶糖", profile="喜欢午睡的大学生")
+    decision, _ = messages(body, [], speech=False)
+    speech, _ = messages(body, [])
+    assert decision[0].content.startswith("你是奶糖对话的内部审核与工具决策器")
+    assert "奶糖角色参考：随性撒娇的奶糖" in decision[0].content
+    assert "你是萌部落的 AI 角色" not in decision[0].content
+    assert "内部审核与工具决策器" not in speech[0].content
+    assert "喜欢午睡的大学生" in speech[0].content
+    assert "参考角色：随性撒娇的奶糖" in decision[-1].content[0]["text"]
+    assert "\n你：" not in decision[-1].content[0]["text"]
+    assert "你：随性撒娇的奶糖" in speech[-1].content[0]["text"]
+    assert decision[-1].content[0]["text"].endswith(body.content)
+    assert speech[-1].content[0]["text"].endswith(body.content)
+
+
 def test_new_and_due_memories_are_usable_but_unretrieved_candidates_are_not():
     body = request(
         context_snapshot={"memories": [{"id": 1}]},

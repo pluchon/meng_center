@@ -7,12 +7,14 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
+from langchain_core.callbacks import BaseCallbackHandler
 from pydantic import ValidationError
 from redis.asyncio import Redis
 
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
 from app.runtime.agent.agent import Agent
+from app.runtime.context.cache import digest
 from app.runtime.models.gateway import CURRENT, RoundUsage
 from app.runtime.safety.redline import has_contact
 from app.runtime.tools.registry import TOOLS
@@ -24,6 +26,13 @@ from evals.companion.cards import card_payload
 CASES = [
     ("anime", "找几篇站内的新番讨论帖。", "PASS", "search_posts", False),
     ("weather", "今天的天气让我有点困。", "PASS", None, False),
+    ("daily-cat", "跟一只流浪猫熟起来了，玩完还是得洗手。", "PASS", None, False),
+    ("daily-sleep", "明明没怎么熬夜，还是睡过头了。", "PASS", None, False),
+    ("opinion", "今天把桌上的手办重新摆了一遍，你觉得这样怎样？", "PASS", None, False),
+    ("cat-posts", "找几篇站内有关猫的帖子。", "PASS", "search_posts", False),
+    ("read-post", "阅读站内编号101的帖子。", "PASS", "read_post", False),
+    ("my-posts", "查看我最近公开发布的帖子。", "PASS", "my_recent_posts", False),
+    ("growth", "查看我的签到和成长记录。", "PASS", "my_growth", False),
     ("recall", "你还记得我喜欢什么颜色吗？", "PASS", "recall", False),
     ("rest", "我准备睡觉了，明天再聊。", "PASS", None, False),
     ("self", "你平时喜欢做什么？", "PASS", None, False),
@@ -37,15 +46,30 @@ class Fixtures:
     async def execute(self, call, context):
         args = TOOLS[call["name"]].schema.model_validate(call["args"]).model_dump()
         context["observed"].append({"name": call["name"], "args": args})
-        context["toolUsage"].append({"name": call["name"], "success": True})
+        success = True
         if call["name"] == "recall":
             context["memoryIds"].add(101)
             facts = ["用户说过喜欢蓝色，记忆编号101"]
         elif call["name"] == "search_posts":
             facts = ["虚构站内帖子介绍了新番讨论。"]
+        elif call["name"] == "read_post" and args["post_id"] == 101:
+            facts = ["虚构站内帖子《新番讨论》介绍了新番观后感。"]
+        elif call["name"] == "my_recent_posts":
+            facts = ["测试用户最近公开发布了《学习 Vue 的第一天》。"]
+        elif call["name"] == "my_growth":
+            facts = ["测试用户今天已签到，当前经验为15。"]
         else:
+            success = False
             facts = ["此项工具在本评测中不可用"]
-        return {"id": call["id"], "facts": facts, "sources": []}
+        context["toolUsage"].append({"name": call["name"], "success": success})
+        return {
+            "id": call["id"],
+            "success": success,
+            "facts": facts,
+            "sources": [{"postId": 101, "title": "新番讨论"}]
+            if call["name"] == "search_posts"
+            else [],
+        }
 
 
 class MemoryProbe(Companion):
@@ -55,6 +79,26 @@ class MemoryProbe(Companion):
             {"schema": schema.__name__, "result": result.model_dump(mode="json") if result else None}
         )
         return result
+
+
+class DecisionTrace(BaseCallbackHandler):
+    """只记录虚构评测中模型返回的结果，不记录请求和真实用户资料。"""
+
+    def __init__(self):
+        self.outputs = []
+
+    def on_llm_end(self, response, **kwargs):
+        for generations in response.generations:
+            for generation in generations:
+                message = generation.message
+                self.outputs.append(
+                    dict(
+                        content=message.content,
+                        toolCalls=message.tool_calls,
+                        invalidToolCalls=message.invalid_tool_calls,
+                        finishReason=message.response_metadata.get("finish_reason"),
+                    )
+                )
 
 
 async def run(args):
@@ -72,10 +116,12 @@ async def run(args):
     if await asyncio.to_thread(output.exists):
         await redis.aclose()
         raise ValueError("已有决策评测报告，不能覆盖或重新生成")
+    gateway.usage_key = key + ":usage:" + digest(str(await asyncio.to_thread(output.resolve)))
 
     async def checkpoint(complete=False, **extra):
         report = dict(
-            usage=await gateway.usage_summary(), complete=complete, cases=rows, budgetKey=key, **extra
+            usage=await gateway.usage_summary(), complete=complete, cases=rows, budgetKey=key,
+            usageKey=gateway.usage_key, **extra
         )
         await save_checkpoint(output, report)
 
@@ -103,8 +149,11 @@ async def run(args):
                     mood="2026年10月24日，星期六。",
                     recalled=[{"id": 101, "content": "喜欢蓝色"}],
                 )
+                trace = DecisionTrace()
                 context = dict(
-                    service=owner, request=request, memoryIds=set(), toolUsage=[], toolResults=[], observed=[]
+                    service=owner, request=request, memoryIds=set(), toolUsage=[], toolResults=[],
+                    observed=[],
+                    callbacks=[trace],
                 )
                 token = CURRENT.set(RoundUsage(request.user_id, code, name))
                 try:
@@ -121,7 +170,12 @@ async def run(args):
                         passed &= directive.support_needed
                     result = directive.model_dump(by_alias=True)
                 except Exception as error:
-                    passed, result = False, {"errorType": type(error).__name__}
+                    passed, result = False, {
+                        "errorType": type(error).__name__,
+                        "directiveIssues": context.get("directiveIssues", []),
+                        "availableToolSources": ["tool:" + row["id"] for row in context["toolResults"]],
+                        "modelOutputs": trace.outputs,
+                    }
                 finally:
                     CURRENT.reset(token)
                 rows.append(

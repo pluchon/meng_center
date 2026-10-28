@@ -38,5 +38,5 @@ class RecordedTools:
             success=True,
             facts=facts[name],
             speechFacts=facts[name] if name == "recall" else [],
-            sources=[],
+            sources=[dict(postId=101, title="Vue 组件入门")] if name == "search_posts" else [],
         )

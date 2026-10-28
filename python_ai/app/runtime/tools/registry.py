@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
+from typing import Any
 
 from langchain.tools import ToolRuntime, tool
 from pydantic import BaseModel, Field
@@ -35,27 +36,58 @@ TOOLS = {
     for s in (
         ToolSpec(
             "recall",
-            "确认资料缺失的过往事实；普通闲聊、情绪倾诉和角色设定问题不调用",
+            "仅在用户明确询问以前聊过的事且已有资料不足时召回记忆；"
+            "讲述过去的日常、表达情绪或询问角色设定时不调用",
             Query,
             "在想以前聊过的事…",
             cache_seconds=60,
         ),
-        ToolSpec("search_posts", "按含义检索公开帖子", Query, "在翻帖子…", timeout=6),
-        ToolSpec("read_post", "读取一篇公开帖子的正文", Post, "在看帖子…", timeout=3, cache_seconds=60),
-        ToolSpec("my_recent_posts", "读取当前用户最近公开的帖子", Empty, "在看你最近的帖子…", timeout=3),
-        ToolSpec("my_growth", "读取当前用户成长数据", Empty, "在看你的成长记录…", timeout=3),
+        ToolSpec(
+            "search_posts",
+            "仅在用户明确要求查找或推荐站内帖子时检索；不因提到某个话题而检索，不为闲聊补充材料",
+            Query,
+            "在翻帖子…",
+            timeout=6,
+        ),
+        ToolSpec(
+            "read_post",
+            "读取用户指定或本轮检索结果中的公开帖子；仅用于完成用户明确提出的帖子阅读请求",
+            Post,
+            "在看帖子…",
+            timeout=3,
+            cache_seconds=60,
+        ),
+        ToolSpec(
+            "my_recent_posts",
+            "仅在用户明确要求查看自己最近公开的帖子时读取",
+            Empty,
+            "在看你最近的帖子…",
+            timeout=3,
+        ),
+        ToolSpec(
+            "my_growth",
+            "仅在用户明确要求查看自己的签到、经验、等级或成长记录时读取",
+            Empty,
+            "在看你的成长记录…",
+            timeout=3,
+        ),
     )
 }
 
 
 def declare(spec):
-    @tool(spec.name, description=spec.description, args_schema=spec.schema)
     async def execute(runtime: ToolRuntime, **kwargs):
         context = runtime.context.data
         result = await context["service"].executor.execute(
             {"id": runtime.tool_call_id, "name": spec.name, "args": kwargs}, context
         )
         context.setdefault("toolResults", []).append({"name": spec.name, **result})
-        return result
+        return {**result, "source": "tool:" + runtime.tool_call_id}
 
-    return execute
+    if spec.schema is Empty:
+        # 从函数推导注入参数，避免空模型触发无参数快捷路径而丢失运行时。
+        async def execute_empty(runtime: ToolRuntime[Any]):
+            return await execute(runtime)
+
+        return tool(spec.name, description=spec.description)(execute_empty)
+    return tool(spec.name, description=spec.description, args_schema=spec.schema)(execute)

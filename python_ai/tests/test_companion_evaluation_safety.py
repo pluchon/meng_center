@@ -16,6 +16,22 @@ from evals.companion import decisions
 from evals.companion.metrics import baseline_metrics
 
 
+async def test_decision_fixtures_expose_readable_post_ids_and_cover_every_business_tool():
+    from app.runtime.tools.registry import TOOLS
+
+    assert {case[3] for case in decisions.CASES if case[3]} == set(TOOLS)
+    context = dict(observed=[], toolUsage=[], memoryIds=set())
+    fixtures = decisions.Fixtures()
+    search = await fixtures.execute(dict(id="s1", name="search_posts", args={"query": "新番"}), context)
+    read = await fixtures.execute(
+        dict(id="r1", name="read_post", args={"post_id": search["sources"][0]["postId"]}), context
+    )
+    assert search["success"] and read["success"] and "新番" in read["facts"][0]
+    unknown = await fixtures.execute(dict(id="r2", name="read_post", args={"post_id": 999}), context)
+    assert not unknown["success"]
+    assert context["toolUsage"][-1] == dict(name="read_post", success=False)
+
+
 async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(monkeypatch, tmp_path):
     redis = AsyncMock()
     gateway = SimpleNamespace(usage_summary=AsyncMock(return_value={"chargedOrReservedTokens": 0}))

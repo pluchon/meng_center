@@ -39,6 +39,12 @@ class Response(Directive):
 
 def repair(error):
     context = ACTIVE.get()
+    issue = {"type": type(error).__name__}
+    source = getattr(error, "source", error)
+    validation = getattr(source, "__cause__", None)
+    if hasattr(validation, "errors"):
+        issue["fields"] = validation.errors(include_input=False, include_context=False, include_url=False)
+    context.setdefault("directiveIssues", []).append(issue)
     if context.get("directiveRetried"):
         raise ValueError("说话指令重试后仍不合法") from error
     context["directiveRetried"] = True
@@ -77,7 +83,11 @@ class Agent:
         token = ACTIVE.set(context)
         try:
             conversation, _ = messages(context["request"], [], speech=False)
-            result = await self.graph.ainvoke({"messages": conversation}, context=Context(context))
+            result = await self.graph.ainvoke(
+                {"messages": conversation},
+                context=Context(context),
+                config={"callbacks": context.get("callbacks", [])},
+            )
             if "structured_response" not in result:
                 raise ValueError("主agent缺少说话指令")
             return result["structured_response"]
