@@ -59,6 +59,33 @@ async def test_schema_validation_uses_tool_strategy_retry():
     assert (await agent.run(context)).label == "PASS"
 
 
+async def test_schema_retry_reports_the_invalid_field_without_echoing_input():
+    from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
+
+    inputs = []
+
+    class RecordingModel(GenericFakeChatModel):
+        def bind_tools(self, tools, **kwargs):
+            return self
+
+        def _generate(self, messages, *args, **kwargs):
+            inputs.append(messages)
+            return super()._generate(messages, *args, **kwargs)
+
+    hint = "先稳住当下，劝联系身边可信任的人和求助渠道"
+    bad = AIMessage(content="", tool_calls=[
+        dict(name="Response", id="bad", args=dict(label="CRISIS", hint=hint))
+    ])
+    fixed = AIMessage(content="", tool_calls=[dict(name="Response", id="fixed", args=dict(label="CRISIS"))])
+    _, service, context = setup([])
+    service.models.agent = RecordingModel(messages=iter([bad, fixed]))
+    assert (await Agent(service).run(context)).label == "CRISIS"
+    feedback = inputs[1][-1].content
+    assert "hint" in feedback and "20" in feedback and "String should have at most" in feedback
+    assert hint not in feedback and len(inputs) == 2
+    service.executor.execute.assert_not_awaited()
+
+
 async def test_missing_structured_response_fails_closed():
     agent, _, context = setup([AIMessage(content="未结束")] * 5)
     with pytest.raises(Exception, match="缺少说话指令"):

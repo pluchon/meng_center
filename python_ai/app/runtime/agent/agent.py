@@ -54,7 +54,15 @@ def repair(error):
     context["directiveRetried"] = True
     sources = ["history"] + ["tool:" + row["id"] for row in context.get("toolResults", [])]
     sources += [f"memory:{ident}" for ident in sorted(context["memoryIds"])]
-    return "只修正说话指令，不再执行工具。可用出处：" + "、".join(sources)
+    fields = "；".join(
+        ".".join(str(part) for part in row["loc"]) + "：" + row["msg"]
+        for row in issue.get("fields", [])[:3]
+    )
+    return (
+        "只修正说话指令，不再执行工具。"
+        + ("校验错误：" + fields + "。" if fields else "")
+        + "hint最多20字，可省略。可用出处：" + "、".join(sources)
+    )
 
 
 @wrap_model_call
