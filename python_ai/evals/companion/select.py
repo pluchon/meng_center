@@ -16,7 +16,6 @@ from app.prompts.companion import VERSION
 from app.runtime.context.cache import digest
 from app.schemas.companion import ReplyRequest, Turn
 from app.services.assistant import Assistant
-from app.services.companion import Companion
 from evals.companion import cards
 from evals.companion.blind import (
     JUDGES,
@@ -37,8 +36,8 @@ from evals.companion.budget import (
 from evals.companion.cards import CARDS, card_payload, configure_catalog, emotion_payload, examples_payload
 from evals.companion.cases import QUESTIONS
 from evals.companion.corpus import load_corpus
-from evals.companion.fixtures import RecordedTools, scene
-from evals.companion.metrics import baseline_metrics, compare, quality_failures, summarize
+from evals.companion.fixtures import RecordedCompanion, RecordedTools, scene
+from evals.companion.metrics import baseline_metrics, compare, quality_failures, reply_passed, summarize
 from evals.companion.protocol import comparison_plan, comparison_status, generation_conditions
 
 MODELS = ("deepseek-flash", "deepseek-v4-pro")
@@ -243,7 +242,9 @@ async def run(args):
                     }
                 )
                 models = ModelFactory(configured, redis, http, gateway)
-                service = Companion(Assistant(models, CoverImageClient(configured, http, gateway)), http)
+                service = RecordedCompanion(
+                    Assistant(models, CoverImageClient(configured, http, gateway)), http
+                )
 
                 async def catalog():
                     return emotion_payload()
@@ -291,6 +292,7 @@ async def run(args):
                                 history=history,
                             )
                             random.seed(digest([args.seed, ident]))
+                            service.generation_trace = []
                             events = [event async for event in service.stream(body)]
                             result = next((e["data"] for e in events if e["event"] == "result"), None)
                             # 本批真实语料都是闲聊与倾诉；固定语料预期只用于评测，不进入业务路由。
@@ -299,14 +301,7 @@ async def run(args):
                                 if case and result and result.get("toolUsage")
                                 else []
                             )
-                            passed = bool(
-                                result
-                                and result["billable"]
-                                and result["model"] == candidate
-                                and result.get("metrics", {}).get("unsupported", 1) == 0
-                                and result.get("metrics", {}).get("artificial", 10) < 7
-                                and not decision_issues
-                            )
+                            passed = reply_passed(result, candidate) and not decision_issues
                             row = dict(
                                 id=ident,
                                 input=question,
@@ -315,6 +310,7 @@ async def run(args):
                                 passed=passed,
                                 result=result,
                                 decisionIssues=decision_issues,
+                                generationTrace=service.generation_trace,
                             )
                             if case:
                                 row["provenance"] = {

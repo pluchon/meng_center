@@ -5,6 +5,33 @@ from datetime import date, timedelta
 from app.runtime.context.card import memory_text
 from app.runtime.context.segments import text
 from app.runtime.tools.registry import TOOLS
+from app.services.companion import Companion
+
+
+class RecordedCompanion(Companion):
+    """只在虚构验收中保留候选与打分，业务服务不记录用户正文。"""
+
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.generation_trace = []
+
+    async def speak(self, *args, **kwargs):
+        try:
+            result = await super().speak(*args, **kwargs)
+        except Exception as error:
+            self.generation_trace.append(dict(phase="speech", errorType=type(error).__name__))
+            raise
+        self.generation_trace.append(dict(phase="speech", bubbles=list(result[0].bubbles)))
+        return result
+
+    async def judge(self, *args, **kwargs):
+        try:
+            result = await super().judge(*args, **kwargs)
+        except Exception as error:
+            self.generation_trace.append(dict(phase="judge", errorType=type(error).__name__))
+            raise
+        self.generation_trace.append(dict(phase="judge", result=result.model_dump(by_alias=True)))
+        return result
 
 
 def scene(index, clock=None):

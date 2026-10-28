@@ -90,6 +90,53 @@ async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(
     redis.aclose.assert_awaited_once()
 
 
+@pytest.mark.parametrize("unsupported,passed", [(0, True), (1, False)])
+async def test_runtime_replay_uses_saved_history_and_the_full_acceptance_gate(
+    monkeypatch, tmp_path, unsupported, passed
+):
+    from pydantic import SecretStr
+
+    from app.config.settings import Settings
+
+    settings = Settings.model_construct(redis_password=SecretStr("fixture"))
+    redis = AsyncMock()
+    gateway = SimpleNamespace(usage_summary=AsyncMock(return_value={"chargedOrReservedTokens": 0}))
+    monkeypatch.setattr(decisions, "Settings", lambda: settings)
+    monkeypatch.setattr(decisions, "evaluation_settings", lambda *args: (settings, "fixture-budget"))
+    monkeypatch.setattr(decisions, "Redis", lambda **kwargs: redis)
+    monkeypatch.setattr(decisions, "EvaluationGateway", lambda *args: gateway)
+    monkeypatch.setattr(decisions, "claim_run", AsyncMock())
+    monkeypatch.setattr(decisions, "ModelFactory", lambda *args: SimpleNamespace())
+    result = dict(billable=True, model=settings.speech_model, bubbles=["软糖呀。"], toolUsage=[],
+                  metrics=dict(unsupported=unsupported, artificial=1))
+    service = SimpleNamespace(compute=AsyncMock(return_value=result), generation_trace=[dict(phase="speech")])
+    monkeypatch.setattr(decisions, "RecordedCompanion", lambda *args: service)
+    first = dict(id="NEKO-0", card="NEKO", input="昨天有点累", passed=True,
+                 result=dict(bubbles=["歇一下。", "慢慢来。"]))
+    failed = dict(id="NEKO-1", card="NEKO", input="这个软糖真好吃。", scene="下午三点",
+                  passed=False, decisionIssues=[], result=dict(bubbles=["旧失败回复"]))
+    source = tmp_path / "source.json"
+    source.write_text(
+        json.dumps(dict(complete=False, records={"fixture": [first, failed]})), encoding="utf-8"
+    )
+    output = tmp_path / "replay.json"
+    args = argparse.Namespace(
+        token_budget=100, budget_id="fixture", phase_id="fixture-phase", case="conversation",
+        runtime=True, conversation_report=source, output=str(output),
+    )
+    assert await decisions.run(args) == (0 if passed else 1)
+    body = service.compute.await_args.args[0]
+    assert body.content == failed["input"] and body.mood == failed["scene"]
+    assert body.turn_id == failed["id"]
+    assert [turn.content for turn in body.history] == [first["input"], "歇一下。\n慢慢来。"]
+    assert body.examples and not body.recalled
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["complete"] is passed and saved["cases"][0]["passed"] is passed
+    assert saved["cases"][0]["result"]["generationTrace"] == service.generation_trace
+    assert saved["replayedConversation"]["sourceRound"] == "NEKO-1"
+    service.compute.assert_awaited_once()
+
+
 def test_legacy_baseline_only_reuses_naitang_records_and_preserves_recorded_style():
     def record(code, latency):
         return {

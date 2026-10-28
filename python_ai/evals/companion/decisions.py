@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import hashlib
 import json
+import random
 from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
@@ -23,7 +24,9 @@ from app.runtime.tools.registry import TOOLS
 from app.schemas.companion import ConsolidationRequest, ReplyRequest, Turn
 from app.services.companion import Companion
 from evals.companion.budget import EvaluationGateway, claim_run, evaluation_settings, save_checkpoint
-from evals.companion.cards import card_payload
+from evals.companion.cards import card_payload, emotion_payload, examples_payload
+from evals.companion.fixtures import RecordedCompanion, RecordedTools
+from evals.companion.metrics import reply_passed
 
 CASES = [
     ("anime", "找几篇站内的新番讨论帖。", "PASS", "search_posts", False),
@@ -105,7 +108,7 @@ class DecisionTrace(BaseCallbackHandler):
                 )
 
 
-def conversation_context(report):
+def conversation_context(report, *, decision_only=True):
     """复用已保存的前文，只验证失败轮次的工具决策，不重新生成对话。"""
     records = report.get("records", {})
     if report.get("complete") or len(records) != 1:
@@ -114,14 +117,14 @@ def conversation_context(report):
     if (
         not rows
         or rows[-1].get("passed")
-        or not rows[-1].get("decisionIssues")
+        or (decision_only and not rows[-1].get("decisionIssues"))
         or rows[-1].get("card") != "NEKO"
         or any(
             row.get("card") != "NEKO" or not row.get("passed") or not row.get("result", {}).get("bubbles")
             for row in rows[:-1]
         )
     ):
-        raise ValueError("报告必须保留完整的成功前文和末轮工具决策失败")
+        raise ValueError("报告必须保留完整的成功前文和末轮失败")
     history = []
     for row in rows[:-1]:
         history.extend([
@@ -142,6 +145,7 @@ async def run(args):
         decode_responses=True,
     )
     rows, replay = [], None
+    runtime_probe = getattr(args, "runtime", False)
     gateway = EvaluationGateway(settings, redis, key, args.token_budget)
     output = Path(args.output)
     if await asyncio.to_thread(output.exists):
@@ -158,17 +162,20 @@ async def run(args):
             report["replayedConversation"] = {
                 key: replay[key] for key in ("sourceRound", "sourceReportSha256")
             }
+            report["replayedConversation"]["mode"] = "runtime" if runtime_probe else "agent"
         await save_checkpoint(output, report)
 
     try:
         if not args.phase_id:
             raise ValueError("决策评测需要本期固定 phase-id")
+        if runtime_probe and args.case != "conversation":
+            raise ValueError("整轮预检只接受既有失败对话")
         source = getattr(args, "conversation_report", None)
         if args.case == "conversation":
             if not source:
                 raise ValueError("回放决策需要既有长对话报告")
             raw = await asyncio.to_thread(Path(source).read_bytes)
-            replay = conversation_context(json.loads(raw))
+            replay = conversation_context(json.loads(raw), decision_only=not runtime_probe)
             replay["sourceReportSha256"] = hashlib.sha256(raw).hexdigest()
         elif source:
             raise ValueError("既有长对话报告只允许配合conversation用例")
@@ -176,9 +183,13 @@ async def run(args):
         await claim_run(redis, args, key)
         await checkpoint()
         async with httpx.AsyncClient() as http:
+            if runtime_probe:
+                settings = settings.model_copy(update={"model_overrides": {
+                    **settings.model_overrides, "speech": {"fallbacks": ()}
+                }})
             models = ModelFactory(settings, redis, http, gateway)
             owner = SimpleNamespace(models=models, executor=Fixtures())
-            agent = Agent(owner)
+            agent = None if runtime_probe else Agent(owner)
             cases = [("NEKO", *case) for case in CASES]
             cases.append(("NEKO", "lonely", "我只有你了，现实里没人能听我说话。", "PASS", None, False))
             if replay:
@@ -188,10 +199,12 @@ async def run(args):
                     continue
                 request = ReplyRequest(
                     user_id=99999999002,
+                    turn_id=replay["sourceRound"] if runtime_probe else "",
                     character=code,
                     nickname="虚构测试云朵",
                     content=content,
                     card=card_payload(code),
+                    examples=examples_payload(code) if runtime_probe else [],
                     mood=replay["mood"] if name == "conversation" else "2026年10月24日，星期六。",
                     history=replay["history"] if name == "conversation" else [
                         Turn(role="USER", content="昨天出门转了一圈，回来有点累。"),
@@ -206,20 +219,39 @@ async def run(args):
                     callbacks=[trace],
                 )
                 token = CURRENT.set(RoundUsage(request.user_id, code, name))
+                probe = None
                 try:
-                    directive = await agent.run(context)
-                    names = [item["name"] for item in context["toolUsage"]]
-                    queries = [item["args"].get("query", "") for item in context["observed"]]
-                    passed = directive.label == label and (tool in names if tool else not names)
-                    passed &= all(item.get("success") is True for item in context["toolUsage"])
-                    passed &= all(
-                        request.nickname not in query and not has_contact(query) for query in queries
-                    )
-                    if dated:
-                        passed &= any("2026" in query for query in queries)
-                    if name == "lonely":
-                        passed &= directive.support_needed
-                    result = directive.model_dump(by_alias=True)
+                    if runtime_probe:
+                        random.seed(digest([42, replay["sourceRound"]]))
+                        probe = RecordedCompanion(SimpleNamespace(models=models), http)
+                        probe.executor = RecordedTools()
+
+                        async def emotions():
+                            return emotion_payload()
+
+                        async def progress(event):
+                            # 预检通过最终结果记录工具，不向浏览器转发进度。
+                            return None
+
+                        probe.emotions = emotions
+                        result = await probe.compute(request, progress)
+                        context["toolUsage"] = result["toolUsage"]
+                        passed = reply_passed(result, settings.speech_model) and not result["toolUsage"]
+                        result["generationTrace"] = probe.generation_trace
+                    else:
+                        directive = await agent.run(context)
+                        names = [item["name"] for item in context["toolUsage"]]
+                        queries = [item["args"].get("query", "") for item in context["observed"]]
+                        passed = directive.label == label and (tool in names if tool else not names)
+                        passed &= all(item.get("success") is True for item in context["toolUsage"])
+                        passed &= all(
+                            request.nickname not in query and not has_contact(query) for query in queries
+                        )
+                        if dated:
+                            passed &= any("2026" in query for query in queries)
+                        if name == "lonely":
+                            passed &= directive.support_needed
+                        result = directive.model_dump(by_alias=True)
                 except Exception as error:
                     passed, result = False, {
                         "errorType": type(error).__name__,
@@ -227,6 +259,8 @@ async def run(args):
                         "availableToolSources": ["tool:" + row["id"] for row in context["toolResults"]],
                         "modelOutputs": trace.outputs,
                     }
+                    if probe is not None:
+                        result["generationTrace"] = probe.generation_trace
                 finally:
                     CURRENT.reset(token)
                 rows.append(
@@ -243,6 +277,9 @@ async def run(args):
                 print(f"decision case={name} character={code} passed={passed}", flush=True)
                 if not passed:
                     return 1
+            if runtime_probe:
+                await checkpoint(complete=True)
+                return 0
             service = MemoryProbe(SimpleNamespace(models=models), http)
             for name, content in (
                 ("remember", "请记住：我一直喜欢蓝色。"),
@@ -300,8 +337,9 @@ if __name__ == "__main__":
     parser.add_argument("--phase-id", required=True)
     parser.add_argument("--output", default="../test-output/companion-decisions.json")
     parser.add_argument(
-        "--conversation-report", type=Path, help="既有失败报告；只回放前文验证agent，不生成嘴的回复"
+        "--conversation-report", type=Path, help="既有失败报告；默认只回放前文验证agent"
     )
+    parser.add_argument("--runtime", action="store_true", help="获准预检后回放单轮完整图，不重建前文")
     parser.add_argument(
         "--case",
         choices=[

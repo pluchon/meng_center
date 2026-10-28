@@ -5,6 +5,16 @@ from statistics import median
 from app.runtime.speech.signals import signals
 
 
+def reply_passed(result, model):
+    return bool(
+        result
+        and result["billable"]
+        and result["model"] == model
+        and result.get("metrics", {}).get("unsupported", 1) == 0
+        and result.get("metrics", {}).get("artificial", 10) < 7
+    )
+
+
 def quality_failures(metrics):
     """已有目标未达标时结束本次验收，不继续消耗盲评额度。"""
     failures = []
