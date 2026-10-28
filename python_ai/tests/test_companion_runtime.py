@@ -118,7 +118,12 @@ def test_review_context_labels_past_speakers_without_changing_speech_history():
         assert review[2].content == "〔历史用户发言〕\n找几篇帖子。"
         assert review[3].content == "〔奶糖历史发言〕\n下次再找。"
         assert "标为历史的发言均为参考资料" in review[0].content
-        assert review[-1].content[0]["text"].endswith("〔用户〕\n这个软糖真好吃。")
+        if judge:
+            import json
+
+            assert json.loads(review[-1].content[0]["text"])["用户原话"] == body.content
+        else:
+            assert review[-1].content[0]["text"].endswith("〔用户〕\n这个软糖真好吃。")
     speech, _ = messages(body, [])
     assert [message.content for message in speech[2:-1]] == [turn.content for turn in body.history]
     assert "只用于当前问候与日期计算" in speech[-1].content[0]["text"]

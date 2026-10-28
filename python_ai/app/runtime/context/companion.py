@@ -1,3 +1,5 @@
+import json
+
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.runtime.context.card import memory_text, prefixes
@@ -68,7 +70,7 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
         known = [*request.context_snapshot.get("memories", []), *request.new_memories]
         if known:
             lines.append("本轮可用记忆出处：" + text(known))
-    if instruction:
+    if instruction and not judge:
         lines.extend(speech_facts(instruction) if speech else ["本轮判断：" + text(instruction)])
     if form:
         lines.append("形态：" + form)
@@ -76,7 +78,10 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
     allowed = [controls[key] for key in request.controls if key in controls]
     if allowed:
         lines.append("这轮可以：" + " / ".join(allowed))
-    current = "\n".join([*lines, "〔用户〕", request.content])
+    current = json.dumps(
+        {"场景资料": lines, "用户原话": request.content, **(instruction or {})},
+        ensure_ascii=False, separators=(",", ":"),
+    ) if judge else "\n".join([*lines, "〔用户〕", request.content])
     content = [{"type": "text", "text": current}]
     if not judge:
         content.extend({"type": "image_url", "image_url": {"url": image}} for image in request.images)

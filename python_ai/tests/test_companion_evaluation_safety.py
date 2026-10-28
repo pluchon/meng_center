@@ -49,6 +49,70 @@ def test_conversation_replay_uses_only_saved_successful_history_without_mutation
             decisions.conversation_context({**report, **mutation})
 
 
+def test_review_replay_keeps_actual_candidate_and_rejects_missing_evidence():
+    row = dict(id="NEKO-0", card="NEKO", input="和流浪猫熟起来了", scene="下午",
+               passed=False, result=dict(bubbles=["固定兜底"]),
+               generationTrace=[dict(phase="speech", bubbles=["初稿"]),
+                                dict(phase="judge"), dict(phase="speech", bubbles=["实际候选"])])
+    report = dict(complete=False, records={"fixture": [row]})
+    original = copy.deepcopy(report)
+    replay = decisions.review_context(report)
+    assert replay["candidate"] == ["实际候选"] and replay["history"] == []
+    assert report == original
+    for changed in (dict(toolUsage=[dict(name="recall")]), dict(sources=[dict(postId=1)]),
+                    dict(mentionedMemoryId=1)):
+        rejected = copy.deepcopy(report)
+        rejected["records"]["fixture"][0]["result"].update(changed)
+        with pytest.raises(ValueError, match="不重建"):
+            decisions.review_context(rejected)
+    row.pop("generationTrace")
+    with pytest.raises(ValueError, match="实际候选"):
+        decisions.review_context(report)
+
+
+@pytest.mark.parametrize("rejected,expected_rejection", [(False, False), (True, True), (True, False)])
+async def test_review_only_calls_judge_and_preserves_expected_rejection(
+    monkeypatch, tmp_path, rejected, expected_rejection
+):
+    from pydantic import SecretStr
+
+    from app.config.settings import Settings
+    from app.runtime.safety.judge import Judgment
+
+    settings = Settings.model_construct(redis_password=SecretStr("fixture"))
+    redis = AsyncMock()
+    gateway = SimpleNamespace(usage_summary=AsyncMock(return_value={"chargedOrReservedTokens": 0}))
+    monkeypatch.setattr(decisions, "Settings", lambda: settings)
+    monkeypatch.setattr(decisions, "evaluation_settings", lambda *args: (settings, "fixture-budget"))
+    monkeypatch.setattr(decisions, "Redis", lambda **kwargs: redis)
+    monkeypatch.setattr(decisions, "EvaluationGateway", lambda *args: gateway)
+    monkeypatch.setattr(decisions, "claim_run", AsyncMock())
+    monkeypatch.setattr(decisions, "ModelFactory", lambda *args: SimpleNamespace())
+    judge = AsyncMock(return_value=Judgment(
+        safe=True, character=8, artificial=1, unsupported=["无依据推断"] if rejected else [],
+    ))
+    service = SimpleNamespace(judge=judge, compute=AsyncMock(), generation_trace=[])
+    monkeypatch.setattr(decisions, "RecordedCompanion", lambda *args: service)
+    row = dict(id="NEKO-0", card="NEKO", input="原话", scene="下午", passed=False,
+               result=dict(bubbles=["兜底"]), generationTrace=[dict(phase="speech", bubbles=["候选"])])
+    source, output = tmp_path / "source.json", tmp_path / "review.json"
+    source.write_text(json.dumps(dict(complete=False, records={"fixture": [row]})), encoding="utf-8")
+    args = argparse.Namespace(
+        token_budget=100, budget_id="fixture", phase_id="fixture-phase", case="conversation",
+        judge_only=True, expect_review_rejection=expected_rejection,
+        conversation_report=source, output=str(output),
+    )
+    expected = rejected == expected_rejection
+    assert await decisions.run(args) == (0 if expected else 1)
+    judge.assert_awaited_once()
+    service.compute.assert_not_awaited()
+    assert judge.await_args.args[0].content == "原话"
+    assert judge.await_args.args[3].bubbles == ["候选"]
+    saved = json.loads(output.read_text(encoding="utf-8"))
+    assert saved["replayedConversation"]["mode"] == "judge"
+    assert saved["cases"][0]["passed"] is expected
+
+
 @pytest.mark.parametrize("case,rejected", [(None, False), ("weather", True), ("recall", True)])
 async def test_decision_failure_checkpoints_usage_and_stops_before_next_call(
     monkeypatch, tmp_path, case, rejected

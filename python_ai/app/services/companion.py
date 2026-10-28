@@ -15,7 +15,6 @@ from app.prompts.companion import VERSION
 from app.runtime.agent.agent import Agent, Context
 from app.runtime.context.companion import messages, provided_memory_ids
 from app.runtime.context.form import sample, style_feedback
-from app.runtime.context.segments import text
 from app.runtime.models.gateway import CURRENT, RoundUsage
 from app.runtime.safety.judge import PROMPT, Judgment
 from app.runtime.safety.redline import crosses_red_line, has_contact
@@ -103,10 +102,10 @@ class Companion:
         return self._emotions
 
     async def judge(self, request, emotions, directive, parsed, speech_model=None):
-        instruction = "待核对的内部依据：" + text(directive)
-        instruction += "\n回复：" + "\n\n".join(parsed.bubbles)
-        instruction += "\n复读信号（包括当前候选）：" + text(
-            review_signals(
+        instruction = {
+            "待审回复": parsed.bubbles,
+            "本轮依据": directive,
+            "复读信号": review_signals(
                 [
                     *(
                         request.recent_replies
@@ -115,16 +114,14 @@ class Companion:
                     "\n\n".join(parsed.bubbles),
                 ],
                 request.card,
-            )
-        )
-        instruction += "\n经复核的套话信号（仅供结合语境判断）：" + text(
-            slop_signals(
+            ),
+            "套话信号": slop_signals(
                 speech_model or self.models.settings.speech_model,
                 "\n".join(parsed.bubbles),
                 VERSION,
                 request.card.get("version"),
-            )
-        )
+            ),
+        }
         recalled = any(item.get("name") == "recall" for item in directive.get("toolResults", []))
         inputs, _ = messages(
             request,

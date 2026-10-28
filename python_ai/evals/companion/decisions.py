@@ -16,10 +16,12 @@ from redis.asyncio import Redis
 
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
+from app.graphs.naitang import approved
 from app.runtime.agent.agent import Agent
 from app.runtime.context.cache import digest
 from app.runtime.models.gateway import CURRENT, RoundUsage
 from app.runtime.safety.redline import has_contact
+from app.runtime.speech.parse import Parsed
 from app.runtime.tools.registry import TOOLS
 from app.schemas.companion import ConsolidationRequest, ReplyRequest, Turn
 from app.services.companion import Companion
@@ -135,6 +137,21 @@ def conversation_context(report, *, decision_only=True):
                 sourceRound=rows[-1]["id"])
 
 
+def review_context(report):
+    """只复核已有无工具候选，不猜测报告中没有保存的工具或记忆资料。"""
+    context = conversation_context(report, decision_only=False)
+    row = next(iter(report["records"].values()))[-1]
+    result = row.get("result") or {}
+    if result.get("toolUsage") or result.get("sources") or result.get("mentionedMemoryId"):
+        raise ValueError("候选复核不重建缺失的工具或记忆依据")
+    speech = next(
+        (item for item in reversed(row.get("generationTrace", [])) if item["phase"] == "speech"), None
+    )
+    if not speech or not speech.get("bubbles"):
+        raise ValueError("报告没有保存实际候选，不能使用固定兜底代替")
+    return {**context, "candidate": speech["bubbles"]}
+
+
 async def run(args):
     settings, key = evaluation_settings(Settings(), args)
     settings = settings.model_copy(update={"concurrency": 1})
@@ -146,6 +163,8 @@ async def run(args):
     )
     rows, replay = [], None
     runtime_probe = getattr(args, "runtime", False)
+    review_probe = getattr(args, "judge_only", False)
+    expect_rejection = getattr(args, "expect_review_rejection", False)
     gateway = EvaluationGateway(settings, redis, key, args.token_budget)
     output = Path(args.output)
     if await asyncio.to_thread(output.exists):
@@ -162,20 +181,27 @@ async def run(args):
             report["replayedConversation"] = {
                 key: replay[key] for key in ("sourceRound", "sourceReportSha256")
             }
-            report["replayedConversation"]["mode"] = "runtime" if runtime_probe else "agent"
+            report["replayedConversation"]["mode"] = (
+                "judge" if review_probe else "runtime" if runtime_probe else "agent"
+            )
         await save_checkpoint(output, report)
 
     try:
         if not args.phase_id:
             raise ValueError("决策评测需要本期固定 phase-id")
-        if runtime_probe and args.case != "conversation":
+        if (runtime_probe and review_probe) or (expect_rejection and not review_probe):
+            raise ValueError("候选复核、整轮预检与预期拒绝参数不能混用")
+        if (runtime_probe or review_probe) and args.case != "conversation":
             raise ValueError("整轮预检只接受既有失败对话")
         source = getattr(args, "conversation_report", None)
         if args.case == "conversation":
             if not source:
                 raise ValueError("回放决策需要既有长对话报告")
             raw = await asyncio.to_thread(Path(source).read_bytes)
-            replay = conversation_context(json.loads(raw), decision_only=not runtime_probe)
+            saved = json.loads(raw)
+            replay = review_context(saved) if review_probe else conversation_context(
+                saved, decision_only=not runtime_probe
+            )
             replay["sourceReportSha256"] = hashlib.sha256(raw).hexdigest()
         elif source:
             raise ValueError("既有长对话报告只允许配合conversation用例")
@@ -187,9 +213,14 @@ async def run(args):
                 settings = settings.model_copy(update={"model_overrides": {
                     **settings.model_overrides, "speech": {"fallbacks": ()}
                 }})
+            if review_probe:
+                settings = settings.model_copy(update={"model_overrides": {
+                    **settings.model_overrides,
+                    "judge": {**settings.model_overrides.get("judge", {}), "fallbacks": ()},
+                }})
             models = ModelFactory(settings, redis, http, gateway)
             owner = SimpleNamespace(models=models, executor=Fixtures())
-            agent = None if runtime_probe else Agent(owner)
+            agent = None if runtime_probe or review_probe else Agent(owner)
             cases = [("NEKO", *case) for case in CASES]
             cases.append(("NEKO", "lonely", "我只有你了，现实里没人能听我说话。", "PASS", None, False))
             if replay:
@@ -199,12 +230,12 @@ async def run(args):
                     continue
                 request = ReplyRequest(
                     user_id=99999999002,
-                    turn_id=replay["sourceRound"] if runtime_probe else "",
+                    turn_id=replay["sourceRound"] if runtime_probe or review_probe else "",
                     character=code,
                     nickname="虚构测试云朵",
                     content=content,
                     card=card_payload(code),
-                    examples=examples_payload(code) if runtime_probe else [],
+                    examples=examples_payload(code) if runtime_probe or review_probe else [],
                     mood=replay["mood"] if name == "conversation" else "2026年10月24日，星期六。",
                     history=replay["history"] if name == "conversation" else [
                         Turn(role="USER", content="昨天出门转了一圈，回来有点累。"),
@@ -221,7 +252,19 @@ async def run(args):
                 token = CURRENT.set(RoundUsage(request.user_id, code, name))
                 probe = None
                 try:
-                    if runtime_probe:
+                    if review_probe:
+                        probe = RecordedCompanion(SimpleNamespace(models=models), http)
+                        review = await probe.judge(
+                            request, emotion_payload(), {}, Parsed(bubbles=replay["candidate"])
+                        )
+                        accepted = approved(review)
+                        passed = accepted == (not expect_rejection)
+                        result = dict(
+                            candidate=replay["candidate"], judgment=review.model_dump(by_alias=True),
+                            accepted=accepted, expectedAccepted=not expect_rejection,
+                            calls=CURRENT.get().calls,
+                        )
+                    elif runtime_probe:
                         random.seed(digest([42, replay["sourceRound"]]))
                         probe = RecordedCompanion(SimpleNamespace(models=models), http)
                         probe.executor = RecordedTools()
@@ -277,7 +320,7 @@ async def run(args):
                 print(f"decision case={name} character={code} passed={passed}", flush=True)
                 if not passed:
                     return 1
-            if runtime_probe:
+            if runtime_probe or review_probe:
                 await checkpoint(complete=True)
                 return 0
             service = MemoryProbe(SimpleNamespace(models=models), http)
@@ -339,7 +382,14 @@ if __name__ == "__main__":
     parser.add_argument(
         "--conversation-report", type=Path, help="既有失败报告；默认只回放前文验证agent"
     )
-    parser.add_argument("--runtime", action="store_true", help="获准预检后回放单轮完整图，不重建前文")
+    probes = parser.add_mutually_exclusive_group()
+    probes.add_argument("--runtime", action="store_true", help="获准预检后回放单轮完整图，不重建前文")
+    probes.add_argument(
+        "--judge-only", action="store_true", help="仅复核既有无工具失败轮的最后候选，不生成回复"
+    )
+    parser.add_argument(
+        "--expect-review-rejection", action="store_true", help="候选确有问题时验证裁判仍会拒绝"
+    )
     parser.add_argument(
         "--case",
         choices=[
