@@ -69,9 +69,13 @@ def build():
         directive = state["directive"].model_dump()
         directive["toolResults"] = ctx.get("toolResults", [])
         review = state.get("prejudgment")
-        reason = (
-            review.reason + "；" + "；".join(review.unsupported) if review and not approved(review) else ""
-        )
+        reason = ""
+        if review and not approved(review):
+            reason = "输出检查未通过，根据用户原话重新回应，不复述检查意见。"
+            if review.reason:
+                reason += "检查意见：" + review.reason
+            if review.unsupported:
+                reason += "以下说法没有依据，必须删除，不得换成同义句保留：" + "；".join(review.unsupported)
         return {"reply": await candidate(ctx, directive, reason)}
 
     async def judge(state, runtime: Runtime[Context]):

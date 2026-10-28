@@ -137,6 +137,22 @@ async def test_rejected_draft_is_rewritten_once(first):
     result = await value.compute(request(), AsyncMock())
     assert result["billable"] and result["metrics"]["rewrites"] == 1
     assert value.speak.await_count == 2
+    assert "根据用户原话重新回应，不复述检查意见" in value.speak.await_args_list[1].args[3]
+
+
+@pytest.mark.parametrize("reason", ["", "用户只说累，不能推断为犯困。"])
+async def test_unsupported_feedback_is_explicitly_marked_for_deletion_even_without_reason(reason):
+    value = service()
+    claim = "下午这时间本来就容易犯困"
+    value.judge.side_effect = [
+        Judgment(safe=True, character=7, artificial=3, unsupported=[claim], reason=reason),
+        Judgment(safe=True, character=8, artificial=1),
+    ]
+    await value.compute(request(content="好累提不起勁"), AsyncMock())
+    feedback = value.speak.await_args_list[1].args[3]
+    assert "以下说法没有依据，必须删除，不得换成同义句保留：" + claim in feedback
+    assert bool("检查意见：" in feedback) == bool(reason)
+    assert value.speak.await_count == value.judge.await_count == 2
 
 
 async def test_judge_failure_never_emits_unchecked_text():
