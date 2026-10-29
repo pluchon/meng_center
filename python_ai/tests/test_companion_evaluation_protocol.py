@@ -381,7 +381,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
                 )
             return scored(7 + base, 7 + base)
 
-    monkeypatch.setattr(select, "RecordedCompanion", Service)
+    monkeypatch.setattr(select, "Companion", Service)
     monkeypatch.setattr(select, "BlindJudge", lambda models: Service(SimpleNamespace(models=models), None))
     output = tmp_path / "result.json"
     arguments = [

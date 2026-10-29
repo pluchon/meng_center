@@ -517,7 +517,5 @@ python_ai/app/
 
 按顺序做，每一步做完只跑相关的离线测试：
 
-5. **修上一轮留下的问题**：
-   - 删除只为排查上一轮失败加的评测入口：`decisions --case conversation`（含 `--conversation-report`、`--runtime`）、`--judge-only`、`--expect-review-rejection`、`generationTrace`，连同对应测试一起删；`acceptance:authorized-reports` 登记保留。
 6. **收尾**：同步 `README.md`、`deploy/README.md`、`verification/README.md` 和验证脚本里的 DeepSeek 官方接口与密钥；全局搜索 `DEEPSEEK_API_KEY`、`api.deepseek.com`、`deepseek-flash`、`thinking.type`、`prompt_cache_hit_tokens` 确认没有残留（历史 Flyway 和 Git 标签里的不算）。
 7. **验证**：离线测试、后端测试、前端构建通过后，按第 11.2 节冒烟，本期最多 3 次：一次普通 5 轮，一次带图片，一次带联网搜索。冒烟确认能接通、能解析、关思考生效、缓存与搜索用量有记录；嘴的缓存命中率目标（第 4.5 节）在下一次验收时重新确认，不达标按第 11.2 节停下。完整评测等仓库主人说「验收」再跑。

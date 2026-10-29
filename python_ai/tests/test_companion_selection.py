@@ -204,33 +204,6 @@ async def test_recorded_recall_keeps_the_same_five_candidate_limit_as_runtime():
     assert "候选6" not in str(result) and "候选7" not in str(result)
 
 
-async def test_evaluation_trace_keeps_candidates_reviews_and_failures_without_extra_calls(monkeypatch):
-    from test_companion import factory, request
-
-    from app.runtime.safety.judge import Judgment
-    from app.runtime.speech.parse import Parsed
-    from app.services.companion import Companion
-    from evals.companion.fixtures import RecordedCompanion
-
-    candidate = Parsed(bubbles=["原始候选"])
-    speak = AsyncMock(return_value=(candidate, {}))
-    judge = AsyncMock(return_value=Judgment(safe=True, character=8, artificial=1))
-    monkeypatch.setattr(Companion, "speak", speak)
-    monkeypatch.setattr(Companion, "judge", judge)
-    service = RecordedCompanion(SimpleNamespace(models=factory()), None)
-    await service.speak(request(), [], {})
-    await service.judge(request(), [], {}, candidate)
-    candidate.bubbles[0] = "后续修改"
-    assert service.generation_trace[0] == dict(phase="speech", bubbles=["原始候选"])
-    assert service.generation_trace[1]["result"]["safe"] is True
-    speak.assert_awaited_once()
-    judge.assert_awaited_once()
-    judge.side_effect = ValueError("fixture")
-    with pytest.raises(ValueError):
-        await service.judge(request(), [], {}, candidate)
-    assert service.generation_trace[-1] == dict(phase="judge", errorType="ValueError")
-
-
 async def test_evaluation_limit_is_separate_from_business_gateway():
     redis = AsyncMock()
     redis.exists.return_value = False
