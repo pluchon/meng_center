@@ -54,10 +54,9 @@
 | `MENG_ADMIN_USERNAME`、`MENG_ADMIN_PASSWORD` | 首个管理员账号，只在初始化时读取 |
 | `MAIL_USERNAME`、`MAIL_PASSWORD` | SMTP 发信账号 |
 | `ALIYUN_ACCESS_KEY_ID`、`ALIYUN_ACCESS_KEY_SECRET` | 阿里云短信 |
-| `DASHSCOPE_API_KEY` | 阿里云 DashScope（Qwen 文本、向量、重排和图像），只给 ai 服务用 |
-| `DEEPSEEK_API_KEY` | DeepSeek 官方（V4.1 Flash 1017 与 V4 Pro 角色说话），只给 ai 服务用 |
+| `DASHSCOPE_API_KEY` | 阿里云百炼（DeepSeek 说话与联网搜索，Qwen 文本、向量、重排和图像），只给 ai 服务用 |
 
-AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`。模型按用途配置：`AGENT_MODEL`、`SPEECH_MODEL`（默认 `deepseek-flash`，对应官方 DeepSeek V4.1 Flash 1017；DeepSeek 使用 `DEEPSEEK_API_KEY`，Qwen 降级使用 `DASHSCOPE_API_KEY`）、`JUDGE_MODEL`、`REVIEW_MODEL`、`WRITER_MODEL`、`ASSIST_MODEL`、`MEMORY_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`RERANK_MODEL`、`COVER_MODEL`，每个用途的温度、超时和降级链见 [AI 公共运行时](ai-runtime.md)第 2 节；旧的 `CLASSIFIER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`SPEECH_STRUCTURED_METHOD`、`DAILY_TOKEN_LIMIT` 删除。其余：`BASE_URL`、`EMBEDDING_URL`、`RERANK_URL`（都是 DashScope 原生接口）、`COVER_URL`、`STRUCTURED_METHOD`（判断类的结构化输出方式）、`CONCURRENCY`、`TIMEZONE`。嘴输出纯文本，不依赖 JSON 和 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
+AI 服务由 `deploy/scripts/Start-Ai.ps1` 启动，使用 uv 和 Python 3.12；从用户环境继承凭据。非密钥运行配置以 `MENG_AI_` 为前缀，默认值在 `python_ai/app/config/settings.py`。模型按用途配置：`AGENT_MODEL`、`SPEECH_MODEL`（默认 `deepseek-v4.1-flash-1017`，百炼上的 DeepSeek V4.1 Flash 快照）、`SEARCH_MODEL`（默认同上，联网搜索）、`JUDGE_MODEL`、`REVIEW_MODEL`、`WRITER_MODEL`、`ASSIST_MODEL`、`MEMORY_MODEL`、`VISION_MODEL`、`EMBEDDING_MODEL`、`RERANK_MODEL`、`COVER_MODEL`，每个用途的温度、超时和降级链见 [AI 公共运行时](ai-runtime.md)第 2 节；旧的 `CLASSIFIER_MODEL`、`BRAIN_MODEL`、`COMPANION_MODEL`、`COMPANION_TEMPERATURE`、`SPEECH_STRUCTURED_METHOD`、`DAILY_TOKEN_LIMIT` 删除。其余：`BASE_URL`、`EMBEDDING_URL`、`RERANK_URL`（都是 DashScope 原生接口）、`COVER_URL`、`STRUCTURED_METHOD`（判断类的结构化输出方式）、`CONCURRENCY`、`TIMEZONE`。嘴输出纯文本，不依赖 JSON 和 Function Calling。当前向量维度固定 1024，不通过环境变量改变契约。禁止开启 LangSmith；应用启动强制关闭 tracing。Java 不读取 DashScope 密钥。
 
 AI 启动时读取 `MENG_GROUP/meng-ai.yml`，文件采用 JSON 兼容的 YAML 格式。`model_overrides` 按用途覆盖温度、超时、降级链和 `context_tokens`；上下文限制取配置值与 600K 的较小值，配置值应符合实际模型窗口。奶糖一轮使用启动时编译的 StateGraph，主 agent 和草稿预审并行，汇合后决定发出或重说。`cover_model`（`MENG_AI_COVER_MODEL`）默认 `qwen-image-3.0-pro`，用于 AI 封面。`task_overrides` 按任务名覆盖温度、超时、重试和失败策略，优先于用途级参数；未知任务、未知字段和超过一次的重试会阻止启动。`tool_cache_seconds` 按工具名设置结果缓存秒数，范围 0～3600，0 关闭缓存。修改后重启 AI 服务。
 

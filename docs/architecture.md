@@ -31,7 +31,7 @@
 | 图片存储 | 本机磁盘 | 帖子配图，只在 content 服务里用；读写集中在一个存储类，以后换对象存储只动它 |
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
-| 模型 | DeepSeek 官方接口：DeepSeek V4.1 Flash（奶糖说话和看图）；阿里云百炼：Qwen3.8 Flash / Max、Qwen3.7 Embedding Flash、Qwen3.7 Rerank、Qwen Image 3.0 Pro | 对话走 OpenAI 兼容接口，向量和重排走原生接口，千问同步生图；型号按用途靠配置切换，见 [ai-runtime.md](ai-runtime.md) |
+| 模型 | 全部经阿里云百炼：DeepSeek V4.1 Flash 1017 快照（奶糖说话、看图和联网搜索）、Qwen3.8 Flash / Max、Qwen3.7 Embedding Flash、Qwen3.7 Rerank、Qwen Image 3.0 Pro | 对话走 OpenAI 兼容接口，联网搜索走 Responses API，向量和重排走原生接口，千问同步生图；型号按用途靠配置切换，见 [ai-runtime.md](ai-runtime.md) |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 当前只保留用户端项目；管理端仅保留文档规格，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 
@@ -228,7 +228,7 @@ java_backend/
 | 消息 | 通知和未挂载图片的清理 | 本期不清理。以后加 xxl-job 任务 |
 | 消息 | 多实例 | 方向见 [im.md](im.md) 第 2 节，本期不写代码 |
 | 前端 | 繁体中文语言包 | 暂缓；结构已支持，加一个语言目录即可 |
-| 奶糖助手 | 用户自己的 API key | 用户在设置里填自己的百炼和 DeepSeek key，网关按用户取凭据；页面和存储另做 |
+| 奶糖助手 | 用户自己的 API key | 用户在设置里填自己的百炼 key，网关按用户取凭据；页面和存储另做 |
 | 奶糖助手 | 更多表情 | 需要美术素材；加到全站表情目录里，评论、私信和奶糖共用 |
 | 奶糖助手 | 记忆向量迁到 Elasticsearch | 单个用户的记忆超出 Java 内计算的范围后再迁 |
 | 奶糖助手 | 真实用户盲测 | 上线后用按用户分桶灰度，两组只差一个变量；看平均每次对话的轮数、次日回访；判定阈值和最少样本数开测前写定；只统计计数，不读对话正文 |
@@ -238,5 +238,6 @@ java_backend/
 ### 待核实
 
 - MySQL 8.4 高于 Flyway 11.14.1 已验证的 8.1，启动时有提示。
+- 百炼上的 `deepseek-v4.1-flash-1017`：`enable_thinking=false` 是否生效、图片输入、隐式缓存命中率、Responses API 联网搜索，冒烟时各确认一次（[AI 公共运行时](ai-runtime.md)第 14 节）。
 - 阿里云国际短信向八个地区的实际送达、Sender ID 要求和账户通道开通情况。
 - 阿里云对通知类短信（审核结果）的限制，尤其是个人认证的账号和境外号码。发不了的情况下只发验证码，审核结果让用户登录时看。
