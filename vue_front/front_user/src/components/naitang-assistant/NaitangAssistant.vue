@@ -208,9 +208,20 @@
               >
                 <li
                   v-for="source in message.sources"
-                  :key="source.postId"
+                  :key="source.type === 'WEB' ? source.url : source.postId"
                 >
-                  <router-link :to="{ name: RouteName.POST_DETAIL, params: { id: source.postId } }">
+                  <a
+                    v-if="source.type === 'WEB'"
+                    :href="source.url"
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                  >
+                    <span class="naitang-source-site">{{ source.site }}</span>{{ source.title }}
+                  </a>
+                  <router-link
+                    v-else
+                    :to="{ name: RouteName.POST_DETAIL, params: { id: source.postId } }"
+                  >
                     {{ source.title }}
                   </router-link>
                 </li>

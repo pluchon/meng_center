@@ -517,7 +517,6 @@ python_ai/app/
 
 按顺序做，每一步做完只跑相关的离线测试：
 
-4. **前端**：气泡下的来源区分站内帖子和网页；网页来源显示站点名和标题，新标签打开，`rel="noopener noreferrer nofollow"`。
 5. **修上一轮留下的问题**：
    - `graphs/naitang.py` 的 `draft`、`respeak`、`prejudge`、`judge` 在节点内部吞掉异常返回 `None`，挂的 `RetryPolicy` 实际不会触发。改成让可重试错误抛给 `RetryPolicy`，重试后仍失败再按第 8 节走兜底。
    - companion 里 `RuntimeMapper` 与 `RuntimeV2Mapper`、`CompanionRuntimeV2` 并存，合成一套，去掉 `V2` 后缀。

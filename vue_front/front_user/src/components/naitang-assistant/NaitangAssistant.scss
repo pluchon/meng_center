@@ -185,6 +185,16 @@
   margin: var(--meng-space-2) 0 0;
   padding-left: var(--meng-space-4);
   font-size: 12px;
+    overflow-wrap: anywhere;
+
+    li + li {
+      margin-top: var(--meng-space-1);
+    }
+  }
+
+  .naitang-source-site {
+    margin-right: var(--meng-space-1);
+    color: var(--meng-muted);
 }
 
 .naitang-status {
