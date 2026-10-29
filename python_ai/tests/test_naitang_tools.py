@@ -11,7 +11,7 @@ from app.runtime.tools.registry import TOOLS
 
 
 def test_read_only_tools_and_internal_contract_are_closed():
-    assert set(TOOLS) == {"recall", "search_posts", "read_post", "my_recent_posts", "my_growth"}
+    assert set(TOOLS) == {"recall", "search_posts", "read_post", "my_recent_posts", "my_growth", "web_search"}
     paths = {
         route.path.rsplit("/", 1)[-1]
         for route in app.routes
@@ -50,7 +50,7 @@ async def test_cache_hit_restores_clean_facts_and_sources_without_executing_agai
     current = context()
     result = await value.execute({**call, "id": "b"}, current)
     assert result["success"] and result["id"] == "b" and result["facts"] == ["A事实"]
-    assert current["sources"] == [{"postId": 12, "title": "标题"}]
+    assert current["sources"] == [{"type": "POST", "postId": 12, "title": "标题"}]
     assert current["toolUsage"][0]["cached"]
     value.invoke.assert_awaited_once()
 

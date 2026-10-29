@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     agent_model: str = "qwen3.8-flash"
     speech_model: str = "deepseek-v4.1-flash-1017"
+    search_model: str = "deepseek-v4.1-flash-1017"
     judge_model: str = "qwen3.8-flash"
     review_model: str = "qwen3.8-max"
     writer_model: str = "qwen3.8-max"

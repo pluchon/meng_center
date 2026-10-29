@@ -101,7 +101,8 @@ def build():
                 label=label,
                 bubbles=[fixed] if fixed else parsed.bubbles,
                 sticker=parsed.sticker if fixed is None else None,
-                sources=list({row["postId"]: row for row in ctx["sources"]}.values())[:5]
+                sources=list({(row.get("type", "POST"), row.get("url", row.get("postId"))): row
+                              for row in ctx["sources"]}.values())[:5]
                 if fixed is None
                 else [],
                 toolUsage=ctx["toolUsage"],

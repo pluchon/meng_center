@@ -20,6 +20,10 @@ class Post(BaseModel):
     post_id: int = Field(gt=0)
 
 
+class WebQuery(BaseModel):
+    query: str = Field(min_length=1, max_length=64)
+
+
 @dataclass(frozen=True)
 class ToolSpec:
     name: str
@@ -34,6 +38,16 @@ class ToolSpec:
 TOOLS = {
     s.name: s
     for s in (
+        ToolSpec(
+            "web_search",
+            "只在当前用户明确询问需要现查的站外事实时搜索，如新闻、作品资料、播出、发售或活动日期；"
+            "闲聊、常识、角色自身及社区帖子不搜索。查询仅含当前输入中的问题，最多64字；"
+            "不带昵称、历史、记忆、所在地或图片信息，用户本轮明确提供的城市或作品名除外",
+            WebQuery,
+            "在查网页…",
+            timeout=8,
+            cache_seconds=600,
+        ),
         ToolSpec(
             "recall",
             "仅在用户明确询问以前聊过的事且已有资料不足时召回记忆；"

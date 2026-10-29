@@ -25,15 +25,17 @@ class ModelFactory:
             if purpose in {"embedding", "rerank", "image"}:
                 continue
 
-            def options(model, spec=spec):
+            def options(model, spec=spec, purpose=purpose):
                 return dict(
                     model=model,
                     temperature=spec.temperature,
                     timeout=spec.timeout,
                     max_tokens=spec.max_tokens,
                     max_retries=0,
-                    n=1,
+                    n=None if purpose == "search" else 1,
                     **self.gateway.chat_options(model, spec.thinking),
+                    **({"use_responses_api": True, "output_version": "responses/v1"}
+                       if purpose == "search" else {}),
                 )
 
             setattr(

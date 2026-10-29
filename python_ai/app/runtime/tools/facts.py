@@ -1,8 +1,10 @@
 import html
 import re
 import unicodedata
+from typing import Literal
+from urllib.parse import urlsplit
 
-from pydantic import Field, PositiveInt
+from pydantic import Field, PositiveInt, field_validator
 
 from app.schemas.models import Schema
 
@@ -17,14 +19,31 @@ class ToolFacts(Schema):
 
 
 class Source(Schema):
+    type: Literal["POST"] = "POST"
     post_id: PositiveInt
     title: str = Field(min_length=1, max_length=200)
+
+
+class WebSource(Schema):
+    type: Literal["WEB"] = "WEB"
+    title: str = Field(min_length=1, max_length=200)
+    url: str = Field(min_length=1, max_length=2000)
+    site: str = Field(min_length=1, max_length=200)
+
+    @field_validator("url")
+    @classmethod
+    def https_only(cls, value):
+        parsed = urlsplit(value)
+        if (parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password
+                or any(ord(c) < 33 for c in value)):
+            raise ValueError("网页来源必须是HTTPS地址")
+        return value
 
 
 class ToolResult(Schema):
     facts: list[str] = Field(default_factory=list, max_length=5)
     speech_facts: list[str] = Field(default_factory=list, max_length=5)
-    sources: list[Source] = Field(default_factory=list, max_length=5)
+    sources: list[Source | WebSource] = Field(default_factory=list, max_length=5)
     memory_ids: list[PositiveInt] = Field(default_factory=list, max_length=20)
 
 

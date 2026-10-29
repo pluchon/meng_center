@@ -72,8 +72,13 @@ async def bound_call(request, handler):
     count = request.state.get("run_model_call_count", 0)
     if context.get("directiveRetried") or count >= 2:
         request = request.override(tools=[])
-    elif not context["request"].recalled:
-        request = request.override(tools=[tool for tool in request.tools if tool.name != "recall"])
+    else:
+        unavailable = set()
+        if not context["request"].recalled:
+            unavailable.add("recall")
+        if not context["request"].web_search_remaining:
+            unavailable.add("web_search")
+        request = request.override(tools=[tool for tool in request.tools if tool.name not in unavailable])
     async with context["service"].models.semaphores["agent"]:
         return await handler(request)
 
@@ -82,14 +87,18 @@ async def bound_call(request, handler):
 async def available_memory(request, handler):
     context = request.runtime.context.data
     call = request.tool_call
-    if call["name"] == "recall" and not context["request"].recalled:
+    missing_memory = call["name"] == "recall" and not context["request"].recalled
+    missing_search = call["name"] == "web_search" and not context["request"].web_search_remaining
+    if missing_memory or missing_search:
         # 隐藏工具不能代替执行校验；拒绝记录仍参与用量统计和评测。
         context["toolUsage"].append(
-            dict(name="recall", success=False, rejected=True, cached=False, elapsedMs=0)
+            dict(name=call["name"], success=False, rejected=True, cached=False, elapsedMs=0,
+                 **({"searchCalls": 0} if missing_search else {}))
         )
         return ToolMessage(
-            content="本轮没有可召回的记忆候选。已有对话可直接阅读；指代不明时询问，不再检索。",
-            name="recall",
+            content=("今天搜索次数已经用完了，聊天照常，不再搜索。" if missing_search else
+                     "本轮没有可召回的记忆候选。已有对话可直接阅读；指代不明时询问，不再检索。"),
+            name=call["name"],
             tool_call_id=call["id"],
             status="error",
         )
@@ -106,6 +115,7 @@ class Agent:
             middleware=[
                 ModelCallLimitMiddleware(run_limit=3, exit_behavior="error"),
                 ToolCallLimitMiddleware(run_limit=4, exit_behavior="error"),
+                ToolCallLimitMiddleware(tool_name="web_search", run_limit=1, exit_behavior="error"),
                 bound_call,
                 available_memory,
                 ModelRetryMiddleware(max_retries=1, retry_on=transient, on_failure="error"),

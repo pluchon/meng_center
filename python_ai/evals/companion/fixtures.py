@@ -94,6 +94,7 @@ class RecordedTools:
             "my_recent_posts": ["测试用户最近公开发布了一篇学习 Vue 的帖子。"],
             "my_growth": ["测试用户最近有签到和发帖记录。"],
             "recall": [],
+            "web_search": ["录制的活动官网公告：活动于周六举办。"],
         }
         selected = []
         if name == "recall":
@@ -101,7 +102,8 @@ class RecordedTools:
             selected = context["request"].recalled[:5]
             facts[name] = [text(row) for row in selected]
             context["memoryIds"].update(row["id"] for row in selected)
-        context["toolUsage"].append(dict(name=name, success=True, recorded=True, elapsedMs=0))
+        context["toolUsage"].append(dict(name=name, success=True, recorded=True, elapsedMs=0,
+                                       **({"searchCalls": 0} if name == "web_search" else {})))
         return dict(
             id=call["id"],
             success=True,

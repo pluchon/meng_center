@@ -27,6 +27,7 @@ class ReplyRequest(Schema):
     content: str = Field(min_length=1, max_length=1000)
     images: list[str] = Field(default_factory=list, max_length=3)
     message_allowed: bool = True
+    web_search_remaining: int = Field(default=0, ge=0, le=20)
     card: dict = Field(default_factory=dict)
     recalled: list[dict] = Field(default_factory=list, max_length=20)
     examples: list[dict] = Field(default_factory=list, max_length=30)

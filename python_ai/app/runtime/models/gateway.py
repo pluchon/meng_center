@@ -109,6 +109,7 @@ class ModelGateway:
             )
             / 1_000_000,
             images=usage.get("images", 0),
+            searchCalls=int(usage.get("search_calls", 0)),
             segments=dict(usage.get("_segments", {})),
             user=current.user if current else 0,
             character=current.character if current else "",
@@ -229,6 +230,10 @@ class GatewayChatOpenAI(ChatOpenAI):
     @staticmethod
     def chat_usage(result):
         usage = dict(result.generations[0].message.usage_metadata or {})
+        usage["search_calls"] = sum(
+            isinstance(block, dict) and block.get("type") == "web_search_call"
+            for block in result.generations[0].message.content
+        ) if isinstance(result.generations[0].message.content, list) else 0
         raw = (result.llm_output or {}).get("token_usage", {})
         created = (raw.get("prompt_tokens_details") or {}).get("cache_creation_input_tokens")
         if created is not None:

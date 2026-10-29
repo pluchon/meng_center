@@ -56,12 +56,16 @@ class Executor:
     async def execute(self, call, context):
         ident, name = call["id"], call["name"]
         start, cached = time.monotonic(), False
+        if name == "web_search":
+            context["searchCalls"] = 0
         spec = TOOLS.get(name)
         try:
             if spec is None:
                 raise ValueError("未知工具")
             args = spec.schema.model_validate(call["args"]).model_dump()
             request = context["request"]
+            if name == "web_search" and not request.web_search_remaining:
+                raise ValueError("今天搜索次数已经用完了")
             if not request.message_allowed:
                 return {"id": ident, "success": False, "facts": ["今天聊天的次数已经用完了"], "sources": []}
             get_stream_writer()({"event": "status", "data": {"text": spec.progress}})
@@ -86,6 +90,8 @@ class Executor:
                     success=True,
                     cached=cached,
                     elapsedMs=round((time.monotonic() - start) * 1000),
+                    **({"searchCalls": 0 if cached else context.get("searchCalls", 0)}
+                       if name == "web_search" else {}),
                 )
             )
             return {"id": ident, **result, "success": True}
@@ -102,6 +108,7 @@ class Executor:
                     success=False,
                     cached=False,
                     elapsedMs=round((time.monotonic() - start) * 1000),
+                    **({"searchCalls": 0} if name == "web_search" else {}),
                 )
             )
             return {
@@ -112,10 +119,12 @@ class Executor:
             }
 
     async def invoke(self, name, args, context):
-        from app.runtime.tools import growth, posts, recall
+        from app.runtime.tools import growth, posts, recall, web
 
         if name == "recall":
             return await recall.execute(self.service, args, context)
+        if name == "web_search":
+            return await web.execute(self.service, args, context)
         if name == "my_growth":
             return await growth.execute(self.service, args, context)
         return await posts.execute(self.service, name, args, context)

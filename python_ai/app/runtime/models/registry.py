@@ -22,6 +22,7 @@ def registry(settings):
         "speech": ModelSpec(
             settings.speech_model, 1, 10, 2000, vision=True, fallbacks=(flash,)
         ),
+        "search": ModelSpec(settings.search_model, 0, 8, 800, tools=True),
         "judge": ModelSpec(settings.judge_model, vision=True),
         "review": ModelSpec(settings.review_model, 0, 12, vision=True),
         "writer": ModelSpec(settings.writer_model, 0.7, 15, 3000, fallbacks=(flash,)),
