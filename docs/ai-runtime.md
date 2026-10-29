@@ -518,7 +518,6 @@ python_ai/app/
 按顺序做，每一步做完只跑相关的离线测试：
 
 5. **修上一轮留下的问题**：
-   - `graphs/naitang.py` 的 `draft`、`respeak`、`prejudge`、`judge` 在节点内部吞掉异常返回 `None`，挂的 `RetryPolicy` 实际不会触发。改成让可重试错误抛给 `RetryPolicy`，重试后仍失败再按第 8 节走兜底。
    - companion 里 `RuntimeMapper` 与 `RuntimeV2Mapper`、`CompanionRuntimeV2` 并存，合成一套，去掉 `V2` 后缀。
    - 删除只为排查上一轮失败加的评测入口：`decisions --case conversation`（含 `--conversation-report`、`--runtime`）、`--judge-only`、`--expect-review-rejection`、`generationTrace`，连同对应测试一起删；`acceptance:authorized-reports` 登记保留。
 6. **收尾**：同步 `README.md`、`deploy/README.md`、`verification/README.md` 和验证脚本里的 DeepSeek 官方接口与密钥；全局搜索 `DEEPSEEK_API_KEY`、`api.deepseek.com`、`deepseek-flash`、`thinking.type`、`prompt_cache_hit_tokens` 确认没有残留（历史 Flyway 和 Git 标签里的不算）。

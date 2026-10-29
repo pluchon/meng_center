@@ -1,5 +1,6 @@
 from typing import TypedDict
 
+from langchain_core.runnables import RunnableLambda
 from langgraph.graph import END, START, StateGraph
 from langgraph.runtime import Runtime
 
@@ -20,6 +21,23 @@ def approved(review):
     return review is not None and review.safe and not review.unsupported and review.artificial < 7
 
 
+def recoverable(name, node, field):
+    # 子图先完成原生RetryPolicy，之后才转为未生成/未审核；不重放主agent或工具。
+    graph = StateGraph(State, context_schema=Context)
+    graph.add_node(name, node, retry_policy=MODEL_RETRY)
+    graph.add_edge(START, name)
+    graph.add_edge(name, END)
+    runner = graph.compile().with_fallbacks([
+        RunnableLambda(lambda _state, **_kwargs: {field: None})
+    ])
+
+    async def execute(state, runtime: Runtime[Context]):
+        result = await runner.ainvoke(state, context=runtime.context)
+        return {field: result.get(field)}
+
+    return execute
+
+
 def build():
     async def agent(state, runtime: Runtime[Context]):
         ctx = runtime.context.data
@@ -30,21 +48,15 @@ def build():
         return {"draft": await candidate(ctx, {})}
 
     async def candidate(ctx, instruction, rewrite=""):
-        try:
-            return await ctx["service"].speak(ctx["request"], ctx["emotions"], instruction, rewrite)
-        except Exception:
-            return None
+        return await ctx["service"].speak(ctx["request"], ctx["emotions"], instruction, rewrite)
 
     async def check(ctx, instruction, value):
         if value is None:
             return None
         parsed, sizes = value
-        try:
-            return await ctx["service"].judge(
-                ctx["request"], ctx["emotions"], instruction, parsed, speech_model=sizes.get("speechModel")
-            )
-        except Exception:
-            return None
+        return await ctx["service"].judge(
+            ctx["request"], ctx["emotions"], instruction, parsed, speech_model=sizes.get("speechModel")
+        )
 
     async def prejudge(state, runtime: Runtime[Context]):
         ctx = runtime.context.data
@@ -159,7 +171,10 @@ def build():
         "emit": emit,
         "fallback": fallback,
     }.items():
-        graph.add_node(name, node, retry_policy=None if name == "agent" else MODEL_RETRY)
+        field = {
+            "draft": "draft", "prejudge": "prejudgment", "respeak": "reply", "judge": "judgment"
+        }.get(name)
+        graph.add_node(name, recoverable(name, node, field) if field else node)
     graph.add_node("merge", merge, defer=True)
     graph.add_edge(START, "agent")
     graph.add_edge(START, "draft")

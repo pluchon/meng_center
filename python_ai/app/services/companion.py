@@ -133,8 +133,8 @@ class Companion:
         )
         inputs.insert(2, SystemMessage(PROMPT))
         async with self.models.semaphores["judge"]:
-            checked = await self.tasks.output("reply_judge").ainvoke(
-                inputs, config={"metadata": {"contextSegments": sizes}}
+            checked = await self.tasks.output("reply_judge", attempts=1).ainvoke(
+                inputs, config={"metadata": {"contextSegments": sizes}}, _runtime_retries=0
             )
         if checked is None:
             raise ValueError("缺少输出检查")
@@ -154,7 +154,7 @@ class Companion:
             CURRENT.get().segments = sizes
         async with self.models.semaphores["speech"]:
             output = await self.models.speech.ainvoke(
-                inputs, config={"metadata": {"contextSegments": dict(sizes)}}
+                inputs, config={"metadata": {"contextSegments": dict(sizes)}}, _runtime_retries=0
             )
         sizes["speechModel"] = output.response_metadata.get("model_name", self.models.settings.speech_model)
         sizes["contextBudget"] = output.response_metadata.get("contextBudget", {})

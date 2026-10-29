@@ -313,6 +313,6 @@ class GatewayChatOpenAI(ChatOpenAI):
                 }
             return result
         except Exception as error:
-            if self._purpose == "agent":
+            if self._purpose == "agent" or not retries:
                 raise
             raise ModelUnavailable("模型及其降级链均不可用") from error
