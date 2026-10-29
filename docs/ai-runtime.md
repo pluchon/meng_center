@@ -517,7 +517,6 @@ python_ai/app/
 
 按顺序做，每一步做完只跑相关的离线测试：
 
-3. **companion**：按 [meng.md](meng.md) 第 7、8 节加每天 20 次的搜索计次，随请求下发 `webSearchRemaining`，按回来的 `searchCalls` 扣减；`sources` 增加 `WEB` 类型，旧数据没有 `type` 的按 `POST` 读。
 4. **前端**：气泡下的来源区分站内帖子和网页；网页来源显示站点名和标题，新标签打开，`rel="noopener noreferrer nofollow"`。
 5. **修上一轮留下的问题**：
    - `graphs/naitang.py` 的 `draft`、`respeak`、`prejudge`、`judge` 在节点内部吞掉异常返回 `None`，挂的 `RetryPolicy` 实际不会触发。改成让可重试错误抛给 `RetryPolicy`，重试后仍失败再按第 8 节走兜底。

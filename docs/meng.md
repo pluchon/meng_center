@@ -292,7 +292,7 @@ Redis：
 
 | 键 | 内容 | 过期 |
 |---|---|---|
-| `meng:companion:usage:{userId}:{date}` | 当天消息次数（按用户时区的日期） | 2 天 |
+| `meng:companion:usage:{userId}:{date}` | 当天消息与搜索次数（按用户时区的日期） | 2 天 |
 | `meng:companion:cooldown:{userId}` | 冷却标记 | 30 分钟 |
 | `meng:companion:lock:{sessionId}` | 正在处理的一轮（带租约） | 2 分钟 |
 | `meng:companion:active:{userId}` | 同时进行的轮次计数 | 2 分钟 |

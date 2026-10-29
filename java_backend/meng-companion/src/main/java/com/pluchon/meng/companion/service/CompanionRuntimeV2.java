@@ -1,6 +1,7 @@
 package com.pluchon.meng.companion.service;
 
 import com.pluchon.meng.companion.entity.Rows;
+import com.pluchon.meng.companion.converter.CompanionSources;
 import com.pluchon.meng.companion.mapper.RuntimeV2Mapper;
 import java.time.*;
 import java.util.*;
@@ -111,18 +112,11 @@ public class CompanionRuntimeV2 {
     }
 
     public List<Map<String, Object>> sources(JsonNode nodes) {
-        if (nodes.isMissingNode() || nodes.isNull()) return List.of();
-        if (
-            !nodes.isArray() || nodes.size() > 5
-        ) throw new IllegalArgumentException("来源数量不合法");
         var result = new ArrayList<Map<String, Object>>();
-        for (var source : nodes) {
-            long postId = source.path("postId").asLong();
-            String title = source.path("title").asString();
-            if (
-                postId <= 0 || title.isBlank() || title.length() > 200
-            ) throw new IllegalArgumentException("帖子来源不合法");
-            result.add(Map.of("postId", postId, "title", title));
+        for (var source : CompanionSources.read(nodes)) {
+            result.add("POST".equals(source.type())
+                ? Map.of("type", "POST", "postId", source.postId(), "title", source.title())
+                : Map.of("type", "WEB", "title", source.title(), "url", source.url(), "site", source.site()));
         }
         return result;
     }

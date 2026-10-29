@@ -386,7 +386,7 @@ public class ReplyService {
                 !"CRISIS".equals(result.path("label").asString());
             limits.finish(
                 reservation,
-                billable ? List.of("message") : List.of()
+                usedKinds(result, reservation, billable)
             );
             reservation = null;
             for (var event : output)
@@ -545,6 +545,7 @@ public class ReplyService {
         );
         request.put("images", p.images());
         request.put("messageAllowed", reservation.messageAllowed());
+        request.put("webSearchRemaining", limits.searchRemaining(reservation));
         var allowedMemoryIds = new java.util.HashSet<Long>();
         for (var memory : snapshot.path("memories"))
             if (memory.path("id").isIntegralNumber()) allowedMemoryIds.add(
@@ -602,6 +603,24 @@ public class ReplyService {
         return turns;
     }
 
+    public static List<String> usedKinds(JsonNode result, CompanionLimits.Reservation reservation,
+                                          boolean billable) {
+        var used = new ArrayList<String>();
+        if (!billable) return List.of();
+        used.add("message");
+        int searches = 0;
+        for (var tool : result.path("toolUsage")) {
+            if (!"web_search".equals(tool.path("name").asString())) continue;
+            int count = tool.path("searchCalls").asInt(0);
+            if (count < 0 || count > 1) throw new IllegalArgumentException("搜索次数不合法");
+            if (tool.path("success").asBoolean() && !tool.path("cached").asBoolean()) searches += count;
+        }
+        if (searches > 1 || (searches > 0 && !reservation.searchAllowed()))
+            throw new IllegalArgumentException("搜索超出本轮预留额度");
+        if (searches > 0) used.add("search");
+        return List.copyOf(used);
+    }
+
     private List<Map<String, Object>> persist(
         long user,
         Prepared p,
@@ -639,6 +658,7 @@ public class ReplyService {
             ) throw new BusinessException(CompanionError.AI_UNAVAILABLE);
             boolean billable =
                 result.path("billable").asBoolean() && !"CRISIS".equals(label);
+            usedKinds(result, reservation, billable);
             if (
                 billable && !reservation.messageAllowed()
             ) throw new BusinessException(

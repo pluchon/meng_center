@@ -17,9 +17,8 @@ public final class CompanionConverter {
     public static CompanionVO.Message message(Rows.Message row, boolean ignored) {
         var images = new ArrayList<Long>();
         if (row.getImageIds() != null) JSON.readTree(row.getImageIds()).forEach(id -> images.add(id.asLong()));
-        var sources = new ArrayList<CompanionVO.Source>();
-        if (row.getSources() != null) JSON.readTree(row.getSources()).forEach(source ->
-            sources.add(new CompanionVO.Source(source.path("postId").asLong(), source.path("title").asString())));
+        var sources = row.getSources() == null ? List.<CompanionVO.Source>of()
+            : CompanionSources.read(JSON.readTree(row.getSources()));
         return new CompanionVO.Message(row.getId(), row.getRole(), row.getKind(), row.getContent(), row.getSticker(),
             List.copyOf(images), List.copyOf(sources), row.getCreateTime(), row.getClientMessageId(), row.getTurnState());
     }

@@ -28,6 +28,7 @@ spring.cloud.openfeign.client.config.companionUser:
 meng.companion:
   message-daily: 200
   message-minute: 10
+  web-search-daily: 20
   concurrent-turns: 2
   ip-minute: 60
   hotlines:

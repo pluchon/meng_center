@@ -14,6 +14,7 @@ public class CompanionProperties {
 
     private int messageDaily = 200;
     private int messageMinute = 10;
+    private int webSearchDaily = 20;
     private int concurrentTurns = 2;
     private int ipMinute = 60;
     private List<Hotline> hotlines = List.of();
@@ -27,6 +28,7 @@ public class CompanionProperties {
 
     @AssertTrue(message="次数与并发数必须为正数")
     public boolean isConfigurationValid() {
-        return messageDaily > 0 && messageMinute > 0 && concurrentTurns > 0 && ipMinute > 0;
+        return messageDaily > 0 && messageMinute > 0 && webSearchDaily > 0 && webSearchDaily <= 20
+            && concurrentTurns > 0 && ipMinute > 0;
     }
 }

@@ -68,7 +68,9 @@ public class CompanionLimits {
         String token,
         List<String> kinds,
         boolean messageAllowed
-    ) {}
+    ) {
+        public boolean searchAllowed() { return kinds.contains("search"); }
+    }
 
     public String lock(long session) {
         String token = UUID.randomUUID().toString();
@@ -205,7 +207,22 @@ public class CompanionLimits {
         var result = redis.execute(RESERVE,keys(user,date,"message"),Long.toString(clock.millis()),token,
             Integer.toString(properties.getMessageDaily()),Integer.toString(properties.getMessageMinute()),"message");
         boolean allowed = Long.valueOf(1).equals(result);
-        return new Reservation(user,date,token,allowed ? List.of("message") : List.of(),allowed);
+        var kinds = new ArrayList<String>();
+        if (allowed) {
+            kinds.add("message");
+            Long search = redis.execute(RESERVE, keys(user,date,"search"),Long.toString(clock.millis()),
+                token,Integer.toString(properties.getWebSearchDaily()),
+                Integer.toString(properties.getWebSearchDaily()),"search");
+            if (Long.valueOf(1).equals(search)) kinds.add("search");
+        }
+        return new Reservation(user,date,token,List.copyOf(kinds),allowed);
+    }
+
+    public int searchRemaining(Reservation reservation) {
+        if (!reservation.searchAllowed()) return 0;
+        Object value = redis.opsForHash().get(
+            "meng:companion:usage:"+reservation.user()+":"+reservation.date(), "search");
+        return Math.max(1, properties.getWebSearchDaily() - (int)number(value));
     }
 
     public void finish(Reservation r, List<String> used) {
