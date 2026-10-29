@@ -420,23 +420,23 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
         assert not calls and len(generated) == 35 and report["qualityFailures"]
         if mode == "cache":
             assert report["qualityFailures"] == [dict(
-                model="deepseek-flash", metric="cacheHitRatio", purpose="judge",
+                model="deepseek-v4.1-flash-1017", metric="cacheHitRatio", purpose="judge",
                 value=0.5, target=0.6,
             )]
         return
     await select.run(args)
     report = json.loads(output.read_text(encoding="utf-8"))
     if mode == "budget":
-        first = copy.deepcopy(report["records"]["deepseek-flash"][0])
-        unfinished = {**report["records"]["deepseek-flash"][1], "result": None, "passed": False}
+        first = copy.deepcopy(report["records"]["deepseek-v4.1-flash-1017"][0])
+        unfinished = {**report["records"]["deepseek-v4.1-flash-1017"][1], "result": None, "passed": False}
         report.update(complete=False, stoppedReason="EvaluationLimit")
-        report["records"]["deepseek-flash"] = [first, unfinished]
+        report["records"]["deepseek-v4.1-flash-1017"] = [first, unfinished]
         output.write_text(json.dumps(report), encoding="utf-8")
         args.resume, args.continue_budget_stop, args.token_budget = True, True, 3000
         redis.get.return_value = "500"
         assert await select.run(args) == 0
         resumed = json.loads(output.read_text(encoding="utf-8"))
-        rows = resumed["records"]["deepseek-flash"]
+        rows = resumed["records"]["deepseek-v4.1-flash-1017"]
         assert resumed["complete"] and len(rows) == len({row["id"] for row in rows}) == 5
         assert rows[0] == first and rows[1]["attempts"] == [unfinished]
         assert len(generated) == 9 and sum(item.turn_id == "NEKO-0" for item in generated) == 1
@@ -449,7 +449,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
     assert len(calls) == {"smoke": 0, "single": 40, "comparison": 80}[mode]
     assert set(calls) == (set() if mode == "smoke" else set(JUDGES))
     if mode == "smoke":
-        assert report["metrics"] == {} and report["setup"]["candidates"] == ["deepseek-flash"]
+        assert report["metrics"] == {} and report["setup"]["candidates"] == ["deepseek-v4.1-flash-1017"]
     else:
         assert all(
             row["spearman"] is None and not row["usableAsGate"] for row in report["judgeAgreement"].values()

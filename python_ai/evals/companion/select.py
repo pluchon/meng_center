@@ -40,7 +40,7 @@ from evals.companion.fixtures import RecordedCompanion, RecordedTools, scene
 from evals.companion.metrics import baseline_metrics, compare, quality_failures, reply_passed, summarize
 from evals.companion.protocol import comparison_plan, comparison_status, generation_conditions
 
-MODELS = ("deepseek-flash", "deepseek-v4-pro")
+MODELS = ("deepseek-v4.1-flash-1017", "deepseek-v4-pro")
 SCENE = scene(0)
 BLIND_PROTOCOL_VERSION = 6
 
@@ -148,7 +148,7 @@ async def run(args):
         smallSample=False,
         smoke=args.smoke,
         graphProtocol="naitang-stategraph-v1",
-        speechProvider="deepseek-official",
+        speechProvider="dashscope",
         generationProtocolVersion=4,
         toolFixtureVersion=4,
         sceneProtocolVersion=2,

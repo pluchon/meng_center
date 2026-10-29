@@ -17,7 +17,7 @@ from app.schemas.models import Moderation
 
 def models(**overrides):
     settings = Settings.model_construct(
-        api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture"), **overrides
+        api_key=SecretStr("fixture"), **overrides
     )
     redis = AsyncMock()
     redis.exists.return_value = False

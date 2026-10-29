@@ -71,12 +71,12 @@ def test_review_replay_keeps_actual_candidate_and_rejects_missing_evidence():
 
 
 def test_agent_replay_can_diagnose_a_failed_round_without_a_complete_result():
-    source = dict(complete=False, records={"deepseek-flash": [dict(
+    source = dict(complete=False, records={"deepseek-v4.1-flash-1017": [dict(
         id="NEKO-0", card="NEKO", input="早上好呀。", scene="早上八点", passed=False, result=None,
     )]})
     context = decisions.conversation_context(source)
     assert context["content"] == "早上好呀。" and context["history"] == []
-    assert source["records"]["deepseek-flash"][0]["result"] is None
+    assert source["records"]["deepseek-v4.1-flash-1017"][0]["result"] is None
 
 
 async def test_failed_evaluation_preserves_raw_agent_output_and_already_charged_calls():

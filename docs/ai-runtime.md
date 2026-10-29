@@ -517,7 +517,6 @@ python_ai/app/
 
 按顺序做，每一步做完只跑相关的离线测试：
 
-1. **说话模型改走百炼**：注册表里 `speech` 改成 `deepseek-v4.1-flash-1017`，地址和密钥改成百炼，降级链只留 `qwen3.8-flash`；删除 DeepSeek 官方接口的供应商分支、`thinking.type` 参数、`prompt_cache_hit_tokens` 的换算、`DEEPSEEK_API_KEY` 的读取和启动检查。同一个快照模型，套话表文件改名沿用，不重新画像；说话提示词版本不变，报告里的 `speechProvider` 改为 `dashscope`。
 2. **联网搜索工具**：按第 6.3 节加 `web_search`，含 `search` 用途、单轮 1 次的限制、按 `webSearchRemaining` 隐藏和拒绝、600 秒缓存、`searchCalls` 用量。离线测试覆盖：搜索成功、无结果、超时、额度为 0 时隐藏与拒绝、来源只留 https、注入文本不影响回复、查询里不带昵称和记忆。
 3. **companion**：按 [meng.md](meng.md) 第 7、8 节加每天 20 次的搜索计次，随请求下发 `webSearchRemaining`，按回来的 `searchCalls` 扣减；`sources` 增加 `WEB` 类型，旧数据没有 `type` 的按 `POST` 读。
 4. **前端**：气泡下的来源区分站内帖子和网页；网页来源显示站点名和标题，新标签打开，`rel="noopener noreferrer nofollow"`。

@@ -20,7 +20,7 @@ def registry(settings):
     specs = {
         "agent": ModelSpec(settings.agent_model, 0.2, tools=True, vision=True),
         "speech": ModelSpec(
-            settings.speech_model, 1, 10, 2000, vision=True, fallbacks=("deepseek-v4-pro", flash)
+            settings.speech_model, 1, 10, 2000, vision=True, fallbacks=(flash,)
         ),
         "judge": ModelSpec(settings.judge_model, vision=True),
         "review": ModelSpec(settings.review_model, 0, 12, vision=True),

@@ -345,9 +345,11 @@ def test_metrics_compare_legacy_and_new_reports_with_same_latency_and_style_deno
     assert difference["firstBubbleP50DeltaMs"] == -4000
     assert after["flash"]["characters"]["NEKO"]["kaomojiRatio"] == pytest.approx(1 / 3)
     assert before["flash"]["characters"]["NEKO"]["tics"]["喵"]["frequency"] == 0.5
-    mapped = compare({"deepseek-flash": after["flash"]}, {"deepseek-v4.1-flash-1017": before["flash"]})
-    assert mapped["deepseek-flash"]["baselineModel"] == "deepseek-v4.1-flash-1017"
-    assert mapped["deepseek-flash"]["firstBubbleP50DeltaMs"] == -4000
+    mapped = compare(
+        {"deepseek-v4.1-flash-1017": after["flash"]}, {"deepseek-v4.1-flash-1017": before["flash"]}
+    )
+    assert mapped["deepseek-v4.1-flash-1017"]["baselineModel"] == "deepseek-v4.1-flash-1017"
+    assert mapped["deepseek-v4.1-flash-1017"]["firstBubbleP50DeltaMs"] == -4000
 
 
 def test_fast_fixed_fallbacks_do_not_reduce_model_reply_latency():

@@ -1,5 +1,5 @@
 {
-  "model": "deepseek-flash",
+  "model": "deepseek-v4.1-flash-1017",
   "promptVersion": "20261028.11",
   "catalogVersion": "20261027.1",
   "baselineSha256": "03b12469021db1ce493594e148c390fbe1cc2664588ee16d04b6a54d148a5a9b",

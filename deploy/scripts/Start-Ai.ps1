@@ -6,7 +6,6 @@ foreach($entry in (Get-MengPorts).GetEnumerator()) {
     [Environment]::SetEnvironmentVariable($entry.Key,[string]$entry.Value,'Process')
 }
 if([string]::IsNullOrWhiteSpace($env:DASHSCOPE_API_KEY)) {throw 'DASHSCOPE_API_KEY is required.'}
-if([string]::IsNullOrWhiteSpace($env:DEEPSEEK_API_KEY)) {throw 'DEEPSEEK_API_KEY is required.'}
 $taskAiRoot=Join-Path $PSScriptRoot '../../python_ai'
 Push-Location $taskAiRoot
 try {

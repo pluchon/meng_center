@@ -93,7 +93,6 @@ async def test_unavailable_recall_keeps_three_candidates_and_does_not_repeat_gat
 async def test_embedding_version_metadata_does_not_invoke_a_model():
     settings = Settings.model_construct(
         api_key=SecretStr("fixture"),
-        deepseek_api_key=SecretStr("fixture"),
         model_overrides={"embedding": {"model": "embedding-model-v2", "timeout": 2}},
     )
     factory = ModelFactory(settings, AsyncMock(), http=AsyncMock())
@@ -109,7 +108,7 @@ async def test_embedding_version_metadata_does_not_invoke_a_model():
 async def test_pre_round_retrieval_keeps_user_attribution_and_resets_context(fail):
     from app.runtime.models.gateway import CURRENT
 
-    settings = Settings.model_construct(api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture"))
+    settings = Settings.model_construct(api_key=SecretStr("fixture"))
     factory = ModelFactory(settings, AsyncMock(), http=AsyncMock())
 
     async def encode(*args):

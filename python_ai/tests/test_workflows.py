@@ -252,7 +252,6 @@ async def test_same_model_roles_share_one_concurrency_budget() -> None:
     models = ModelFactory(
         Settings.model_construct(
             api_key=SecretStr("unit-test"),
-            deepseek_api_key=SecretStr("deepseek-test"),
             concurrency=1,
             writer_model="qwen3.8-flash",
         ),

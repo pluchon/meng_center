@@ -18,10 +18,9 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="MENG_AI_", extra="ignore")
 
     api_key: SecretStr = Field(validation_alias="DASHSCOPE_API_KEY")
-    deepseek_api_key: SecretStr = Field(default=SecretStr(""), validation_alias="DEEPSEEK_API_KEY")
     base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
     agent_model: str = "qwen3.8-flash"
-    speech_model: str = "deepseek-flash"
+    speech_model: str = "deepseek-v4.1-flash-1017"
     judge_model: str = "qwen3.8-flash"
     review_model: str = "qwen3.8-max"
     writer_model: str = "qwen3.8-max"

@@ -1,6 +1,6 @@
 {
   "agent_model": "qwen3.8-flash",
-  "speech_model": "deepseek-flash",
+  "speech_model": "deepseek-v4.1-flash-1017",
   "judge_model": "qwen3.8-flash",
   "review_model": "qwen3.8-max",
   "writer_model": "qwen3.8-max",

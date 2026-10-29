@@ -60,15 +60,9 @@ class ModelGateway:
         return {"Authorization": "Bearer " + self._key}
 
     def provider(self, model):
-        return "deepseek" if model.startswith("deepseek-") else "dashscope"
+        return "dashscope"
 
     def chat_options(self, model, thinking=False):
-        if self.provider(model) == "deepseek":
-            return dict(
-                base_url="https://api.deepseek.com",
-                api_key=self.settings.deepseek_api_key,
-                extra_body={"thinking": {"type": "enabled" if thinking else "disabled"}},
-            )
         return dict(
             base_url=self.settings.base_url,
             api_key=self._key,
@@ -76,8 +70,6 @@ class ModelGateway:
         )
 
     async def acquire(self, model, estimate):
-        if self.provider(model) == "deepseek" and not self.settings.deepseek_api_key.get_secret_value():
-            raise ModelUnavailable("未配置 DeepSeek 官方密钥")
         if await self.redis.exists(f"meng:ai:circuit:{model}"):
             raise ModelUnavailable("模型熔断中")
         deadline = time.monotonic() + self.settings.model_queue_seconds
@@ -238,11 +230,6 @@ class GatewayChatOpenAI(ChatOpenAI):
     def chat_usage(result):
         usage = dict(result.generations[0].message.usage_metadata or {})
         raw = (result.llm_output or {}).get("token_usage", {})
-        if raw.get("prompt_cache_hit_tokens") is not None:
-            usage["input_token_details"] = {
-                **usage.get("input_token_details", {}),
-                "cache_read": int(raw["prompt_cache_hit_tokens"]),
-            }
         created = (raw.get("prompt_tokens_details") or {}).get("cache_creation_input_tokens")
         if created is not None:
             usage["input_token_details"] = {

@@ -122,8 +122,6 @@ def compare(current, baseline):
     result = {}
     for model, after in current.items():
         baseline_model = model
-        if model == "deepseek-flash" and model not in baseline:
-            baseline_model = "deepseek-v4.1-flash-1017"
         before = baseline.get(baseline_model)
         if not before:
             continue

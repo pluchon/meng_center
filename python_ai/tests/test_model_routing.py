@@ -9,12 +9,12 @@ from pydantic import SecretStr
 
 from app.clients.models import ModelFactory
 from app.config.settings import Settings
-from app.runtime.models.gateway import GatewayChatOpenAI, ModelGateway, ModelUnavailable
+from app.runtime.models.gateway import GatewayChatOpenAI, ModelGateway
 
 
-async def test_speech_fallbacks_keep_each_provider_credentials_and_protocol(monkeypatch):
+async def test_speech_fallbacks_share_dashscope_credentials_and_protocol(monkeypatch):
     settings = Settings.model_construct(
-        api_key=SecretStr("dashscope-fixture"), deepseek_api_key=SecretStr("deepseek-fixture")
+        api_key=SecretStr("dashscope-fixture")
     )
     redis = AsyncMock()
     redis.exists.return_value = False
@@ -41,51 +41,17 @@ async def test_speech_fallbacks_keep_each_provider_credentials_and_protocol(monk
         assert (await factory.speech.ainvoke("你好")).content == "收到。"
         assert factory.agent.openai_api_key.get_secret_value() == "dashscope-fixture"
     assert [item[0] for item in attempts] == [
-        "deepseek-flash",
-        "deepseek-flash",
-        "deepseek-v4-pro",
-        "deepseek-v4-pro",
-        "qwen3.8-flash",
+        "deepseek-v4.1-flash-1017", "deepseek-v4.1-flash-1017", "qwen3.8-flash",
     ]
-    for model, url, key, body in attempts:
-        if model.startswith("deepseek-"):
-            assert (url, key, body) == (
-                "https://api.deepseek.com",
-                "deepseek-fixture",
-                {"thinking": {"type": "disabled"}},
-            )
-        else:
-            assert (url, key, body) == (settings.base_url, "dashscope-fixture", {"enable_thinking": False})
+    for _, url, key, body in attempts:
+        assert (url, key, body) == (settings.base_url, "dashscope-fixture", {"enable_thinking": False})
     accounts = {call.args[2] for call in redis.eval.await_args_list}
-    assert accounts == {"meng:ai:ratelimit:account:deepseek", "meng:ai:ratelimit:account:dashscope"}
-
-
-async def test_missing_official_key_fails_before_request_and_does_not_reuse_dashscope():
-    gateway = ModelGateway(Settings.model_construct(api_key=SecretStr("fixture")), AsyncMock())
-    with pytest.raises(ModelUnavailable, match="DeepSeek"):
-        await gateway.acquire("deepseek-flash", 10)
-    gateway.redis.eval.assert_not_awaited()
-
-
-def test_official_cache_usage_preserves_total_and_cached_tokens():
-    result = ChatResult(
-        generations=[
-            ChatGeneration(
-                message=AIMessage(
-                    content="收到。", usage_metadata=dict(input_tokens=100, output_tokens=8, total_tokens=108)
-                )
-            )
-        ],
-        llm_output={"token_usage": {"prompt_cache_hit_tokens": 64}},
-    )
-    assert GatewayChatOpenAI.chat_usage(result) == dict(
-        input_tokens=100, output_tokens=8, total_tokens=108, input_token_details={"cache_read": 64}
-    )
+    assert accounts == {"meng:ai:ratelimit:account:dashscope"}
 
 
 @pytest.mark.parametrize("purpose,model,explicit", [
     ("agent", "qwen3.8-flash", True), ("judge", "qwen3.8-flash", False),
-    ("speech", "deepseek-flash", False), ("agent", "other-model", False),
+    ("speech", "deepseek-v4.1-flash-1017", False), ("agent", "other-model", False),
 ])
 async def test_explicit_cache_wire_format_preserves_messages_and_tool_definitions(purpose, model, explicit):
     import json
@@ -93,7 +59,7 @@ async def test_explicit_cache_wire_format_preserves_messages_and_tool_definition
     from langchain_core.messages import HumanMessage, SystemMessage
 
     settings = Settings.model_construct(
-        api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture")
+        api_key=SecretStr("fixture")
     )
     redis = AsyncMock()
     redis.exists.return_value = False
@@ -139,7 +105,6 @@ def test_cache_creation_usage_is_preserved_separately_from_actual_cache_hits():
 async def test_speech_reports_full_request_window_pressure(monkeypatch, size, expected):
     settings = Settings.model_construct(
         api_key=SecretStr("fixture"),
-        deepseek_api_key=SecretStr("fixture"),
         model_overrides={"speech": {"context_tokens": 10000}},
     )
     redis = AsyncMock()
@@ -163,7 +128,7 @@ async def test_parallel_calls_keep_their_own_segment_metrics_without_shared_fall
     from app.runtime.models.gateway import CURRENT, RoundUsage
 
     settings = Settings.model_construct(
-        api_key=SecretStr("fixture"), deepseek_api_key=SecretStr("fixture")
+        api_key=SecretStr("fixture")
     )
     redis = AsyncMock()
     redis.exists.return_value = False
