@@ -32,7 +32,7 @@ class MemoryVectorVersionTest {
 
     @Test
     void changedEmbeddingModelIsRebuiltAndStoredWithTheActualVersion() {
-        String version = "embedding-model-v2:1024:doc-v1";
+        String version = "embedding-model-snapshotRuntime:1024:doc-v1";
         var memory = new Rows.Memory();
         memory.setId(10L);
         memory.setUserId(42L);

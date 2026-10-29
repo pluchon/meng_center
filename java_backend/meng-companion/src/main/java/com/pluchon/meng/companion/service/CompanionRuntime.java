@@ -2,7 +2,7 @@ package com.pluchon.meng.companion.service;
 
 import com.pluchon.meng.companion.entity.Rows;
 import com.pluchon.meng.companion.converter.CompanionSources;
-import com.pluchon.meng.companion.mapper.RuntimeV2Mapper;
+import com.pluchon.meng.companion.mapper.RuntimeMapper;
 import java.time.*;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,10 +12,10 @@ import tools.jackson.databind.json.JsonMapper;
 
 // 快照保存原文，记忆失效和用户编辑后刷新，热聊期间保持前缀不变。
 @Service
-public class CompanionRuntimeV2 {
+public class CompanionRuntime {
 
     @Autowired
-    private RuntimeV2Mapper state;
+    private RuntimeMapper state;
 
     @Autowired
     private Clock clock;

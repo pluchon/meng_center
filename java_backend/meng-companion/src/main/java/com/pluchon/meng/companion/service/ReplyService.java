@@ -65,7 +65,7 @@ public class ReplyService {
     private CompanionTelemetry telemetry;
 
     @Autowired
-    private CompanionRuntimeV2 v2;
+    private CompanionRuntime snapshotRuntime;
 
     private final JsonMapper json = JsonMapper.builder()
         .findAndAddModules()
@@ -506,7 +506,7 @@ public class ReplyService {
         );
         request.put("timeZone", zone);
         request.put("turnId", p.inputs().get(0).getId().toString());
-        var snapshot = v2.snapshot(session, p.bond(), false);
+        var snapshot = snapshotRuntime.snapshot(session, p.bond(), false);
         request.put("contextSnapshot", snapshot);
         var nowMemories = contexts.allMemories(
             user,
@@ -682,7 +682,7 @@ public class ReplyService {
                     label,
                     result
                 );
-                v2.metadata(message, result);
+                snapshotRuntime.metadata(message, result);
                 output.add(
                     Map.of(
                         "event",

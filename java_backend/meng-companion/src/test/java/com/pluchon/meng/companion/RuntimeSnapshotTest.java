@@ -6,20 +6,20 @@ import static org.mockito.Mockito.*;
 import com.pluchon.meng.companion.entity.Rows;
 import com.pluchon.meng.companion.mapper.*;
 import com.pluchon.meng.companion.service.CompanionMemoryCache;
-import com.pluchon.meng.companion.service.CompanionRuntimeV2;
+import com.pluchon.meng.companion.service.CompanionRuntime;
 import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 import tools.jackson.databind.json.JsonMapper;
 
-class RuntimeV2Test {
+class RuntimeSnapshotTest {
 
     @Test
     void snapshotStaysStableUntilRememberedFactChanges() {
-        var service = new CompanionRuntimeV2();
+        var service = new CompanionRuntime();
         var mapper = mock(CompanionMapper.class);
-        var state = mock(RuntimeV2Mapper.class);
+        var state = mock(RuntimeMapper.class);
         var cache = mock(CompanionMemoryCache.class);
         when(cache.get(42, "NEKO")).thenAnswer(call ->
             mapper.memories(42, "NEKO")
@@ -58,7 +58,7 @@ class RuntimeV2Test {
 
     @Test
     void sourcesOnlyAcceptSitePosts() {
-        var service = new CompanionRuntimeV2();
+        var service = new CompanionRuntime();
         var json = JsonMapper.builder().build();
         assertThrows(IllegalArgumentException.class, () ->
             service.sources(

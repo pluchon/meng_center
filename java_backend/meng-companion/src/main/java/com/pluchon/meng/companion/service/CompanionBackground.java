@@ -49,7 +49,7 @@ public class CompanionBackground {
     private CompanionOutbox outbox;
 
     @Autowired
-    private CompanionRuntimeV2 v2;
+    private CompanionRuntime snapshotRuntime;
 
     @Autowired
     private StringRedisTemplate redis;
@@ -451,7 +451,7 @@ public class CompanionBackground {
         );
         int total = history
             .stream()
-            .mapToInt(m -> CompanionRuntimeV2.tokens(m.getContent()))
+            .mapToInt(m -> CompanionRuntime.tokens(m.getContent()))
             .sum();
         boolean idle =
             session.getLastMessageTime() != null &&
@@ -469,7 +469,7 @@ public class CompanionBackground {
         int accumulated = 0,
             boundary = history.size();
         while (boundary > 0 && accumulated < keep)
-            accumulated += CompanionRuntimeV2.tokens(
+            accumulated += CompanionRuntime.tokens(
                 history.get(--boundary).getContent()
             );
         while (boundary > 0 && !"USER".equals(history.get(boundary).getRole()))
@@ -586,7 +586,7 @@ public class CompanionBackground {
                     live != null &&
                     mapper.lockBond(user, code).getRevision() ==
                         bond.getRevision()
-                ) v2.snapshot(live, bond, true);
+                ) snapshotRuntime.snapshot(live, bond, true);
             });
         }
         archiveExpired();

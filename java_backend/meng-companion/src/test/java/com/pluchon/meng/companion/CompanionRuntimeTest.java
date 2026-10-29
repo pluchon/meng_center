@@ -70,7 +70,6 @@ public class CompanionRuntimeTest {
         configuration.setMapUnderscoreToCamelCase(true);
         configuration.addMapper(CompanionMapper.class);
         configuration.addMapper(RuntimeMapper.class);
-        configuration.addMapper(RuntimeV2Mapper.class);
 
         var factory = new SqlSessionFactoryBean();
         factory.setDataSource(source);
@@ -80,7 +79,7 @@ public class CompanionRuntimeTest {
         );
         var mapper = session.getMapper(CompanionMapper.class);
         var state = session.getMapper(
-            com.pluchon.meng.companion.mapper.RuntimeV2Mapper.class
+            com.pluchon.meng.companion.mapper.RuntimeMapper.class
         );
         var runtime = spy(session.getMapper(RuntimeMapper.class));
         var transactions = new TransactionTemplate(
@@ -128,10 +127,10 @@ public class CompanionRuntimeTest {
             "clock",
             clock
         );
-        var v2 = new CompanionRuntimeV2();
-        inject(v2, "state", state, "memoryCache", memoryCache, "clock", clock);
+        var snapshotRuntime = new CompanionRuntime();
+        inject(snapshotRuntime, "state", state, "memoryCache", memoryCache, "clock", clock);
         service = new CompanionService();
-        inject(service, "snapshots", v2);
+        inject(service, "snapshots", snapshotRuntime);
         inject(
             service,
             "mapper",
@@ -153,7 +152,7 @@ public class CompanionRuntimeTest {
         executor.setAwaitTerminationSeconds(6);
         executor.initialize();
         replies = new ReplyService();
-        inject(replies, "v2", v2);
+        inject(replies, "snapshotRuntime", snapshotRuntime);
         inject(replies, "telemetry", mock(CompanionTelemetry.class));
         inject(
             replies,
@@ -471,8 +470,8 @@ public class CompanionRuntimeTest {
             mock(org.springframework.data.redis.core.StringRedisTemplate.class),
             "clock",
             Clock.fixed(Instant.parse("2026-10-17T04:00:00Z"), ZoneOffset.UTC),
-            "v2",
-            ReflectionTestUtils.getField(replies, "v2")
+            "snapshotRuntime",
+            ReflectionTestUtils.getField(replies, "snapshotRuntime")
         );
         return value;
     }

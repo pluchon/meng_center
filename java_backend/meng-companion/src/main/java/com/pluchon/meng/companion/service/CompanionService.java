@@ -24,7 +24,7 @@ public class CompanionService {
     @Autowired private CompanionMapper mapper;
     @Autowired private RuntimeMapper runtime;
     @Autowired private CompanionContext context;
-    @Autowired private CompanionRuntimeV2 snapshots;
+    @Autowired private CompanionRuntime snapshots;
     @Autowired private StringRedisTemplate redis;
     @Autowired private Clock clock;
     private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();

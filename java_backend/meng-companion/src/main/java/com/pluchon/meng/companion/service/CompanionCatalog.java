@@ -70,7 +70,7 @@ public class CompanionCatalog implements ApplicationRunner {
                 card.path("name").asString().isBlank()
             ) throw new IllegalArgumentException("Incomplete companion card");
             for (String field : Set.of("profile","brief","voice","tics","kaomoji","knowledge","fallback","refusal","crisis","opening","form")) {
-                if (!card.has(field)) throw new IllegalArgumentException("Incomplete companion v2 card: "+field);
+                if (!card.has(field)) throw new IllegalArgumentException("Incomplete companion snapshotRuntime card: "+field);
             }
             card.put("version", version);
             card.put("lineVersion", version);
