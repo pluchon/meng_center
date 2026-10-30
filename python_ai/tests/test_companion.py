@@ -89,8 +89,26 @@ async def test_native_node_retry_is_bounded_and_never_replays_agent(node, exhaus
     assert (result["model"] == "fixed") is exhausted
     if exhausted:
         assert not result["billable"] and result["sources"] == []
-    expected = 3 if node in {"respeak", "judge"} else 2
+    # 草稿或预审耗尽重试后仍会重说并打分一次，所以多一次调用。
+    expected = 3 if node in {"respeak", "judge"} or exhausted else 2
     assert getattr(value, "speak" if node in {"draft", "respeak"} else "judge").await_count == expected
+
+
+async def test_failed_prejudge_rewrites_and_reviews_instead_of_falling_back():
+    value = service()
+    candidate = (Parsed(bubbles=["周一确实难熬。"]), {})
+    accepted = Judgment(safe=True, character=8, artificial=1)
+    value.speak.side_effect = [candidate, candidate]
+    value.judge.side_effect = [ValueError("格式不合法"), accepted]
+    result = await value.compute(request(), AsyncMock())
+    assert result["model"] != "fixed" and result["metrics"]["rewrites"] == 1
+    assert value.speak.await_count == value.judge.await_count == 2
+
+
+def test_overlong_judgment_fields_are_truncated_instead_of_failing():
+    judgment = Judgment(safe=True, character=7, artificial=3, unsupported=["无" * 30] * 5, reason="理" * 90)
+    assert len(judgment.unsupported) == 3 and all(len(item) == 20 for item in judgment.unsupported)
+    assert len(judgment.reason) == 60
 
 
 async def test_rewrite_preserves_user_facts_and_does_not_turn_feedback_into_new_background():

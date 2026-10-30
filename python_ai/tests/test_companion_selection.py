@@ -341,3 +341,12 @@ def test_fast_fixed_fallbacks_do_not_reduce_model_reply_latency():
     ]
     assert result["firstBubbleP50Ms"] == 4000 and result["noToolSamples"] == 2
     assert result["fallbackCases"] == 1 and result["passed"] == 2 and result["cases"] == 3
+
+def test_flagged_but_sent_replies_are_recorded_without_stopping_acceptance():
+    from evals.companion.metrics import flagged, reply_passed
+
+    sent = dict(billable=True, model="m", metrics=dict(unsupported=1, artificial=3))
+    fallback = dict(billable=False, model="fixed", metrics=dict(unsupported=0, artificial=0))
+    assert reply_passed(sent, "m") and flagged(sent)
+    assert not reply_passed(fallback, "m") and not flagged(fallback)
+    assert not reply_passed(dict(sent, model="other"), "m")

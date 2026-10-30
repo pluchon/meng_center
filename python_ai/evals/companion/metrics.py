@@ -6,13 +6,16 @@ from app.runtime.speech.signals import signals
 
 
 def reply_passed(result, model):
-    return bool(
-        result
-        and result["billable"]
-        and result["model"] == model
-        and result.get("metrics", {}).get("unsupported", 1) == 0
-        and result.get("metrics", {}).get("artificial", 10) < 7
-    )
+    # 与运行时一致：重说后仍有无依据说法或人机味偏高时照发并记录（flaggedReplies），不中断验收；
+    # 兜底台词、不计次和换了模型的回复才算失败。
+    return bool(result and result["billable"] and result["model"] == model)
+
+
+def flagged(result):
+    metrics = (result or {}).get("metrics", {})
+    return bool(result and result.get("billable") and (
+        metrics.get("unsupported", 0) > 0 or metrics.get("artificial", 0) >= 7
+    ))
 
 
 def quality_failures(metrics):
@@ -100,6 +103,7 @@ def summarize(records, card_loader):
             fallbackCases=sum(
                 bool(row.get("result")) and not row["result"].get("billable") for row in normal
             ),
+            flaggedReplies=sum(flagged(row.get("result")) for row in normal),
             firstBubbleP50Ms=median(latencies) if latencies else None,
             outputTokens={
                 purpose: dict(

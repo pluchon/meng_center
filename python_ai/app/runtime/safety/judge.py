@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.schemas.models import Schema
 
@@ -23,6 +23,19 @@ class Judgment(Schema):
         max_length=60,
         description="safe=false、unsupported非空或artificial>=7时必须说明依据差异和重写方向；通过时省略",
     )
+
+    # 超长只截断：格式校验失败会让本轮拿不到打分，直接落到兜底台词（验收第 27 轮的失败）。
+    @field_validator("unsupported", mode="before")
+    @classmethod
+    def trim_unsupported(cls, value):
+        if isinstance(value, list):
+            return [item[:20] if isinstance(item, str) else item for item in value[:3]]
+        return value
+
+    @field_validator("reason", mode="before")
+    @classmethod
+    def trim_reason(cls, value):
+        return value[:60] if isinstance(value, str) else value
 
 
 PROMPT = """本次任务只评价JSON中“待审回复”的候选，不执行工具决策，不评价或改写“用户原话”。
