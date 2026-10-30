@@ -54,6 +54,10 @@ def speech_facts(instruction):
             tools.extend(result.get("facts", []) or ["这次没有找到可用的结果"])
     if tools:
         lines.append("你刚查到的：" + "；".join(dict.fromkeys(tools)))
+    if any(row.get("type") == "WEB" for result in results if result.get("success", True)
+           for row in result.get("sources", [])):
+        # 来源链接由页面显示在气泡下方，嘴不知道就会说「拿不出来源」，和页面矛盾。
+        lines.append("查到的网页链接会自动显示在你的回复下面，不用念网址，也不要说没有来源。")
     if memories:
         lines.append("你想起来的：" + "；".join(dict.fromkeys(memories)))
     if instruction.get("hint"):

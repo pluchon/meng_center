@@ -38,15 +38,13 @@ async def execute(service, args, context):
     async with service.models.semaphores["search"]:
         answer = await service.models.search.bind_tools([{"type": "web_search"}]).ainvoke(
             [SystemMessage(PROMPT), HumanMessage(query)],
-            # 一次外层工具调用只允许一次内置搜索，避免搜索次数与日配额失配。
+            # 百炼不保证遵守 max_tool_calls，实际搜索次数按返回的调用记录计次和扣减。
             extra_body={"enable_thinking": False, "max_tool_calls": 1},
             _runtime_retries=0,
         )
     blocks = answer.content if isinstance(answer.content, list) else []
     calls = [block for block in blocks if block.get("type") == "web_search_call"]
     context["searchCalls"] = len(calls)
-    if len(calls) > 1:
-        raise ValueError("内置搜索次数超出本轮限制")
     sources, mapping = [], {}
     original = [source for call in calls for source in call.get("action", {}).get("sources", [])]
     for index, source in enumerate(original):

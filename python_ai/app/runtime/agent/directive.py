@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from app.schemas.models import Schema
 
@@ -19,6 +19,13 @@ class Directive(Schema):
     support_needed: bool = False
     identity_question: bool = False
     mention_memory_id: int | None = Field(default=None, description="本轮可用的数字记忆编号；没有时填null")
+
+    @field_validator("hint", "image_note", mode="before")
+    @classmethod
+    def trim(cls, value, info):
+        # 方向和图片说明只给嘴和打分参考，超长截断即可，不为一两个字多花一次模型调用。
+        limit = 20 if info.field_name == "hint" else 30
+        return value[:limit] if isinstance(value, str) else value
 
 
 def validate(directive, tool_ids, memory_ids, has_history):

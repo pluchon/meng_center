@@ -68,16 +68,17 @@ def repair(error):
 @wrap_model_call
 async def bound_call(request, handler):
     context = request.runtime.context.data
-    # 参数校验重试和最后一次模型调用只允许输出结构化指令。
+    # 参数校验重试、搜索之后和最后一次模型调用只允许输出结构化指令。
+    # 只隐藏搜索时模型仍会照着历史再发一次搜索，白占一次调用，导致后续校验重试超出调用上限。
     count = request.state.get("run_model_call_count", 0)
-    if context.get("directiveRetried") or count >= 2:
+    searched = request.state.get("run_tool_call_count", {}).get("web_search", 0)
+    if context.get("directiveRetried") or count >= 2 or searched:
         request = request.override(tools=[])
     else:
         unavailable = set()
         if not context["request"].recalled:
             unavailable.add("recall")
-        if (not context["request"].web_search_remaining
-                or request.state.get("run_tool_call_count", {}).get("web_search", 0)):
+        if not context["request"].web_search_remaining:
             unavailable.add("web_search")
         request = request.override(tools=[tool for tool in request.tools if tool.name not in unavailable])
     async with context["service"].models.semaphores["agent"]:

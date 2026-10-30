@@ -216,7 +216,10 @@
                     target="_blank"
                     rel="noopener noreferrer nofollow"
                   >
-                    <span class="naitang-source-site">{{ source.site }}</span>{{ source.title }}
+                    <span
+                      v-if="source.site !== source.title"
+                      class="naitang-source-site"
+                    >{{ source.site }}</span>{{ source.title }}
                   </a>
                   <router-link
                     v-else

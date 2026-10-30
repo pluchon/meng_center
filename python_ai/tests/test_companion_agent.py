@@ -74,14 +74,14 @@ async def test_schema_retry_reports_the_invalid_field_without_echoing_input():
 
     hint = "先稳住当下，劝联系身边可信任的人和求助渠道"
     bad = AIMessage(content="", tool_calls=[
-        dict(name="Response", id="bad", args=dict(label="CRISIS", hint=hint))
+        dict(name="Response", id="bad", args=dict(label="CRISIS", scene="WHATEVER", hint=hint))
     ])
     fixed = AIMessage(content="", tool_calls=[dict(name="Response", id="fixed", args=dict(label="CRISIS"))])
     _, service, context = setup([])
     service.models.agent = RecordingModel(messages=iter([bad, fixed]))
     assert (await Agent(service).run(context)).label == "CRISIS"
     feedback = inputs[1][-1].content
-    assert "hint" in feedback and "20" in feedback and "String should have at most" in feedback
+    assert "scene" in feedback and "WHATEVER" not in feedback
     assert hint not in feedback and len(inputs) == 2
     service.executor.execute.assert_not_awaited()
 
@@ -185,3 +185,9 @@ async def test_unavailable_recall_is_rejected_without_hiding_the_attempt():
     ]
     assert context["toolResults"] == [] and context["memoryIds"] == set()
     service.executor.execute.assert_not_awaited()
+
+def test_overlong_hint_and_image_note_are_truncated_instead_of_retried():
+    from app.runtime.agent.directive import Directive
+
+    directive = Directive(label="PASS", hint="告知2027年上映信息，说明未找到官网来源", image_note="图" * 40)
+    assert directive.hint == "告知2027年上映信息，说明未找到官网来" and len(directive.image_note) == 30

@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 from langchain_core.messages import SystemMessage
 from langchain_core.runnables import RunnableLambda
+from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_openai import ChatOpenAI
 from pydantic import PrivateAttr
 
@@ -217,6 +218,13 @@ class ModelGateway:
 
 
 class BailianChatOpenAI(ChatOpenAI):
+    def bind_tools(self, tools, *, tool_choice=None, **kwargs):
+        # 百炼不强制 tool_choice=required，只给一个工具时模型仍会照着历史调用别的工具；
+        # 改成指定函数名才会被遵守。
+        if tool_choice in ("any", "required") and len(tools) == 1:
+            tool_choice = convert_to_openai_tool(tools[0])["function"]["name"]
+        return super().bind_tools(tools, tool_choice=tool_choice, **kwargs)
+
     def _create_chat_result(self, response, generation_info=None):
         result = super()._create_chat_result(response, generation_info)
         choices = response["choices"] if isinstance(response, dict) else response.choices

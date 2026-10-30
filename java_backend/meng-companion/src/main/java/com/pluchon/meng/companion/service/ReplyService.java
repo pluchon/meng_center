@@ -612,8 +612,9 @@ public class ReplyService {
         for (var tool : result.path("toolUsage")) {
             if (!"web_search".equals(tool.path("name").asString())) continue;
             int count = tool.path("searchCalls").asInt(0);
-            if (count < 0 || count > 1) throw new IllegalArgumentException("搜索次数不合法");
-            if (tool.path("success").asBoolean() && !tool.path("cached").asBoolean()) searches += count;
+            if (count < 0) throw new IllegalArgumentException("搜索次数不合法");
+            // 日额度按实际联网的轮次计；百炼一次请求内的多次内置搜索只用于成本统计。
+            if (tool.path("success").asBoolean() && !tool.path("cached").asBoolean() && count > 0) searches++;
         }
         if (searches > 1 || (searches > 0 && !reservation.searchAllowed()))
             throw new IllegalArgumentException("搜索超出本轮预留额度");

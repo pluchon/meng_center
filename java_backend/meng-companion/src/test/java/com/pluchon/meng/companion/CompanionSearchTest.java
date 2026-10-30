@@ -20,6 +20,10 @@ class CompanionSearchTest {
             """);
         assertEquals(List.of("message","search"), ReplyService.usedKinds(result,reserved,true));
         assertEquals(List.of(), ReplyService.usedKinds(result,reserved,false));
+        var multiple = json.readTree("""
+            {"toolUsage":[{"name":"web_search","success":true,"searchCalls":2}]}
+            """);
+        assertEquals(List.of("message","search"), ReplyService.usedKinds(multiple,reserved,true));
         for (String flag : List.of("\"cached\":true", "\"success\":false")) {
             var free = json.readTree("{\"toolUsage\":[{\"name\":\"web_search\",\"searchCalls\":1,"+flag+"}]}");
             assertEquals(List.of("message"), ReplyService.usedKinds(free,reserved,true));

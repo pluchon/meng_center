@@ -160,27 +160,32 @@ def build():
             billable=False,
         )
 
+    # 草稿与预审是同一条分支，放进子图作为一个节点，和 agent 在同一超步里并行；
+    # 拆成父图里的两个节点时，预审要等 agent 所在的超步结束才开始，联网轮次会白等。
+    speculation = StateGraph(State, context_schema=Context)
+    speculation.add_node("draft", recoverable("draft", draft, "draft"))
+    speculation.add_node("prejudge", recoverable("prejudge", prejudge, "prejudgment"))
+    speculation.add_edge(START, "draft")
+    speculation.add_edge("draft", "prejudge")
+    speculation.add_edge("prejudge", END)
+
     graph = StateGraph(State, context_schema=Context)
     for name, node in {
         "agent": agent,
-        "draft": draft,
-        "prejudge": prejudge,
+        "speculate": speculation.compile(),
         "respeak": respeak,
         "judge": judge,
         "block": block,
         "emit": emit,
         "fallback": fallback,
     }.items():
-        field = {
-            "draft": "draft", "prejudge": "prejudgment", "respeak": "reply", "judge": "judgment"
-        }.get(name)
+        field = {"respeak": "reply", "judge": "judgment"}.get(name)
         graph.add_node(name, recoverable(name, node, field) if field else node)
     graph.add_node("merge", merge, defer=True)
     graph.add_edge(START, "agent")
-    graph.add_edge(START, "draft")
-    graph.add_edge("draft", "prejudge")
+    graph.add_edge(START, "speculate")
     graph.add_edge("agent", "merge")
-    graph.add_edge("prejudge", "merge")
+    graph.add_edge("speculate", "merge")
     graph.add_conditional_edges("merge", route)
     graph.add_edge("respeak", "judge")
     graph.add_conditional_edges("judge", after_judge)

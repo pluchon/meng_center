@@ -27,6 +27,23 @@ def answer(sources=None, facts=None):
     ])
 
 
+async def test_multiple_native_searches_keep_results_and_report_the_actual_count():
+    # 百炼不保证遵守 max_tool_calls，一次请求内的第二次内置搜索不能让整次结果作废。
+    message = answer()
+    message.content.insert(1, dict(type="web_search_call", action=dict(sources=[
+        dict(title="新闻", url="https://example.org/a", site="新闻站")
+    ])))
+    invoke = AsyncMock(return_value=message)
+    service = SimpleNamespace(models=SimpleNamespace(
+        search=SimpleNamespace(bind_tools=lambda _: SimpleNamespace(ainvoke=invoke)),
+        semaphores={"search": asyncio.Semaphore(1)},
+    ))
+    current = context(web_search_remaining=1)
+    result = await web.execute(service, {"query": "活动日期"}, current)
+    assert result["facts"] == ["活动于周六举办"] and result["sources"][0]["url"] == "https://example.com/news"
+    assert current["searchCalls"] == 2
+
+
 @pytest.mark.parametrize("thinking", [False, True])
 async def test_responses_wire_format_and_usage_do_not_send_private_context(thinking):
     captured = []
@@ -175,7 +192,7 @@ async def test_used_search_is_hidden_until_the_next_round(success):
     await agent.run(current)
     await agent.run({**current, "toolUsage": [], "toolResults": []})
     assert "web_search" in bindings[0] and "web_search" not in bindings[1]
-    assert "Response" in bindings[1] and "web_search" in bindings[2]
+    assert bindings[1] == {"Response"} and "web_search" in bindings[2]
     service.executor.execute.assert_awaited_once()
 
 

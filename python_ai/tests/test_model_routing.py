@@ -212,3 +212,21 @@ async def test_parallel_calls_keep_their_own_segment_metrics_without_shared_fall
     assert current.tokens == 303 and len(current.calls) == 3
     current.segments["history"] = 0
     assert next(row for row in current.calls if row["purpose"] == "speech")["segments"] == {"history": 80}
+
+
+def test_single_required_tool_is_forced_by_name_for_bailian():
+    from pydantic import BaseModel
+
+    from app.runtime.models.gateway import BailianChatOpenAI
+
+    class Response(BaseModel):
+        label: str
+
+    class Other(BaseModel):
+        value: str
+
+    model = BailianChatOpenAI(model="qwen3.8-flash", api_key=SecretStr("fixture"))
+    # 百炼不强制 required，只剩一个工具时必须指定函数名，否则模型会照着历史调用未开放的工具。
+    forced = model.bind_tools([Response], tool_choice="any").kwargs["tool_choice"]
+    assert forced == {"type": "function", "function": {"name": "Response"}}
+    assert model.bind_tools([Response, Other], tool_choice="any").kwargs["tool_choice"] == "required"
