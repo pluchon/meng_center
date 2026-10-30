@@ -3,6 +3,7 @@
 import argparse
 import asyncio
 import json
+import logging
 import random
 from pathlib import Path
 
@@ -44,6 +45,35 @@ from evals.companion.protocol import comparison_plan, comparison_status, generat
 MODELS = ("deepseek-v4.1-flash-1017", "deepseek-v4-pro")
 SCENE = scene(0)
 BLIND_PROTOCOL_VERSION = 6
+
+
+async def dialogue_events(service, request):
+    """保留流错误和已有日志中的异常类型，不记录异常正文或模型输入。"""
+    failures = []
+
+    class FailureLog(logging.Handler):
+        def emit(self, record):
+            if record.msg == "companion_round_failed error_type=%s":
+                failures.append(dict(node="round", errorType=record.args[0]))
+            elif record.msg == "tool_failed tool=%s error_type=%s cause_type=%s":
+                name, error_type, cause_type = record.args
+                failures.append(dict(node="tool", tool=name, errorType=error_type, causeType=cause_type))
+
+    handler = FailureLog(logging.WARNING)
+    loggers = [logging.getLogger(name) for name in (
+        "app.services.companion", "app.runtime.tools.executor"
+    )]
+    for logger in loggers:
+        logger.addHandler(handler)
+    try:
+        events = [event async for event in service.stream(request)]
+        for event in events:
+            if event.get("event") == "error":
+                failures.append(dict(node="stream", code=event.get("data", {}).get("code")))
+        return events, failures
+    finally:
+        for logger in loggers:
+            logger.removeHandler(handler)
 
 
 def smoke_image():
@@ -310,7 +340,7 @@ async def run(args):
                                 history=history,
                             )
                             random.seed(digest([args.seed, ident]))
-                            events = [event async for event in service.stream(body)]
+                            events, failures = await dialogue_events(service, body)
                             result = next((e["data"] for e in events if e["event"] == "result"), None)
                             # 本批真实语料都是闲聊与倾诉；固定语料预期只用于评测，不进入业务路由。
                             decision_issues = (
@@ -342,6 +372,8 @@ async def run(args):
                                 result=result,
                                 decisionIssues=decision_issues,
                             )
+                            if failures:
+                                row["failures"] = failures
                             if case:
                                 row["provenance"] = {
                                     key: case[key]

@@ -318,10 +318,40 @@ def test_generation_fingerprint_allows_only_voice_tics_kaomoji_and_character_lin
     assert generation_conditions(settings) != before
 
 
+async def test_stream_diagnostics_keep_types_and_release_handlers_on_interruption():
+    from evals.companion.select import dialogue_events
+
+    logger = logging.getLogger("app.runtime.tools.executor")
+    original = list(logger.handlers)
+
+    class Service:
+        async def stream(self, _):
+            logger.warning("tool_failed tool=%s error_type=%s cause_type=%s",
+                           "web_search", "ValueError", "JSONDecodeError")
+            logger.warning("不可写入报告的异常正文")
+            yield dict(event="error", data=dict(code="AI_UNAVAILABLE", detail="不可写入报告的输入"))
+
+    _, failures = await dialogue_events(Service(), None)
+    assert failures == [
+        dict(node="tool", tool="web_search", errorType="ValueError", causeType="JSONDecodeError"),
+        dict(node="stream", code="AI_UNAVAILABLE"),
+    ]
+    assert logger.handlers == original
+
+    class Interrupted:
+        async def stream(self, _):
+            raise ConnectionError("不可写入报告的异常正文")
+            yield
+
+    with pytest.raises(ConnectionError):
+        await dialogue_events(Interrupted(), None)
+    assert logger.handlers == original
+
+
 @pytest.mark.parametrize(
     "mode", [
         "smoke", "smoke-image", "smoke-search", "smoke-image-focused", "smoke-search-focused",
-        "single", "comparison", "failed", "interrupted",
+        "single", "comparison", "failed", "interrupted", "stream-error",
         "metrics", "cache", "budget", "unexpected",
     ]
 )
@@ -354,6 +384,12 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
             generated.append(request)
             if mode == "interrupted":
                 raise ConnectionError("模拟请求中断")
+            if mode == "stream-error":
+                logging.getLogger("app.services.companion").warning(
+                    "companion_round_failed error_type=%s", "ToolCallLimitExceededError"
+                )
+                yield dict(event="error", data=dict(code="AI_UNAVAILABLE", detail="不可写入报告的正文"))
+                return
             yield dict(
                 event="result",
                 data=dict(
@@ -404,7 +440,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
     ]
     arguments += (
         ["--smoke", "--character", "NEKO"]
-        if mode.startswith("smoke") or mode in {"failed", "interrupted", "budget"}
+        if mode.startswith("smoke") or mode in {"failed", "interrupted", "stream-error", "budget"}
         else ["--acceptance"]
     )
     if mode == "comparison":
@@ -414,12 +450,18 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
     if mode.endswith("-focused"):
         arguments += ["--smoke-rounds", "1"]
     args = select.parser().parse_args(arguments)
-    if mode in {"failed", "interrupted", "unexpected"}:
+    if mode in {"failed", "interrupted", "stream-error", "unexpected"}:
         with pytest.raises((ConnectionError, select.EvaluationUnavailable)):
             await select.run(args)
         report = json.loads(output.read_text(encoding="utf-8"))
         assert not report["complete"] and len(generated) == 1 and not calls
         assert bool(report["pendingTurn"]) == (mode == "interrupted")
+        if mode == "stream-error":
+            assert report["records"][settings.speech_model][0]["failures"] == [
+                dict(node="round", errorType="ToolCallLimitExceededError"),
+                dict(node="stream", code="AI_UNAVAILABLE"),
+            ]
+            assert "不可写入报告的正文" not in output.read_text(encoding="utf-8")
         args.resume = True
         with pytest.raises((ValueError, select.EvaluationUnavailable)):
             await select.run(args)
