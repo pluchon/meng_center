@@ -320,7 +320,8 @@ def test_generation_fingerprint_allows_only_voice_tics_kaomoji_and_character_lin
 
 @pytest.mark.parametrize(
     "mode", [
-        "smoke", "smoke-image", "smoke-search", "single", "comparison", "failed", "interrupted",
+        "smoke", "smoke-image", "smoke-search", "smoke-image-focused", "smoke-search-focused",
+        "single", "comparison", "failed", "interrupted",
         "metrics", "cache", "budget", "unexpected",
     ]
 )
@@ -358,12 +359,13 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
                 data=dict(
                     billable=mode != "failed",
                     model=self.models.settings.speech_model,
-                    bubbles=[request.character, request.card["kaomoji"][0]],
+                    bubbles=[request.character, request.card["kaomoji"][0],
+                             *(["红色圆形"] if request.images else [])],
                     toolUsage=[dict(name="search_posts")] if mode == "unexpected" else
                     [dict(name="web_search", success=True, searchCalls=1)]
-                    if mode == "smoke-search" and "首播日期" in request.content else [],
+                    if mode.startswith("smoke-search") and "首播日期" in request.content else [],
                     sources=[dict(type="WEB", title="公告", url="https://example.com", site="官网")]
-                    if mode == "smoke-search" else [],
+                    if mode.startswith("smoke-search") else [],
                     metrics=dict(
                         unsupported=0, artificial=1, firstBubbleMs=4000 if mode == "metrics" else 100,
                         calls=[dict(
@@ -402,13 +404,15 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
     ]
     arguments += (
         ["--smoke", "--character", "NEKO"]
-        if mode in {"smoke", "smoke-image", "smoke-search", "failed", "interrupted", "budget"}
+        if mode.startswith("smoke") or mode in {"failed", "interrupted", "budget"}
         else ["--acceptance"]
     )
     if mode == "comparison":
         arguments += ["--compare-model", "deepseek-v4-pro"]
     if mode.startswith("smoke-"):
-        arguments += ["--smoke-kind", mode.removeprefix("smoke-")]
+        arguments += ["--smoke-kind", mode.split("-")[1]]
+    if mode.endswith("-focused"):
+        arguments += ["--smoke-rounds", "1"]
     args = select.parser().parse_args(arguments)
     if mode in {"failed", "interrupted", "unexpected"}:
         with pytest.raises((ConnectionError, select.EvaluationUnavailable)):
@@ -454,13 +458,14 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
         return
     smoke = mode.startswith("smoke")
     assert report["complete"] and len(report["pairs"]) == (0 if smoke else 20)
-    assert len(generated) == (5 if smoke else {"single": 35, "comparison": 70}[mode])
+    assert len(generated) == ((1 if mode.endswith("-focused") else 5)
+                              if smoke else {"single": 35, "comparison": 70}[mode])
     assert len(calls) == (0 if smoke else {"single": 40, "comparison": 80}[mode])
     assert set(calls) == (set() if smoke else set(JUDGES))
     if smoke:
         assert report["metrics"] == {} and report["setup"]["candidates"] == ["deepseek-v4.1-flash-1017"]
-        assert bool(generated[-1].images) == (mode == "smoke-image")
-        assert generated[-1].web_search_remaining == int(mode == "smoke-search")
+        assert bool(generated[-1].images) == mode.startswith("smoke-image")
+        assert generated[-1].web_search_remaining == int(mode.startswith("smoke-search"))
     else:
         assert all(
             row["spearman"] is None and not row["usableAsGate"] for row in report["judgeAgreement"].values()

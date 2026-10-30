@@ -37,6 +37,10 @@ def evaluation_settings(settings, args):
 
 
 def validate_mode(args):
+    if getattr(args, "smoke_rounds", 5) != 5 and (
+        not args.smoke or getattr(args, "smoke_kind", "plain") == "plain"
+    ):
+        raise ValueError("单轮仅用于明确获准的图片或搜索专项冒烟，不能缩减普通冒烟或完整验收")
     if not args.smoke and getattr(args, "smoke_kind", "plain") != "plain":
         raise ValueError("冒烟种类只允许用于smoke")
     if getattr(args, "continue_budget_stop", False) and not (args.smoke and args.resume):

@@ -4,6 +4,7 @@ param([switch]$EvaluateModels, [string]$CompareModel, [string]$Baseline,
     [string]$EvaluationBudgetId, [string]$EvaluationOutput,
     [string]$ChangedVariable, [string]$Catalog, [switch]$Smoke, [switch]$Acceptance,
     [ValidateSet('plain','image','search')][string]$SmokeKind='plain',
+    [ValidateSet(1,5)][int]$SmokeRounds=5,
     [ValidatePattern('^[a-zA-Z0-9._-]{1,100}$')][string]$EvaluationPhaseId)
 $ErrorActionPreference = 'Stop'
 if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and ($EvaluationTokenBudget -le 0 -or $EvaluationBudgetId -notmatch '^[a-zA-Z0-9._-]{1,100}$')) {
@@ -11,6 +12,9 @@ if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and ($Evalu
 }
 if ($SelectMouthModels -and ([bool]$Baseline -ne [bool]$ChangedVariable)) { throw 'Mouth comparisons require both Baseline and ChangedVariable.' }
 if ($SmallModelSample) { throw 'SmallModelSample is no longer allowed; use Smoke for development.' }
+if ($SmokeRounds -ne 5 -and (-not $Smoke -or $SmokeKind -eq 'plain')) {
+    throw 'Single-round checks require explicitly authorized image or search smoke.'
+}
 if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and -not ($Smoke -or $Acceptance)) {
     throw 'Real evaluations require explicit Acceptance; development must use Smoke.'
 }
@@ -51,7 +55,7 @@ try {
     }
     if ($SelectMouthModels) {
         $selectionArguments = @('--phase-id', $EvaluationPhaseId)
-        if ($Smoke) { $selectionArguments += @('--smoke','--smoke-kind',$SmokeKind) }
+        if ($Smoke) { $selectionArguments += @('--smoke','--smoke-kind',$SmokeKind,'--smoke-rounds',[string]$SmokeRounds) }
         if ($Acceptance) { $selectionArguments += '--acceptance' }
         if ($CompareModel) { $selectionArguments += @('--compare-model', $CompareModel) }
         if ($Baseline) { $selectionArguments += @('--baseline', $Baseline) }

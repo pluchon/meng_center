@@ -126,6 +126,7 @@ def question_at(index):
 async def run(args):
     validate_mode(args)
     smoke_kind = getattr(args, "smoke_kind", "plain")
+    smoke_rounds = getattr(args, "smoke_rounds", 5)
     if args.restart_blind and not args.resume:
         raise ValueError("重新盲评必须同时指定resume和原始output")
     output = Path(args.output)
@@ -150,6 +151,7 @@ async def run(args):
         smallSample=False,
         smoke=args.smoke,
         smokeKind=smoke_kind if args.smoke else None,
+        smokeRounds=smoke_rounds if args.smoke else None,
         graphProtocol="naitang-stategraph-v1",
         speechProvider="dashscope",
         generationProtocolVersion=4,
@@ -239,7 +241,7 @@ async def run(args):
     try:
         await claim_run(redis, args, key)
         print(
-            f"budget={args.token_budget} models={candidates} rounds={5 if args.smoke else 35} "
+            f"budget={args.token_budget} models={candidates} rounds={smoke_rounds if args.smoke else 35} "
             f"blindGroups={0 if args.smoke else 20}",
             flush=True,
         )
@@ -269,16 +271,16 @@ async def run(args):
                     if args.character and code != args.character:
                         continue
                     history = []
-                    for index in range(5 if args.smoke else 35):
+                    for index in range(smoke_rounds if args.smoke else 35):
                         case = None if args.smoke else corpus_cases[index]
                         ident = f"{code}-{index}"
                         question = (
                             case["text"]
                             if case
                             else "这张图片里是什么颜色的形状？"
-                            if args.smoke and smoke_kind == "image" and index == 4
+                            if args.smoke and smoke_kind == "image" and index == smoke_rounds - 1
                             else "请查一下《葬送的芙莉莲》第二季的首播日期，给官网来源。"
-                            if args.smoke and smoke_kind == "search" and index == 4
+                            if args.smoke and smoke_kind == "search" and index == smoke_rounds - 1
                             else question_at(index)
                         )
                         row = completed.get(ident)
@@ -300,7 +302,7 @@ async def run(args):
                                 nickname="虚构测试用户",
                                 content=question,
                                 images=[smoke_image()]
-                                if args.smoke and smoke_kind == "image" and index == 4 else [],
+                                if args.smoke and smoke_kind == "image" and index == smoke_rounds - 1 else [],
                                 web_search_remaining=1 if args.smoke and smoke_kind == "search" else 0,
                                 card=card_payload(code),
                                 examples=examples_payload(code),
@@ -322,7 +324,10 @@ async def run(args):
                                     (call.get("reasoningTokens") or 0) > 0
                                     for call in result.get("metrics", {}).get("calls", [])
                                 )
-                            if args.smoke and smoke_kind == "search" and index == 4:
+                            if args.smoke and smoke_kind == "image" and index == smoke_rounds - 1:
+                                caption = "".join((result or {}).get("bubbles", []))
+                                passed = passed and "红" in caption and "圆" in caption
+                            if args.smoke and smoke_kind == "search" and index == smoke_rounds - 1:
                                 passed = passed and any(
                                     item.get("name") == "web_search" and item.get("success")
                                     and item.get("searchCalls") == 1
@@ -481,6 +486,8 @@ def parser():
     result.add_argument("--resume", action="store_true", help="从output继续，保留已完成轮次与原授权累计用量")
     result.add_argument("--smoke-kind", choices=["plain", "image", "search"], default="plain",
                         help="普通、带图或真实联网搜索冒烟；其余工具始终使用录制资料")
+    result.add_argument("--smoke-rounds", type=int, choices=[1, 5], default=5,
+                        help="默认五轮；仅在仓库主人明确批准单轮图片或搜索专项冒烟时指定1")
     result.add_argument(
         "--continue-budget-stop",
         action="store_true",
