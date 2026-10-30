@@ -33,7 +33,8 @@
 | `image` AI 封面 | `qwen-image-3.0-pro` | 无 | 当前账号可用的最好的 Qwen 生图模型 |
 
 - 奶糖说话和联网搜索用 DeepSeek，其余全部用 Qwen。用户图片由嘴直接看，不另设识图调用；主 agent 也看图，用来审核和决定工具。
-- **全部模型只走阿里云百炼一个平台**，统一使用 `DASHSCOPE_API_KEY`、华北2（北京）地域，不接 DeepSeek 官方接口。对话类调用走百炼的 OpenAI 兼容 Chat Completions，关思考用 `enable_thinking=false`（DeepSeek 快照同样适用，冒烟时确认一次）；联网搜索走百炼的 OpenAI 兼容 Responses API（只有北京和新加坡地域支持）。降级链都在同一平台内，只换模型名。
+- **全部模型只走阿里云百炼一个平台**，统一使用 `DASHSCOPE_API_KEY`、华北2（北京）地域，不接 DeepSeek 官方接口。对话类调用走百炼的 OpenAI 兼容 Chat Completions，关思考用 `enable_thinking=false`；联网搜索走百炼的 OpenAI 兼容 Responses API（只有北京和新加坡地域支持）。降级链都在同一平台内，只换模型名。
+- `deepseek-v4.1-flash-1017` 已确认可接收文字和图片、返回奶糖说话格式，并返回隐式缓存命中记录；Responses API 可返回内置搜索调用及网页来源。接口接受 `enable_thinking=false`，但当前响应未返回 `reasoningTokens`，不能把缺失值当作零；关闭思考的效果、联网搜索到最终回复的完整链路及第 4.5 节的缓存命中率目标仍须核实。
 - 说话固定用快照名 `deepseek-v4.1-flash-1017`，不用会随版本漂移的 `deepseek-v4.1-flash`。百炼文档写明它支持文本和图片输入、隐式缓存、Responses API 的 `web_search`（[模型说明](https://help.aliyun.com/zh/model-studio/deepseek-v4-1-flash)、[联网搜索](https://help.aliyun.com/zh/model-studio/web-search)）。
 - 注册表（`runtime/models/registry.py`）为每个用途登记：模型名、温度、超时、`max_tokens`、是否开思考、能力（`n`、视觉、工具），以及降级链。
 - 换说话模型只改配置，是否换由仓库主人决定（第 11.2 节）。环境变量见 [setup.md](setup.md)。
