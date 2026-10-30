@@ -45,6 +45,8 @@ async def execute(service, args, context):
     blocks = answer.content if isinstance(answer.content, list) else []
     calls = [block for block in blocks if block.get("type") == "web_search_call"]
     context["searchCalls"] = len(calls)
+    if len(calls) > 1:
+        raise ValueError("内置搜索次数超出本轮限制")
     sources, mapping = [], {}
     original = [source for call in calls for source in call.get("action", {}).get("sources", [])]
     for index, source in enumerate(original):

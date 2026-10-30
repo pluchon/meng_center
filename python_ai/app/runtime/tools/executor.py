@@ -26,7 +26,7 @@ class Executor:
             input=request.content,
             candidates=request.recalled if name == "recall" else [],
             version=self.service.prompt_version(request),
-            model=getattr(settings, "judge_model", ""),
+            model=getattr(settings, "search_model" if name == "web_search" else "judge_model", ""),
             modelOptions=getattr(settings, "model_overrides", {}),
             taskOptions={
                 name: options.model_dump(exclude_none=True) if hasattr(options, "model_dump") else options
