@@ -259,6 +259,7 @@ class GatewayChatOpenAI(ChatOpenAI):
 
     async def _agenerate(self, messages, stop=None, run_manager=None, **kwargs):
         retries = kwargs.pop("_runtime_retries", 1)
+        graph_retry = kwargs.pop("_graph_retry", False)
         metadata = getattr(run_manager, "metadata", {}) or {}
         estimate = int(self.max_tokens or 1600) + sum(tokens(str(m.content)) for m in messages)
         estimate += tokens(str(kwargs.get("tools", [])))
@@ -313,6 +314,6 @@ class GatewayChatOpenAI(ChatOpenAI):
                 }
             return result
         except Exception as error:
-            if self._purpose == "agent" or not retries:
+            if self._purpose == "agent" or graph_retry:
                 raise
             raise ModelUnavailable("模型及其降级链均不可用") from error
