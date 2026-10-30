@@ -99,6 +99,8 @@ flowchart TD
 
 发送失败可恢复原文字和图片并重试；记忆按当前有效事实去重，清空后可以重新记住，召回时区分向量模型版本。开发验证只调用离线假模型，真实冒烟和验收按文档中的授权额度执行。
 
+受限联网搜索的工具、每日额度和网页来源展示已实现；搜索接口能够返回资料，但搜索到最终回复的完整链路尚未通过真实验证。未完成事项集中在[架构设计](docs/architecture.md)第 10 节。
+
 运行时的每日看板可通过 `verification/Export-AiRuntimeDashboard.ps1` 只读导出；帖子向量迁移状态通过 `verification/Test-VectorEncoding.ps1` 检查。这两个命令都不调用模型，具体用法见 [验证说明](verification/README.md)。
 
 ## 架构
