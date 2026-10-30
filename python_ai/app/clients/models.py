@@ -4,11 +4,10 @@ from contextlib import asynccontextmanager
 
 import httpx
 from langchain_core.callbacks import UsageMetadataCallbackHandler
-from langchain_openai import ChatOpenAI
 
 from app.clients.embedding import EmbeddingClient
 from app.clients.rerank import RerankClient
-from app.runtime.models.gateway import GatewayChatOpenAI, ModelGateway
+from app.runtime.models.gateway import BailianChatOpenAI, GatewayChatOpenAI, ModelGateway
 from app.runtime.models.registry import registry
 
 
@@ -48,7 +47,8 @@ class ModelFactory:
                     purpose,
                     spec.fallbacks,
                     spec.context_tokens,
-                    {model: ChatOpenAI(**options(model)) for model in spec.fallbacks if model != spec.model},
+                    {model: BailianChatOpenAI(**options(model))
+                     for model in spec.fallbacks if model != spec.model},
                 ),
             )
         self.http = http or httpx.AsyncClient()

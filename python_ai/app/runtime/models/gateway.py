@@ -111,6 +111,7 @@ class ModelGateway:
             images=usage.get("images", 0),
             searchCalls=int(usage.get("search_calls", 0)),
             reasoningTokens=usage.get("output_token_details", {}).get("reasoning"),
+            reasoningContentPresent=usage.get("reasoning_content_present"),
             segments=dict(usage.get("_segments", {})),
             user=current.user if current else 0,
             character=current.character if current else "",
@@ -215,7 +216,21 @@ class ModelGateway:
             raise ModelUnavailable("模型请求重试后仍不可用") from error.__cause__
 
 
-class GatewayChatOpenAI(ChatOpenAI):
+class BailianChatOpenAI(ChatOpenAI):
+    def _create_chat_result(self, response, generation_info=None):
+        result = super()._create_chat_result(response, generation_info)
+        choices = response["choices"] if isinstance(response, dict) else response.choices
+        for generation, choice in zip(result.generations, choices, strict=True):
+            message = choice["message"] if isinstance(choice, dict) else choice.message
+            reasoning = message.get("reasoning_content") if isinstance(message, dict) else getattr(
+                message, "reasoning_content", None
+            )
+            # 通用ChatOpenAI丢弃供应商扩展字段；只保留存在标记，不保留思考正文。
+            generation.message.response_metadata["reasoningContentPresent"] = bool(reasoning)
+        return result
+
+
+class GatewayChatOpenAI(BailianChatOpenAI):
     _gateway: ModelGateway = PrivateAttr()
     _purpose: str = PrivateAttr(default="judge")
     _fallbacks: tuple[str, ...] = PrivateAttr(default=())
@@ -229,8 +244,16 @@ class GatewayChatOpenAI(ChatOpenAI):
         return self
 
     @staticmethod
-    def chat_usage(result):
-        usage = dict(result.generations[0].message.usage_metadata or {})
+    def chat_usage(result, *, responses=False):
+        message = result.generations[0].message
+        usage = dict(message.usage_metadata or {})
+        usage["reasoning_content_present"] = message.response_metadata.get("reasoningContentPresent")
+        if responses and isinstance(message.content, list):
+            # Responses API保留标准reasoning输出项；空摘要也表示出现了思考输出。
+            observed = any(
+                isinstance(block, dict) and block.get("type") == "reasoning" for block in message.content
+            )
+            usage["reasoning_content_present"] = observed or bool(usage["reasoning_content_present"])
         usage["search_calls"] = sum(
             isinstance(block, dict) and block.get("type") == "web_search_call"
             for block in result.generations[0].message.content
@@ -286,7 +309,7 @@ class GatewayChatOpenAI(ChatOpenAI):
                     estimate,
                     call,
                     lambda result: {
-                        **self.chat_usage(result),
+                        **self.chat_usage(result, responses=self.use_responses_api is True),
                         "_segments": metadata.get("contextSegments", {}),
                         "_task": {
                             key: metadata[key]

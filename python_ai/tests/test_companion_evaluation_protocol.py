@@ -348,6 +348,22 @@ async def test_stream_diagnostics_keep_types_and_release_handlers_on_interruptio
     assert logger.handlers == original
 
 
+@pytest.mark.parametrize("calls,expected", [
+    ([], False),
+    ([{}], False),
+    ([dict(reasoningContentPresent=False)], True),
+    ([dict(reasoningContentPresent=False, reasoningTokens=0)], True),
+    ([dict(reasoningContentPresent=False, reasoningTokens=5)], False),
+    ([dict(reasoningContentPresent=True, reasoningTokens=0)], False),
+    ([dict(reasoningContentPresent=None, reasoningTokens=0)], False),
+    ([dict(reasoningContentPresent=False), dict(reasoningContentPresent=True)], False),
+])
+def test_smoke_requires_observed_absence_of_thinking_in_every_call(calls, expected):
+    from evals.companion.select import thinking_disabled
+
+    assert thinking_disabled(calls) is expected
+
+
 @pytest.mark.parametrize(
     "mode", [
         "smoke", "smoke-image", "smoke-search", "smoke-image-focused", "smoke-search-focused",
@@ -407,7 +423,7 @@ async def test_selection_end_to_end_enforces_scale_and_judging_without_external_
                         calls=[dict(
                             purpose=purpose, input=1000,
                             cached=500 if mode == "cache" and purpose == "judge" else 700,
-                            output=40,
+                            output=40, reasoningContentPresent=False,
                         ) for purpose in ("speech", "agent", "judge")],
                     ),
                 ),

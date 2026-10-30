@@ -101,6 +101,54 @@ def test_cache_creation_usage_is_preserved_separately_from_actual_cache_hits():
     assert usage["input_token_details"] == dict(cache_read=1000, cache_creation=500)
 
 
+@pytest.mark.parametrize("reasoning", [None, "", "不可保存的思考正文"])
+async def test_bailian_reasoning_observation_survives_sdk_conversion_without_saving_text(reasoning):
+    import json
+
+    from app.runtime.models.gateway import CURRENT, RoundUsage
+
+    settings = Settings.model_construct(api_key=SecretStr("fixture"))
+    redis = AsyncMock()
+    redis.exists.return_value, redis.eval.return_value = False, 1
+    payloads = []
+
+    def respond(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200, json=dict(
+            id="offline", object="chat.completion", created=0, model=settings.speech_model,
+            choices=[dict(index=0, finish_reason="stop", message=dict(
+                role="assistant", content="收到。", reasoning_content=reasoning,
+            ))], usage=dict(prompt_tokens=10, completion_tokens=2, total_tokens=12),
+        ))
+
+    current = RoundUsage()
+    token = CURRENT.set(current)
+    try:
+        async with httpx.AsyncClient(transport=httpx.MockTransport(respond)) as http:
+            models = ModelFactory(settings, redis, http)
+            client = models.speech.root_async_client.with_options(http_client=http)
+            models.speech.async_client = client.chat.completions
+            result = await models.speech.ainvoke("你好")
+    finally:
+        CURRENT.reset(token)
+    assert payloads[0]["enable_thinking"] is False
+    assert result.response_metadata["reasoningContentPresent"] is bool(reasoning)
+    assert current.calls[0]["reasoningContentPresent"] is bool(reasoning)
+    assert current.calls[0]["reasoningTokens"] is None
+    assert "不可保存的思考正文" not in result.model_dump_json()
+    assert "不可保存的思考正文" not in json.dumps(current.calls, ensure_ascii=False)
+
+
+@pytest.mark.parametrize("thinking", [False, True])
+def test_responses_reasoning_blocks_are_observed_even_with_an_empty_summary(thinking):
+    blocks = [dict(type="text", text="收到。")]
+    if thinking:
+        blocks.insert(0, dict(type="reasoning", summary=[]))
+    result = ChatResult(generations=[ChatGeneration(message=AIMessage(content=blocks))])
+    assert GatewayChatOpenAI.chat_usage(result, responses=True)["reasoning_content_present"] is thinking
+    assert GatewayChatOpenAI.chat_usage(result)["reasoning_content_present"] is None
+
+
 @pytest.mark.parametrize("size,expected", [(1000, False), (7000, True)])
 async def test_speech_reports_full_request_window_pressure(monkeypatch, size, expected):
     settings = Settings.model_construct(

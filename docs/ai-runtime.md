@@ -45,6 +45,7 @@
 - **不设 token 上限**：单轮、单用户、全站都没有上限。排队超时返回「奶糖去休息了」，这是限流，不是计费。
 - **降级链**：可重试错误先退避重试一次，仍失败就按注册表换下一个模型；熔断中的模型直接跳过。
 - **用量记录**：每次调用记 `purpose`、供应商、模型、输入、输出、`cachedTokens`、各片段 token 数，按用户和轮次汇总。联网搜索另记实际搜索次数 `searchCalls`（取自 `web_search_call` 输出项的数量），搜索按次计费，和 token 分开统计。
+- 关闭思考的观测分别记录 `reasoningTokens` 与 `reasoningContentPresent`。百炼适配器在 Chat Completions 原始响应转为 LangChain 消息前，只提取 `reasoning_content` 是否非空；Responses API 检查标准 `reasoning` 输出项（包括空摘要）。降级模型使用同一适配器，不保存思考正文。缺少推理 token 指标时保留空值；缺少原始字段观测时也保留未知，不能当作已关闭。通用 `ChatOpenAI` 不保留供应商扩展响应字段，见 [LangChain 官方说明](https://docs.langchain.com/oss/python/integrations/chat/openai#api-scope)。
 - 除主 agent 的显式缓存断点（第 4.5 节）外只用隐式缓存。凭据只在网关里取一次，调用方不接触 API key。
 
 ## 3. 奶糖一轮的图

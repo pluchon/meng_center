@@ -27,7 +27,8 @@ def answer(sources=None, facts=None):
     ])
 
 
-async def test_responses_wire_format_and_usage_do_not_send_private_context():
+@pytest.mark.parametrize("thinking", [False, True])
+async def test_responses_wire_format_and_usage_do_not_send_private_context(thinking):
     captured = []
 
     def reply(request):
@@ -35,6 +36,7 @@ async def test_responses_wire_format_and_usage_do_not_send_private_context():
         return httpx.Response(200, json=dict(
             id="resp_offline", object="response", created_at=0, model="deepseek-v4.1-flash-1017",
             status="completed", output=[
+                *([dict(id="reasoning", type="reasoning", summary=[])] if thinking else []),
                 dict(id="ws", type="web_search_call", status="completed",
                      action=dict(type="search", query="活动日期", sources=[
                          dict(title="公告", url="https://example.com/news")
@@ -68,6 +70,7 @@ async def test_responses_wire_format_and_usage_do_not_send_private_context():
     assert payload["enable_thinking"] is False and payload["max_tool_calls"] == 1
     assert payload["input"][-1]["content"] == "活动日期"
     assert usage.calls[0]["searchCalls"] == 1 and usage.tokens == 40
+    assert usage.calls[0]["reasoningContentPresent"] is thinking
 
 
 @pytest.mark.parametrize("sources,facts,valid", [

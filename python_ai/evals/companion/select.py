@@ -47,6 +47,13 @@ SCENE = scene(0)
 BLIND_PROTOCOL_VERSION = 6
 
 
+def thinking_disabled(calls):
+    return bool(calls) and all(
+        call.get("reasoningContentPresent") is False and call.get("reasoningTokens") in (None, 0)
+        for call in calls
+    )
+
+
 async def dialogue_events(service, request):
     """保留流错误和已有日志中的异常类型，不记录异常正文或模型输入。"""
     failures = []
@@ -350,9 +357,8 @@ async def run(args):
                             )
                             passed = reply_passed(result, candidate) and not decision_issues
                             if args.smoke and result:
-                                passed = passed and not any(
-                                    (call.get("reasoningTokens") or 0) > 0
-                                    for call in result.get("metrics", {}).get("calls", [])
+                                passed = passed and thinking_disabled(
+                                    result.get("metrics", {}).get("calls", [])
                                 )
                             if args.smoke and smoke_kind == "image" and index == smoke_rounds - 1:
                                 caption = "".join((result or {}).get("bubbles", []))
