@@ -110,6 +110,7 @@ class ModelGateway:
             / 1_000_000,
             images=usage.get("images", 0),
             searchCalls=int(usage.get("search_calls", 0)),
+            reasoningTokens=usage.get("output_token_details", {}).get("reasoning"),
             segments=dict(usage.get("_segments", {})),
             user=current.user if current else 0,
             character=current.character if current else "",

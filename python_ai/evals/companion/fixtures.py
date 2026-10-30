@@ -18,8 +18,13 @@ def scene(index, clock=None):
 
 
 class RecordedTools:
+    def __init__(self, web_executor=None):
+        self.web_executor = web_executor
+
     async def execute(self, call, context):
         name = call["name"]
+        if name == "web_search" and self.web_executor is not None:
+            return await self.web_executor.execute(call, context)
         TOOLS[name].schema.model_validate(call["args"])
         facts = {
             "search_posts": ["公开帖子《Vue 组件入门》介绍组件拆分和属性传递。"],

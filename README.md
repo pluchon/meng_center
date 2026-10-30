@@ -212,7 +212,7 @@ flowchart LR
 |---|---|
 | 后端 | JDK 17，Spring Boot 4.0，Spring Cloud 2025.1，Spring Cloud Alibaba，MyBatis-Plus，Flyway |
 | AI 服务 | Python 3.12，FastAPI，LangChain 1.x，LangGraph 1.x，使用 uv 管理依赖 |
-| 模型 | 全部经阿里云百炼：DeepSeek V4.1 Flash 1017 快照（奶糖说话、看图和联网搜索）、Qwen3.8 Flash / Max（判断、agent 与写作）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen3.7 Rerank（重排）、Qwen Image 3.0 Pro（生图） |
+| 模型 | 全部经阿里云百炼：DeepSeek V4.1 Flash 1017 快照（奶糖说话、看图和受限联网搜索）、Qwen3.8 Flash / Max（判断、agent 与写作）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen3.7 Rerank（重排）、Qwen Image 3.0 Pro（生图） |
 | 中间件 | MySQL 8、Redis、RabbitMQ、Elasticsearch、Nacos、xxl-job |
 | 前端 | Vue 3，vue-router，Pinia，Axios，Element Plus，SCSS，构建用 Vite |
 | 部署 | Docker Compose 启动本地中间件；业务服务以 JAR 和 uvicorn 在本机运行 |

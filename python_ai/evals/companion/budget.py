@@ -37,6 +37,8 @@ def evaluation_settings(settings, args):
 
 
 def validate_mode(args):
+    if not args.smoke and getattr(args, "smoke_kind", "plain") != "plain":
+        raise ValueError("冒烟种类只允许用于smoke")
     if getattr(args, "continue_budget_stop", False) and not (args.smoke and args.resume):
         raise ValueError("追加预算只允许续接已经因额度停止的冒烟")
     if not re.fullmatch(r"[a-zA-Z0-9._-]{1,100}", args.phase_id or ""):
@@ -124,6 +126,7 @@ class EvaluationGateway(ModelGateway):
         for field in ("input_tokens", "output_tokens"):
             await self.redis.hincrby(self.usage_key, purpose + ":" + field, int(usage.get(field, 0)))
         await self.redis.hincrby(self.usage_key, purpose + ":completed", 1)
+        await self.redis.hincrby(self.usage_key, purpose + ":search_calls", int(usage.get("search_calls", 0)))
         if int(await self.redis.get(self.key) or 0) >= self.limit:
             self.exhausted = True
         self.reserved.set(0)
@@ -156,6 +159,7 @@ class EvaluationGateway(ModelGateway):
             unconfirmedCalls=sum(row.get("calls", 0) - row.get("completed", 0) for row in purposes.values()),
             chargedOrReservedTokens=int(await self.redis.get(self.key) or 0),
             tokenLimit=self.limit,
+            searchCalls=sum(row.get("search_calls", 0) for row in purposes.values()),
         )
 
     def check_available(self):

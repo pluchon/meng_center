@@ -3,6 +3,7 @@ param([switch]$EvaluateModels, [string]$CompareModel, [string]$Baseline,
     [switch]$SelectMouthModels, [switch]$EvaluateDecisions, [switch]$SmallModelSample, [ValidateRange(0,2147483647)][int]$EvaluationTokenBudget=0,
     [string]$EvaluationBudgetId, [string]$EvaluationOutput,
     [string]$ChangedVariable, [string]$Catalog, [switch]$Smoke, [switch]$Acceptance,
+    [ValidateSet('plain','image','search')][string]$SmokeKind='plain',
     [ValidatePattern('^[a-zA-Z0-9._-]{1,100}$')][string]$EvaluationPhaseId)
 $ErrorActionPreference = 'Stop'
 if (($EvaluateModels -or $SelectMouthModels -or $EvaluateDecisions) -and ($EvaluationTokenBudget -le 0 -or $EvaluationBudgetId -notmatch '^[a-zA-Z0-9._-]{1,100}$')) {
@@ -39,7 +40,7 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'AI dependencies unavailable.' }
     & uv run --frozen ruff check app tests evals
     if ($LASTEXITCODE -ne 0) { throw 'AI static checks failed.' }
-    & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_evaluation_safety.py tests/test_companion_review.py tests/test_naitang_tools.py tests/test_task_runtime.py tests/test_retrieval.py tests/test_model_routing.py -q
+    & uv run --frozen pytest tests/test_companion.py tests/test_companion_agent.py tests/test_companion_guard.py tests/test_companion_runtime.py tests/test_companion_selection.py tests/test_companion_evaluation_protocol.py tests/test_companion_evaluation_safety.py tests/test_companion_review.py tests/test_naitang_tools.py tests/test_web_search.py tests/test_task_runtime.py tests/test_retrieval.py tests/test_model_routing.py -q
     if ($LASTEXITCODE -ne 0) { throw 'Companion graph tests failed.' }
     if ($EvaluateModels) {
         $arguments = @('--acceptance', '--phase-id', $EvaluationPhaseId)
@@ -50,7 +51,7 @@ try {
     }
     if ($SelectMouthModels) {
         $selectionArguments = @('--phase-id', $EvaluationPhaseId)
-        if ($Smoke) { $selectionArguments += '--smoke' }
+        if ($Smoke) { $selectionArguments += @('--smoke','--smoke-kind',$SmokeKind) }
         if ($Acceptance) { $selectionArguments += '--acceptance' }
         if ($CompareModel) { $selectionArguments += @('--compare-model', $CompareModel) }
         if ($Baseline) { $selectionArguments += @('--baseline', $Baseline) }

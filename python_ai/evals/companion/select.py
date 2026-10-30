@@ -125,6 +125,7 @@ def question_at(index):
 
 async def run(args):
     validate_mode(args)
+    smoke_kind = getattr(args, "smoke_kind", "plain")
     if args.restart_blind and not args.resume:
         raise ValueError("重新盲评必须同时指定resume和原始output")
     output = Path(args.output)
@@ -148,10 +149,11 @@ async def run(args):
         character=args.character,
         smallSample=False,
         smoke=args.smoke,
+        smokeKind=smoke_kind if args.smoke else None,
         graphProtocol="naitang-stategraph-v1",
         speechProvider="dashscope",
         generationProtocolVersion=4,
-        toolFixtureVersion=4,
+        toolFixtureVersion=5,
         sceneProtocolVersion=2,
         scene=SCENE,
         seed=args.seed,
@@ -197,6 +199,12 @@ async def run(args):
     )
     gateway = EvaluationGateway(settings, redis, key, args.token_budget)
     invocation_start = int(await redis.get(key) or 0)
+    budget_start = invocation_start
+    if args.smoke:
+        if args.resume:
+            budget_start = previous.get("budgetStartTokens", 0)
+        # 三类冒烟共用总账，各份报告的单次上限固定，恢复不能重置报告起点。
+        gateway.limit = budget_start + args.token_budget
     if args.continue_budget_stop:
         # 本次新增额度仍受冒烟上限约束，历史扣减与未知用量的预留均不清零。
         gateway.limit = invocation_start + args.token_budget
@@ -218,6 +226,7 @@ async def run(args):
             pairs=pairs,
             pendingTurn=pending,
             budgetKey=key,
+            budgetStartTokens=budget_start,
             comparisonProtocol=plan,
             catalog=cards.CATALOG,
             continuations=continuations,
@@ -251,7 +260,9 @@ async def run(args):
                     return emotion_payload()
 
                 service.emotions = catalog
-                service.executor = RecordedTools()
+                service.executor = RecordedTools(
+                    service.executor if args.smoke and smoke_kind == "search" else None
+                )
                 records.setdefault(candidate, [])
                 completed = {row["id"]: row for row in records[candidate]}
                 for code in CARDS:
@@ -265,7 +276,9 @@ async def run(args):
                             case["text"]
                             if case
                             else "这张图片里是什么颜色的形状？"
-                            if index == 4
+                            if args.smoke and smoke_kind == "image" and index == 4
+                            else "请查一下《葬送的芙莉莲》第二季的首播日期，给官网来源。"
+                            if args.smoke and smoke_kind == "search" and index == 4
                             else question_at(index)
                         )
                         row = completed.get(ident)
@@ -286,7 +299,9 @@ async def run(args):
                                 character=code,
                                 nickname="虚构测试用户",
                                 content=question,
-                                images=[smoke_image()] if args.smoke and index == 4 else [],
+                                images=[smoke_image()]
+                                if args.smoke and smoke_kind == "image" and index == 4 else [],
+                                web_search_remaining=1 if args.smoke and smoke_kind == "search" else 0,
                                 card=card_payload(code),
                                 examples=examples_payload(code),
                                 mood=scene(index, case["clock"] if case else None),
@@ -302,6 +317,17 @@ async def run(args):
                                 else []
                             )
                             passed = reply_passed(result, candidate) and not decision_issues
+                            if args.smoke and result:
+                                passed = passed and not any(
+                                    (call.get("reasoningTokens") or 0) > 0
+                                    for call in result.get("metrics", {}).get("calls", [])
+                                )
+                            if args.smoke and smoke_kind == "search" and index == 4:
+                                passed = passed and any(
+                                    item.get("name") == "web_search" and item.get("success")
+                                    and item.get("searchCalls") == 1
+                                    for item in result.get("toolUsage", [])
+                                ) and any(item.get("type") == "WEB" for item in result.get("sources", []))
                             row = dict(
                                 id=ident,
                                 input=question,
@@ -453,6 +479,8 @@ def parser():
         "--smoke", action="store_true", help="单个角色、默认模型五轮，不盲评，上限30000 token"
     )
     result.add_argument("--resume", action="store_true", help="从output继续，保留已完成轮次与原授权累计用量")
+    result.add_argument("--smoke-kind", choices=["plain", "image", "search"], default="plain",
+                        help="普通、带图或真实联网搜索冒烟；其余工具始终使用录制资料")
     result.add_argument(
         "--continue-budget-stop",
         action="store_true",
