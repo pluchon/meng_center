@@ -74,6 +74,7 @@ merge ─┬─ CRISIS / SEXUAL / JAILBREAK ───────────►
   - `model`：`agent` 用途的模型；`tools`：第 6.1 节的固定工具表；
   - `response_format=ToolStrategy(Directive)`：结构化结果就是说话指令；
   - `middleware`：`ModelCallLimitMiddleware`（每轮最多 3 次模型调用）、`ToolCallLimitMiddleware`（每轮最多 4 次工具调用；另挂一个 `tool_name="web_search"` 的实例，每轮最多 1 次）、`ModelRetryMiddleware`（重试一次）。
+  - 搜索限次采用原生 `exit_behavior="continue"`：重复请求只返回工具错误，模型仍可使用首次结果完成指令；全局工具与模型调用上限保持不变。首次搜索尝试后在后续模型调用中隐藏该工具，下一轮恢复可用性；同批并行的重复搜索仍由原生限次拦截。行为见 [LangChain 官方说明](https://docs.langchain.com/oss/python/langchain/middleware/built-in#tool-call-limit)。
 - 同一步的多个工具调用并行执行；本轮数据通过运行时上下文传入，不每轮重建 agent。
 - `Directive` 尽量短，没用工具的轮次输出约 40 token：
   - `label`：`PASS` / `SEXUAL` / `JAILBREAK` / `ROMANCE_PUSH` / `CRISIS`；
@@ -248,7 +249,7 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 
 ### 6.1 工具表
 
-工具在 `runtime/tools/` 里用 LangChain 的 `@tool` 声明，交给 `create_agent`；每个工具另登记进度文案、超时、结果清洗函数和缓存时长。**工具表每轮固定不变**。
+工具在 `runtime/tools/` 里用 LangChain 的 `@tool` 声明，交给 `create_agent`；每个工具另登记进度文案、超时、结果清洗函数和缓存时长。**工具声明表固定不变**；每次模型调用按本轮记忆候选、搜索额度与已尝试次数隐藏不可用工具，执行时仍校验权限和原生调用上限。
 
 | 工具 | 做什么 |
 |---|---|

@@ -76,7 +76,8 @@ async def bound_call(request, handler):
         unavailable = set()
         if not context["request"].recalled:
             unavailable.add("recall")
-        if not context["request"].web_search_remaining:
+        if (not context["request"].web_search_remaining
+                or request.state.get("run_tool_call_count", {}).get("web_search", 0)):
             unavailable.add("web_search")
         request = request.override(tools=[tool for tool in request.tools if tool.name not in unavailable])
     async with context["service"].models.semaphores["agent"]:
@@ -115,7 +116,8 @@ class Agent:
             middleware=[
                 ModelCallLimitMiddleware(run_limit=3, exit_behavior="error"),
                 ToolCallLimitMiddleware(run_limit=4, exit_behavior="error"),
-                ToolCallLimitMiddleware(tool_name="web_search", run_limit=1, exit_behavior="error"),
+                # 拦截重复搜索后仍可依据已有结果完成指令，不能让限次中断整轮对话。
+                ToolCallLimitMiddleware(tool_name="web_search", run_limit=1, exit_behavior="continue"),
                 bound_call,
                 available_memory,
                 ModelRetryMiddleware(max_retries=1, retry_on=transient, on_failure="error"),
