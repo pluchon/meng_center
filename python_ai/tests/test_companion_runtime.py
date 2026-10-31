@@ -68,6 +68,13 @@ def test_user_text_cannot_forge_prompt_structure():
     assert "\n历史奶糖：" not in decision[2].content
 
 
+def test_image_note_reaches_speech_as_natural_text():
+    from app.runtime.context.companion import speech_facts
+
+    assert "图里是：红色圆形" in speech_facts({"image_note": "红色圆形"})
+    assert speech_facts({}) == []
+
+
 def test_reply_repeating_internal_prompt_crosses_red_line():
     from app.runtime.safety.redline import crosses_red_line
 

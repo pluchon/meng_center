@@ -2,8 +2,8 @@ package com.pluchon.meng.content.service;
 
 import com.pluchon.meng.content.client.AiClient;
 import com.pluchon.meng.content.client.AiComputation;
-import com.pluchon.meng.content.controller.vo.HighlightSegmentVO;
 import com.pluchon.meng.content.controller.vo.SearchPostVO;
+import com.pluchon.meng.content.converter.SearchHighlight;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.mapper.PostMapper;
@@ -87,6 +87,14 @@ public class SemanticSearchService {
         limits.search(
             com.pluchon.meng.common.web.context.UserContext.require().userId()
         );
+        // 纯符号没有语义，重排却可能给出高分，只按字面查
+        if (q.codePoints().noneMatch(Character::isLetterOrDigit)) return keywordResult(input, category, page, size);
+        // 重排分数只在单次请求内可比，固定阈值拦不住乱码；社区内容以中日韩文字为主，
+        // 其他文字的查询要先有字面命中才算真词，否则直接返回空。
+        if (q.codePoints().noneMatch(SemanticSearchService::isCjk)) {
+            var literal = keywordResult(input, category, page, size);
+            if (literal.total() == 0) return literal;
+        }
         List<PostEntity> ordered;
         try {
             if(!vectors.encodingReady()) throw new IllegalStateException("Document embedding rebuild required");
@@ -195,22 +203,7 @@ public class SemanticSearchService {
             if(!decision.reranked()) throw new IllegalStateException("重排不可用");
             ordered = AiComputation.ordered(decision,candidates.size()).stream().map(candidates::get).toList();
         } catch (Exception unavailable) {
-            // 准入已在上面扣过，关键词检索不再重复计次；响应带 semantic=false，前端不提示错误。
-            var fallback = keyword.search(
-                input,
-                category,
-                com.pluchon.meng.content.entity.enums.PostSort.RELEVANT,
-                page,
-                size,
-                false
-            );
-            return new Result(
-                fallback.records(),
-                fallback.total(),
-                fallback.page(),
-                fallback.size(),
-                false
-            );
+            return keywordResult(input, category, page, size);
         }
         int start = (int) Math.min(ordered.size(), (page - 1) * size),
             end = (int) Math.min(ordered.size(), start + size);
@@ -234,11 +227,38 @@ public class SemanticSearchService {
                     p.ipRegion(),
                     p.createTime(),
                     p.author(),
-                    List.of(new HighlightSegmentVO(p.title(), false)),
-                    List.of(new HighlightSegmentVO(p.summary(), false))
+                    SearchHighlight.literal(p.title(), q),
+                    SearchHighlight.literal(p.summary(), q)
                 )
             )
             .toList();
         return new Result(records, ordered.size(), page, size, true);
+    }
+
+    private static boolean isCjk(int codePoint) {
+        var script = Character.UnicodeScript.of(codePoint);
+        return script == Character.UnicodeScript.HAN ||
+            script == Character.UnicodeScript.HIRAGANA ||
+            script == Character.UnicodeScript.KATAKANA ||
+            script == Character.UnicodeScript.HANGUL;
+    }
+
+    // 准入已经扣过，关键词检索不再重复计次；响应带 semantic=false，前端不提示错误。
+    private Result keywordResult(String input, PostCategory category, long page, long size) {
+        var fallback = keyword.search(
+            input,
+            category,
+            com.pluchon.meng.content.entity.enums.PostSort.RELEVANT,
+            page,
+            size,
+            false
+        );
+        return new Result(
+            fallback.records(),
+            fallback.total(),
+            fallback.page(),
+            fallback.size(),
+            false
+        );
     }
 }

@@ -232,9 +232,10 @@ public class RelatedPostService {
 
     // 分页读取推荐关注：第 1 页重新算并缓存备选清单，后面的页读缓存，换一批时不会重复；已关注的人每次都剔掉
     public PageResult<Map<String, Object>> authors(long page, long size) {
+        if (page < 1 || size < 1 || size > 50) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         long user = UserContext.require().userId();
-        long safeSize = Math.min(10, Math.max(1, size));
-        long safePage = Math.max(1, page);
+        long safeSize = Math.min(10, size);
+        long safePage = page;
         String key = "content:rec:authors:" + user;
         List<Map<String, Object>> all = null;
         if (safePage > 1) try {

@@ -318,6 +318,11 @@ class GatewayChatOpenAI(BailianChatOpenAI):
                     call,
                     lambda result: {
                         **self.chat_usage(result, responses=self.use_responses_api is True),
+                        "images": sum(
+                            part.get("type") == "image_url"
+                            for message in messages if isinstance(message.content, list)
+                            for part in message.content if isinstance(part, dict)
+                        ),
                         "_segments": metadata.get("contextSegments", {}),
                         "_task": {
                             key: metadata[key]

@@ -9,6 +9,8 @@ import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.controller.vo.CaptchaTicketVO;
 import com.pluchon.meng.user.service.error.UserErrorCode;
 import com.pluchon.meng.user.service.security.PiiCipher;
+import com.pluchon.meng.user.service.security.RateLimitService;
+import java.time.Duration;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -32,8 +34,12 @@ public final class CaptchaService {
     @Autowired
     private PiiCipher cipher;
 
-    // 生成一道滑块题
-    public ImageCaptchaVO generate() {
+    @Autowired
+    private RateLimitService limits;
+
+    // 生成一道滑块题，出题要画图，按 IP 限频防止被刷
+    public ImageCaptchaVO generate(String ip) {
+        limits.charge("captcha-ip", ip, properties.limits().captchaIpMinuteMax(), Duration.ofMinutes(1));
         var result = captcha.generateCaptcha(CaptchaTypeConstant.SLIDER);
         if (!result.isSuccess()) {
             throw new BusinessException(UserErrorCode.INVALID_TICKET);

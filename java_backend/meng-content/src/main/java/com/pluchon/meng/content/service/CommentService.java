@@ -234,7 +234,7 @@ public class CommentService {
         long user = UserContext.require().userId();
         CommentRules.validate(dto.content(), dto.imageIds());
         var p = posts.selectByIdForUpdate(post);
-        if (p == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
+        if (p == null || !p.visibleTo(user)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         CommentEntity target =
             dto.replyToCommentId() == null ? null : require(dto.replyToCommentId());
         if (target != null && target.getPostId() != post) throw new BusinessException(
@@ -335,8 +335,8 @@ public class CommentService {
     // 输入 @ 时的候选：本帖作者和最近评论过的人，按昵称过滤由前端做
     public List<MentionCandidateVO> mentionCandidates(long post) {
         var p = posts.selectById(post);
-        if (p == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         long user = UserContext.require().userId();
+        if (p == null || !p.visibleTo(user)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         var ids = new LinkedHashSet<Long>();
         ids.add(p.getAuthorId());
         ids.addAll(comments.selectRecentCommenters(post, 50));

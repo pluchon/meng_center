@@ -40,9 +40,10 @@ def test_cache_acceptance_weights_tokens_and_keeps_cold_round_out_of_speech_targ
     assert failures == [dict(
         model="flash", metric="cacheHitRatio", purpose="judge", value=0.5, target=0.6,
     )]
-    assert cache_summary([*rows[:1], *[row(100, 70) for _ in range(9)], row(90000, 0)])[
+    # 第二轮起全部计入，前十轮之后的未命中也算
+    assert cache_summary([*rows[:1], *[row(100, 70) for _ in range(9)], row(100, 0)])[
         "speech"
-    ]["ratio"] == 0.7
+    ]["ratio"] == 0.63
 
 
 def test_cache_without_input_is_unknown_and_cannot_pass_acceptance():

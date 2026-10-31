@@ -43,10 +43,10 @@ def quality_failures(metrics):
 
 
 def cache_summary(rows):
-    """按实际输入 token 加权；嘴限定连续十轮的第二至十轮，判断侧统计全部轮次。"""
+    """按实际输入 token 加权；嘴从第二轮起统计，判断侧统计全部轮次。"""
     result = {}
     for purpose in ("speech", "agent", "judge"):
-        selected = rows[1:10] if purpose == "speech" else rows
+        selected = rows[1:] if purpose == "speech" else rows
         calls = [
             call for row in selected
             for call in (row.get("result") or {}).get("metrics", {}).get("calls", [])

@@ -24,8 +24,10 @@ public final class CaptchaController {
 
     /** 生成一道滑块题 */
     @PostMapping(UserRoutes.CAPTCHA)
-    public ApiResponse<ImageCaptchaVO> generate() {
-        return ApiResponse.success(service.generate());
+    public ApiResponse<ImageCaptchaVO> generate(
+        @RequestHeader(IdentityHeaders.CLIENT_IP) String ip
+    ) {
+        return ApiResponse.success(service.generate(ip));
     }
 
     /** 校验滑块并换取一次性票据 */

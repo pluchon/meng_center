@@ -2,6 +2,8 @@ import { useUserStore } from '@/stores/user'
 import { i18n } from '@/locales'
 import { RouteName } from './names'
 import { UserRole, LegalDocument } from '@/constants/app'
+// 已登录时再进这些页面没有意义，直接回主页
+const GuestRoutes = [RouteName.LOGIN, RouteName.REGISTER, RouteName.RESET_PASSWORD]
 export function registerGuards(router) {
   router.beforeEach(async (to) => {
     const user = useUserStore()
@@ -12,6 +14,7 @@ export function registerGuards(router) {
         /* The page retains its retry state. */
       }
     }
+    if (user.loggedIn && GuestRoutes.includes(to.name)) return { name: RouteName.HOME }
     if (to.meta.requiresAuth && !user.loggedIn)
       return { name: RouteName.LOGIN, query: { redirect: to.fullPath } }
     if (to.meta.admin && user.current?.role !== UserRole.ADMIN) return { name: RouteName.LOGIN }

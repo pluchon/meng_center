@@ -58,6 +58,9 @@ def speech_facts(instruction):
         lines.append("查到的网页链接会自动显示在你的回复下面，不用念网址，也不要说没有来源。")
     if memories:
         lines.append("你想起来的：" + "；".join(dict.fromkeys(memories)))
+    if instruction.get("image_note"):
+        # 嘴偶尔读不出图，决策器看到的内容给它兜底，不至于回一句「看不到」。
+        lines.append("图里是：" + instruction["image_note"])
     if instruction.get("hint"):
         lines.append("这轮：" + instruction["hint"])
     return lines

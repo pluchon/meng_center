@@ -67,7 +67,7 @@ public interface FavoriteFolderMapper extends BaseMapper<FavoriteFolder> {
 
     @Select(
         POST_COLUMNS +
-            "post_favorite f JOIN post p ON p.id=f.post_id AND p.delete_state=0 LEFT JOIN post_image i ON i.id=p.cover_image_id WHERE f.user_id=#{user} AND f.folder_id=#{folder} ORDER BY f.id DESC LIMIT #{offset},#{size}"
+            "post_favorite f JOIN post p ON p.id=f.post_id AND p.delete_state=0 AND p.review_state='NORMAL' LEFT JOIN post_image i ON i.id=p.cover_image_id WHERE f.user_id=#{user} AND f.folder_id=#{folder} ORDER BY f.id DESC LIMIT #{offset},#{size}"
     )
     List<PostRow> posts(
         @Param("user") long user,
@@ -78,7 +78,7 @@ public interface FavoriteFolderMapper extends BaseMapper<FavoriteFolder> {
 
     @Select(
         POST_COLUMNS +
-            "post_like f JOIN post p ON p.id=f.post_id AND p.delete_state=0 LEFT JOIN post_image i ON i.id=p.cover_image_id WHERE f.user_id=#{user} ORDER BY f.id DESC LIMIT #{offset},#{size}"
+            "post_like f JOIN post p ON p.id=f.post_id AND p.delete_state=0 AND p.review_state='NORMAL' LEFT JOIN post_image i ON i.id=p.cover_image_id WHERE f.user_id=#{user} ORDER BY f.id DESC LIMIT #{offset},#{size}"
     )
     List<PostRow> likes(
         @Param("user") long user,

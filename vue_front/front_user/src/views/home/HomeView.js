@@ -162,6 +162,27 @@ export default defineComponent({
       }
     }
     watch(query, load, { immediate: true })
+    // 地址栏里的非法参数换成实际生效的值，刷新和分享都不再带着它们
+    watch(
+      () => route.query,
+      (current) => {
+        const legal =
+          (current.category === undefined || current.category === query.value.category) &&
+          (current.sort === undefined || current.sort === query.value.sort) &&
+          (current.page === undefined || current.page === String(query.value.page)) &&
+          Object.keys(current).every((key) => ['category', 'sort', 'page'].includes(key))
+        if (legal) return
+        router.replace({
+          name: route.name,
+          query: {
+            ...(query.value.category ? { category: query.value.category } : {}),
+            sort: query.value.sort,
+            page: String(query.value.page),
+          },
+        })
+      },
+      { immediate: true },
+    )
     return {
       scrollToTop,
       ...useI18n(),

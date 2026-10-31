@@ -11,6 +11,8 @@ spring:
     gateway:
       server:
         webflux:
+          default-filters:
+            - SecureHeaders
           routes:
             - id: meng-companion
               uri: lb://meng-companion

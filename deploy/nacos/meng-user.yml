@@ -72,6 +72,7 @@ meng:
       max-errors: 5
       code-digits: 6
     limits:
+      captcha-ip-minute-max: 60
       send-interval: 60s
       send-window: 30m
       send-window-max: 10

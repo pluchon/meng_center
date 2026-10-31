@@ -4,7 +4,7 @@ from pydantic import Field, field_validator
 
 from app.schemas.models import Schema
 
-VERSION = "20261028.13"
+VERSION = "20261031.1"
 
 
 class Judgment(Schema):
@@ -15,7 +15,7 @@ class Judgment(Schema):
     artificial: int = Field(ge=0, le=10)
     unsupported: list[Annotated[str, Field(max_length=20)]] = Field(
         default_factory=list, max_length=3,
-        description="列候选中无依据的事实与预设，包括把累推成困；不能列用户已说过的内容，没有时省略",
+        description="列候选中无依据的事实与预设，包括把累推成困、把刚说的话讲成前两天；不能列用户已说过的内容，没有时省略",
     )
     mentioned_memory: int | None = Field(default=None, description="确实提及某条可用记忆才输出；否则省略")
     reason: str = Field(

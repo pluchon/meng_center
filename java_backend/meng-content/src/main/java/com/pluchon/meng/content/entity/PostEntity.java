@@ -68,4 +68,9 @@ public class PostEntity {
     // 逻辑删除标记
     @TableLogic
     private Integer deleteState;
+
+    // 审核中的帖子只有作者自己能看到和操作
+    public boolean visibleTo(long user) {
+        return reviewState == com.pluchon.meng.content.entity.enums.ReviewState.NORMAL || authorId == user;
+    }
 }

@@ -120,12 +120,13 @@ public class RecommendationProfileService {
         if (post == null) return;
         String root = "content:rec:";
         var profile = redis.opsForHash();
-        profile.increment(root + "profile:" + user, "c:" + post.getCategory().name(), weight);
+        // 画像重建后存的是小数，只能按浮点自增，整数自增会让 Redis 报错，兴趣不再更新
+        profile.increment(root + "profile:" + user, "c:" + post.getCategory().name(), (double) weight);
         profile.increment(root + "profile:" + user, "_count", 1);
         try {
             var doc = vectors.get(id);
             if (doc != null) for (String topic : doc.topics())
-                profile.increment(root + "profile:" + user, "t:" + topic, weight);
+                profile.increment(root + "profile:" + user, "t:" + topic, (double) weight);
         } catch (Exception ignored) {}
         redis.expire(root + "profile:" + user, Duration.ofDays(60));
         if (view) {

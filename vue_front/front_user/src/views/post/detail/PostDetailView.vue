@@ -111,7 +111,7 @@
               <button
                 type="button"
                 :class="{liked:post.liked}"
-                :aria-label="t('home.like')"
+                :aria-label="t(post.liked?'home.unlike':'home.like')"
                 :aria-pressed="post.liked"
                 :disabled="pending.like"
                 @click="toggle('like')"

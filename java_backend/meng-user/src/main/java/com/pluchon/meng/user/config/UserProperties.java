@@ -49,6 +49,7 @@ public record UserProperties(
     ) {}
 
     public record Limits(
+        @Min(1) int captchaIpMinuteMax,
         @NotNull Duration sendInterval,
         @NotNull Duration sendWindow,
         @Min(1) int sendWindowMax,

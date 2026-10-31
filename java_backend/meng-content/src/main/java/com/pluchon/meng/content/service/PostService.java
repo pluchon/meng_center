@@ -20,6 +20,7 @@ import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.enums.PostCategory;
 import com.pluchon.meng.content.entity.enums.PostImageKind;
 import com.pluchon.meng.content.entity.enums.PostSort;
+import com.pluchon.meng.content.entity.enums.ReviewState;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.PostImageMapper;
 import com.pluchon.meng.content.mapper.PostMapper;
@@ -191,6 +192,7 @@ public class PostService {
             new Page<>(page, size),
             Wrappers.<PostEntity>lambdaQuery()
                 .eq(PostEntity::getAuthorId, author)
+                .eq(author != UserContext.require().userId(), PostEntity::getReviewState, ReviewState.NORMAL)
                 .orderByDesc(PostEntity::getCreateTime)
                 .orderByDesc(PostEntity::getId)
         );
@@ -242,6 +244,7 @@ public class PostService {
     public void like(long id, boolean enabled) {
         long user = UserContext.require().userId();
         var post = requirePost(id);
+        if (!post.visibleTo(user)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         var created = enabled ? null : relations.selectLikeCreateTime(id, user);
         int changed = enabled ? relations.insertLike(id, user) : relations.deleteLike(id, user);
         if (changed == 1) {

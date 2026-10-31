@@ -320,6 +320,7 @@
             ref="field"
             v-model="text"
             rows="1"
+            :maxlength="Im.TEXT_MAX"
             :disabled="disabled||busy"
             :aria-label="t('im.placeholder')"
             :placeholder="t('im.placeholder')"

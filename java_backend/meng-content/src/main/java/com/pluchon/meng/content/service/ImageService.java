@@ -157,7 +157,10 @@ public class ImageService {
             );
             if (commentImage == null) throw new BusinessException(CommonErrorCode.NOT_FOUND);
             if (commentImage.getCommentId() != null) comments.require(commentImage.getCommentId());
-        } else if (image.getPostId() != null) {
+            else requireUploader(commentImage.getUploaderId());
+        } else if (image.getPostId() == null) {
+            requireUploader(image.getUploaderId());
+        } else {
             var post = posts.selectById(image.getPostId());
             if (
                 post == null ||
@@ -168,5 +171,12 @@ public class ImageService {
         }
         if (!Files.isRegularFile(path)) throw new BusinessException(CommonErrorCode.NOT_FOUND);
         return new FileSystemResource(path);
+    }
+
+    // 还没挂到帖子或评论上的图只有上传者和管理员能看，比如草稿配图和 AI 封面
+    private void requireUploader(long uploader) {
+        var current = UserContext.require();
+        if (uploader != current.userId() && !"ADMIN".equals(current.role()))
+            throw new BusinessException(CommonErrorCode.NOT_FOUND);
     }
 }

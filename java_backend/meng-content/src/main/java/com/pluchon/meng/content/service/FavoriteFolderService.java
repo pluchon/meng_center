@@ -13,6 +13,7 @@ import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.entity.enums.CreatorMetric;
 import com.pluchon.meng.content.entity.enums.FolderColor;
 import com.pluchon.meng.content.entity.enums.FolderVisibility;
+import com.pluchon.meng.content.entity.enums.ReviewState;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.*;
 import com.pluchon.meng.content.validation.ContentErrorCode;
@@ -427,7 +428,7 @@ public class FavoriteFolderService {
 
     private PostEntity requirePost(long id) {
         var post = posts.selectByIdForUpdate(id);
-        if (post == null) throw new BusinessException(
+        if (post == null || !post.visibleTo(user())) throw new BusinessException(
             CommonErrorCode.NOT_FOUND
         );
         return post;
@@ -511,10 +512,9 @@ public class FavoriteFolderService {
     public PublicCounts publicCounts(long owner) {
         return new PublicCounts(
             posts.selectCount(
-                Wrappers.<PostEntity>lambdaQuery().eq(
-                    PostEntity::getAuthorId,
-                    owner
-                )
+                Wrappers.<PostEntity>lambdaQuery()
+                    .eq(PostEntity::getAuthorId, owner)
+                    .eq(owner != user(), PostEntity::getReviewState, ReviewState.NORMAL)
             ),
             count(owner, FolderVisibility.PUBLIC),
             folders.publicFavorites(owner)
