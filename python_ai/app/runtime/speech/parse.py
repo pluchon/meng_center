@@ -1,6 +1,8 @@
 import re
 from dataclasses import dataclass, field
 
+STICKER = re.compile(r"\[贴纸:([^\[\]\s]{1,12})\]")
+
 
 @dataclass
 class Parsed:
@@ -13,12 +15,15 @@ def parse(value, names, controls=(), character=""):
     raw = value.strip().splitlines()
     for index, line in enumerate(raw):
         line = line.strip()
-        match = re.fullmatch(r"\[贴纸:([^\[\]\s]{1,12})\]", line)
-        if match:
-            name = match[1]
+        # 模型有时把贴纸写在句尾，标记不能留在气泡文字和语音里。
+        stickers = STICKER.findall(line)
+        if stickers:
+            name = stickers[-1]
             if index == len(raw) - 1 and "sticker" in controls and name in names and result.sticker is None:
                 result.sticker = name
-            continue
+            line = STICKER.sub("", line).strip()
+            if not line:
+                continue
         # 不符合控制协议的行不进入可见文本。
         if re.match(r"^\[(?:回应|贴纸|撤回)", line):
             continue

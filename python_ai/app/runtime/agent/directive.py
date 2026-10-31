@@ -14,6 +14,7 @@ class Directive(Schema):
     image_note: str = Field(default="", max_length=60)
     support_needed: bool = False
     identity_question: bool = False
+    clock_needed: bool = False
     mention_memory_id: int | None = Field(default=None, description="本轮可用的数字记忆编号；没有时填null")
     voice_mood: Literal["AUTO", "HAPPY", "SAD", "SURPRISED", "CALM", "WHISPER"] = Field(
         default="AUTO", description="只影响配音语气，不影响文字；普通闲聊省略"

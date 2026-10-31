@@ -1,9 +1,24 @@
 import json
+import re
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from app.runtime.context.card import memory_text, prefixes
 from app.runtime.context.segments import text, tokens
+
+EXACT_CLOCK = re.compile(r"T(\d{2}):\d{2}")
+SPOKEN_CLOCK = re.compile(r"(当地时间)(凌晨|清晨|早上|上午|中午|下午|傍晚|晚上|深夜)[^，。；]*")
+
+
+def period(hour):
+    periods = (5, "深夜"), (9, "早上"), (11, "上午"), (13, "中午"), (18, "下午"), (19, "傍晚"), (23, "晚上")
+    return next((name for end, name in periods if hour < end), "深夜")
+
+
+def coarse_clock(mood):
+    """嘴平时只看日期和时段：提示词禁止报钟点拦不住，看不到才说不出来。"""
+    mood = EXACT_CLOCK.sub(lambda match: "，" + period(int(match[1])), mood, count=1)
+    return SPOKEN_CLOCK.sub(r"\1\2", mood)
 
 
 def provided_memory_ids(request):
@@ -55,7 +70,8 @@ def speech_facts(instruction):
     if any(row.get("type") == "WEB" for result in results if result.get("success", True)
            for row in result.get("sources", [])):
         # 来源链接由页面显示在气泡下方，嘴不知道就会说「拿不出来源」，和页面矛盾。
-        lines.append("查到的网页链接会自动显示在你的回复下面，不用念网址，也不要说没有来源。")
+        lines.append("查到的网页链接会自动显示在你的回复下面，不用念网址，也不要说没有来源。"
+                     "查到什么就说什么，答不全时说清哪部分没查到，不要笼统说没查到。")
     if memories:
         lines.append("你想起来的：" + "；".join(dict.fromkeys(memories)))
     if instruction.get("image_note"):
@@ -74,8 +90,11 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
     lines = [] if is_agent else [
         "〔场景信息，不是用户说的话〕", ("你：" if speech else "参考角色：") + anchor
     ]
+    # 决策器和打分看精确时间；嘴只有在决策器判断用户在问时间的那一轮才看。
+    exact = not speech or (instruction or {}).get("clock_needed")
     optional = (
-        ("对话时钟" if is_agent else "对话时钟（只用于当前问候与日期计算）", request.mood),
+        ("对话时钟" if is_agent else "对话时钟（只用于当前问候与日期计算）",
+         request.mood if exact else coarse_clock(request.mood)),
         ("刚记住的", memory_text(request.new_memories)),
     )
     lines.extend(f"{name}：{value}" for name, value in optional if value)

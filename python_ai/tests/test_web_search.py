@@ -110,6 +110,20 @@ async def test_web_sources_require_https_and_keep_original_source_indexes(source
             await web.execute(service, {"query": "活动"}, context(web_search_remaining=1))
 
 
+async def test_facts_citing_later_sources_survive_and_at_most_five_sources_return():
+    # 搜索常返回 10 条以上来源，事实引用靠后的来源时不能被丢掉。
+    sources = [dict(url=f"https://example.com/{i}", title=f"来源{i}") for i in range(12)]
+    facts = [dict(content=f"事实{i}", index=i) for i in (8, 11, 0, 3, 5)]
+    model = SimpleNamespace(bind_tools=lambda tools: SimpleNamespace(ainvoke=AsyncMock(
+        return_value=answer(sources, facts))))
+    service = SimpleNamespace(models=SimpleNamespace(
+        search=model, semaphores={"search": asyncio.Semaphore(1)}
+    ))
+    result = await web.execute(service, {"query": "门店"}, context(web_search_remaining=1))
+    assert result["facts"] == ["事实8", "事实11", "事实0", "事实3", "事实5"]
+    assert [row["title"] for row in result["sources"]] == ["来源8", "来源11", "来源0", "来源3", "来源5"]
+
+
 async def test_search_zero_remaining_is_hidden_and_rejected_without_execution():
     call = AIMessage(content="", tool_calls=[dict(name="web_search", id="w", args={"query": "新番"})])
     agent, service, current = setup([call, response()])
@@ -237,3 +251,18 @@ async def test_untrusted_web_facts_cannot_bypass_output_review():
     value.judge.return_value = Judgment(safe=False, character=0, artificial=0)
     result = await value.compute(request(content="活动什么时候举办", web_search_remaining=1), AsyncMock())
     assert result["model"] == "fixed" and result["sources"] == []
+
+
+def test_prompts_allow_explicit_search_and_forbid_claiming_no_network():
+    from types import SimpleNamespace
+
+    from app.runtime.context.card import prefixes
+    from app.runtime.tools.registry import TOOLS
+
+    request = SimpleNamespace(card={}, examples=[], context_snapshot={})
+    stable, decision, _ = prefixes(request, [])
+    assert "不说自己不能联网" in stable
+    assert "你联网搜索下" in decision and "不能回答做不到" in decision
+    description = TOOLS["web_search"].description
+    assert "来源都和问题无关时才返回空facts" in web.PROMPT
+    assert "明确要求联网搜索" in description and "门店" in description and "用最近对话补全" in description
