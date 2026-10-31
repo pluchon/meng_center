@@ -24,6 +24,8 @@ export const companionApi = {
   },
 }
 export const companionImage = (id) => (import.meta.env.VITE_API_BASE || '') + root + '/images/' + id
+export const companionVoice = (id) =>
+  (import.meta.env.VITE_API_BASE || '') + root + '/messages/' + id + '/voice'
 // POST 流使用 Cookie；按 SSE 的事件边界解码，保留跨网络分块的中文和 CRLF。
 // 失败和 axios 走同一套处理（settleFailure）：未登录跳登录页，其余整理成带文案的错误交给聊天区展示。
 export async function sendCompanionMessage(id, body, { signal, onEvent }) {

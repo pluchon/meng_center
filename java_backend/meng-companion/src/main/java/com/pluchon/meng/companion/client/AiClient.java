@@ -173,6 +173,32 @@ public class AiClient {
         }
     }
 
+    // 语音失败不影响文字，超时或出错都得到 null
+    public java.util.concurrent.CompletableFuture<JsonNode> voice(String text, String mood, boolean lead) {
+        try {
+            var request = HttpRequest.newBuilder(endpoint("voices"))
+                .timeout(Duration.ofSeconds(10))
+                .header("Content-Type", "application/json")
+                .POST(
+                    HttpRequest.BodyPublishers.ofString(
+                        json.writeValueAsString(Map.of("text", text, "mood", mood, "lead", lead))
+                    )
+                )
+                .build();
+            return http
+                .sendAsync(request, HttpResponse.BodyHandlers.ofString())
+                .orTimeout(10, TimeUnit.SECONDS)
+                .thenApply(response ->
+                    response.statusCode() == 200
+                        ? json.readTree(response.body())
+                        : null
+                )
+                .exceptionally(error -> null);
+        } catch (RuntimeException exception) {
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }
+    }
+
     public JsonNode compute(String operation, Object body) {
         if (
             !java.util.Set.of(

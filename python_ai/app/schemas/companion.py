@@ -103,6 +103,12 @@ class EmbeddingRequest(Schema):
     time_zone: str = "Asia/Taipei"
 
 
+class VoiceRequest(Schema):
+    text: str = Field(min_length=1, max_length=500)
+    mood: Literal["AUTO", "HAPPY", "SAD", "SURPRISED", "CALM", "WHISPER"] = "AUTO"
+    lead: bool = False
+
+
 class SummaryRequest(Schema):
     previous: str = Field(default="", max_length=3000)
     turns: list[Turn] = Field(min_length=1)

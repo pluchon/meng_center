@@ -71,6 +71,8 @@ public final class Rows {
         private String metrics;
         private long requestRevision;
         private String timeZone = "Asia/Taipei";
+        private String voicePath;
+        private Integer voiceMs;
     }
 
     @Data

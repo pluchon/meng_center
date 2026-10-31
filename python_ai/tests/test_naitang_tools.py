@@ -17,7 +17,7 @@ def test_read_only_tools_and_internal_contract_are_closed():
         for route in app.routes
         if getattr(route, "path", "").startswith("/ai/internal/companion/")
     }
-    assert paths == {"replies", "summaries", "consolidations", "embeddings"}
+    assert paths == {"replies", "summaries", "consolidations", "embeddings", "voices"}
 
 
 def executor(monkeypatch, **overrides):

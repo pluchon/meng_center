@@ -61,7 +61,7 @@ class ModelGateway:
         return {"Authorization": "Bearer " + self._key}
 
     def provider(self, model):
-        return "dashscope"
+        return "minimax" if model.startswith("speech-") else "dashscope"
 
     def chat_options(self, model, thinking=False):
         return dict(

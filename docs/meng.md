@@ -130,6 +130,16 @@
 - Python 的内部流先发 `status`（工具进度），整轮通过后返回 `result`；companion 落库后才转换成公开 SSE。尚未开始公开流时失败用真实 HTTP 状态码；已发进度后失败用 `error` 事件结束。
 - 前端给每个气泡一段「正在输入…」延迟（约每字 40 毫秒，0.6～2.5 秒）。
 
+### 5.2.1 语音
+
+- 整轮通过审核后、落库前，companion 让 ai 给每个气泡合成语音（MiniMax `speech-2.8-hd`，音色 `Chinese (Mandarin)_Cute_Spirit`），各气泡并行，语音和文字一起存、一起发。
+- 只有计次的 `PASS`、`ROMANCE_PUSH` 回复才合成，成本随每日条数封顶。危机、拦截和次数用完的回复只有文字。
+- 配音语气由主 agent 按场景选（`voiceMood`）：普通闲聊不选，由 MiniMax 按文字匹配；另有开心、难过、惊讶、认真、低语，各带自己的语速。选错的值当作没选。低语只有 `speech-2.6-hd` 支持，那一轮换这个模型，也不加语气词。
+- 合成前把语气转成 MiniMax 的标记，气泡文字不变：括号动作、笑意颜文字和「哈哈」「唉」「嗯……」转成笑、叹气等语气词，省略号转成短停顿。回复里没有现成语气时，一轮的第一个气泡按情绪开头（轻笑、叹气、倒吸气）；30 字以上的气泡在第一句后换一口气。每个气泡最多两个语气词。回复文字里自带的标记语法一律去掉，不能控制合成。
+- 声音效果器固定为略轻柔、略清脆（强度 +30、音色 +20）。
+- 其余括号内容和符号不念，只有这些内容的气泡没有语音。合成失败或超时（10 秒）也只有文字，这一轮照常提交。
+- 文件存在 `MENG_COMPANION_WORK_ROOT/voice/`，数据库只记文件名和时长；只有对话本人能读。本轮提交失败时删除已存的文件。
+
 ### 5.3 工具
 
 工具声明和执行见 [AI 公共运行时](ai-runtime.md)第 6 节。用不用工具、用哪个，由主 agent 判断。
@@ -228,6 +238,7 @@
 | `POST /companion/sessions/{id}/messages` | 发消息，响应是 SSE（第 8.2 节） |
 | `POST /companion/images` | 上传对话图片（`multipart/form-data` 的 `file`），返回图片编号；未发送的上传图最多 20 张，超出返回 429；再次上传时清除超过 24 小时仍未发送的图片 |
 | `GET /companion/images/{id}` | 鉴权读取私人图片，只有上传者能读 |
+| `GET /companion/messages/{id}/voice` | 鉴权读取气泡语音（`audio/mpeg`），只有对话本人能读 |
 | `DELETE /companion/memories` | 清空记忆 |
 | `GET /companion/usage` | 今日剩余次数、冷却剩余秒数 |
 
@@ -241,12 +252,12 @@
 | 对象 | 字段 |
 |---|---|
 | 对话 | `id`、`title`、`lastMessageTime`、`opening`、`unread`、`generating` |
-| 消息 | `id`、`role`、`kind`（`TEXT` / `STICKER`）、`content`、`sticker`、`imageIds`、`sources`（站内帖子 `{type: "POST", postId, title}`，网页 `{type: "WEB", title, url, site}`；旧数据没有 `type` 的按 `POST`）、`createTime`、`clientMessageId`、`turnState`；分页 `records` 加 `nextBefore` |
+| 消息 | `id`、`role`、`kind`（`TEXT` / `STICKER`）、`content`、`sticker`、`imageIds`、`sources`（站内帖子 `{type: "POST", postId, title}`，网页 `{type: "WEB", title, url, site}`；旧数据没有 `type` 的按 `POST`）、`createTime`、`clientMessageId`、`turnState`、`voiceMs`（语音时长，毫秒；没有语音时为空）；分页 `records` 加 `nextBefore` |
 | 用量 | `messages`（今天还剩多少条）、`cooldownSeconds` |
 
 ### 8.2 发消息的 SSE 和错误码
 
-请求体 `{clientMessageId, content, imageIds}`（`content` 最长 1000 字，`imageIds` 最多 3 个）。浏览器的 `EventSource` 不支持 POST，前端用 `fetch` 读取流。
+请求体 `{clientMessageId, content, imageIds}`（`content` 最长 1000 字，`imageIds` 最多 6 个）。浏览器的 `EventSource` 不支持 POST，前端用 `fetch` 读取流。
 
 | 事件 | 数据 | 前端怎么用 |
 |---|---|---|
@@ -279,7 +290,7 @@
 | `companion_line` | character_code、scene、dialogue、version、enabled | 示例对白 |
 | `companion_bond` | user_id、character_code、profile、profile_revision、time_zone、revision | 每个用户一行，存核心档案和时区；(user_id, character_code) 唯一 |
 | `companion_session` | user_id、character_code、title、summary、summary_until_message_id、window_start_message_id、message_count、last_message_time、unread、context_snapshot、snapshot_time | 纪元快照存原文，因为档案和记忆之后可能被改写 |
-| `companion_message` | session_id、client_message_id、turn_state、role、kind、content、sticker、bubbles、image_ids、sources、safety_label、prompt_version、model、memory_ids | (session_id, client_message_id) 唯一 |
+| `companion_message` | session_id、client_message_id、turn_state、role、kind、content、sticker、bubbles、image_ids、sources、safety_label、prompt_version、model、memory_ids、voice_path、voice_ms | (session_id, client_message_id) 唯一 |
 | `companion_memory` | user_id、character_code、kind、content、keywords、importance、embedding、embedding_version、pinned、valid_from、invalid_at、superseded_by、source_session_id、source_message_id、last_used_time | 只有 `invalid_at` 为空的才算有效 |
 | `companion_outbox` | event_type、payload、status、retry_count | 轮后事件，确认发送后标记 |
 | `companion_safety_event` | user_id、character_code、message_id、kind | 只记类型 |
@@ -307,7 +318,7 @@ Redis：
 - 默认不用于训练模型。
 - 对话原文保留一年，过期只留摘要和记忆；期限写进隐私政策。
 - 送去模型的只有：本人的消息和图片、本人的昵称、长期记忆、会话摘要，以及工具查到的公开帖子和本人的成长数字。不送邮箱、手机号、IP、属地。
-- 全部模型调用都经阿里云百炼：说话的上下文和用户图片发给百炼上的 DeepSeek 模型，其余发给 Qwen；联网搜索时，搜索词经百炼的搜索服务发出。用户协议和隐私政策里写明阿里云百炼。
+- 全部模型调用都经阿里云百炼：说话的上下文和用户图片发给百炼上的 DeepSeek 模型，其余发给 Qwen；联网搜索时，搜索词经百炼的搜索服务发出。语音合成例外：奶糖要念的文字发给 MiniMax，不带用户编号和昵称字段。用户协议和隐私政策里写明阿里云百炼和 MiniMax。
 
 ## 11. 评测
 
@@ -334,6 +345,7 @@ Redis：
 - **对话框**：从头像冒出来的气泡，浮在头像上方，底部的小尖角指向头像，顶上露出一对猫耳，头像始终可见并可再次点击收起；不挤压帖子流。桌面宽 400px、高 600px；手机全屏展开，不显示尖角和猫耳。开合、新消息和按钮悬停都带回弹动画。
 - **标题栏**：奶糖头像和名字、「新对话」、历史对话列表开关、扫把按钮（「清空记忆」）、关闭。
 - **历史对话列表**：在对话框内切换显示，第一行左边是标题、右边是「返回对话」，按最后消息时间倒序，可删除（二次确认，并说明不会删除记忆）。
+- **语音**：有语音的气泡带声波图标和时长（如 `5″`），不超过三行时在气泡右侧，超过三行时在气泡内右下角，最后一行放不下就单独占一行，仍然靠右。点击才播放，再点停止；同一时间只放一条，切换对话或关闭对话框时停止。
 - **消息区**：气泡、思考中、工具进度文字、帖子链接、危机求助卡片；括号动作渲染成浅色斜体；贴纸渲染成小图。多张图叠成图集，和私信共用 `MessageImages`，点开用图片查看器。向前翻页保留位置。
 - **发送动效**：发送后立刻出现奶糖的一行，气泡里三个点依次跳动，工具进度写在气泡下面；纸飞机从发送按钮沿弧线飞向这一行的头像，机头始终朝前进方向，尖头扎进头像时头像弹一下。减少动态效果时不飞也不跳。
 - **输入区**：图片按钮在输入框左侧紧挨着，发送按钮在输入框内部右下角，输入框随内容长高时按钮仍在右下角，超过上限在框内滚动。图片通过粘贴、拖入或图片按钮加入，最多 6 张。不显示今日剩余条数，只在用完或冷却时置灰并说明。

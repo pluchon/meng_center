@@ -114,13 +114,21 @@ public interface CompanionMapper {
     @Insert(
         """
         INSERT INTO companion_message(session_id,role,content,bubbles,image_ids,safety_label,completed,
-        client_message_id,turn_id,turn_state,kind,sticker,prompt_version,model,memory_ids,metrics,request_revision,time_zone)
+        client_message_id,turn_id,turn_state,kind,sticker,prompt_version,model,memory_ids,metrics,request_revision,time_zone,voice_path,voice_ms)
         VALUES(#{sessionId},#{role},#{content},#{bubbles},#{imageIds},#{safetyLabel},#{completed},
-        #{clientMessageId},#{turnId},#{turnState},#{kind},#{sticker},#{promptVersion},#{model},#{memoryIds},#{metrics},#{requestRevision},#{timeZone})
+        #{clientMessageId},#{turnId},#{turnState},#{kind},#{sticker},#{promptVersion},#{model},#{memoryIds},#{metrics},#{requestRevision},#{timeZone},#{voicePath},#{voiceMs})
         """
     )
     @Options(useGeneratedKeys = true, keyProperty = "id")
     void insertMessage(Rows.Message message);
+
+    @Select(
+        """
+        SELECT m.voice_path FROM companion_message m JOIN companion_session s ON s.id=m.session_id
+        WHERE m.id=#{id} AND s.user_id=#{user} AND m.delete_state=0 AND s.delete_state=0
+        """
+    )
+    String voicePath(@Param("id") long id, @Param("user") long user);
 
     @Update(
         "UPDATE companion_message SET completed=1,turn_state='COMMITTED',safety_label=#{label} WHERE id=#{id}"

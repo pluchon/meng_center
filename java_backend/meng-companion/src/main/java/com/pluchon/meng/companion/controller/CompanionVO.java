@@ -11,6 +11,6 @@ public final class CompanionVO {
                           boolean unread, boolean generating) {}
     public record Message(long id, String role, String kind, String content, String sticker,
                           List<Long> imageIds, List<Source> sources, LocalDateTime createTime,
-                          String clientMessageId, String turnState) {}
+                          String clientMessageId, String turnState, Integer voiceMs) {}
     public record Messages(List<Message> records, Long nextBefore) {}
 }

@@ -49,6 +49,14 @@ class Settings(BaseSettings):
     embedding_dimensions: int = Field(default=1024, ge=1024, le=1024)
     cover_model: str = "qwen-image-3.0-pro"
     cover_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/multimodal-generation/generation"
+    voice_key: SecretStr | None = Field(default=None, validation_alias="meng_center_minmax_naitang_api")
+    voice_url: str = "https://api.minimax.cn/v1/t2a_v2"
+    voice_model: str = "speech-2.8-hd"
+    voice_id: str = "Chinese (Mandarin)_Cute_Spirit"
+    voice_whisper_model: str = "speech-2.6-hd"
+    voice_intensity: int = Field(default=30, ge=-100, le=100)
+    voice_timbre: int = Field(default=20, ge=-100, le=100)
+    voice_timeout: float = Field(default=8, gt=0, le=30)
     structured_method: str = "function_calling"
     concurrency: int = Field(default=4, ge=1, le=32)
     timezone: str = "Asia/Taipei"

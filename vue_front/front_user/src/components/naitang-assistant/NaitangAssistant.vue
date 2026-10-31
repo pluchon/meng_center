@@ -209,16 +209,34 @@
                     :src="sticker(message.sticker)"
                     :alt="message.sticker"
                   >
-                  <p
+                  <div
                     v-else-if="message.content"
-                    class="naitang-bubble"
+                    class="naitang-bubble-row"
                   >
-                    <span
-                      v-for="(part, index) in segments(message.content)"
-                      :key="index"
-                      :class="{ action: part.action }"
-                    >{{ part.text }}</span>
-                  </p>
+                    <p
+                      :ref="(element) => measureBubble(element, message)"
+                      class="naitang-bubble"
+                    >
+                      <span
+                        v-for="(part, index) in segments(message.content)"
+                        :key="index"
+                        :class="{ action: part.action }"
+                      >{{ part.text }}</span>
+                      <NaitangVoice
+                        v-if="message.voiceMs && longBubbles.has(message.id)"
+                        inline
+                        :ms="message.voiceMs"
+                        :playing="voicing === message.id"
+                        @toggle="toggleVoice(message)"
+                      />
+                    </p>
+                    <NaitangVoice
+                      v-if="message.voiceMs && !longBubbles.has(message.id)"
+                      :ms="message.voiceMs"
+                      :playing="voicing === message.id"
+                      @toggle="toggleVoice(message)"
+                    />
+                  </div>
                   <MessageImages
                     v-if="message.imageIds?.length"
                     :items="gallery(message)"

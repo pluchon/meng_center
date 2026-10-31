@@ -67,6 +67,9 @@ public class ReplyService {
     @Autowired
     private CompanionRuntime snapshotRuntime;
 
+    @Autowired
+    private CompanionVoice voice;
+
     private final JsonMapper json = JsonMapper.builder()
         .findAndAddModules()
         .build();
@@ -341,6 +344,7 @@ public class ReplyService {
         Prepared prepared = null;
         CompanionLimits.Reservation reservation = null;
         boolean committed = false;
+        List<CompanionVoice.Saved> voices = List.of();
         try {
             prepared = prepare(user, sessionId);
             if (prepared == null) {
@@ -360,6 +364,7 @@ public class ReplyService {
             JsonNode result = ai.reply(request, (type, data) ->
                 broadcast(current, type, data)
             );
+            voices = voice.synthesize(result);
             if (!limits.locked(sessionId, token)) throw new BusinessException(
                 CompanionError.AI_UNAVAILABLE
             );
@@ -377,7 +382,8 @@ public class ReplyService {
                 prepared,
                 result,
                 reservation,
-                memoryIds
+                memoryIds,
+                voices
             );
             committed = true;
             telemetry.completed(result, System.nanoTime() - started);
@@ -416,6 +422,7 @@ public class ReplyService {
                 error instanceof BusinessException business
                     ? business.errorCode()
                     : CompanionError.AI_UNAVAILABLE;
+            if (!committed) voice.discard(voices);
             if (prepared != null) {
                 if (!committed) runtime.groupState(
                     prepared.inputs().get(0).getId(),
@@ -627,7 +634,8 @@ public class ReplyService {
         Prepared p,
         JsonNode result,
         CompanionLimits.Reservation reservation,
-        List<Long> memoryIds
+        List<Long> memoryIds,
+        List<CompanionVoice.Saved> voices
     ) {
         return transactions.execute(status -> {
             var session = p.session();
@@ -682,7 +690,8 @@ public class ReplyService {
                     turn,
                     bubble.asString(),
                     label,
-                    result
+                    result,
+                    voices.isEmpty() ? null : voices.get(bubbles.size() - remaining)
                 );
                 // 来源只挂在最后一个气泡下，一轮多个气泡时不重复显示
                 if (--remaining == 0) snapshotRuntime.metadata(message, result);
@@ -706,7 +715,8 @@ public class ReplyService {
                     turn,
                     "",
                     label,
-                    result
+                    result,
+                    null
                 );
                 outbox.sticker(message.getId(), sticker);
                 message.setKind("STICKER");
@@ -773,9 +783,14 @@ public class ReplyService {
         long turn,
         String content,
         String label,
-        JsonNode result
+        JsonNode result,
+        CompanionVoice.Saved voice
     ) {
         var message = new Rows.Message();
+        if (voice != null) {
+            message.setVoicePath(voice.name());
+            message.setVoiceMs(voice.durationMs());
+        }
         message.setSessionId(session);
         message.setTurnId(turn);
         message.setRole("CHARACTER");

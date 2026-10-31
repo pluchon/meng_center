@@ -13,6 +13,7 @@ export const Companion = Object.freeze({
   TYPE_MAX_MS: 2500,
   POLL_MS: 3000,
   SCROLL_THRESHOLD: 60,
+  VOICE_OUTSIDE_LINES: 3,
 })
 export const CompanionEvent = Object.freeze({
   STATUS: 'status',

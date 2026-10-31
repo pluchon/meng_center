@@ -37,4 +37,7 @@ export default {
   sessionLimit: '对话已满 50 个，请先删除一个旧对话。',
   retrySend: '重新发送',
   crisis: '联系现实中的支持',
+  playVoice: '播放语音',
+  stopVoice: '停止播放',
+  voiceFailed: '语音播放失败，稍后再试试。',
 }

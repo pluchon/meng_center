@@ -10,9 +10,10 @@ import {
   IconPhoto,
   IconSend,
 } from '@tabler/icons-vue'
-import { companionApi, companionImage, sendCompanionMessage } from '@/api/companion'
+import { companionApi, companionImage, companionVoice, sendCompanionMessage } from '@/api/companion'
 import { communitySparkle, companionNekoAvatar } from '@/assets/images'
 import MessageImages from '@/components/message-images/MessageImages.vue'
+import NaitangVoice from './NaitangVoice.vue'
 import { flightFrames } from './flightPath'
 import { Companion, CompanionError, CompanionEvent } from '@/constants/companion'
 import { RouteName } from '@/router/names'
@@ -31,6 +32,7 @@ export default defineComponent({
     IconPhoto,
     IconSend,
     MessageImages,
+    NaitangVoice,
   },
   setup() {
     const { t } = useI18n(),
@@ -63,8 +65,11 @@ export default defineComponent({
       sendButton = ref(null),
       plane = ref(null),
       sending = ref(0)
+    const voicing = ref(null),
+      longBubbles = ref(new Set())
     const controllers = new Set()
     let timer,
+      voice = null,
       disposed = false,
       historyVersion = 0,
       polling = false
@@ -103,6 +108,36 @@ export default defineComponent({
         .map((text) => ({ text, action: text.startsWith('（') && text.endsWith('）') }))
     const sticker = (name) =>
       emotions.items.find((item) => item.name === name && item.series === 'cirno')?.image
+    // 语音先摆在气泡右侧量行数，超过三行就移进气泡；移进去只会更长，不会来回跳
+    function measureBubble(element, message) {
+      if (!element || !message.voiceMs || longBubbles.value.has(message.id)) return
+      const style = getComputedStyle(element)
+      const height = element.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+      if (Math.round(height / parseFloat(style.lineHeight)) > Companion.VOICE_OUTSIDE_LINES)
+        longBubbles.value.add(message.id)
+    }
+    function stopVoice() {
+      voice?.pause()
+      voice = null
+      voicing.value = null
+    }
+    // 同一时间只放一条，再点一次停止
+    function toggleVoice(message) {
+      const same = voicing.value === message.id
+      stopVoice()
+      if (same) return
+      const current = new Audio(companionVoice(message.id))
+      const failed = () => {
+        if (voice !== current) return
+        stopVoice()
+        failure.value = { message: t('companion.voiceFailed') }
+      }
+      voice = current
+      voicing.value = message.id
+      current.onended = () => voice === current && stopVoice()
+      current.onerror = failed
+      current.play().catch(failed)
+    }
     function follow() {
       return (
         !log.value ||
@@ -191,6 +226,7 @@ export default defineComponent({
     }
     async function choose(id) {
       if (id !== selected.value) {
+        stopVoice()
         historyVersion++
         loading.value = false
         messages.value = []
@@ -246,6 +282,7 @@ export default defineComponent({
       }
     }
     function close() {
+      stopVoice()
       opened.value = false
     }
     async function confirm(message, title) {
@@ -478,6 +515,7 @@ export default defineComponent({
     })
     onUnmounted(() => {
       disposed = true
+      stopVoice()
       clearInterval(timer)
       controllers.forEach((controller) => controller.abort())
       attachments.value.forEach((image) => URL.revokeObjectURL(image.preview))
@@ -492,6 +530,10 @@ export default defineComponent({
       safeHelp,
       segments,
       sticker,
+      voicing,
+      longBubbles,
+      measureBubble,
+      toggleVoice,
       opened,
       listing,
       memoryCleared,

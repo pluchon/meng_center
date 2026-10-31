@@ -20,6 +20,7 @@ public final class CompanionConverter {
         var sources = row.getSources() == null ? List.<CompanionVO.Source>of()
             : CompanionSources.read(JSON.readTree(row.getSources()));
         return new CompanionVO.Message(row.getId(), row.getRole(), row.getKind(), row.getContent(), row.getSticker(),
-            List.copyOf(images), List.copyOf(sources), row.getCreateTime(), row.getClientMessageId(), row.getTurnState());
+            List.copyOf(images), List.copyOf(sources), row.getCreateTime(), row.getClientMessageId(), row.getTurnState(),
+            row.getVoiceMs());
     }
 }

@@ -6,6 +6,7 @@ import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.companion.service.CompanionContext;
 import com.pluchon.meng.companion.service.CompanionLimits;
 import com.pluchon.meng.companion.service.CompanionService;
+import com.pluchon.meng.companion.service.CompanionVoice;
 import com.pluchon.meng.companion.service.PrivateImages;
 import com.pluchon.meng.companion.service.ReplyService;
 import jakarta.validation.Valid;
@@ -36,6 +37,7 @@ public class CompanionController {
     @Autowired private ReplyService replies;
     @Autowired private CompanionLimits limits;
     @Autowired private PrivateImages images;
+    @Autowired private CompanionVoice voices;
 
     /** 分页读取本人的对话。 */
     @GetMapping("/sessions")
@@ -90,6 +92,13 @@ public class CompanionController {
         return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
             .header("X-Content-Type-Options","nosniff").contentType(MediaType.IMAGE_PNG)
             .body(new FileSystemResource(images.read(user(),id)));
+    }
+    /** 只有对话本人能读取气泡语音。 */
+    @GetMapping("/messages/{id}/voice")
+    public ResponseEntity<FileSystemResource> voice(@PathVariable long id) {
+        return ResponseEntity.ok().header(HttpHeaders.CACHE_CONTROL,"private, no-store")
+            .header("X-Content-Type-Options","nosniff").contentType(MediaType.parseMediaType("audio/mpeg"))
+            .body(new FileSystemResource(voices.read(user(),id)));
     }
     private long user() { return UserContext.require().userId(); }
 }

@@ -33,6 +33,7 @@
 | `image` AI 封面 | `qwen-image-3.0-pro` | 无 | 当前账号可用的最好的 Qwen 生图模型 |
 
 - 奶糖说话和联网搜索用 DeepSeek，其余全部用 Qwen。用户图片由嘴直接看，不另设识图调用；主 agent 也看图，用来审核和决定工具。
+- 语音合成不是文本模型，单独走 MiniMax（[奶糖助手](meng.md)第 5.2.1 节）；经同一个网关计量和熔断，不进评测。
 - **全部模型只走阿里云百炼一个平台**，统一使用 `DASHSCOPE_API_KEY`、华北2（北京）地域，不接 DeepSeek 官方接口。对话类调用走百炼的 OpenAI 兼容 Chat Completions，关思考用 `enable_thinking=false`（实测说话、agent、打分、搜索四类调用都不返回思考内容）；联网搜索走百炼的 OpenAI 兼容 Responses API（只有北京和新加坡地域支持）。降级链都在同一平台内，只换模型名。
 - `deepseek-v4.1-flash-1017` 已确认可接收文字和图片、返回奶糖说话格式，并返回隐式缓存命中记录；Responses API 可返回内置搜索调用及网页来源。已实现每日搜索额度、网页来源保存与展示、重复搜索拦截和思考字段观测，缺失的推理 token 指标不能当作零。第 4.5 节的缓存命中率目标留待授权验收。
 - 说话固定用快照名 `deepseek-v4.1-flash-1017`，不用会随版本漂移的 `deepseek-v4.1-flash`。百炼文档写明它支持文本和图片输入、隐式缓存、Responses API 的 `web_search`（[模型说明](https://help.aliyun.com/zh/model-studio/deepseek-v4-1-flash)、[联网搜索](https://help.aliyun.com/zh/model-studio/web-search)）。
@@ -84,6 +85,7 @@ merge ─┬─ CRISIS / SEXUAL / JAILBREAK ───────────►
   - `hint`（可选，最多 20 字）：只在用了工具、记忆或需要安全处理时写，说明这轮的方向，不写台词；
   - `imageNote`（可选，最多 60 字）：用户发了图片时，写图里有什么，多张逐张简述，给打分核对用；
   - `supportNeeded`、`identityQuestion`、`mentionMemoryId`（可选）。
+  - `voiceMood`（可选）：配音语气，只影响声音（[奶糖助手](meng.md)第 5.2.1 节）；不认识的值当作没选，不触发重试。
 - 说话指令不带事实：工具和 `recall` 的结果由图直接交给嘴和打分，agent 不再转抄一遍。实测转抄占联网轮次约 3.8 秒。
 - 代码校验：`mentionMemoryId` 必须在本轮已提供的记忆编号内。非法指令带可用编号重试一次 `respond`，已经执行的工具不重复执行。
 - 结构校验重试反馈包含字段路径与约束，不回传原始输入。仍只重试一次，不因校验失败重新执行业务工具。

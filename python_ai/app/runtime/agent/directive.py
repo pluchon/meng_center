@@ -4,6 +4,8 @@ from pydantic import Field, field_validator
 
 from app.schemas.models import Schema
 
+MOODS = {"AUTO", "HAPPY", "SAD", "SURPRISED", "CALM", "WHISPER"}
+
 
 class Directive(Schema):
     label: Literal["PASS", "SEXUAL", "JAILBREAK", "ROMANCE_PUSH", "CRISIS"]
@@ -13,6 +15,15 @@ class Directive(Schema):
     support_needed: bool = False
     identity_question: bool = False
     mention_memory_id: int | None = Field(default=None, description="本轮可用的数字记忆编号；没有时填null")
+    voice_mood: Literal["AUTO", "HAPPY", "SAD", "SURPRISED", "CALM", "WHISPER"] = Field(
+        default="AUTO", description="只影响配音语气，不影响文字；普通闲聊省略"
+    )
+
+    @field_validator("voice_mood", mode="before")
+    @classmethod
+    def known_mood(cls, value):
+        # 配音语气选错不值得多花一次模型调用，当作没选。
+        return value if value in MOODS else "AUTO"
 
     @field_validator("hint", "image_note", mode="before")
     @classmethod

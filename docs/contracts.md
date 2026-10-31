@@ -88,7 +88,8 @@ ai 的八个接口是纯计算，不改任何状态，按只读接口对待；�
 
 | 接口 | 提供方 | 调用方 | 返回 | 失败语义 |
 |---|---|---|---|---|
-| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 气泡（文字或贴纸）、站内帖子与网页来源 `sources`、工具计次 `toolUsage`（含联网搜索的 `searchCalls`）、审核分类、打分结果与用量；失败为 `error`。Java 原子保存后才转换为公开 SSE | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
+| `POST /ai/internal/companion/replies` | ai | companion | 内部 SSE：`status` 工具进度；`result` 气泡（文字或贴纸）、站内帖子与网页来源 `sources`、工具计次 `toolUsage`（含联网搜索的 `searchCalls`）、审核分类、配音语气 `voiceMood`、打分结果与用量；失败为 `error`。Java 原子保存后才转换为公开 SSE | 超时或 5xx：这一轮不计次，未开始公开流时返回 503 `AI_UNAVAILABLE`，已有进度时通过公开 `error` 事件结束 |
+| `POST /ai/internal/companion/voices` | ai | companion（提交前） | 请求 `{text, mood, lead}`（一个气泡、配音语气、是否一轮的第一个气泡）；返回 `{audio, durationMs}`，`audio` 是 base64 的 mp3，没有可念内容或合成失败时为空 | 超时或出错：这个气泡只有文字，这一轮照常提交 |
 | `POST /ai/internal/companion/summaries` | ai | companion（空闲压缩） | 合并后的前情提要（写明归属、单列已过时的说法） | 保留旧摘要和窗口，下次空闲扫描再试 |
 | `POST /ai/internal/companion/consolidations` | ai | companion（整理消费者） | 对候选记忆的 ADD / SUPERSEDE / INVALIDATE / NOOP 决定、重写后的核心档案，以及独立审核的 `reviewed` 标记 | 消息重试，超过次数进死信；聊天不受影响 |
 | `POST /ai/internal/companion/embeddings` | ai | companion | 文本向量、实际 `modelVersion` 与本次 `calls` 用量；请求带 `textType`（记忆为 `document`，召回查询为 `query`）。轮前查询的用量由 companion 随 replies 的 `priorCalls` 传回，合并统计但不重复扣记。空文本只读取版本。给定候选时由 rerank 返回阈值以上的下标和分数 | rerank 不可用时按向量顺序取前 3 条 |

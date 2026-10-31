@@ -154,6 +154,7 @@ public class CompanionRuntimeTest {
         replies = new ReplyService();
         inject(replies, "snapshotRuntime", snapshotRuntime);
         inject(replies, "telemetry", mock(CompanionTelemetry.class));
+        inject(replies, "voice", mock(CompanionVoice.class));
         inject(
             replies,
             "companion",

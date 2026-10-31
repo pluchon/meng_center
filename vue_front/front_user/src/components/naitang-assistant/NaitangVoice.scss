@@ -1,0 +1,69 @@
+// 外层 .naitang-assistant button 带最小尺寸和内边距，这里叠一层选择器覆盖
+.naitang-voice.naitang-voice {
+  flex: none;
+  gap: 2px;
+  align-self: flex-end;
+  min-width: 0;
+  min-height: 26px;
+  padding: 0 var(--meng-space-2);
+  border: 1px solid var(--meng-border);
+  border-radius: 13px;
+  color: var(--meng-primary);
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-tint);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+
+  &:hover {
+    background: var(--meng-tint);
+    transform: scale(1.06);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 1px;
+  }
+
+  // 长气泡里靠右浮动：最后一行放得下就在行尾，放不下浏览器自动把它排到下一行的右边
+  &.inline {
+    float: right;
+    min-height: 20px;
+    margin: 2px 0 0 var(--meng-space-1);
+    padding: 0 var(--meng-space-1);
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  &.playing .wave {
+    animation: naitang-voice-wave 900ms ease-in-out infinite;
+  }
+
+  &.playing .far {
+    animation-delay: 180ms;
+  }
+}
+
+@keyframes naitang-voice-wave {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .naitang-voice.naitang-voice.playing .wave {
+    animation: none;
+  }
+}

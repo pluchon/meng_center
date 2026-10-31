@@ -314,7 +314,14 @@ $spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   min-width: 0;
 }
 
+.naitang-bubble-row {
+  display: flex;
+  gap: var(--meng-space-1);
+}
+
 .naitang-bubble {
+  display: flow-root;
+  min-width: 0;
   margin: 0;
   padding: var(--meng-space-3);
   border: 1px solid var(--meng-border);

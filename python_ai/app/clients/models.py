@@ -7,6 +7,7 @@ from langchain_core.callbacks import UsageMetadataCallbackHandler
 
 from app.clients.embedding import EmbeddingClient
 from app.clients.rerank import RerankClient
+from app.clients.voice import VoiceClient
 from app.runtime.models.gateway import BailianChatOpenAI, GatewayChatOpenAI, ModelGateway
 from app.runtime.models.registry import registry
 
@@ -54,6 +55,7 @@ class ModelFactory:
         self.http = http or httpx.AsyncClient()
         self.embedding_client = EmbeddingClient(settings, self.http, self.gateway)
         self.rerank = RerankClient(settings, self.http, self.gateway)
+        self.voice = VoiceClient(settings, self.http, self.gateway)
 
     @asynccontextmanager
     async def usage(self):

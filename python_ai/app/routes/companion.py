@@ -10,6 +10,7 @@ from app.schemas.companion import (
     EmbeddingRequest,
     ReplyRequest,
     SummaryRequest,
+    VoiceRequest,
 )
 
 router = APIRouter(prefix="/ai/internal/companion")
@@ -32,6 +33,11 @@ async def summaries(body: SummaryRequest, request: Request):
 @router.post("/consolidations")
 async def consolidations(body: ConsolidationRequest, request: Request):
     return await request.app.state.companion.consolidate(body)
+
+
+@router.post("/voices")
+async def voices(body: VoiceRequest, request: Request):
+    return await request.app.state.companion.models.voice.synthesize(body.text, body.mood, body.lead)
 
 
 @router.post("/embeddings")

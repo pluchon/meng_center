@@ -110,6 +110,7 @@ def build():
         return {
             "result": dict(
                 label=label,
+                voiceMood=state["directive"].voice_mood,
                 bubbles=[fixed] if fixed else parsed.bubbles,
                 sticker=parsed.sticker if fixed is None else None,
                 sources=list({(row.get("type", "POST"), row.get("url", row.get("postId"))): row
