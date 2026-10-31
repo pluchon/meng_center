@@ -177,7 +177,7 @@ public class AiClient {
     public java.util.concurrent.CompletableFuture<JsonNode> voice(String text, String mood, boolean lead) {
         try {
             var request = HttpRequest.newBuilder(endpoint("voices"))
-                .timeout(Duration.ofSeconds(10))
+                .timeout(Duration.ofSeconds(13))
                 .header("Content-Type", "application/json")
                 .POST(
                     HttpRequest.BodyPublishers.ofString(
@@ -187,7 +187,7 @@ public class AiClient {
                 .build();
             return http
                 .sendAsync(request, HttpResponse.BodyHandlers.ofString())
-                .orTimeout(10, TimeUnit.SECONDS)
+                .orTimeout(13, TimeUnit.SECONDS)
                 .thenApply(response ->
                     response.statusCode() == 200
                         ? json.readTree(response.body())

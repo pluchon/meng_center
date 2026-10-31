@@ -54,8 +54,7 @@ class Settings(BaseSettings):
     voice_model: str = "speech-2.8-hd"
     voice_id: str = "Chinese (Mandarin)_Cute_Spirit"
     voice_whisper_model: str = "speech-2.6-hd"
-    voice_intensity: int = Field(default=30, ge=-100, le=100)
-    voice_timbre: int = Field(default=20, ge=-100, le=100)
+    voice_script_seconds: float = Field(default=3, gt=0, le=10)
     voice_timeout: float = Field(default=8, gt=0, le=30)
     structured_method: str = "function_calling"
     concurrency: int = Field(default=4, ge=1, le=32)

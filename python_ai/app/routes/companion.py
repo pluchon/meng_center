@@ -37,7 +37,7 @@ async def consolidations(body: ConsolidationRequest, request: Request):
 
 @router.post("/voices")
 async def voices(body: VoiceRequest, request: Request):
-    return await request.app.state.companion.models.voice.synthesize(body.text, body.mood, body.lead)
+    return await request.app.state.companion.voice(body)
 
 
 @router.post("/embeddings")

@@ -103,6 +103,10 @@ class EmbeddingRequest(Schema):
     time_zone: str = "Asia/Taipei"
 
 
+class VoiceReview(Schema):
+    safe: bool
+
+
 class VoiceRequest(Schema):
     text: str = Field(min_length=1, max_length=500)
     mood: Literal["AUTO", "HAPPY", "SAD", "SURPRISED", "CALM", "WHISPER"] = "AUTO"

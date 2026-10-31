@@ -6,7 +6,8 @@ import re
 
 LOG = logging.getLogger(__name__)
 # 先把语气换成私用区占位符再清洗，回复文字里自带的 (laughs)、<#x#> 不会被当成控制语法
-LAUGH, SIGH, EXHALE, HUM, INHALE, EMM, GASP, BREATH, PAUSE = ""
+LAUGH, SIGH, EXHALE, HUM, INHALE, EMM, GASP, BREATH = "\ue000\ue001\ue002\ue003\ue004\ue005\ue006\ue007"
+PAUSE = "\ue008"
 TONES = {
     LAUGH: "(chuckle)",
     SIGH: "(sighs)",
@@ -34,24 +35,35 @@ WORD_TONES = (
     (re.compile(r"…+|\.{3,}"), PAUSE),
 )
 # 只留文字、常用标点和占位符
-UNSPOKEN = re.compile(r"[^\w\s，。！？、；：,.!?;:~～-]|_")
-PLACEHOLDER = re.compile(r"[-]")
-TONE_CHARS = re.compile(r"[-]")
-AFTER_TONE = re.compile(r"([-])[，,、\s]+")
-PAUSES = re.compile(r"(?:[\s，,、。]*)*")
+UNSPOKEN = re.compile(r"[^\w\s，。！？、；：,.!?;:~～\ue000-\ue008]|_")
+PLACEHOLDER = re.compile(r"[\ue000-\ue008]")
+TONE_CHARS = re.compile(r"[\ue000-\ue007]")
+AFTER_TONE = re.compile(r"([\ue000-\ue007])[，,、\s]+")
+PAUSES = re.compile(r"\ue008(?:[\s，,、。]*\ue008)*")
 # 第一句说完换一口气；太短的气泡不换，后面没有话也不换
-FIRST_SENTENCE = re.compile(r"[。！？!?]+(?=[^\s-])")
+FIRST_SENTENCE = re.compile(r"[。！？!?]+(?=[^\s\ue000-\ue008])")
 BREATH_FROM = 30
 MAX_TONES = 2
 SILENT = {"audio": None, "durationMs": 0}
-# 情绪、语速。AUTO 不传情绪，由 MiniMax 按文字匹配；低语只有 2.6 支持，而 2.6 不认语气词标记
+SCRIPT_TAGS = re.compile(r"\((?:chuckle|laughs|sighs|gasps|breath|humming|emm|inhale|exhale|sniffs)\)")
+MARKS = re.compile(SCRIPT_TAGS.pattern + r"|<#0\.[1-5]#>")
+BAD_PAUSE = re.compile(r"^\s*<#|<#[^#]*#>\s*$|#>\s*<#")
+# 句尾助词要贴着前面的字念，前面不能停顿
+PAUSE_BEFORE_PARTICLE = re.compile(r"<#0\.[1-5]#>(?=[呐嘛呀啦哦呢吧喵])")
+SPACED_MARK = re.compile(r"\s*(" + MARKS.pattern + r")\s*")
+ANY_PAUSE = re.compile(r"<#0\.[1-5]#>")
+LITERALS = re.compile(r"[0-9A-Za-z]+")
+MAX_SCRIPT_TONES = 3
+MAX_SCRIPT_PAUSES = 2
+# 这个音色偏慢，统一提速才像日常说话；情绪只给低语，其余由 MiniMax 按文字匹配，固定情绪反而发平
+# 低语只有 2.6 支持，而 2.6 不认语气词标记
 MOODS = {
-    "AUTO": (None, 0.95),
-    "HAPPY": ("happy", 1.0),
-    "SAD": ("sad", 0.9),
-    "SURPRISED": ("surprised", 1.0),
-    "CALM": ("calm", 0.92),
-    "WHISPER": ("whisper", 0.9),
+    "AUTO": (None, 1.15),
+    "HAPPY": (None, 1.2),
+    "SAD": (None, 1.1),
+    "SURPRISED": (None, 1.2),
+    "CALM": (None, 1.1),
+    "WHISPER": ("whisper", 1.0),
 }
 OPENING = {"HAPPY": LAUGH, "SAD": SIGH, "SURPRISED": GASP}
 
@@ -90,13 +102,38 @@ def speakable(text: str, mood: str = "AUTO", lead: bool = False) -> str:
     return "".join(parts).strip()
 
 
+def unmarked(text: str) -> str:
+    return re.sub(r"[^\w]|_", "", MARKS.sub("", text))
+
+
+# 口语稿可以改说法，这里只查代码查得出的：标记语法合法、长度相近、数字和字母原样；有没有改意思交给复核
+def vetted(script: str, base: str, mood: str) -> str | None:
+    script = PAUSE_BEFORE_PARTICLE.sub("", SPACED_MARK.sub(r"\1", script.strip()))
+    for pause in ANY_PAUSE.findall(script)[MAX_SCRIPT_PAUSES:]:
+        head, _, tail = script.rpartition(pause)
+        script = head + tail
+    tags = SCRIPT_TAGS.findall(script)
+    words, original = unmarked(script), unmarked(base)
+    if (
+        not words
+        or len(tags) > MAX_SCRIPT_TONES
+        or (tags and mood == "WHISPER")
+        or BAD_PAUSE.search(script)
+        or re.search(r"[()（）<>#]", MARKS.sub("", script))
+        or not len(original) / 2 <= len(words) <= len(original) * 3 / 2 + 10
+        or sorted(LITERALS.findall(words)) != sorted(LITERALS.findall(original))
+    ):
+        return None
+    return script
+
+
 class VoiceClient:
     def __init__(self, settings, http, gateway):
         self.settings, self.http, self.gateway = settings, http, gateway
 
     # 语音只是文字的附加：缺密钥、合成失败或没有可念的内容都返回无语音，不影响这一轮
-    async def synthesize(self, text: str, mood: str = "AUTO", lead: bool = False) -> dict:
-        spoken, key = speakable(text, mood, lead), self.settings.voice_key
+    async def synthesize(self, spoken: str, mood: str = "AUTO") -> dict:
+        key = self.settings.voice_key
         if not spoken or key is None:
             return SILENT
         emotion, speed = MOODS[mood]
@@ -118,11 +155,7 @@ class VoiceClient:
                         "speed": speed,
                         **({"emotion": emotion} if emotion else {}),
                     },
-                    "voice_modify": {
-                        "intensity": self.settings.voice_intensity,
-                        "timbre": self.settings.voice_timbre,
-                    },
-                    "audio_setting": {"format": "mp3", "bitrate": 64000, "channel": 1},
+                    "audio_setting": {"format": "mp3", "bitrate": 128000, "channel": 1},
                 },
             )
             response.raise_for_status()

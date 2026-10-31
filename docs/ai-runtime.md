@@ -331,7 +331,7 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 | `moderate_text` / `understand` | `judge` | 审核子图的文字节点（第 9.3 节） |
 | `moderate_image` | `vision` | 审核子图的审图节点 |
 | `moderate_confirm` | `review` | 审核子图的 BLOCK 复核；调用失败降级为 SUSPECT |
-| `reply_judge` / `tool_facts` | `judge` | 奶糖输出检查、工具资料提炼 |
+| `reply_judge` / `tool_facts` / `voice_review` | `judge` | 奶糖输出检查、工具资料提炼、配音稿复核 |
 
 - 提示词只写正面要求。成长总结和创作总结只描述统计直接支持的活动，用定性的说法，数字由页面展示；数字和等级的句子由 Schema 校验去掉，一句不剩就重试一次。
 - 待处理的正文以**分隔块里的纯文本**传入（`<post>标题…\n正文…</post>`），不用 `model_dump_json` 把整个对象转义成 JSON 字符串。

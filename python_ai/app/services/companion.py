@@ -10,8 +10,9 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.runnables import RunnableLambda
 from pydantic import ValidationError
 
+from app.clients.voice import SILENT, speakable, vetted
 from app.graphs.naitang import build
-from app.prompts.companion import VERSION
+from app.prompts.companion import VERSION, VOICE_REVIEW, VOICE_SCRIPT, VOICE_SCRIPT_MOODS
 from app.runtime.agent.agent import Agent, Context
 from app.runtime.context.companion import messages, provided_memory_ids
 from app.runtime.context.form import sample, style_feedback
@@ -30,6 +31,7 @@ from app.schemas.companion import (
     SessionSummary,
     SummaryRequest,
     SummaryReview,
+    VoiceRequest,
 )
 
 LOG = logging.getLogger(__name__)
@@ -162,6 +164,51 @@ class Companion:
         return parse(
             output.content, {row["name"] for row in emotions}, request.controls, request.card.get("name", "")
         ), sizes
+
+    async def voice_script(self, base: str, mood: str) -> str | None:
+        seconds = self.models.settings.voice_script_seconds
+        try:
+            async with asyncio.timeout(seconds), self.models.semaphores["assist"]:
+                output = await self.models.assist.ainvoke(
+                    [SystemMessage(VOICE_SCRIPT + "\n" + VOICE_SCRIPT_MOODS[mood]), HumanMessage(base)],
+                    temperature=0.9,
+                    timeout=seconds,
+                    _runtime_retries=0,
+                )
+            script = vetted(output.content, base, mood)
+            return None if script is None or crosses_red_line([script]) else script
+        except Exception as error:
+            LOG.warning("voice_script_failed error_type=%s", type(error).__name__)
+            return None
+
+    async def voice_reviewed(self, base: str, script: str) -> bool:
+        seconds = self.models.settings.voice_script_seconds
+        try:
+            async with asyncio.timeout(seconds), self.models.semaphores["judge"]:
+                review = await self.tasks.output("voice_review", attempts=1).ainvoke(
+                    [SystemMessage(VOICE_REVIEW), HumanMessage(f"原台词：{base}\n稿子：{script}")]
+                )
+            return review.safe
+        except Exception as error:
+            # 复核不了就当没通过：稿子是审核之后才写的，不能未经核对就念出去。
+            LOG.warning("voice_review_failed error_type=%s", type(error).__name__)
+            return False
+
+    async def voice(self, request: VoiceRequest) -> dict:
+        base = speakable(request.text, request.mood, request.lead)
+        if not base:
+            return SILENT
+        synthesize = self.models.voice.synthesize
+        script = await self.voice_script(base, request.mood)
+        if script is None:
+            LOG.info("voice_script mood=%s adopted=False reason=script", request.mood)
+            return await synthesize(base, request.mood)
+        # 复核和合成并行，通过时不多等；没通过才丢掉这段音频，改念规则转换的版本。
+        audio, safe = await asyncio.gather(
+            synthesize(script, request.mood), self.voice_reviewed(base, script)
+        )
+        LOG.info("voice_script mood=%s adopted=%s reason=review", request.mood, safe)
+        return audio if safe else await synthesize(base, request.mood)
 
     @staticmethod
     def prompt_version(request):

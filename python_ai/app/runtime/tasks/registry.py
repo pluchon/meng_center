@@ -6,7 +6,13 @@ from app.prompts.templates import VERSION
 from app.runtime.safety.judge import VERSION as REPLY_JUDGE_VERSION
 from app.runtime.safety.judge import Judgment
 from app.runtime.tools.facts import ToolFacts
-from app.schemas.companion import Consolidation, ConsolidationReview, SessionSummary, SummaryReview
+from app.schemas.companion import (
+    Consolidation,
+    ConsolidationReview,
+    SessionSummary,
+    SummaryReview,
+    VoiceReview,
+)
 from app.schemas.models import (
     CoverPlan,
     GrowthSummary,
@@ -71,6 +77,14 @@ TASKS = {
     ),
     "reply_judge": TaskSpec(
         "judge", Judgment, version=REPLY_JUDGE_VERSION, compact=True, evaluation="tests/test_companion.py"
+    ),
+    "voice_review": TaskSpec(
+        "judge",
+        VoiceReview,
+        version=COMPANION_VERSION,
+        timeout=3,
+        retries=0,
+        evaluation="tests/test_voice.py",
     ),
     "tool_facts": TaskSpec(
         "judge", ToolFacts, version=COMPANION_VERSION, evaluation="tests/test_naitang_tools.py"
