@@ -5,14 +5,15 @@ import {
   IconX,
   IconPlus,
   IconHistory,
-  IconDots,
   IconArrowLeft,
   IconTrash,
   IconPhoto,
   IconSend,
 } from '@tabler/icons-vue'
 import { companionApi, companionImage, sendCompanionMessage } from '@/api/companion'
-import { companionNekoAvatar } from '@/assets/images'
+import { communitySparkle, companionNekoAvatar } from '@/assets/images'
+import MessageImages from '@/components/message-images/MessageImages.vue'
+import { flightFrames } from './flightPath'
 import { Companion, CompanionError, CompanionEvent } from '@/constants/companion'
 import { RouteName } from '@/router/names'
 import { useUserStore } from '@/stores/user'
@@ -25,11 +26,11 @@ export default defineComponent({
     IconX,
     IconPlus,
     IconHistory,
-    IconDots,
     IconArrowLeft,
     IconTrash,
     IconPhoto,
     IconSend,
+    MessageImages,
   },
   setup() {
     const { t } = useI18n(),
@@ -39,7 +40,7 @@ export default defineComponent({
       route = useRoute()
     const opened = ref(false),
       listing = ref(false),
-      menu = ref(false),
+      memoryCleared = ref(false),
       loading = ref(false)
     const creating = ref(false),
       typing = ref(false),
@@ -59,6 +60,8 @@ export default defineComponent({
     const log = ref(null),
       editor = ref(null),
       picker = ref(null),
+      sendButton = ref(null),
+      plane = ref(null),
       sending = ref(0)
     const controllers = new Set()
     let timer,
@@ -76,6 +79,17 @@ export default defineComponent({
         input.value.length <= Companion.MAX_LENGTH,
     )
     const atLimit = computed(() => total.value >= Companion.SESSION_LIMIT)
+    const thinking = computed(
+      () =>
+        typing.value || sessions.value.some((item) => item.id === selected.value && item.generating),
+    )
+    const gallery = (message) =>
+      message.imageIds.map((id) => ({
+        kind: 'image',
+        url: companionImage(id),
+        thumb: companionImage(id),
+        name: t('companion.image'),
+      }))
     const safeHelp = (line) =>
       /^https:\/\//.test(line.url || '')
         ? line.url
@@ -100,6 +114,40 @@ export default defineComponent({
       const should = force || follow()
       await nextTick()
       if (should && log.value) log.value.scrollTop = log.value.scrollHeight
+    }
+    // 输入框随内容长高，上限交给样式的 max-height，超出后在框内滚动
+    function fitEditor() {
+      const element = editor.value
+      if (!element) return
+      element.style.height = 'auto'
+      element.style.height = element.scrollHeight + element.offsetHeight - element.clientHeight + 'px'
+    }
+    // 纸飞机从发送按钮沿弧线飞到奶糖思考中那一行的头像上，落地时头像轻轻弹一下
+    function flyPlane() {
+      const node = plane.value,
+        avatar = log.value?.querySelector('.naitang-thinking .naitang-avatar')
+      if (!node || !avatar || !sendButton.value) return
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+      const from = sendButton.value.getBoundingClientRect(),
+        to = avatar.getBoundingClientRect()
+      const flight = node.animate(
+        flightFrames(
+          { x: from.left + from.width / 2, y: from.top + from.height / 2 },
+          { x: to.left + to.width / 2, y: to.top + to.height / 2 },
+          Companion.PLANE_ARC,
+        ),
+        { duration: Companion.PLANE_MS, easing: 'cubic-bezier(0.4, 0.1, 0.3, 1)' },
+      )
+      flight.onfinish = () =>
+        avatar.animate(
+          [
+            { transform: 'scale(1)' },
+            { transform: 'scale(1.22) rotate(-6deg)' },
+            { transform: 'scale(0.96) rotate(3deg)' },
+            { transform: 'scale(1)' },
+          ],
+          { duration: Companion.LANDING_MS, easing: 'ease-out' },
+        )
     }
     async function listSessions(append = false) {
       const page = append ? sessionPage.value + 1 : 1
@@ -150,6 +198,7 @@ export default defineComponent({
         failure.value = null
         status.value = ''
         hotlines.value = []
+        memoryCleared.value = false
       }
       typing.value = false
       selected.value = id
@@ -198,7 +247,6 @@ export default defineComponent({
     }
     function close() {
       opened.value = false
-      menu.value = false
     }
     async function confirm(message, title) {
       return confirmDialog({
@@ -224,10 +272,11 @@ export default defineComponent({
       }
     }
     async function clearMemories() {
-      menu.value = false
       if (!(await confirm('companion.clearConfirm', 'companion.clearTitle'))) return
       try {
         await companionApi.clearMemories()
+        memoryCleared.value = true
+        await bottom(true)
       } catch (error) {
         failure.value = error
       }
@@ -293,8 +342,10 @@ export default defineComponent({
       optimistic.pending = true
       optimistic.failed = false
       failure.value = null
+      memoryCleared.value = false
       const session = sessions.value.find((item) => item.id === id)
       if (session) session.generating = true
+      bottom(true).then(flyPlane)
       try {
         await sendCompanionMessage(id, body, {
           signal: controller.signal,
@@ -346,6 +397,8 @@ export default defineComponent({
         controllers.delete(controller)
         sending.value--
         optimistic.pending = false
+        const current = sessions.value.find((item) => item.id === id)
+        if (current) current.generating = false
         if (!disposed && selected.value === id) {
           typing.value = false
           if (!sending.value && !optimistic.failed) {
@@ -403,6 +456,7 @@ export default defineComponent({
         polling = false
       }
     }
+    watch([input, listing, opened], fitEditor, { flush: 'post' })
     watch(
       () => user.loggedIn,
       (loggedIn) => {
@@ -433,16 +487,17 @@ export default defineComponent({
       Companion,
       RouteName,
       companionNekoAvatar,
-      companionImage,
+      sparkleMask: { maskImage: 'url(' + JSON.stringify(communitySparkle) + ')' },
+      gallery,
       safeHelp,
       segments,
       sticker,
       opened,
       listing,
-      menu,
+      memoryCleared,
+      thinking,
       loading,
       creating,
-      typing,
       sending,
       failure,
       loadError,
@@ -459,6 +514,8 @@ export default defineComponent({
       log,
       editor,
       picker,
+      sendButton,
+      plane,
       blocked,
       uploading,
       canSend,

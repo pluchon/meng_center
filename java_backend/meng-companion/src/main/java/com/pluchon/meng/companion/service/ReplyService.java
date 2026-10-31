@@ -155,7 +155,7 @@ public class ReplyService {
                 mapper.lockSession(sessionId, user) == null
             ) throw new BusinessException(CommonErrorCode.NOT_FOUND);
             var previous = runtime.duplicate(sessionId, body.clientMessageId());
-            String text = body.content() == null ? "" : body.content().strip();
+            String text = CompanionRules.cleanInput(body.content());
             if (previous != null) {
                 if (
                     !Objects.equals(previous.getContent(), text) ||
@@ -300,7 +300,7 @@ public class ReplyService {
                 if (
                     !inputs.isEmpty() &&
                     (text.length() + input.getContent().length() + 1 > 1000 ||
-                        images.size() + ids.size() > 3)
+                        images.size() + ids.size() > 6)
                 ) break;
                 if (input.getRequestRevision() != bond.getRevision()) {
                     runtime.state(input.getId(), input.getId(), "FAILED");
@@ -670,6 +670,7 @@ public class ReplyService {
             int count = p.inputs().size();
             for (var input : p.inputs())
                 mapper.completeMessage(input.getId(), label);
+            int remaining = bubbles.size();
             for (var bubble : bubbles) {
                 if (
                     !bubble.isString() ||
@@ -683,7 +684,8 @@ public class ReplyService {
                     label,
                     result
                 );
-                snapshotRuntime.metadata(message, result);
+                // 来源只挂在最后一个气泡下，一轮多个气泡时不重复显示
+                if (--remaining == 0) snapshotRuntime.metadata(message, result);
                 output.add(
                     Map.of(
                         "event",

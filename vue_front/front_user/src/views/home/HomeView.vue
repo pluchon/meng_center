@@ -154,7 +154,9 @@
         </div>
       </section>
     </div>
-    <NaitangAssistant />
+    <Teleport to="body">
+      <NaitangAssistant />
+    </Teleport>
   </CommunityLayout>
 </template>
 <script src="./HomeView.js"></script>

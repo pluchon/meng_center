@@ -37,7 +37,7 @@ class Response(Directive):
         if context is not None:
             if context["request"].images and not self.image_note:
                 raise ValueError("用户带图时必须填写imageNote")
-            validate(self, {row["id"] for row in context.get("toolResults", [])}, context["memoryIds"], True)
+            validate(self, {row["id"] for row in context.get("toolResults", [])}, context["memoryIds"])
         return self
 
 
@@ -52,16 +52,15 @@ def repair(error):
     if context.get("directiveRetried"):
         raise ValueError("说话指令重试后仍不合法") from error
     context["directiveRetried"] = True
-    sources = ["history"] + ["tool:" + row["id"] for row in context.get("toolResults", [])]
-    sources += [f"memory:{ident}" for ident in sorted(context["memoryIds"])]
-    fields = "；".join(
+    memories = "、".join(str(ident) for ident in sorted(context["memoryIds"])) or "无"
+    fields ="；".join(
         ".".join(str(part) for part in row["loc"]) + "：" + row["msg"]
         for row in issue.get("fields", [])[:3]
     )
     return (
         "只修正说话指令，不再执行工具。"
         + ("校验错误：" + fields + "。" if fields else "")
-        + "hint最多20字，可省略。可用出处：" + "、".join(sources)
+        + "hint最多20字，可省略。可用记忆编号：" + memories
     )
 
 

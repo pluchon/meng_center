@@ -162,10 +162,10 @@ async def test_native_search_limit_preserves_the_first_result_and_allows_complet
     calls = [AIMessage(content="", tool_calls=[first, second])] if parallel else [
         AIMessage(content="", tool_calls=[first]), AIMessage(content="", tool_calls=[second])
     ]
-    agent, service, current = setup([*calls, response("tool:w1")])
+    agent, service, current = setup([*calls, response()])
     current["request"].web_search_remaining = 2
     service.executor.execute.return_value = dict(id="w1", success=True, facts=["活动信息"])
-    assert (await agent.run(current)).facts[0].source == "tool:w1"
+    assert (await agent.run(current)).label == "PASS"
     assert service.executor.execute.await_count == 1
     assert service.executor.execute.await_args.args[0]["id"] == "w1"
 
@@ -185,7 +185,7 @@ async def test_used_search_is_hidden_until_the_next_round(success):
 
     first = AIMessage(content="", tool_calls=[dict(name="web_search", id="w1", args={"query": "活动"})])
     _, service, current = setup([])
-    service.models.agent = RecordingModel(messages=iter([first, response("tool:w1"), response()]))
+    service.models.agent = RecordingModel(messages=iter([first, response(), response()]))
     service.executor.execute.return_value = dict(id="w1", success=success, facts=["搜索结果"])
     current["request"].web_search_remaining = 2
     agent = Agent(service)
@@ -205,7 +205,7 @@ async def test_repeated_search_request_still_finishes_the_reply_with_web_sources
     calls = [AIMessage(content="", tool_calls=[dict(
         name="web_search", id=ident, args={"query": "活动日期"}
     )]) for ident in ("w1", "w2")]
-    value.models.agent.messages = iter([*calls, response("tool:w1")])
+    value.models.agent.messages = iter([*calls, response()])
     value.agent = Agent(value)
     invoke = AsyncMock(return_value=answer())
     value.models.search = SimpleNamespace(bind_tools=lambda _: SimpleNamespace(ainvoke=invoke))

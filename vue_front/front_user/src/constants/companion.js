@@ -1,6 +1,9 @@
 export const Companion = Object.freeze({
   MAX_LENGTH: 1000,
-  MAX_IMAGES: 3,
+  MAX_IMAGES: 6,
+  PLANE_MS: 1300,
+  PLANE_ARC: 60,
+  LANDING_MS: 420,
   IMAGE_BYTES: 10_000_000,
   SESSION_LIMIT: 50,
   PAGE_SIZE: 20,

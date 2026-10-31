@@ -91,6 +91,8 @@ public class CompanionService {
         mapper.lockBond(user,"NEKO");
         mapper.clearMemories(user,"NEKO");
         mapper.invalidate(user,"NEKO");
+        // 对话记录留给用户看，但摘要清掉、窗口移到最新消息，模型不再读到清空前的内容
+        mapper.resetSummaries(user,"NEKO");
         runtime.clearProfile(user,"NEKO");
         snapshots.invalidate(user,"NEKO");
         redis.delete("meng:companion:memo:"+user);

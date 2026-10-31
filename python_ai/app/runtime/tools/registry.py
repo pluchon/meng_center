@@ -97,7 +97,7 @@ def declare(spec):
             {"id": runtime.tool_call_id, "name": spec.name, "args": kwargs}, context
         )
         context.setdefault("toolResults", []).append({"name": spec.name, **result})
-        return {**result, "source": "tool:" + runtime.tool_call_id}
+        return result
 
     if spec.schema is Empty:
         # 从函数推导注入参数，避免空模型触发无参数快捷路径而丢失运行时。

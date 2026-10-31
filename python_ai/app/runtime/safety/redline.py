@@ -16,11 +16,16 @@ CONTACT = re.compile(
     r"(?<!\d)(?:\+?\d{1,3}[\s-]?)?\d{3,4}[\s-]?\d{3,4}[\s-]?\d{3,4}(?!\d)"
     r"|[\w.+-]+@[\w-]+\.[\w.-]+|(?<!\d)\d{15,17}[\dXx](?!\d)"
 )
+# 只在内部提示词和指令字段里出现的片段；回复里有这些，说明模型在复述系统内容。
+PROMPT_LEAK = re.compile(
+    r"内部审核与工具决策器|场景信息，不是用户说的话|你是萌部落的 AI 角色|"
+    r"supportNeeded|identityQuestion|mentionMemoryId|imageNote|toolResults|speechFacts"
+)
 
 
 def crosses_red_line(bubbles: list[str]) -> bool:
     text = "\n".join(bubbles)
-    return bool(RED_LINE.search(text) or CONTACT.search(text))
+    return bool(RED_LINE.search(text) or CONTACT.search(text) or PROMPT_LEAK.search(text))
 
 
 def has_contact(text: str) -> bool:

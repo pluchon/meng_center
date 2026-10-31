@@ -1,8 +1,14 @@
+// 带回弹的缓动：先冲过头一点再落回来
+$spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+// 主页的翻页条吸在视口底部，入口抬到它上方，两边都不遮挡
 .naitang-assistant {
+  --naitang-panel-height: min(600px, calc(100dvh - 216px));
+
   position: fixed;
   z-index: 1100;
   right: var(--meng-space-6);
-  bottom: var(--meng-space-6);
+  bottom: 92px;
   color: var(--meng-text);
 
   button {
@@ -19,9 +25,17 @@
     background: transparent;
     cursor: pointer;
     font: inherit;
+    transition:
+      transform 280ms $spring,
+      background 160ms ease;
 
-    &:hover {
+    &:hover:not(:disabled) {
       background: var(--meng-tint);
+      transform: translateY(-2px) scale(1.08);
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.9);
     }
 
     &:disabled {
@@ -45,10 +59,15 @@
   background: var(--meng-tint) !important;
   box-shadow: var(--meng-shadow-card);
   transform: rotate(-5deg);
-  transition: transform 160ms ease;
+  transition: transform 360ms $spring !important;
 
-  &:hover {
-    transform: rotate(0) translateY(-3px);
+  &[aria-expanded='false'] {
+    animation: naitang-float 3.4s ease-in-out infinite;
+  }
+
+  &:hover:not(:disabled) {
+    animation: none;
+    transform: rotate(4deg) translateY(-4px) scale(1.06);
   }
 
   img {
@@ -59,11 +78,50 @@
   }
 }
 
+@keyframes naitang-float {
+  0%,
+  100% {
+    transform: rotate(-5deg) translateY(0);
+  }
+
+  50% {
+    transform: rotate(-2deg) translateY(-5px);
+  }
+}
+
+// 对话框是从头像冒出来的气泡：浮在头像上方，底部的小尖角指向头像，顶上露出一对猫耳
+.naitang-bubble-shell {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 18px);
+  width: 400px;
+  height: var(--naitang-panel-height);
+  transform-origin: calc(100% - 38px) calc(100% + 18px);
+}
+
+.naitang-pop-enter-active {
+  transition:
+    transform 420ms $spring,
+    opacity 180ms ease;
+}
+
+.naitang-pop-leave-active {
+  transition:
+    transform 180ms ease-in,
+    opacity 180ms ease-in;
+}
+
+.naitang-pop-enter-from,
+.naitang-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.55) translateY(24px);
+}
+
 .naitang-panel {
   display: flex;
   flex-direction: column;
-  width: 400px;
-  height: min(600px, calc(100dvh - 48px));
+  width: 100%;
+  height: 100%;
   overflow: hidden;
   border: 2px solid var(--meng-border);
   border-radius: var(--meng-radius-dialog);
@@ -71,19 +129,119 @@
   box-shadow: var(--meng-shadow-card);
 }
 
+.naitang-tail {
+  position: absolute;
+  z-index: 1;
+  right: 30px;
+  bottom: -8px;
+  width: 16px;
+  height: 16px;
+  border-right: 2px solid var(--meng-border);
+  border-bottom: 2px solid var(--meng-border);
+  background: var(--meng-surface);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.naitang-ear {
+  position: absolute;
+  z-index: -1;
+  top: -13px;
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--meng-border);
+  border-radius: 8px 4px;
+  background: var(--meng-primary-light-9);
+  pointer-events: none;
+
+  &.left {
+    left: 34px;
+    transform: rotate(38deg);
+  }
+
+  &.right {
+    right: 34px;
+    transform: rotate(52deg);
+  }
+}
+
+.naitang-plane {
+  position: fixed;
+  z-index: 2;
+  top: -10px;
+  left: -10px;
+  width: 20px;
+  height: 20px;
+  color: var(--meng-primary);
+  opacity: 0;
+  pointer-events: none;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
 .naitang-header {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--meng-space-1);
   padding: var(--meng-space-3);
-  border-bottom: 1px dashed var(--meng-border);
-  background: var(--meng-primary-light-9);
+  border-bottom: 2px dashed var(--meng-border);
+  background: linear-gradient(120deg, var(--meng-primary-light-9), var(--meng-tint));
 
   h2 {
     flex: 1;
     margin: 0;
     font-family: var(--meng-font-display);
     font-size: 18px;
+  }
+
+  .naitang-avatar {
+    transition: transform 360ms $spring;
+
+    &:hover {
+      transform: rotate(-10deg) scale(1.12);
+    }
+  }
+}
+
+.naitang-spark {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--meng-decor-sparkle);
+  mask-size: contain;
+  mask-repeat: no-repeat;
+  pointer-events: none;
+  animation: naitang-twinkle 2.4s ease-in-out infinite;
+
+  &.first {
+    top: 6px;
+    left: 42px;
+  }
+
+  &.second {
+    bottom: 8px;
+    left: 136px;
+    width: 9px;
+    height: 9px;
+    animation-delay: 900ms;
+  }
+}
+
+@keyframes naitang-twinkle {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.75) rotate(0);
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(25deg);
   }
 }
 
@@ -97,21 +255,15 @@
   object-fit: cover;
 }
 
-.naitang-menu {
-  position: relative;
-}
+.naitang-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--meng-space-2);
 
-.naitang-menu-popover {
-  position: absolute;
-  z-index: 1;
-  top: 100%;
-  right: 0;
-  width: max-content;
-  padding: var(--meng-space-2);
-  border: 1px solid var(--meng-border);
-  border-radius: var(--meng-radius-note);
-  background: var(--meng-surface);
-  box-shadow: var(--meng-shadow);
+  h3 {
+    margin: 0;
+  }
 }
 
 .naitang-messages,
@@ -121,6 +273,13 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: var(--meng-space-4);
+  scrollbar-color: var(--meng-border) transparent;
+  scrollbar-width: thin;
+}
+
+.naitang-messages {
+  background-image: radial-gradient(var(--meng-tint) 1.5px, transparent 1.5px);
+  background-size: 20px 20px;
 }
 
 .naitang-message {
@@ -128,6 +287,26 @@
   align-items: flex-start;
   gap: var(--meng-space-2);
   margin-bottom: var(--meng-space-4);
+  transform-origin: left top;
+  animation: naitang-message-in 420ms $spring backwards;
+
+  &.own {
+    justify-content: flex-end;
+    transform-origin: right top;
+
+    .naitang-bubble {
+      border-radius: var(--meng-radius-note) 4px var(--meng-radius-note) var(--meng-radius-note);
+      background: var(--meng-tint);
+      box-shadow: 0 2px 0 var(--meng-border);
+    }
+  }
+}
+
+@keyframes naitang-message-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8) translateY(8px);
+  }
 }
 
 .naitang-message-body {
@@ -140,7 +319,8 @@
   padding: var(--meng-space-3);
   border: 1px solid var(--meng-border);
   border-radius: 4px var(--meng-radius-note) var(--meng-radius-note);
-  background: var(--meng-bg);
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-tint);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
   line-height: 1.65;
@@ -152,57 +332,75 @@
   }
 }
 
-.naitang-message.own {
-  justify-content: flex-end;
-
-  .naitang-bubble {
-    border-radius: var(--meng-radius-note) 4px var(--meng-radius-note) var(--meng-radius-note);
-    background: var(--meng-tint);
-  }
-}
-
 .naitang-sticker {
   width: 100px;
   height: 100px;
   object-fit: contain;
+  transition: transform 320ms $spring;
+
+  &:hover {
+    transform: rotate(-4deg) scale(1.08);
+  }
 }
 
-.naitang-message-images {
+.naitang-dots {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--meng-space-1);
-  margin-top: var(--meng-space-1);
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+
+  span {
+    width: 7px;
+    height: 7px;
+    border-radius: var(--meng-radius-pill);
+    background: var(--meng-primary);
+    animation: naitang-dot 1.2s ease-in-out infinite;
+  }
+
+  span:nth-child(2) {
+    animation-delay: 150ms;
+  }
+
+  span:nth-child(3) {
+    animation-delay: 300ms;
+  }
 }
 
-.naitang-message-images img {
-  width: 90px;
-  height: 90px;
-  border-radius: var(--meng-space-2);
-  object-fit: cover;
+@keyframes naitang-dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+
+  30% {
+    opacity: 1;
+    transform: translateY(-5px);
+  }
+}
+
+.naitang-thinking small {
+  display: block;
+  margin-top: var(--meng-space-1);
+  color: var(--meng-muted);
+  font-size: 12px;
 }
 
 .naitang-sources {
   margin: var(--meng-space-2) 0 0;
   padding-left: var(--meng-space-4);
   font-size: 12px;
-    overflow-wrap: anywhere;
+  overflow-wrap: anywhere;
 
-    li + li {
-      margin-top: var(--meng-space-1);
-    }
+  li + li {
+    margin-top: var(--meng-space-1);
   }
-
-  .naitang-source-site {
-    margin-right: var(--meng-space-1);
-    color: var(--meng-muted);
 }
 
-.naitang-status {
-  padding: var(--meng-space-2);
-  border: 1px dashed var(--meng-border);
-  border-radius: var(--meng-radius-note);
+.naitang-source-site {
+  margin-right: var(--meng-space-1);
   color: var(--meng-muted);
-  font-size: 12px;
 }
 
 .naitang-note {
@@ -237,6 +435,14 @@
   padding: var(--meng-space-2);
   border: 1px dashed var(--meng-border);
   border-radius: var(--meng-radius-note);
+  transition:
+    transform 300ms $spring,
+    border-color 160ms ease;
+
+  &:hover {
+    border-color: var(--meng-primary);
+    transform: translateY(-2px);
+  }
 
   &.selected {
     background: var(--meng-tint);
@@ -248,6 +454,11 @@
     align-items: flex-start;
     min-width: 0;
     text-align: left;
+  }
+
+  button:first-child:hover:not(:disabled) {
+    background: transparent;
+    transform: none;
   }
 
   span {
@@ -265,49 +476,75 @@
 
 .naitang-composer {
   padding: var(--meng-space-3) var(--meng-space-4);
-  border-top: 1px dashed var(--meng-border);
+  border-top: 2px dashed var(--meng-border);
+}
+
+.naitang-compose-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--meng-space-1);
+}
+
+// 图标本身比按钮小一圈，往左收回去，和右侧输入框的留白对称
+.naitang-pick {
+  flex: none;
+  height: 42px;
+  margin-left: calc(var(--meng-space-1) * -1.5);
+}
+
+// 发送按钮浮在输入框内部，贴着右下角，输入框长高时跟着留在底部
+.naitang-field {
+  position: relative;
+  flex: 1;
+  min-width: 0;
 
   textarea {
     display: block;
     width: 100%;
+    max-height: 132px;
     box-sizing: border-box;
     resize: none;
-    padding: var(--meng-space-2);
-    border: 1px solid var(--meng-border);
+    padding: var(--meng-space-2) 44px var(--meng-space-2) var(--meng-space-3);
+    border: 2px solid var(--meng-border);
     border-radius: var(--meng-space-3);
+    outline: none;
     color: var(--meng-text);
     background: var(--meng-bg);
     font: inherit;
     font-size: 14px;
+    line-height: 24px;
+    transition:
+      border-color 160ms ease,
+      box-shadow 200ms ease;
+
+    &:focus {
+      border-color: var(--meng-primary);
+      box-shadow: 0 0 0 3px var(--meng-tint);
+    }
   }
 }
 
-.naitang-compose-tools {
-  display: flex;
-  align-items: center;
-  gap: var(--meng-space-2);
-  margin-top: var(--meng-space-2);
-}
+.naitang-assistant .naitang-send {
+  position: absolute;
+  right: 5px;
+  bottom: 5px;
 
-.naitang-compose-tools small {
-  flex: 1;
-  color: var(--meng-muted);
-  font-size: 11px;
-}
-
-.naitang-send {
-  margin-left: auto;
-  background: var(--meng-tint) !important;
+  &:hover:not(:disabled) {
+    background: transparent;
+    transform: rotate(-12deg) scale(1.22);
+  }
 }
 
 .naitang-attachments {
   display: flex;
+  flex-wrap: wrap;
   gap: var(--meng-space-2);
   padding-bottom: var(--meng-space-2);
 }
 
 .naitang-attachments > div {
   position: relative;
+  animation: naitang-message-in 360ms $spring backwards;
 }
 
 .naitang-attachments img {
@@ -327,26 +564,28 @@
   background: var(--meng-surface);
 }
 
-.naitang-credit {
-  padding: var(--meng-space-1);
-  color: var(--meng-muted);
-  text-align: center;
-  font-size: 9px;
-}
-
 @media (width <= 600px) {
   .naitang-assistant {
     right: var(--meng-space-4);
-    bottom: var(--meng-space-4);
+    bottom: 84px;
   }
 
-  .naitang-panel {
+  .naitang-bubble-shell {
     position: fixed;
     inset: 0;
     width: 100%;
     height: 100dvh;
+    transform-origin: center bottom;
+  }
+
+  .naitang-panel {
     border: 0;
     border-radius: 0;
+  }
+
+  .naitang-tail,
+  .naitang-ear {
+    display: none;
   }
 
   .naitang-composer {
@@ -355,8 +594,28 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .naitang-launcher,
+  .naitang-assistant button,
+  .naitang-session,
+  .naitang-sticker,
+  .naitang-header .naitang-avatar {
+    transition: none !important;
+  }
+
+  .naitang-launcher,
+  .naitang-spark,
+  .naitang-message,
+  .naitang-attachments > div,
+  .naitang-dots span {
+    animation: none !important;
+  }
+
   .naitang-launcher {
-    transition: none;
     transform: none;
+  }
+
+  .naitang-pop-enter-active,
+  .naitang-pop-leave-active {
+    transition: none;
   }
 }

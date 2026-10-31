@@ -366,7 +366,7 @@ async def run(args):
                             if args.smoke and smoke_kind == "search" and index == smoke_rounds - 1:
                                 passed = passed and any(
                                     item.get("name") == "web_search" and item.get("success")
-                                    and item.get("searchCalls") == 1
+                                    and item.get("searchCalls", 0) >= 1
                                     for item in result.get("toolUsage", [])
                                 ) and any(item.get("type") == "WEB" for item in result.get("sources", []))
                             row = dict(

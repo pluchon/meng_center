@@ -368,6 +368,28 @@ public class CompanionRuntimeTest {
         assertEquals(0, count("role='CHARACTER'"));
     }
 
+    @Test
+    void clearingMemoryKeepsRecordsButModelNoLongerReadsThem() throws Exception {
+        record("[]");
+        release.countDown();
+        replies.send(41, 1, send("before", "我喜欢蓝色"), "Asia/Taipei", "test");
+        until(() -> count("role='CHARACTER'") > 0 && count("turn_state='COMMITTED'") > 0);
+        jdbc.update("UPDATE companion_session SET summary='用户喜欢蓝色' WHERE id=1");
+        service.clearMemories(41);
+        int kept = count("delete_state=0");
+        assertTrue(kept >= 2);
+        assertEquals(
+            "",
+            jdbc.queryForObject("SELECT summary FROM companion_session WHERE id=1", String.class)
+        );
+        int before = requests.size();
+        replies.send(41, 1, send("after", "你好"), "Asia/Taipei", "test");
+        until(() -> requests.size() > before);
+        var request = requests.get(requests.size() - 1);
+        assertEquals("", request.get("summary"));
+        assertEquals(List.of(), request.get("history"));
+    }
+
     private Rows.Memory fact(String content) {
         var memory = new Rows.Memory();
         memory.setUserId(41L);

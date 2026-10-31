@@ -71,7 +71,7 @@ def build():
         if directive.label in {"CRISIS", "SEXUAL", "JAILBREAK"}:
             return "block"
         # 草稿或预审失败不等于不安全：照常重说并经过打分，打分仍失败才用兜底台词。
-        if directive.facts or directive.mention_memory_id or ctx["toolUsage"] or ctx["request"].images:
+        if directive.mention_memory_id or ctx["toolUsage"] or ctx["request"].images:
             return "respeak"
         return "emit" if approved(state["prejudgment"]) else "respeak"
 

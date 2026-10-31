@@ -37,6 +37,7 @@
           aria-hidden="true"
           :style="{maskImage:'url('+JSON.stringify(communitySparkle)+')'}"
         /><span
+          v-if="query.q"
           class="search-total"
           aria-live="polite"
         >{{ t('search.total',{count:total}) }}</span>

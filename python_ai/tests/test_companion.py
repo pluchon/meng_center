@@ -67,8 +67,6 @@ async def test_chat_adopts_prejudged_draft():
 @pytest.mark.parametrize("node", ["draft", "prejudge", "respeak", "judge"])
 @pytest.mark.parametrize("exhausted", [False, True])
 async def test_native_node_retry_is_bounded_and_never_replays_agent(node, exhausted):
-    from app.runtime.agent.directive import Fact
-
     value = service()
     candidate = (Parsed(bubbles=["先歇一会儿。"]), {})
     accepted = Judgment(safe=True, character=8, artificial=1)
@@ -80,7 +78,7 @@ async def test_native_node_retry_is_bounded_and_never_replays_agent(node, exhaus
     elif node == "prejudge":
         value.judge.side_effect = failure
     elif node == "respeak":
-        value.agent.run.return_value = Directive(label="PASS", facts=[Fact(content="依据", source="history")])
+        value.agent.run.return_value = Directive(label="PASS", mention_memory_id=1)
         value.speak.side_effect = [candidate, *failure]
     else:
         value.judge.side_effect = [rejected, *failure]
@@ -138,7 +136,6 @@ async def test_compact_review_keeps_reply_current_input_and_tool_evidence():
     value.tasks = SimpleNamespace(output=lambda _, **kwargs: chain)
     body = request(content="那篇帖子的结论呢？", recent_replies=["之前的回复。"] * 10)
     directive = dict(
-        facts=[dict(content="帖子讨论动画配色", source="tool:post-1")],
         toolResults=[dict(name="read_post", id="post-1", facts=["帖子讨论动画配色"])],
         imageNote="蓝色圆形",
     )
@@ -148,7 +145,7 @@ async def test_compact_review_keeps_reply_current_input_and_tool_evidence():
     assert payload["用户原话"] == body.content
     assert payload["待审回复"] == ["主要讨论配色。"]
     assert payload["本轮依据"] == directive
-    for evidence in (body.content, "主要讨论配色。", "帖子讨论动画配色", "tool:post-1", "蓝色圆形"):
+    for evidence in (body.content, "主要讨论配色。", "帖子讨论动画配色", "蓝色圆形"):
         assert evidence in current
     assert "openingCount" in current and "trigramOverlap" in current
     assert "firstHalf" not in current and "secondHalf" not in current

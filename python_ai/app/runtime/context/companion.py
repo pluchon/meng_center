@@ -11,6 +11,12 @@ def provided_memory_ids(request):
     return {row["id"] for row in rows if type(row.get("id")) is int and row["id"] > 0}
 
 
+def guarded(value, *, single_line=False):
+    """用户文字进提示词前去掉结构标记，防止伪造场景信息或历史发言。"""
+    value = value.replace("〔", "「").replace("〕", "」")
+    return " ".join(value.splitlines()) if single_line else value
+
+
 def history(request, limit=None, *, reference=False, compact=False):
     turns = request.history[-limit * 2 :] if limit else request.history
     messages = []
@@ -22,10 +28,10 @@ def history(request, limit=None, *, reference=False, compact=False):
         if reference:
             if compact:
                 label = "历史用户" if turn.role == "USER" else "历史奶糖"
-                content = f"{label}：{content}"
+                content = f"{label}：{guarded(content, single_line=True)}"
             else:
                 label = "历史用户发言" if turn.role == "USER" else "奶糖历史发言"
-                content = f"〔{label}〕\n{content}"
+                content = f"〔{label}〕\n{guarded(content)}"
         messages.append(kind(content))
     return messages
 
@@ -33,16 +39,8 @@ def history(request, limit=None, *, reference=False, compact=False):
 def speech_facts(instruction):
     """把内部决策缩成有依据的自然中文，机器字段不进入嘴。"""
     lines, tools, memories = [], [], []
-    for fact in instruction.get("facts", []):
-        source = fact.get("source", "")
-        if source.startswith("tool:"):
-            tools.append(fact["content"])
-        elif source.startswith("memory:"):
-            memories.append(fact["content"])
-    # 执行结果优先；并行工具分别描述，某项失败不能抹去另一项已登记的任务。
+    # 并行工具分别描述，某项失败不能抹去另一项已登记的任务。
     results = instruction.get("toolResults", [])
-    if results:
-        tools = []
     for result in results:
         if not result.get("success", True):
             tools.append(
@@ -96,7 +94,7 @@ def messages(request, emotions, instruction=None, speech=True, form="", judge=Fa
     current = json.dumps(
         {"场景资料": lines, "用户原话": request.content, **(instruction or {})},
         ensure_ascii=False, separators=(",", ":"),
-    ) if judge else "\n".join([*lines, "用户：" if is_agent else "〔用户〕", request.content])
+    ) if judge else "\n".join([*lines, "用户：" if is_agent else "〔用户〕", guarded(request.content)])
     content = [{"type": "text", "text": current}]
     if not judge:
         content.extend({"type": "image_url", "image_url": {"url": image}} for image in request.images)
