@@ -105,9 +105,9 @@ Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACO
 
 `meng-companion` 监听 `127.0.0.1:8107`，网关入口为 `/companion/**`。首次使用依次执行 `Initialize-LocalEnvironment.ps1`、`Initialize-DomainDatabases.ps1`、`Publish-NacosConfiguration.ps1`，再打包并执行 `Start-Backend.ps1 -Service meng-companion`。已有数据卷原地新增 `meng_companion` 库及 `meng_companion_app`，凭据来自 `MENG_MYSQL_COMPANION_PASSWORD`。
 
-主页的奶糖助手只提供会话、长期记忆、私人图片、站内只读工具和受限联网搜索。新对话直接使用角色卡的固定开场白。角色卡与示例对白只有奶糖一套，由 `resources/companion/catalog.json` 按版本原子导入。私人图片目录来自 `MENG_COMPANION_WORK_ROOT`，保存在仓库外。
+主页的奶糖助手只提供会话、长期记忆、私人图片、气泡语音、站内只读工具和受限联网搜索。新对话直接使用角色卡的固定开场白。角色卡与示例对白只有奶糖一套，由 `resources/companion/catalog.json` 按版本原子导入。私人图片和语音文件的目录来自 `MENG_COMPANION_WORK_ROOT`，保存在仓库外。
 
-companion 使用新增迁移 `V20261027001__naitang_assistant` 删除旧能力的表与列，并逻辑删除旧角色数据；IM 使用自己的迁移 `V20261027001__remove_companion_notice_targets` 清理旧陪伴通知及跳转字段。历史迁移保持原样。奶糖的一轮使用 LangGraph 状态图，主 agent、草稿与预审并行；站内审核共用同一个审核子图。接口与运行时规则见 [奶糖助手](../docs/meng.md) 和 [AI 公共运行时](../docs/ai-runtime.md)。
+奶糖的一轮使用 LangGraph 状态图，主 agent、草稿与预审并行；站内审核共用同一个审核子图。接口与运行时规则见 [奶糖助手](../docs/meng.md) 和 [AI 公共运行时](../docs/ai-runtime.md)。
 
 `V20261027002__version_companion_memory_facts` 将记忆去重限定为当前有效事实，保留失效、取代和清空记录；`V20261027003__track_memory_embedding_model` 扩展向量版本字段，记录模型、维度和编码版本。模型或编码变化后，维护任务补齐向量，召回不混用不同版本。
 
@@ -146,4 +146,4 @@ Windows 会锁定运行中的 JAR。更新时先停止对应实例，再打包�
 
 主 agent 的 `qwen3.8-flash` 通过请求中的原生断点缓存稳定系统说明，不依赖额外中间件或环境变量。创建量单独记录为 `cacheCreationTokens`，不能当作命中 token；更新 AI 代码后按上述方式重启，其他用途和模型继续使用原有缓存协议。
 
-AI 服务统一使用百炼凭据，由 `Start-Ai.ps1` 启动；更新 `meng-ai.yml`、`meng-companion.yml` 后发布配置并重启对应服务。搜索每日额度由 companion 的 Redis 原子预留与结算，默认每人 20 次；网页版来源保存于既有消息 JSON 字段，本轮不需要数据库结构迁移。
+AI 服务使用百炼凭据，语音合成另用 MiniMax 凭据（缺失时奶糖只有文字），由 `Start-Ai.ps1` 启动；更新 `meng-ai.yml`、`meng-companion.yml` 后发布配置并重启对应服务。搜索每日额度由 companion 的 Redis 原子预留与结算，默认每人 20 次；网页来源保存在消息的 JSON 字段。

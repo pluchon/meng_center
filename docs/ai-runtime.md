@@ -34,8 +34,8 @@
 
 - 奶糖说话和联网搜索用 DeepSeek，其余全部用 Qwen。用户图片由嘴直接看，不另设识图调用；主 agent 也看图，用来审核和决定工具。
 - 语音合成不是文本模型，单独走 MiniMax（[奶糖助手](meng.md)第 5.2.1 节）；经同一个网关计量和熔断，不进评测。
-- **全部模型只走阿里云百炼一个平台**，统一使用 `DASHSCOPE_API_KEY`、华北2（北京）地域，不接 DeepSeek 官方接口。对话类调用走百炼的 OpenAI 兼容 Chat Completions，关思考用 `enable_thinking=false`（实测说话、agent、打分、搜索四类调用都不返回思考内容）；联网搜索走百炼的 OpenAI 兼容 Responses API（只有北京和新加坡地域支持）。降级链都在同一平台内，只换模型名。
-- `deepseek-v4.1-flash-1017` 已确认可接收文字和图片、返回奶糖说话格式，并返回隐式缓存命中记录；Responses API 可返回内置搜索调用及网页来源。已实现每日搜索额度、网页来源保存与展示、重复搜索拦截和思考字段观测，缺失的推理 token 指标不能当作零。第 4.5 节的缓存命中率目标留待授权验收。
+- **语音以外的模型只走阿里云百炼一个平台**，统一使用 `DASHSCOPE_API_KEY`、华北2（北京）地域，不接 DeepSeek 官方接口。对话类调用走百炼的 OpenAI 兼容 Chat Completions，关思考用 `enable_thinking=false`（实测说话、agent、打分、搜索四类调用都不返回思考内容）；联网搜索走百炼的 OpenAI 兼容 Responses API（只有北京和新加坡地域支持）。降级链都在同一平台内，只换模型名。
+- `deepseek-v4.1-flash-1017` 已确认可接收文字和图片、返回奶糖说话格式，并返回隐式缓存命中记录；Responses API 可返回内置搜索调用及网页来源。已实现每日搜索额度、网页来源保存与展示、重复搜索拦截和思考字段观测，缺失的推理 token 指标不能当作零。
 - 说话固定用快照名 `deepseek-v4.1-flash-1017`，不用会随版本漂移的 `deepseek-v4.1-flash`。百炼文档写明它支持文本和图片输入、隐式缓存、Responses API 的 `web_search`（[模型说明](https://help.aliyun.com/zh/model-studio/deepseek-v4-1-flash)、[联网搜索](https://help.aliyun.com/zh/model-studio/web-search)）。
 - 注册表（`runtime/models/registry.py`）为每个用途登记：模型名、温度、超时、`max_tokens`、是否开思考、能力（`n`、视觉、工具），以及降级链。
 - 换说话模型只改配置，是否换由仓库主人决定（第 11.2 节）。环境变量见 [setup.md](setup.md)。
@@ -331,7 +331,7 @@ user    场景信息 + 用户原话（打分时再加上回复和依据）
 | `moderate_text` / `understand` | `judge` | 审核子图的文字节点（第 9.3 节） |
 | `moderate_image` | `vision` | 审核子图的审图节点 |
 | `moderate_confirm` | `review` | 审核子图的 BLOCK 复核；调用失败降级为 SUSPECT |
-| `reply_judge` / `tool_facts` / `voice_review` | `judge` | 奶糖输出检查、工具资料提炼、配音稿复核 |
+| `reply_judge` / `tool_facts` / `voice_review` | `judge` | 奶糖输出检查、工具资料提炼、语音口语稿复核 |
 
 - 提示词只写正面要求。成长总结和创作总结只描述统计直接支持的活动，用定性的说法，数字由页面展示；数字和等级的句子由 Schema 校验去掉，一句不剩就重试一次。
 - 待处理的正文以**分隔块里的纯文本**传入（`<post>标题…\n正文…</post>`），不用 `model_dump_json` 把整个对象转义成 JSON 字符串。
