@@ -29,7 +29,13 @@
           :alt="t(slide.alt)"
           :loading="index?'lazy':'eager'"
           decoding="async"
+        ><p
+          v-if="slide.caption"
+          class="hero-caption"
+          aria-hidden="true"
         >
+          {{ t(slide.caption) }}
+        </p>
       </div>
       <Transition name="hero-overlay">
         <div

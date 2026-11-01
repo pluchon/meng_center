@@ -11,6 +11,12 @@ export default {
   posterPrev: '上一张',
   posterNext: '下一张',
   posterGo: '第 {index} 张',
+  posterCaptions: {
+    voice: '点一下，听奶糖说话',
+    assistant: '有事就来问奶糖',
+    sparkle: '先把勺子放开',
+    partners: '轮子得是圆的',
+  },
   posters: {
     voice: 'VOICE，点一下，听奶糖说话：奶糖闭着眼睛开心地说话，声波和音符穿过大字',
     assistant: 'NAITANG，有事就来问奶糖：奶糖星星眼笑着，伸手指向自己的名字',
