@@ -7,8 +7,8 @@ import { Categories, PostSort, FeedSorts, Feed, Hero } from '@/constants/content
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-vue'
 import {
   homeArtwork,
-  homeComicMood,
-  homeComicLove,
+  homeComicVoice,
+  homeComicAssistant,
   homeComicSparkle,
   homeComicPartners,
   communitySparkle,
@@ -26,8 +26,8 @@ const homeScrollbarClass = 'home-scrollbar-hidden'
 // 其余是自带文字的漫画海报，完整显示，上面不叠任何东西
 const slides = Object.freeze([
   { key: 'cirno', src: homeArtwork, cover: true, alt: 'home.brand' },
-  { key: 'mood', src: homeComicMood, alt: 'home.posters.mood' },
-  { key: 'love', src: homeComicLove, alt: 'home.posters.love' },
+  { key: 'voice', src: homeComicVoice, alt: 'home.posters.voice' },
+  { key: 'assistant', src: homeComicAssistant, alt: 'home.posters.assistant' },
   { key: 'sparkle', src: homeComicSparkle, alt: 'home.posters.sparkle' },
   { key: 'partners', src: homeComicPartners, alt: 'home.posters.partners' },
 ])

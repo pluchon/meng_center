@@ -7,10 +7,10 @@
       :aria-expanded="opened"
       @click="opened ? close() : open()"
     >
-      <img
-        :src="companionNekoAvatar"
-        :alt="t('companion.name')"
-      >
+      <NaitangPet
+        :talking="petTalking"
+        :cheers="petCheers"
+      />
     </button>
     <span
       ref="plane"

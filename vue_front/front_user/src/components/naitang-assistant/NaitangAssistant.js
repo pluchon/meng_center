@@ -13,6 +13,7 @@ import {
 import { companionApi, companionImage, companionVoice, sendCompanionMessage } from '@/api/companion'
 import { communitySparkle, companionNekoAvatar } from '@/assets/images'
 import MessageImages from '@/components/message-images/MessageImages.vue'
+import NaitangPet from './NaitangPet.vue'
 import NaitangVoice from './NaitangVoice.vue'
 import { flightFrames } from './flightPath'
 import { Companion, CompanionError, CompanionEvent } from '@/constants/companion'
@@ -32,6 +33,7 @@ export default defineComponent({
     IconPhoto,
     IconSend,
     MessageImages,
+    NaitangPet,
     NaitangVoice,
   },
   setup() {
@@ -66,7 +68,8 @@ export default defineComponent({
       plane = ref(null),
       sending = ref(0)
     const voicing = ref(null),
-      longBubbles = ref(new Set())
+      longBubbles = ref(new Set()),
+      petCheers = ref(0)
     const controllers = new Set()
     let timer,
       voice = null,
@@ -87,6 +90,10 @@ export default defineComponent({
     const thinking = computed(
       () =>
         typing.value || sessions.value.some((item) => item.id === selected.value && item.generating),
+    )
+    // 关掉面板时发送请求还在继续；刷新后接上的生成只有面板打开才会轮询结束，所以要限定打开
+    const petTalking = computed(
+      () => sending.value > 0 || voicing.value !== null || (opened.value && thinking.value),
     )
     const gallery = (message) =>
       message.imageIds.map((id) => ({
@@ -414,6 +421,7 @@ export default defineComponent({
             if (event === CompanionEvent.DONE) usage.value = data.usage
           },
         })
+        if (Math.random() < Companion.PET_CHEER_CHANCE) petCheers.value++
       } catch (error) {
         if (!disposed && !error.cancelled && selected.value === id) {
           optimistic.failed = true
@@ -531,6 +539,8 @@ export default defineComponent({
       segments,
       sticker,
       voicing,
+      petTalking,
+      petCheers,
       longBubbles,
       measureBubble,
       toggleVoice,

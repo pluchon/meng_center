@@ -50,53 +50,35 @@ $spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 }
 
+// 入口就是站着的奶糖，宽高比和桌宠素材相同
 .naitang-launcher {
-  width: 76px;
-  height: 76px;
-  padding: var(--meng-space-1) !important;
-  border: 3px solid var(--meng-surface) !important;
-  border-radius: var(--meng-radius-pill) !important;
-  background: var(--meng-tint) !important;
-  box-shadow: var(--meng-shadow-card);
-  transform: rotate(-5deg);
+  display: block !important;
+  width: 110px;
+  height: 150px;
+  padding: 0 !important;
+  border-radius: var(--meng-radius-note) !important;
+  background: transparent !important;
   transition: transform 360ms $spring !important;
-
-  &[aria-expanded='false'] {
-    animation: naitang-float 3.4s ease-in-out infinite;
-  }
+  transform-origin: 50% 95%;
 
   &:hover:not(:disabled) {
-    animation: none;
-    transform: rotate(4deg) translateY(-4px) scale(1.06);
+    transform: scale(1.05);
   }
 
-  img {
-    width: 100%;
-    height: 100%;
-    border-radius: inherit;
-    object-fit: cover;
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 2px;
   }
 }
 
-@keyframes naitang-float {
-  0%,
-  100% {
-    transform: rotate(-5deg) translateY(0);
-  }
-
-  50% {
-    transform: rotate(-2deg) translateY(-5px);
-  }
-}
-
-// 对话框是从头像冒出来的气泡：浮在头像上方，底部的小尖角指向头像，顶上露出一对猫耳
+// 对话框是从奶糖身边冒出来的气泡：浮在她左侧，小尖角指向她，顶上露出一对猫耳
 .naitang-bubble-shell {
   position: absolute;
-  right: 0;
-  bottom: calc(100% + 18px);
+  right: calc(100% + 14px);
+  bottom: 0;
   width: 400px;
   height: var(--naitang-panel-height);
-  transform-origin: calc(100% - 38px) calc(100% + 18px);
+  transform-origin: calc(100% + 14px) calc(100% - 70px);
 }
 
 .naitang-pop-enter-active {
@@ -132,14 +114,14 @@ $spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 .naitang-tail {
   position: absolute;
   z-index: 1;
-  right: 30px;
-  bottom: -8px;
+  right: -8px;
+  bottom: 62px;
   width: 16px;
   height: 16px;
   border-right: 2px solid var(--meng-border);
   border-bottom: 2px solid var(--meng-border);
   background: var(--meng-surface);
-  transform: rotate(45deg);
+  transform: rotate(-45deg);
   pointer-events: none;
 }
 
@@ -577,6 +559,11 @@ $spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     bottom: 84px;
   }
 
+  .naitang-launcher {
+    width: 84px;
+    height: 114px;
+  }
+
   .naitang-bubble-shell {
     position: fixed;
     inset: 0;
@@ -609,7 +596,6 @@ $spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     transition: none !important;
   }
 
-  .naitang-launcher,
   .naitang-spark,
   .naitang-message,
   .naitang-attachments > div,
@@ -617,7 +603,7 @@ $spring: cubic-bezier(0.34, 1.56, 0.64, 1);
     animation: none !important;
   }
 
-  .naitang-launcher {
+  .naitang-launcher:hover:not(:disabled) {
     transform: none;
   }
 
