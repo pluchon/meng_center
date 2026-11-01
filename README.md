@@ -1,4 +1,4 @@
-![萌部落：分享热爱，收集日常](docs/images/art/banner.png)
+![萌部落：分享热爱，收集日常](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/banner.png)
 
 # 萌部落社区
 
@@ -6,7 +6,7 @@
 
 后端由 6 个 Java 微服务和 1 个 Python AI 服务组成，前端用 Vue 3。这是个兴趣项目，也用来练手微服务架构：服务按业务域拆分，同步调用只保留几条固定的只读路径，跨服务的联动全部走事件消息。
 
-![主页](docs/images/home.webp)
+![主页](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/home.webp)
 
 演示视频：[meng_center_demo.mp4](meng_center_demo.mp4)（92 秒，从注册审核一路演示到服务架构与事件流。视频录得比较早，当时三个角色的「萌萌」页面后来合并成了现在的奶糖助手，后续加上的语音和桌宠也没有收录进去）。
 
@@ -49,13 +49,13 @@ mindmap
 
 ## 奶糖助手
 
-![奶糖助手海报](vue_front/front_user/src/assets/home-comic-assistant.png)
+![奶糖助手海报](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/home-comic-assistant.png)
 
 奶糖是站在主页右下角的全身 Q 版猫娘（琪露诺同人二创）。点她就能打开对话框聊天——她有自己独特的说话口吻，能看懂你发的图片，能帮你找站内帖子、读帖子正文、查你自己的发帖和成长数据，遇到站外的事也能联网搜索（有每日次数限制，回复下方会附上网页来源），还会记住你以前聊过的事。
 
 她和用户的关系最高到「朋友」，不会往恋人方向发展。关于关系界限、现实生活优先以及危机干预的规则写在[奶糖助手](docs/meng.md)第 6 节，优先级高于角色设定。
 
-![奶糖对话框](docs/images/naitang.webp)
+![奶糖对话框](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/naitang.webp)
 
 ### 一轮对话是怎么跑的
 
@@ -102,7 +102,7 @@ flowchart LR
 
 ### 气泡语音
 
-![奶糖语音海报](vue_front/front_user/src/assets/home-comic-voice.png)
+![奶糖语音海报](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/home-comic-voice.png)
 
 气泡上带有声波图标和时长，点击后才会播放。语音念的不是死板的书面文字，而是专门改写过的口语稿，配音语气由主 Agent 根据对话场景挑选；气泡里显示的文字则始终是审核通过的原话。
 
@@ -150,7 +150,7 @@ stateDiagram-v2
 
 注册账号需要先过滑块验证和短信/邮箱验证码，提交后进入待审核状态，等管理员通过后才能正常登录。如果被驳回，登录时能看到具体原因，修改资料后可以重新申请。同一个账号支持在多台设备登录，在个人中心里可以随时让任意一台设备下线。
 
-![登录页面](docs/images/login.webp)
+![登录页面](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/login.webp)
 
 ```mermaid
 sequenceDiagram
@@ -193,9 +193,9 @@ stateDiagram-v2
 
 帖子分为五个分类，正文用 Markdown 编写，最多可传 10 张配图，支持设置封面和标签，也可以先存草稿。主页提供推荐、最新、热门三种排序（默认按推荐）。评论支持带图和表情包，可以置顶、点赞和 `@` 提到其他用户；收藏帖子时还能归类到不同的收藏夹。
 
-![帖子详情](docs/images/post.webp)
+![帖子详情](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/post.webp)
 
-![发帖页](docs/images/editor.webp)
+![发帖页](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/editor.webp)
 
 帖子发布后会异步交给 AI 分析和审核——发帖本身不用等 AI 跑完，就算 AI 服务暂时不可用也能照常发帖。如果审核判定违规，帖子会自动退回草稿箱，并通过系统通知告知作者原因。
 
@@ -219,7 +219,7 @@ stateDiagram-v2
 
 搜索默认按「相关度」排序：先用向量检索召回最多 20 篇候选帖子，再让 AI 重排并判断哪些真正相关。如果向量服务或 AI 不可用，会自动退回关键词检索，保证搜索结果正常返回；切换到「热门」或「最新」排序时则直接走关键词检索。
 
-![搜索结果页](docs/images/search.webp)
+![搜索结果页](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/search.webp)
 
 ```mermaid
 flowchart TD
@@ -237,11 +237,11 @@ flowchart TD
 
 创作中心帮作者汇总了浏览、喜欢、评论和收藏数据，包含近期趋势图和帖子热度排行。图表库做了按需加载，只有点开可视化视图时才会加载。
 
-![创作中心](docs/images/creator.webp)
+![创作中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/creator.webp)
 
 日常签到、发帖、发评论都会增加经验值，经验值决定用户等级；同时还会累积积分（积分是独立的账户，目前只做记录）。成长中心集中展示等级之路、月度签到日历、今日任务和经验明细。
 
-![成长中心](docs/images/growth.webp)
+![成长中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/growth.webp)
 
 ```mermaid
 flowchart LR
@@ -254,11 +254,11 @@ flowchart LR
 
 消息中心分为「私信」「评论」「喜欢」和「系统」四个标签页。私信支持文字、表情、图片、已读回执、消息撤回和在线状态展示，也可以直接屏蔽对方。导航栏上的未读消息数通过一条 WebSocket 长连接实时更新。
 
-![消息中心](docs/images/messages.webp)
+![消息中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/messages.webp)
 
 个人中心可以修改昵称、签名、头像和用户名，换绑邮箱和手机号，管理登录设备，以及查看关注和粉丝列表。修改后的昵称、签名和头像会交给 AI 审核，未通过的内容会被自动清除，并在消息中心说明原因。
 
-![个人中心](docs/images/profile.webp)
+![个人中心](https://zlhimage.oss-cn-guangzhou.aliyuncs.com/item_picture/meng_center/readme/profile.webp)
 
 ## 架构
 
@@ -369,7 +369,7 @@ flowchart LR
 
 ```text
 meng_center/
-├── docs/                 项目文档（页面截图在 docs/images，插画在 docs/images/art）
+├── docs/                 项目文档
 ├── deploy/               Docker Compose、Nacos 配置、初始化与启动脚本
 ├── java_backend/         Java 后端（Maven 多模块）
 ├── python_ai/            Python AI 服务
