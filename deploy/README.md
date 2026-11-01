@@ -146,4 +146,4 @@ Windows 会锁定运行中的 JAR。更新时先停止对应实例，再打包�
 
 主 agent 的 `qwen3.8-flash` 通过请求中的原生断点缓存稳定系统说明，不依赖额外中间件或环境变量。创建量单独记录为 `cacheCreationTokens`，不能当作命中 token；更新 AI 代码后按上述方式重启，其他用途和模型继续使用原有缓存协议。
 
-AI 服务使用百炼凭据，语音合成另用 MiniMax 凭据（缺失时奶糖只有文字），由 `Start-Ai.ps1` 启动；更新 `meng-ai.yml`、`meng-companion.yml` 后发布配置并重启对应服务。搜索每日额度由 companion 的 Redis 原子预留与结算，默认每人 20 次；网页来源保存在消息的 JSON 字段。
+AI 服务使用百炼凭据（语音合成也是），由 `Start-Ai.ps1` 启动；更新 `meng-ai.yml`、`meng-companion.yml` 后发布配置并重启对应服务。搜索每日额度由 companion 的 Redis 原子预留与结算，默认每人 20 次；网页来源保存在消息的 JSON 字段。

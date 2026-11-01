@@ -206,7 +206,7 @@ flowchart LR
 ```
 
 - 闲聊时 agent 和「嘴加预审」同时跑，汇合就能发；工具只处理用户明确提出的查询请求。无工具首个气泡 P50 的目标为 3 秒以内；验收同时检查缓存命中、事实依据和说话方式，服务健康不代表全部指标达标。
-- 文字通过检查后、落库前合成语音：先由 Qwen 改写成口语稿，再由 MiniMax 合成，各气泡并行。口语稿是审核之后才写的，所以代码查标记、长度、数字和红线，审核模型再核对有没有改意思或越界；任何一道不过或超时，都改念规则转换的版本。规则见 [奶糖助手](docs/meng.md) 第 5.2.1 节。
+- 文字通过检查后、落库前合成语音：先由 Qwen 改写成口语稿，再由百炼 Qwen-Audio-TTS 合成，各气泡并行。口语稿是审核之后才写的，所以代码查标记、长度、数字和红线，审核模型再核对有没有改意思或越界；任何一道不过或超时，都改念规则转换的版本。规则见 [奶糖助手](docs/meng.md) 第 5.2.1 节。
 - 断开连接不会中止生成；同一个对话里生成中再发的消息会排队，结束后合并成一轮回复。
 - 记忆在对话之后异步整理：从用户自己的话里提炼事实，取代的旧事实标记失效、不删除；会话空闲 30 分钟后才压缩较早的历史，聊天中不动前缀，缓存命中更高。编排和上下文的完整规则见 [AI 公共运行时](docs/ai-runtime.md)。
 - 主 agent 的稳定系统说明使用百炼原生显式缓存断点，最近 20 轮资料窗口保持完整；缓存创建量与命中量分别记录，滑动历史不重复写入显式缓存。
@@ -218,7 +218,7 @@ flowchart LR
 | 后端 | JDK 17，Spring Boot 4.0，Spring Cloud 2025.1，Spring Cloud Alibaba，MyBatis-Plus，Flyway |
 | AI 服务 | Python 3.12，FastAPI，LangChain 1.x，LangGraph 1.x，使用 uv 管理依赖 |
 | 模型 | 经阿里云百炼：DeepSeek V4.1 Flash 1017 快照（奶糖说话、看图和受限联网搜索）、Qwen3.8 Flash / Max（判断、agent、写作与口语稿）、Qwen3.7 Embedding Flash（向量，1024 维）、Qwen3.7 Rerank（重排）、Qwen Image 3.0 Pro（生图） |
-| 语音合成 | MiniMax Speech 2.8 HD，低语用 2.6 HD |
+| 语音合成 | 百炼 Qwen-Audio-3.1-TTS-Flash，音色 longling_v3.1 |
 | 中间件 | MySQL 8、Redis、RabbitMQ、Elasticsearch、Nacos、xxl-job |
 | 前端 | Vue 3，vue-router，Pinia，Axios，Element Plus，SCSS，构建用 Vite |
 | 部署 | Docker Compose 启动本地中间件；业务服务以 JAR 和 uvicorn 在本机运行 |

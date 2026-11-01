@@ -175,7 +175,7 @@ class Companion:
                     timeout=seconds,
                     _runtime_retries=0,
                 )
-            script = vetted(output.content, base, mood)
+            script = vetted(output.content, base)
             return None if script is None or crosses_red_line([script]) else script
         except Exception as error:
             LOG.warning("voice_script_failed error_type=%s", type(error).__name__)

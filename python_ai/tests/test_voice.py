@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import json
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -7,7 +8,7 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
-from app.clients.voice import VoiceClient, speakable, vetted
+from app.clients.voice import MOODS, VoiceClient, speakable, ssml, vetted
 from app.config.settings import Settings
 from app.runtime.agent.directive import Directive
 from app.runtime.models.gateway import ModelGateway
@@ -19,19 +20,25 @@ from app.services.companion import Companion
     "text,expected",
     [
         ("（耳朵动了动）今天也辛苦啦喵~", "今天也辛苦啦喵~"),
-        ("好呀 (=´ω｀=)", "好呀 (chuckle)"),
+        ("好呀 (=´ω｀=)", "好呀 [giggles]"),
         ("好呀 ( ˘ω˘ )", "好呀"),
-        ("（轻轻笑）你好……呀", "(chuckle)你好<#0.3#>呀"),
-        ("唉，算了吧", "(sighs)算了吧"),
-        ("嗯……让我想想", "(emm)<#0.3#>让我想想"),
+        ("（轻轻笑）你好……呀", "[giggles]你好<break time=\"300ms\"/>呀"),
+        ("唉，算了吧", "[sighing]算了吧"),
+        ("嗯……让我想想", "嗯<break time=\"300ms\"/>让我想想"),
         ("还不睡呀……", "还不睡呀"),
         ("……还不睡呀", "还不睡呀"),
-        ("真的……，……吗", "真的<#0.3#>吗"),
+        ("真的……，……吗", "真的<break time=\"300ms\"/>吗"),
+        ("[laughing]真的", "真的"),
         ("(laughs)真的", "真的"),
         ("\ue000真的", "真的"),
-        ("哈哈哈，嘿嘿，嘻嘻，够了", "(chuckle)(chuckle)够了"),
+        ("哈哈哈，嘿嘿，嘻嘻，够了", "[laughing][giggles]够了"),
+        ("（清清嗓子）本喵宣布", "[clears throat]本喵宣布"),
+        ("咳咳，本喵宣布", "[cough]本喵宣布"),
+        ("（哼）才不是", "[snorts]才不是"),
+        ("（哼着歌）今天真好", "今天真好"),
+        ("（大笑）真的", "[laughing]真的"),
+        ("[excited]真的", "真的"),
         ("（叹气）", ""),
-        ("等等<#9.5#>再说", "等等再说"),
         ("（摇尾巴）", ""),
         ("(=・ω・=) ...", ""),
     ],
@@ -43,32 +50,27 @@ def test_speakable_drops_actions_kaomoji_and_control_syntax(text, expected):
 @pytest.mark.parametrize(
     "text,mood,lead,expected",
     [
-        ("真的吗", "HAPPY", True, "(chuckle)真的吗"),
-        ("真的吗", "HAPPY", False, "真的吗"),
-        ("没事的", "SAD", True, "(sighs)没事的"),
-        ("啊？这样", "SURPRISED", True, "(gasps)啊？这样"),
-        ("（轻轻笑）真的吗", "SAD", True, "(chuckle)真的吗"),
+        ("真的吗", "HAPPY", True, "[excited][giggles]真的吗"),
+        ("真的吗", "HAPPY", False, "[excited]真的吗"),
+        ("没事的", "SAD", True, "[empathetic][sighing]没事的"),
+        ("啊？这样", "SURPRISED", True, "[curious][gasp]啊？这样"),
+        ("（轻轻笑）真的吗", "SAD", True, "[empathetic][giggles]真的吗"),
         ("真的吗", "AUTO", True, "真的吗"),
-        ("（轻轻笑）告诉你……一个秘密", "WHISPER", True, "告诉你<#0.3#>一个秘密"),
+        ("悄悄告诉你", "WHISPER", True, "[whispers]悄悄告诉你"),
+        ("这样可以", "CALM", True, "[serious]这样可以"),
     ],
 )
-def test_opening_tone_follows_mood_and_whisper_has_no_tags(text, mood, lead, expected):
+def test_opening_tone_follows_mood(text, mood, lead, expected):
     assert speakable(text, mood, lead) == expected
 
 
-def test_long_bubble_breathes_once_after_first_sentence():
-    first = "今天晒了一整天的太阳，舒服得都不想动了。"
-    second, third = "你那边天气怎么样呢？", "要是也晴就好啦。"
-    assert speakable(first + second + third) == first + "(breath)" + second + third
-    assert speakable(first) == first
-    long_whisper = speakable(first + second + third, "WHISPER")
-    assert "(breath)" not in long_whisper
+# 24kHz、160kbps 的 MP3 帧头，每秒 20000 字节
+MP3 = bytes.fromhex("fff3e4c4") + bytes(19996)
+ID3 = b"ID3\x03\x00\x00\x00\x00\x00\x51" + bytes(81)
 
 
-def client(handler, key="fixture"):
-    settings = Settings.model_construct(
-        api_key=SecretStr("fixture"), voice_key=SecretStr(key) if key else None
-    )
+def client(handler):
+    settings = Settings.model_construct(api_key=SecretStr("fixture"))
     redis = AsyncMock()
     redis.exists.return_value = False
     redis.eval.return_value = 1
@@ -76,47 +78,54 @@ def client(handler, key="fixture"):
     return VoiceClient(settings, http, ModelGateway(settings, redis))
 
 
+def bailian(seen, audio=MP3):
+    def handler(request):
+        if request.method == "GET":
+            assert "Authorization" not in request.headers
+            return httpx.Response(200, content=audio)
+        seen.update(json.loads(request.content))
+        seen["authorization"] = request.headers["Authorization"]
+        return httpx.Response(
+            200,
+            json={
+                "output": {"audio": {"url": "https://oss.example/a.mp3", "data": ""}},
+                "usage": {"input_tokens": 8, "output_tokens": 20},
+            },
+        )
+
+    return handler
+
+
 async def test_synthesize_sends_cleaned_text_and_returns_base64():
     seen = {}
-
-    def handler(request):
-        seen.update(json.loads(request.content))
-        return httpx.Response(
-            200,
-            json={
-                "data": {"audio": "4944"},
-                "extra_info": {"audio_length": 1200, "usage_characters": 8},
-                "base_resp": {"status_code": 0},
-            },
-        )
-
-    result = await client(handler).synthesize("你好呀")
-    assert seen["text"] == "你好呀"
-    assert seen["voice_setting"]["speed"] == 1.15
-    assert "emotion" not in seen["voice_setting"]
-    assert seen["model"] == "speech-2.8-hd"
-    assert "voice_modify" not in seen
-    assert seen["voice_setting"]["voice_id"] == "Chinese (Mandarin)_Cute_Spirit"
-    assert result == {"audio": "SUQ=", "durationMs": 1200}
+    result = await client(bailian(seen)).synthesize("你好呀")
+    assert seen["model"] == "qwen-audio-3.1-tts-flash"
+    assert seen["authorization"] == "Bearer fixture"
+    assert seen["input"]["text"] == "<speak>你好呀</speak>"
+    assert seen["input"]["enable_ssml"] is True
+    assert seen["input"]["voice"] == "longling_v3.1"
+    assert seen["input"]["format"] == "mp3"
+    assert seen["input"]["language_hints"] == ["zh"]
+    assert {key: seen["input"][key] for key in MOODS["AUTO"]} == MOODS["AUTO"]
+    assert result == {"audio": base64.b64encode(MP3).decode(), "durationMs": 1000}
 
 
-async def test_whisper_switches_model_and_keeps_emotion():
+async def test_mood_changes_voice_settings_but_not_model():
     seen = {}
+    await client(bailian(seen)).synthesize("悄悄告诉你", "WHISPER")
+    assert seen["model"] == "qwen-audio-3.1-tts-flash"
+    assert {key: seen["input"][key] for key in MOODS["WHISPER"]} == MOODS["WHISPER"]
 
-    def handler(request):
-        seen.update(json.loads(request.content))
-        return httpx.Response(
-            200,
-            json={
-                "data": {"audio": "4944"},
-                "extra_info": {"audio_length": 1200},
-                "base_resp": {"status_code": 0},
-            },
-        )
 
-    await client(handler).synthesize("悄悄告诉你", "WHISPER")
-    assert seen["model"] == "speech-2.6-hd"
-    assert seen["voice_setting"]["emotion"] == "whisper"
+def test_ssml_keeps_breaks_and_escapes_everything_else():
+    assert ssml('A&B<break time="300ms"/>"好"\'呀\'<b>') == (
+        '<speak>A&amp;B<break time="300ms"/>&quot;好&quot;&apos;呀&apos;&lt;b&gt;</speak>'
+    )
+
+
+async def test_duration_skips_id3_tag():
+    result = await client(bailian({}, ID3 + MP3)).synthesize("你好")
+    assert result["durationMs"] == 1000
 
 
 def test_unknown_agent_mood_falls_back_to_auto():
@@ -128,56 +137,65 @@ def test_unknown_agent_mood_falls_back_to_auto():
     "response",
     [
         httpx.Response(500),
-        httpx.Response(200, json={"base_resp": {"status_code": 1004}}),
-        httpx.Response(
-            200,
-            json={"data": {"audio": ""}, "extra_info": {"audio_length": 0}, "base_resp": {"status_code": 0}},
-        ),
+        httpx.Response(400, json={"code": "InvalidParameter", "message": "Engine error"}),
+        httpx.Response(200, json={"output": {"audio": {"url": ""}}}),
+        httpx.Response(200, json={"code": "Throttling"}),
     ],
 )
 async def test_failures_fall_back_to_text_only(response):
     assert (await client(lambda request: response).synthesize("你好"))["audio"] is None
 
 
+@pytest.mark.parametrize("audio", [b"", b"RIFF0000WAVEfmt ", bytes.fromhex("fffbe4c4")])
+async def test_unexpected_audio_falls_back_to_text_only(audio):
+    assert (await client(bailian({}, audio)).synthesize("你好"))["audio"] is None
+
+
 BASE = "满分！好厉害啊你，今天考了100分"
 
 
 @pytest.mark.parametrize(
-    "script,mood,accepted",
+    "script,accepted",
     [
-        ("哇，满分？！(chuckle)也太厉害了吧你，考了100分呢", "HAPPY", True),
-        ("(gasps)满分！<#0.3#>好厉害啊你，100分", "AUTO", True),
-        ("唔，满分呀，也太厉害了，今天考了100分", "WHISPER", True),
-        ("(gasps)满分，好厉害，今天考了100分", "WHISPER", False),
-        ("满分！好厉害，今天考了99分", "AUTO", False),
-        ("满分！好厉害", "AUTO", False),
-        ("满分！今天考了100分" + "特别" * 30, "AUTO", False),
-        ("满分！好厉害，100分(screams)", "AUTO", False),
-        ("满分！<#9#>好厉害，今天考了100分", "AUTO", False),
-        ("<#0.2#>满分！好厉害，今天考了100分", "AUTO", False),
-        ("满分！好厉害，今天考了100分<#0.2#>", "AUTO", False),
-        ("满<#0.2#><#0.3#>分！好厉害，今天考了100分", "AUTO", False),
-        ("(chuckle)(sighs)(gasps)(breath)满分！好厉害，今天考了100分", "AUTO", False),
-        ("", "AUTO", False),
+        ("哇，满分？！[giggles]也太厉害了吧你，考了100分呢", True),
+        ("[gasp]满分！好厉害啊你，100分", True),
+        ("[clears throat]满分！[very fast]好厉害啊你，100分", True),
+        ("[like dracula]满分！好厉害啊你，100分", False),
+        ("唔，满分呀，也太厉害了，今天考了100分", True),
+        ("满分！好厉害，今天考了99分", False),
+        ("满分！好厉害", False),
+        ("满分！今天考了100分" + "特别" * 30, False),
+        ("满分！好厉害，100分[screams]", False),
+        ("满分！好厉害，100分(chuckle)", False),
+        ('满分！<break time="300ms"/>好厉害，今天考了100分', True),
+        ('满分！<break time="900ms"/>好厉害，今天考了100分', False),
+        ('满分！<break time="3s"/>好厉害，今天考了100分', False),
+        ('<break time="200ms"/>满分！好厉害，今天考了100分', False),
+        ('满分！好厉害，今天考了100分<break time="200ms"/>', False),
+        ('满<break time="200ms"/><break time="300ms"/>分！好厉害，今天考了100分', False),
+        ("满分！<#0.3#>好厉害，今天考了100分", False),
+        ('满分！<speak rate="2">好厉害</speak>，今天考了100分', False),
+        ("[excited][giggles][sighing][gasp][snorts]满分！好厉害，今天考了100分", False),
+        ("", False),
     ],
 )
-def test_script_structure_is_checked_in_code(script, mood, accepted):
-    assert (vetted(script, BASE, mood) is not None) is accepted
+def test_script_structure_is_checked_in_code(script, accepted):
+    assert (vetted(script, BASE) is not None) is accepted
 
 
 @pytest.mark.parametrize(
     "script,expected",
     [
-        ("满分<#0.2#>呀！好厉害，今天考了100分", "满分呀！好厉害，今天考了100分"),
-        ("满分！ <#0.2#> 好厉害 (chuckle) 今天考了100分", "满分！<#0.2#>好厉害(chuckle)今天考了100分"),
+        ("满分！ [gasp] 好厉害，今天考了100分", "满分！[gasp]好厉害，今天考了100分"),
+        ('满分<break time="200ms"/>呀！好厉害，今天考了100分', "满分呀！好厉害，今天考了100分"),
         (
-            "满<#0.1#>分<#0.2#>！好<#0.3#>厉害，今天考了100分",
-            "满<#0.1#>分<#0.2#>！好厉害，今天考了100分",
+            '满<break time="100ms"/>分<break time="200ms"/>！好<break time="300ms"/>厉害，今天考了100分',
+            '满<break time="100ms"/>分<break time="200ms"/>！好厉害，今天考了100分',
         ),
     ],
 )
-def test_script_pauses_are_tidied(script, expected):
-    assert vetted(script, BASE, "AUTO") == expected
+def test_script_marks_are_tidied(script, expected):
+    assert vetted(script, BASE) == expected
 
 
 def service(content=None, error=None, review=True, review_error=None):
@@ -214,13 +232,13 @@ async def test_reviewed_script_is_spoken():
 async def test_unreviewed_script_is_never_returned(review, review_error):
     fake, voice, _ = service("哇，你好你好", review=review, review_error=review_error)
     result = await Companion.voice(fake, VoiceRequest(text="你好呀", mood="HAPPY"))
-    assert result["audio"] == "voice:你好呀"
+    assert result["audio"] == "voice:[excited]你好呀"
 
 
 @pytest.mark.parametrize(
     "content,error",
     [
-        ("(screams)你好", None),
+        ("[screams]你好", None),
         ("我爱你，你好呀", None),
         (None, TimeoutError()),
     ],
@@ -228,7 +246,7 @@ async def test_unreviewed_script_is_never_returned(review, review_error):
 async def test_bad_or_failed_script_falls_back_without_review(content, error):
     fake, voice, chain = service(content, error)
     await Companion.voice(fake, VoiceRequest(text="（轻轻笑）你好呀", mood="AUTO"))
-    voice.synthesize.assert_awaited_once_with("(chuckle)你好呀", "AUTO")
+    voice.synthesize.assert_awaited_once_with("[giggles]你好呀", "AUTO")
     chain.ainvoke.assert_not_awaited()
 
 
@@ -239,9 +257,8 @@ async def test_nothing_speakable_skips_the_model():
     voice.synthesize.assert_not_awaited()
 
 
-async def test_nothing_to_say_or_no_key_makes_no_request():
+async def test_nothing_to_say_makes_no_request():
     def handler(request):
         raise AssertionError("不应该发请求")
 
     assert (await client(handler).synthesize(""))["audio"] is None
-    assert (await client(handler, key=None).synthesize("你好"))["audio"] is None

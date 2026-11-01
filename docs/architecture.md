@@ -32,7 +32,7 @@
 | IP 属地 | ip2region 离线库 | content 记帖子和评论的属地，user 记登录设备的属地；查询封装放公共模块，进程内查询，不调外部接口 |
 | AI 服务 | Python 3.12 + FastAPI + LangChain / LangGraph 1.x | 不使用 Spring AI；编排写法见 [ai.md](ai.md) 第 3 节 |
 | 模型 | 经阿里云百炼：DeepSeek V4.1 Flash 1017 快照（奶糖说话、看图和联网搜索）、Qwen3.8 Flash / Max、Qwen3.7 Embedding Flash、Qwen3.7 Rerank、Qwen Image 3.0 Pro | 对话走 OpenAI 兼容接口，联网搜索走 Responses API，向量和重排走原生接口，千问同步生图；型号按用途靠配置切换，见 [ai-runtime.md](ai-runtime.md) |
-| 语音合成 | MiniMax Speech 2.8 HD，低语用 2.6 HD | 奶糖气泡语音，只由 ai 服务调用，见 [meng.md](meng.md) 第 5.2.1 节 |
+| 语音合成 | 百炼 Qwen-Audio-3.1-TTS-Flash，音色 longling_v3.1 | 奶糖气泡语音，只由 ai 服务调用，见 [meng.md](meng.md) 第 5.2.1 节 |
 | 前端 | Vue 3 + vue-router + Pinia + Axios + Element Plus + SCSS | 当前只保留用户端项目；管理端仅保留文档规格，见 [frontend.md](frontend.md) |
 | 容器 | Docker Compose | Kibana 只在本地按需启动 |
 
