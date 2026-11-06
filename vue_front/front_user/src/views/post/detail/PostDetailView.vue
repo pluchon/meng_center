@@ -57,11 +57,7 @@
               alt=""
             >
           </div>
-          <div
-            class="detail-scroll-content"
-            tabindex="0"
-            :aria-label="t('editor.detailTitle')"
-          >
+          <div class="detail-content">
             <header class="detail-author">
               <router-link
                 class="detail-back"

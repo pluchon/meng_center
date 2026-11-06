@@ -49,6 +49,7 @@ export default defineComponent({
     const creating = ref(false),
       typing = ref(false),
       failure = ref(null),
+      offline = ref(false),
       loadError = ref(null)
     const sessions = ref([]),
       total = ref(0),
@@ -239,6 +240,7 @@ export default defineComponent({
         messages.value = []
         before.value = null
         failure.value = null
+        offline.value = false
         status.value = ''
         hotlines.value = []
         memoryCleared.value = false
@@ -377,6 +379,19 @@ export default defineComponent({
       attachments.value.forEach((image) => URL.revokeObjectURL(image.preview))
       attachments.value = []
     }
+    function pause(ms, signal) {
+      return new Promise((resolve, reject) => {
+        const timer = setTimeout(resolve, ms)
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(timer)
+            reject({ cancelled: true })
+          },
+          { once: true },
+        )
+      })
+    }
     async function transmit(id, body, optimistic) {
       if (optimistic.pending) return
       if (selected.value === id && matchesInput(body)) clearInput()
@@ -390,42 +405,54 @@ export default defineComponent({
       const session = sessions.value.find((item) => item.id === id)
       if (session) session.generating = true
       bottom(true).then(flyPlane)
+      const onEvent = async (event, data) => {
+        if (disposed || selected.value !== id) return
+        if (event === CompanionEvent.STATUS) {
+          if (data.kind === 'CRISIS_HELP') hotlines.value = data.hotlines || []
+          else status.value = data.text || ''
+        }
+        if (event === CompanionEvent.QUEUED) status.value = t('companion.queued')
+        if (
+          event === CompanionEvent.BUBBLE &&
+          !messages.value.some((message) => message.id === data.id)
+        ) {
+          typing.value = true
+          await bottom()
+          const delay = Math.min(
+            Companion.TYPE_MAX_MS,
+            Math.max(Companion.TYPE_MIN_MS, (data.content || '').length * Companion.TYPE_MS),
+          )
+          await new Promise((resolve) => setTimeout(resolve, delay))
+          if (!disposed && selected.value === id) {
+            if (!messages.value.some((message) => message.id === data.id))
+              messages.value.push(data)
+            typing.value = false
+            await bottom()
+          }
+        }
+        if (event === CompanionEvent.DONE) usage.value = data.usage
+      }
       try {
-        await sendCompanionMessage(id, body, {
-          signal: controller.signal,
-          onEvent: async (event, data) => {
-            if (disposed || selected.value !== id) return
-            if (event === CompanionEvent.STATUS) {
-              if (data.kind === 'CRISIS_HELP') hotlines.value = data.hotlines || []
-              else status.value = data.text || ''
-            }
-            if (event === CompanionEvent.QUEUED) status.value = t('companion.queued')
-            if (
-              event === CompanionEvent.BUBBLE &&
-              !messages.value.some((message) => message.id === data.id)
-            ) {
-              typing.value = true
-              await bottom()
-              const delay = Math.min(
-                Companion.TYPE_MAX_MS,
-                Math.max(Companion.TYPE_MIN_MS, (data.content || '').length * Companion.TYPE_MS),
-              )
-              await new Promise((resolve) => setTimeout(resolve, delay))
-              if (!disposed && selected.value === id) {
-                if (!messages.value.some((message) => message.id === data.id))
-                  messages.value.push(data)
-                typing.value = false
-                await bottom()
-              }
-            }
-            if (event === CompanionEvent.DONE) usage.value = data.usage
-          },
-        })
+        // 断网或断流时用同一个 clientMessageId 重发：服务端按它去重，已生成的回复会重放，不会多算一条
+        for (let attempt = 0; ; attempt++) {
+          try {
+            await sendCompanionMessage(id, body, { signal: controller.signal, onEvent })
+            if (selected.value === id) offline.value = false
+            break
+          } catch (error) {
+            const delay = Companion.RETRY_DELAYS_MS[attempt]
+            if (error.code === 'NETWORK' && selected.value === id) offline.value = true
+            if (error.cancelled || error.code !== 'NETWORK' || delay === undefined || disposed)
+              throw error
+            await pause(delay, controller.signal)
+          }
+        }
         if (Math.random() < Companion.PET_CHEER_CHANCE) petCheers.value++
       } catch (error) {
         if (!disposed && !error.cancelled && selected.value === id) {
           optimistic.failed = true
-          failure.value = error
+          // 断网只在聊天区显示「网络异常」那一行，网络恢复后自动重发，不再在输入框上方报错
+          if (error.code !== 'NETWORK') failure.value = error
           // 不覆盖请求期间新输入的内容；附件用已鉴权的上传地址恢复，避免保留临时对象 URL。
           if (!input.value && !attachments.value.length) {
             input.value = body.content
@@ -518,11 +545,18 @@ export default defineComponent({
         }
       },
     )
+    function reconnect() {
+      if (!offline.value || sending.value) return
+      const failed = messages.value.findLast((message) => message.failed && message.retryBody)
+      if (failed) transmit(selected.value, failed.retryBody, failed)
+    }
     onMounted(() => {
       timer = setInterval(poll, Companion.POLL_MS)
+      window.addEventListener('online', reconnect)
     })
     onUnmounted(() => {
       disposed = true
+      window.removeEventListener('online', reconnect)
       stopVoice()
       clearInterval(timer)
       controllers.forEach((controller) => controller.abort())
@@ -552,6 +586,7 @@ export default defineComponent({
       creating,
       sending,
       failure,
+      offline,
       loadError,
       sessions,
       total,

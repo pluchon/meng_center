@@ -17,21 +17,6 @@
   z-index: 1;
 }
 
-.community-layout.detail-layout {
-  height: 100dvh;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.detail-layout .community-nav {
-  flex-shrink: 0;
-}
-
-.detail-layout .community-main {
-  display: flex;
-  min-height: 0;
-}
-
 .detail-layout .community-footer {
   display: none;
 }

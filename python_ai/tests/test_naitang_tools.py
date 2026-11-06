@@ -108,3 +108,31 @@ def test_combined_memory_text_is_preserved_and_cache_configuration_rejects_unkno
     assert clean_result({"speechFacts": [combined]})["speechFacts"] == [combined]
     with pytest.raises(ValueError, match="未知工具"):
         executor(monkeypatch, tool_cache_seconds={"unknown": 30})
+
+
+async def test_search_posts_ranks_without_cutoff_and_cites_only_matching_posts():
+    from app.runtime.tools import posts
+    from app.runtime.tools.facts import ToolFact, ToolFacts
+
+    rows = [
+        dict(id=34, title="收集地图角落风景", summary="截图比存档还大", authorNickname="像素小画家"),
+        dict(id=206, title="把春天留在相册里", summary="记录今天的灵感", authorNickname="蘑菇存档点"),
+    ]
+    rank = AsyncMock(return_value={"indexes": [0, 1], "scores": [0.6, 0.2], "reranked": True})
+    service = SimpleNamespace(
+        models=SimpleNamespace(embed=AsyncMock(return_value=[[0.1]]), rerank=SimpleNamespace(rank=rank)),
+        internal=AsyncMock(return_value=rows),
+        structured=AsyncMock(return_value=ToolFacts(facts=[ToolFact(content="春天的相册", index=1)])),
+    )
+    result = await posts.execute(service, "search_posts", {"query": "四季风景"}, context())
+    args = rank.await_args
+    assert args.args[1] == ["标题：收集地图角落风景\n摘要：截图比存档还大", "标题：把春天留在相册里\n摘要：记录今天的灵感"]
+    assert args.args[2] == posts.CANDIDATES and args.kwargs["scene"] == "posts"
+    assert service.structured.await_args.args[2]["rows"] == rows
+    assert result == {"facts": ["春天的相册"], "sources": [{"postId": 206, "title": "把春天留在相册里"}]}
+
+
+def test_post_candidates_are_not_cut_by_rerank_score():
+    from app.config.settings import Settings
+
+    assert Settings.model_fields["rerank_thresholds"].default["posts"] == 0

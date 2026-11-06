@@ -279,6 +279,13 @@
                   </button>
                 </div>
               </article>
+              <p
+                v-if="offline"
+                class="naitang-divider"
+                role="status"
+              >
+                {{ t('companion.networkLost') }}
+              </p>
               <article
                 v-if="thinking"
                 class="naitang-message naitang-thinking"

@@ -12,6 +12,8 @@ export const Companion = Object.freeze({
   TYPE_MIN_MS: 600,
   TYPE_MAX_MS: 2500,
   POLL_MS: 3000,
+  // 网络断开时自动重发同一条消息的等待时间，依次 1、2、4 秒；三次都失败就等浏览器报告网络恢复再重发
+  RETRY_DELAYS_MS: [1000, 2000, 4000],
   SCROLL_THRESHOLD: 60,
   VOICE_OUTSIDE_LINES: 3,
   PET_CHEER_MS: 1100,

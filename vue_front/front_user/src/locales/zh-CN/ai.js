@@ -20,7 +20,9 @@ export default {
   favorites: '收获收藏',
   review: '审核中',
   related: '也许你还想看看',
-  relatedMore: '看更多',
+  relatedMore: '换一换',
+  relatedPrev: '上一组',
+  relatedNext: '下一组',
   authorsTitle: '你可能想关注',
   authorsRefresh: '换一批',
   authorReasons: {
@@ -28,7 +30,6 @@ export default {
     TOPIC: 'TA 常写 #{topic}',
     HOT: 'TA 最近很受欢迎',
   },
-  relatedProgress: '{shown} / {total}',
   feedback: '不感兴趣',
   suggestions: '可以试试看',
   reasons: {

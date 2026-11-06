@@ -6,10 +6,19 @@
   background: var(--meng-bg);
 
   h2 {
-    margin: 0 0 16px;
+    margin: 0;
     font-size: 20px;
     color: var(--meng-text);
   }
+}
+
+// 标题一行：左边标题，右边看更多的圆形图标按钮
+.related-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
 }
 
 .related-grid {
@@ -46,34 +55,90 @@
   }
 }
 
-// 看更多：金色贴纸，居中，后面跟着已看几篇
-.related-more {
+.related-tools {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin: 16px auto 0;
-  padding: 8px 22px;
-  border: 3px solid var(--meng-surface);
+}
+
+// 翻回换过的几组：浅蓝胶囊，两头箭头，中间小圆点标出当前是第几组
+.related-pager {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
+
+  button {
+    display: grid;
+    place-items: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--meng-primary);
+    font-size: 16px;
+    cursor: pointer;
+    transition: transform 180ms ease;
+
+    &:hover:enabled {
+      transform: scale(1.12);
+    }
+
+    &:disabled {
+      color: var(--meng-border);
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--meng-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+.related-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-category-anime);
+  transition:
+    width 220ms ease,
+    background 220ms ease;
+
+  &.active {
+    width: 16px;
+    background: var(--meng-warning);
+    box-shadow: 0 1px 0 var(--meng-category-daily);
+  }
+}
+
+// 换一换：金色圆贴纸，换到最后一组变灰
+.related-more {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
   background: var(--meng-warning);
   box-shadow: 0 4px 0 var(--meng-category-daily);
   color: var(--meng-favorite-text);
-  font: inherit;
-  font-weight: 800;
+  font-size: 20px;
   cursor: pointer;
   transition:
     transform 180ms ease,
     box-shadow 180ms ease;
 
-  small {
-    color: var(--meng-muted);
-    font-size: 12px;
-    font-weight: 700;
-  }
-
   &:hover:enabled {
     box-shadow: 0 6px 0 var(--meng-category-daily);
-    transform: translateY(-2px);
+    transform: translateY(-2px) rotate(-30deg);
   }
 
   &:active:enabled {
@@ -81,14 +146,30 @@
     transform: translateY(3px);
   }
 
-  &:disabled {
-    opacity: 0.65;
+  &.spinning .el-icon {
+    animation: related-spin 800ms linear infinite;
+  }
+
+  &:disabled:not(.spinning) {
+    background: var(--meng-bg);
+    box-shadow: 0 4px 0 var(--meng-border);
+    color: var(--meng-muted);
+    cursor: not-allowed;
+  }
+
+  &.spinning {
     cursor: wait;
   }
 
   &:focus-visible {
     outline: 3px solid var(--meng-primary);
     outline-offset: 3px;
+  }
+}
+
+@keyframes related-spin {
+  to {
+    rotate: 360deg;
   }
 }
 
@@ -99,8 +180,14 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .related-more {
+  .related-more,
+  .related-pager button,
+  .related-dot {
     transition: none;
+  }
+
+  .related-more.spinning .el-icon {
+    animation: none;
   }
 
   .related-grid a {

@@ -31,6 +31,7 @@ export default {
   maxImages: '每条消息最多添加 6 张图片。',
   typing: '奶糖正在思考…',
   queued: '消息已排队，奶糖稍后会一起回复。',
+  networkLost: '网络异常',
   generating: '奶糖正在回复',
   cooldown: '冷却中，还剩 {seconds} 秒',
   quota: '今天聊太多啦，明天再来。',
