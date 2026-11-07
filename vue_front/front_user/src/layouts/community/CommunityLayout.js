@@ -1,4 +1,6 @@
-import { defineComponent, onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
+import { defineAsyncComponent, defineComponent, onMounted, onUnmounted, watch, ref, nextTick } from 'vue'
+import { IconCoin } from '@tabler/icons-vue'
+import { growthApi } from '@/api/growth'
 import { useCommunity } from '@/composables/useCommunity'
 import { useSlider } from '@/composables/useSlider'
 import { useUserStore } from '@/stores/user'
@@ -7,7 +9,7 @@ import { useImStore } from '@/stores/im'
 import { RouteName } from '@/router/names'
 import { useRoute, useRouter } from 'vue-router'
 import { Search, PostSort } from '@/constants/content'
-import { LegalDocument } from '@/constants/app'
+import { Contact, LegalDocument } from '@/constants/app'
 import { ElMessage } from 'element-plus'
 import { Growth } from '@/constants/content'
 import {
@@ -23,8 +25,12 @@ import {
 } from '@/assets/images'
 export default defineComponent({
   name: 'CommunityLayout',
+  components: {
+    IconCoin,
+    PointsDialog: defineAsyncComponent(() => import('@/components/points-dialog/PointsDialog.vue')),
+  },
   setup() {
-    const { t, unavailable } = useCommunity()
+    const { t } = useCommunity()
     const user = useUserStore(),
       growth = useGrowthStore()
     const im = useImStore()
@@ -87,6 +93,22 @@ export default defineComponent({
       },
       { immediate: true },
     )
+    // 导航上的积分：跟着经验变化重新取（签到、发帖、评论会同时加经验和积分），关掉积分弹窗后也重取
+    const points = ref(0),
+      pointsOpen = ref(false)
+    async function loadPoints() {
+      if (!user.loggedIn) return
+      try {
+        points.value = (await growthApi.points({ silent: true })).balance ?? 0
+      } catch {
+        // 积分只是导航上的小标，取不到就保留上一次的数字
+      }
+    }
+    function closePoints() {
+      pointsOpen.value = false
+      void loadPoints()
+    }
+    watch(() => [user.current?.id, growth.data?.exp], loadPoints, { immediate: true })
     watch(
       () => growth.data?.level,
       (level, previous) => {
@@ -104,7 +126,10 @@ export default defineComponent({
     return {
       route,
       t,
-      unavailable,
+      Contact,
+      points,
+      pointsOpen,
+      closePoints,
       navRoot,
       navSlider,
       searchOpen,

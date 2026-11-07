@@ -32,11 +32,4 @@ export default {
   },
   feedback: '不感兴趣',
   suggestions: '可以试试看',
-  reasons: {
-    FOLLOW: '你关注的 {author}',
-    SIMILAR: '和你喜欢的《{title}》相似',
-    TOPIC: '你常看的 #{topic}',
-    HOT: '很多人在看',
-    NEW: '新鲜出炉',
-  },
 }

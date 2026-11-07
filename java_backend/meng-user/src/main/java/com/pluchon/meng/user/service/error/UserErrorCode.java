@@ -32,6 +32,7 @@ public enum UserErrorCode implements ErrorCode {
     PASSWORD_MISMATCH("USER_PASSWORD_MISMATCH", "两次输入的密码不一致", 400),
     DELIVERY_FAILED("USER_DELIVERY_FAILED", "验证码发送失败，请稍后重试", 503),
     SMS_UNAVAILABLE("USER_SMS_UNAVAILABLE", "短信通道尚未配置", 503),
+    PHONE_NOT_BOUND("USER_PHONE_NOT_BOUND", "还没有绑定手机号", 409),
     LEGAL_VERSION_CHANGED(
         "USER_LEGAL_VERSION_CHANGED",
         "协议已更新，请重新阅读并同意",

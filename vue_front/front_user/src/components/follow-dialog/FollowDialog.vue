@@ -2,30 +2,18 @@
   <DialogShell
     :model-value="true"
     :icon="IconUsers"
-    :tone="tab === 'following' ? 'blue' : 'pink'"
-    :face="t(tab === 'following' ? 'account.followingFace' : 'account.followersFace')"
+    :tone="following ? 'blue' : 'pink'"
+    :face="t(following ? 'account.followingFace' : 'account.followersFace')"
     width="min(520px,calc(100vw - 32px))"
     @close="$emit('close')"
   >
     <template #title>
-      <div
-        class="follow-tabs"
-        role="tablist"
-        :aria-label="t('account.followTitle')"
+      <h2
+        class="follow-title"
+        :class="following ? 'blue' : 'pink'"
       >
-        <button
-          v-for="item in tabs"
-          :key="item.key"
-          type="button"
-          role="tab"
-          class="follow-tab"
-          :class="[item.tone, { active: tab === item.key }]"
-          :aria-selected="tab === item.key"
-          @click="switchTab(item.key)"
-        >
-          {{ t(item.label) }}<b>{{ item.count }}</b>
-        </button>
-      </div>
+        {{ t(following ? 'account.followCount' : 'account.fansCount') }}<b>{{ count }}</b>
+      </h2>
     </template>
     <PageState
       v-if="resource.loading && !resource.data.records.length"
@@ -46,12 +34,12 @@
       state="empty"
       art="collection"
       size="large"
-      :text="t(tab === 'following' ? 'account.noFollowing' : 'account.noFollowers')"
+      :text="t(following ? 'account.noFollowing' : 'account.noFollowers')"
     />
     <ul
       v-else
       class="follow-list"
-      :aria-label="t(tab === 'following' ? 'account.followingList' : 'account.followersList')"
+      :aria-label="t(following ? 'account.followingList' : 'account.followersList')"
     >
       <li
         v-for="row in resource.data.records"
@@ -88,7 +76,6 @@
     </ul>
     <div class="follow-pager-slot">
       <FeedPagination
-        v-if="totalPages > 1"
         :page="page"
         :total-pages="totalPages"
         :show-top="false"

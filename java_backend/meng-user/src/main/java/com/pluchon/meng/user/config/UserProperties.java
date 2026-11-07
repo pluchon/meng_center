@@ -20,8 +20,12 @@ public record UserProperties(
     @Valid @NotNull Cookie cookie,
     @Valid @NotNull Sms sms,
     @Valid @NotNull InternationalSms internationalSms,
-    @Valid @NotNull Legal legal
+    @Valid @NotNull Legal legal,
+    @Valid @NotNull Registration registration
 ) {
+    // 注册后是否要管理员审核；关闭时注册即为正常账号
+    public record Registration(boolean reviewRequired) {}
+
     public record Legal(@NotBlank String termsVersion, @NotBlank String privacyVersion, boolean published) {}
 
     public record InternationalSms(
@@ -81,7 +85,9 @@ public record UserProperties(
         String domesticCodeTemplate,
         boolean approvalNotificationEnabled,
         String approvedTemplate,
-        String rejectedTemplate
+        String rejectedTemplate,
+        // 短信通道没开通时，应用内忘记密码的验证码只做模拟：不真的发，直接把码返回给页面显示
+        boolean mock
     ) {
         @AssertTrue(message = "Enabled SMS requires a sign name and domestic code template")
         public boolean isConfigured() {

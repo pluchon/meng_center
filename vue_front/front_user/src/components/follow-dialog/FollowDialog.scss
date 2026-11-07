@@ -1,64 +1,32 @@
-.follow-tabs {
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: 4px;
-}
-
-// 当前页签是歪着的彩色贴纸，另一个是安静的文字
-.follow-tab {
-  --tab-fill: var(--meng-tint);
-  --tab-edge: var(--meng-growth-blue-edge);
+// 标题：歪着的彩色贴纸，关注是蓝色、粉丝是粉色，后面跟人数
+.follow-title {
+  --title-fill: var(--meng-tint);
+  --title-edge: var(--meng-growth-blue-edge);
 
   display: inline-flex;
   align-items: baseline;
   gap: 6px;
-  padding: 2px 12px;
-  border: 0;
-  border-radius: 20px;
-  background: transparent;
-  color: var(--meng-muted);
-  font-family: var(--meng-font-display);
-  font-size: 22px;
-  line-height: 1.3;
-  cursor: pointer;
-  transition:
-    rotate 200ms ease,
-    translate 150ms ease;
-}
-
-.follow-tab.pink {
-  --tab-fill: var(--meng-danger);
-  --tab-edge: var(--meng-growth-pink-edge);
-}
-
-.follow-tab b {
-  font-family: Nunito, 'Noto Sans SC', sans-serif;
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.follow-tab.active {
+  margin: 0;
   padding: 2px 16px;
-  background: var(--tab-fill);
-  box-shadow: 0 4px 0 var(--tab-edge);
+  border-radius: 20px;
+  background: var(--title-fill);
+  box-shadow: 0 4px 0 var(--title-edge);
   color: var(--meng-text);
+  font-family: var(--meng-font-display);
   font-size: 26px;
+  font-weight: 400;
   rotate: -3deg;
 }
 
-.follow-tab.active b {
+.follow-title.pink {
+  --title-fill: var(--meng-danger);
+  --title-edge: var(--meng-growth-pink-edge);
+}
+
+.follow-title b {
+  font-family: Nunito, 'Noto Sans SC', sans-serif;
   font-size: 16px;
-  color: var(--meng-text);
-}
-
-.follow-tab:not(.active):hover {
-  translate: 0 -2px;
-}
-
-.follow-tab:focus-visible {
-  outline: 3px solid var(--meng-primary);
-  outline-offset: 3px;
+  font-weight: 800;
 }
 
 // 列表区固定为六行的高度：没有数据、加载中、出错时状态图在这块区域正中，弹窗不会变小
@@ -236,7 +204,7 @@
   outline-offset: 3px;
 }
 
-// 翻页器的位置一直留着，只有一页时不显示也不会让弹窗变矮
+// 翻页器一直显示在弹窗底部，只有一页时两头的箭头是灰的
 .follow-pager-slot {
   display: flex;
   align-items: center;
@@ -246,7 +214,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .follow-tab,
   .follow-row,
   .follow-action {
     transition: none;

@@ -63,7 +63,9 @@ meng:
     legal:
       terms-version: '2026-10-09'
       privacy-version: '2026-10-09'
-      published: false
+      published: true
+    registration:
+      review-required: false
     session:
       ttl: 7d
     verification:
@@ -109,6 +111,7 @@ meng:
       approval-notification-enabled: false
       approved-template: ''
       rejected-template: ''
+      mock: true
     international-sms:
       enabled: false
       endpoint: dysmsapi.ap-southeast-1.aliyuncs.com

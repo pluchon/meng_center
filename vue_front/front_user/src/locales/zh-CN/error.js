@@ -28,6 +28,7 @@ export default {
   USER_PASSWORD_MISMATCH: '两次输入的密码不一致',
   USER_DELIVERY_FAILED: '验证码发送失败，请稍后重试',
   USER_SMS_UNAVAILABLE: '短信通道尚未配置',
+  USER_PHONE_NOT_BOUND: '还没有绑定手机号',
   USER_LEGAL_VERSION_CHANGED: '协议已更新，请重新阅读并同意',
   GAME_TOO_FAR: '离得太远了，再走近一点',
   GAME_OUT_OF_ISLAND: '位置不在岛上',

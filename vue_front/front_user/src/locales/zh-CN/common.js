@@ -14,4 +14,11 @@ export default {
   notFoundTitle: '页面走丢了',
   notFound: '这个地址不存在，或者内容已经搬走了',
   backHome: '回到首页',
+  crop: {
+    zoom: '缩放',
+    replace: '更换图片',
+    presets: '预设图片',
+    presetPending: '这张预设图还在画，先用自己的图吧',
+    confirm: '确定',
+  },
 }

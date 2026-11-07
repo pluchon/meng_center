@@ -112,7 +112,6 @@
           :disabled="submitting"
           @send="sendCode"
         />
-        <ReasonEditor v-model="form.applyReason" />
         <div class="consent-field">
           <LegalConsent
             v-model="agreed"

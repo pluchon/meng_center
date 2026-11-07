@@ -58,6 +58,16 @@
             hidden
             @change="selectCover"
           >
+          <ImageCropDialog
+            v-if="cropFile"
+            :file="cropFile"
+            :aspect="Account.COVER_ASPECT"
+            :presets="coverPresets"
+            :title="t('account.cropCover')"
+            :invalid-text="t('account.coverInvalid')"
+            @confirm="cropped"
+            @close="cropFile = null"
+          />
           <button
             type="button"
             class="account-cover-picker"
@@ -111,13 +121,33 @@
         /></label>
       </template>
       <template v-else-if="type === 'password'">
-        <label>{{ t('account.currentPassword') }}<el-input
+        <label v-if="!forgot">{{ t('account.currentPassword') }}<el-input
           v-model="form.oldPassword"
           type="password"
           show-password
           autocomplete="current-password"
           :aria-label="t('account.currentPassword')"
         /></label>
+        <template v-else>
+          <label>{{ t('account.resetPhone', maskedPhone) }}<div class="account-code-row"><el-input
+            v-model="form.code"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            :maxlength="6"
+            :aria-label="t('account.code')"
+          /><el-button
+            :disabled="seconds > 0 || sending || busy"
+            :loading="sending"
+            @click="sendResetCode"
+          >{{ seconds ? t('account.resend', { seconds }) : t('account.sendCode') }}</el-button></div></label>
+          <p
+            v-if="mockCode"
+            class="account-mock-sms"
+            role="status"
+          >
+            {{ t('account.mockSms', { code: mockCode }) }}
+          </p>
+        </template>
         <label>{{ t('account.newPassword') }}<el-input
           v-model="form.password"
           type="password"
@@ -132,9 +162,10 @@
           autocomplete="new-password"
           :aria-label="t('account.confirmPassword')"
         /></label>
-        <p class="account-dialog-hint account-password-rule">
-          {{ t('account.passwordRule') }}
-        </p>
+        <ul class="account-dialog-hint account-password-rule">
+          <li>{{ t('account.passwordRuleFormat') }}</li>
+          <li>{{ t('account.passwordRuleLogout') }}</li>
+        </ul>
       </template>
       <template v-else>
         <div
@@ -197,6 +228,23 @@
         /></label>
       </template>
       <div class="account-dialog-actions">
+        <el-tooltip
+          v-if="type === 'password'"
+          :content="t('account.phoneUnbound')"
+          :disabled="!!profile.phone || forgot"
+          placement="top"
+        >
+          <span class="account-forgot-wrap">
+            <button
+              type="button"
+              class="account-forgot"
+              :disabled="!profile.phone || busy"
+              @click="toggleForgot"
+            >
+              {{ t(forgot ? 'account.rememberPassword' : 'account.forgotPassword') }}
+            </button>
+          </span>
+        </el-tooltip>
         <button
           v-if="type === 'folder'"
           type="button"
@@ -214,11 +262,6 @@
           ><i /></span>
         </button>
         <el-button
-          :disabled="busy"
-          @click="close"
-        >
-          {{ t('account.cancel') }}
-        </el-button><el-button
           type="primary"
           :loading="busy"
           native-type="submit"
@@ -300,16 +343,23 @@
           {{ t('account.blockHint') }}
         </p>
         <div
-          v-else-if="list.some(item => !item.current)"
+          v-else
           class="account-dialog-actions account-device-actions"
         >
           <el-button
+            v-if="list.some(item => !item.current)"
             class="account-offline-others"
             :disabled="!!pending"
             :loading="pending === 'others'"
             @click="removeOthers"
           >
             {{ t('account.offlineOthers') }}
+          </el-button><el-button
+            class="account-offline-current"
+            :disabled="!!pending"
+            @click="$emit('logout')"
+          >
+            <el-icon><IconLogout /></el-icon>{{ t('account.offlineCurrent') }}
           </el-button>
         </div>
       </template>

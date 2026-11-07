@@ -172,12 +172,61 @@ time {
   overflow-wrap: anywhere;
 }
 
-.category-badge {
-  padding: var(--meng-space-1) var(--meng-space-3);
-  border-radius: var(--meng-radius-pill);
+// 分类是挂在动作行最左边的小吊牌：左端打孔穿一根细绳，微微歪着，悬停时轻轻晃一下
+.post-tag {
+  position: relative;
+  margin-left: 10px;
+  padding: 3px 12px 3px 20px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 6px 12px 12px 6px;
+  box-shadow: 0 3px 0 var(--card-edge);
+  color: var(--meng-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
+  rotate: -5deg;
+  transform-origin: 0 50%;
+}
+
+.post-tag::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--card-edge);
+  border-radius: 50%;
+  background: var(--meng-surface);
+  translate: 0 -50%;
+}
+
+.post-tag::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  width: 20px;
+  height: 12px;
+  border: 1.5px solid var(--card-edge);
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 12px 0 0;
+  translate: 0 -100%;
+}
+
+.post-card:hover .post-tag {
+  animation: post-tag-sway 900ms var(--meng-slide-ease);
+}
+
+@keyframes post-tag-sway {
+  30% {
+    rotate: 4deg;
+  }
+
+  60% {
+    rotate: -8deg;
+  }
 }
 
 .category-anime {
@@ -402,14 +451,12 @@ time {
   .post-actions .views-action {
     transform: none;
   }
+
+  .post-card:hover .post-tag {
+    animation: none;
+  }
 }
 
-.post-type {
-  margin-left: auto;
-  border: 2px solid var(--meng-surface);
-  box-shadow: 0 3px 0 var(--card-edge);
-  rotate: 3deg;
-}
 
 @media (width <= 600px) {
   .post-card {
@@ -430,48 +477,25 @@ time {
   }
 }
 
-// 推荐理由和「不感兴趣」靠右，紧挨着右边的分类标签
-.post-actions .recommend-meta {
-  gap: 8px;
+// 「不感兴趣」是动作行最右边的灰蓝贴纸按钮
+.post-actions .dismiss-action {
+  --action-fill: var(--meng-bg);
+  --action-edge: var(--meng-border);
+
   margin-left: auto;
+  color: var(--meng-muted);
+  rotate: -1deg;
+
+  &:hover {
+    color: var(--meng-text);
+  }
 }
 
-.recommend-meta + .post-type {
-  margin-left: 4px;
-}
-
+// 审核中的标记，挂在标题前面
 .recommend-reason {
   padding: 5px 10px;
   border-radius: 14px;
   background: var(--meng-warning);
   color: var(--meng-text);
   font-size: 12px;
-}
-
-// 放在动作行里，要盖掉动作行对按钮的贴纸样式：这里只是一个淡淡的虚线小字钮
-.post-actions .recommend-dismiss {
-  min-width: 0;
-  min-height: 0;
-  padding: 5px 9px;
-  border: 1px dashed var(--meng-border);
-  border-radius: 14px;
-  background: transparent;
-  box-shadow: none;
-  color: var(--meng-muted);
-  font-size: 12px;
-  font-weight: 400;
-  cursor: pointer;
-  rotate: 0deg;
-  transition: color 160ms ease;
-
-  &:hover {
-    color: var(--meng-primary);
-    box-shadow: none;
-    translate: 0 0;
-  }
-
-  &:active {
-    box-shadow: none;
-    translate: 0 0;
-  }
 }

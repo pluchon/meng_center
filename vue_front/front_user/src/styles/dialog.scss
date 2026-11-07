@@ -72,6 +72,11 @@
   max-width: calc(100vw - 32px);
 }
 
+// 裁剪弹窗展开预设图时平滑变宽，高度不变
+.crop-dialog.el-dialog {
+  transition: width 420ms var(--meng-slide-ease);
+}
+
 // 确认框固定 440 宽；Element 默认裁掉溢出，这里放开，胶带才露得出来
 .el-message-box.meng-confirm {
   --el-messagebox-width: min(440px, calc(100vw - 32px));
@@ -399,6 +404,10 @@
   .meng-dialog.el-dialog,
   .el-message-box.meng-confirm {
     animation: none;
+  }
+
+  .crop-dialog.el-dialog {
+    transition: none;
   }
 
   .shell-close,

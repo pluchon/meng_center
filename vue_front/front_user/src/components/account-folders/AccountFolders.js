@@ -1,4 +1,4 @@
-import { defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, defineComponent, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import {
@@ -8,8 +8,9 @@ import {
   IconWorld,
 } from '@tabler/icons-vue'
 import { contentApi, contentImage } from '@/api/content'
-import { Account, FolderVisibility } from '@/constants/account'
+import { Account, FolderCoverPresets, FolderVisibility } from '@/constants/account'
 import { accountFolderCover } from '@/assets/images'
+import ImageCropDialog from '@/components/image-crop-dialog/ImageCropDialog.vue'
 import { accountDate } from '@/utils/accountDate'
 import PageState from '@/components/page-state/PageState.vue'
 import { notifyFailure } from '@/composables/useFailureNotice'
@@ -18,7 +19,7 @@ const COVER_BYTES = 5 * 1024 * 1024
 const COVER_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 export default defineComponent({
   name: 'AccountFolders',
-  components: { CoverCamera, IconLock, IconWorld, Plus, PageState },
+  components: { CoverCamera, IconLock, IconWorld, Plus, PageState, ImageCropDialog },
   props: {
     revision: { type: Number, default: 0 },
     // 别人的主页传他的编号，只列他公开的收藏夹
@@ -93,6 +94,13 @@ export default defineComponent({
         ElMessage.warning(t('account.coverInvalid'))
         return
       }
+      crop.value = { folder, file }
+    }
+    // 先进裁剪弹窗，点确定才真正上传新封面
+    const crop = ref(null)
+    async function cropped(file) {
+      const { folder } = crop.value
+      crop.value = null
       changing.value = folder.id
       try {
         const body = new FormData()
@@ -137,6 +145,14 @@ export default defineComponent({
       changing,
       pickCover,
       coverSelected,
+      crop,
+      cropped,
+      coverPresets: computed(() =>
+        FolderCoverPresets.map((preset) => ({
+          ...preset,
+          label: t('account.coverPresets.' + preset.key),
+        })),
+      ),
       loadMore: () => loadMore(),
       Account,
       FolderVisibility,

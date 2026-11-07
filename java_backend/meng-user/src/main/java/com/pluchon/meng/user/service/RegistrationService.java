@@ -12,6 +12,7 @@ import com.pluchon.meng.user.entity.enums.UserRole;
 import com.pluchon.meng.user.entity.enums.UserStatus;
 import com.pluchon.meng.user.entity.enums.VerificationPurpose;
 import com.pluchon.meng.user.mapper.UserMapper;
+import com.pluchon.meng.user.mq.RegistrationActivated;
 import com.pluchon.meng.user.service.error.UserErrorCode;
 import com.pluchon.meng.user.service.security.ContactService;
 import com.pluchon.meng.user.service.security.PasswordService;
@@ -21,6 +22,7 @@ import com.pluchon.meng.user.service.security.VerificationCodeService;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -57,9 +59,12 @@ public class RegistrationService {
     private UserProperties properties;
 
     @Autowired
+    private ApplicationEventPublisher events;
+
+    @Autowired
     private Clock clock;
 
-    // 提交注册申请，入库后是待审核状态。验证码放在重复检查之后才消耗，重名时不白白作废
+    // 提交注册：开着审核时入库为待审核，关着时直接是正常账号。验证码放在重复检查之后才消耗，重名时不白白作废
     @Transactional(rollbackFor = Exception.class)
     public void register(RegistrationDTO request, String ip) {
         requireCurrentLegal(request);
@@ -84,8 +89,9 @@ public class RegistrationService {
         user.setUsername(name);
         user.setPasswordHash(password);
         user.setRole(UserRole.USER);
-        user.setStatus(UserStatus.PENDING);
-        user.setApplyReason(request.applyReason());
+        boolean review = properties.registration().reviewRequired();
+        user.setStatus(review ? UserStatus.PENDING : UserStatus.NORMAL);
+        if (review) user.setApplyReason(request.applyReason());
         user.setTermsVersion(request.termsVersion());
         user.setPrivacyVersion(request.privacyVersion());
         user.setAgreedAt(LocalDateTime.now(clock));
@@ -102,6 +108,7 @@ public class RegistrationService {
             // 并发下两个请求同时通过了上面的检查，由唯一索引兜底
             throw new BusinessException(CommonErrorCode.CONFLICT);
         }
+        if (!review) events.publishEvent(new RegistrationActivated(user.getId()));
     }
 
     // 协议还没发布不开放注册；用户同意的版本必须是当前版本

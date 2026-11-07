@@ -28,6 +28,8 @@ export const Auth = Object.freeze({
 })
 export const LegalVersion = Object.freeze({ TERMS: '2026-10-09', PRIVACY: '2026-10-09' })
 export const LegalDocument = Object.freeze({ TERMS: 'terms', PRIVACY: 'privacy' })
+// 暂时没有管理端，联系和意见反馈都发到这个邮箱
+export const Contact = Object.freeze({ EMAIL: 'zlh8232@gmail.com' })
 export const Regions = Object.freeze([
   { key: 'taiwan', code: '+886' },
   { key: 'hongkong', code: '+852' },

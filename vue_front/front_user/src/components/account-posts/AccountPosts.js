@@ -23,6 +23,7 @@ import {
 import { contentApi, contentImage } from '@/api/content'
 import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
+import { confirmDialog } from '@/composables/useConfirm'
 import { Account, AccountPane, FolderVisibility } from '@/constants/account'
 import { accountPaletteIcon, accountScenes } from '@/assets/images'
 import { accountDate } from '@/utils/accountDate'
@@ -191,28 +192,23 @@ export default defineComponent({
         void finishField(field)
       }
     }
-    const viewport = [
-      '(min-width: 900px)',
-      '(max-height: 650px)',
-      '(max-height: 800px)',
-      '(max-height: 960px)',
-    ].map((query) => window.matchMedia(query))
-    const visibleSize = () =>
-      !viewport[0].matches
-        ? Account.SIZE
-        : viewport[1].matches
-          ? 2
-          : viewport[2].matches
-            ? 4
-            : viewport[3].matches
-              ? 6
-              : Account.SIZE
-    const pageSize = ref(visibleSize())
-    const resize = () => {
-      const size = visibleSize()
-      if (pageSize.value === size) return
-      pageSize.value = size
+    // 宽屏时卡片高度固定，一页放几条按列表区的实际高度算，正好铺满；窄屏按内容自然展开，用默认条数
+    const area = ref(null),
+      pageSize = ref(Account.SIZE)
+    const wide = window.matchMedia('(min-width: 900px)')
+    function measure() {
+      const box = area.value
+      if (!box || !wide.matches) {
+        pageSize.value = Account.SIZE
+        return
+      }
+      const grid = box.querySelector('.account-post-grid')
+      const gap = grid ? parseFloat(getComputedStyle(grid).rowGap) || 0 : Account.ROW_GAP
+      const row = grid?.querySelector('.account-post')?.offsetHeight || Account.ROW_HEIGHT
+      const rows = Math.max(1, Math.floor((box.clientHeight + gap) / (row + gap)))
+      pageSize.value = Math.min(Account.PAGE_MAX, rows * 2)
     }
+    const observer = new ResizeObserver(() => measure())
     const { state: resource, load } = useRequestResource(
       async (signal) => {
         const params = { page: props.page, size: pageSize.value }
@@ -241,8 +237,21 @@ export default defineComponent({
     )
     async function toggle(post) {
       if (post.pending) return
-      post.pending = true
       const on = !post.active
+      // 从收藏夹里拿掉一篇先确认，喜欢的取消不用
+      if (
+        props.folderId &&
+        !on &&
+        !(await confirmDialog({
+          title: t('account.unfavorite'),
+          message: t('account.unfavoriteConfirm', { title: post.title }),
+          confirmText: t('account.unfavorite'),
+          cancelText: t('account.cancel'),
+          danger: true,
+        }))
+      )
+        return
+      post.pending = true
       try {
         if (props.folderId) {
           await (on ? contentApi.addToFolder : contentApi.removeFromFolder)(props.folderId, post.id)
@@ -255,9 +264,14 @@ export default defineComponent({
         post.pending = false
       }
     }
-    onMounted(load)
-    onMounted(() => viewport.forEach((query) => query.addEventListener('change', resize)))
-    onUnmounted(() => viewport.forEach((query) => query.removeEventListener('change', resize)))
+    onMounted(() => {
+      measure()
+      if (area.value) observer.observe(area.value)
+      void load()
+    })
+    onUnmounted(() => observer.disconnect())
+    // 第一页渲染出来后按真实行高再算一次
+    watch(() => resource.data.records, measure, { flush: 'post' })
     watch([() => props.page, pageSize], ([page, size], [, previousSize]) => {
       if (size !== previousSize && page !== 1) {
         emit('page', 1)
@@ -299,6 +313,7 @@ export default defineComponent({
       accountScenes,
       RouteName,
       pageSize,
+      area,
       date: (value) => accountDate(value, t, true),
     }
   },

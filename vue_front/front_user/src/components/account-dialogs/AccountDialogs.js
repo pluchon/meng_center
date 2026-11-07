@@ -14,6 +14,7 @@ import {
   IconDeviceLaptop as Laptop,
   IconBan as CircleClose,
   IconWorld,
+  IconLogout,
 } from '@tabler/icons-vue'
 import { userApi } from '@/api/user'
 import { contentApi } from '@/api/content'
@@ -23,12 +24,13 @@ import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { Auth, Regions } from '@/constants/app'
 import { RouteName } from '@/router/names'
-import { Account, FolderVisibility } from '@/constants/account'
+import { Account, FolderCoverPresets, FolderVisibility } from '@/constants/account'
 import { accountDate } from '@/utils/accountDate'
 import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
 import PageState from '@/components/page-state/PageState.vue'
 import FolderColorPicker from '@/components/folder-color-picker/FolderColorPicker.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
+import ImageCropDialog from '@/components/image-crop-dialog/ImageCropDialog.vue'
 export default defineComponent({
   name: 'AccountDialogs',
   components: {
@@ -37,6 +39,8 @@ export default defineComponent({
     Check,
     IconLock: Lock,
     IconWorld,
+    IconLogout,
+    ImageCropDialog,
     CaptchaDialog,
     PageState,
     MessageAvatar,
@@ -46,7 +50,7 @@ export default defineComponent({
     type: { type: String, required: true },
     profile: { type: Object, required: true },
   },
-  emits: ['close', 'saved', 'changed'],
+  emits: ['close', 'saved', 'changed', 'logout'],
   setup(props, { emit }) {
     const { t } = useI18n(),
       router = useRouter(),
@@ -71,7 +75,13 @@ export default defineComponent({
       cover = ref(null),
       coverPreview = ref(''),
       pending = ref(null),
-      page = ref(1)
+      page = ref(1),
+      // 选好的原图，裁剪弹窗开着时不为空
+      cropFile = ref(null),
+      // 修改密码弹窗切到「忘记了原密码」：用绑定手机号的验证码重置
+      forgot = ref(false),
+      // 短信通道没开通时的模拟发码，把码显示在弹窗里
+      mockCode = ref('')
     let timer,
       disposed = false
     const keys = {
@@ -140,9 +150,42 @@ export default defineComponent({
         ElMessage.warning(t('account.coverInvalid'))
         return
       }
+      cropFile.value = file
+    }
+    // 裁剪确定后才换成新封面；真正上传要等新建收藏夹时一起提交
+    function cropped(file) {
       clearCover()
       cover.value = file
       coverPreview.value = URL.createObjectURL(file)
+      cropFile.value = null
+    }
+    function toggleForgot() {
+      forgot.value = !forgot.value
+      form.code = ''
+      mockCode.value = ''
+    }
+    function startCountdown() {
+      seconds.value = 60
+      timer = setInterval(() => {
+        if (--seconds.value <= 0) clearInterval(timer)
+      }, 1000)
+    }
+    async function sendResetCode() {
+      if (sending.value || seconds.value) return
+      sending.value = true
+      try {
+        const ticket = await captcha.value.solve()
+        if (!ticket || disposed) return
+        const result = await userApi.myResetCode({ ticket })
+        if (disposed) return
+        mockCode.value = result?.mockCode || ''
+        startCountdown()
+        ElMessage.success(t(mockCode.value ? 'account.mockSent' : 'account.sent'))
+      } catch (error) {
+        notifyFailure(error)
+      } finally {
+        sending.value = false
+      }
     }
     function contact() {
       return props.type === 'email'
@@ -171,10 +214,7 @@ export default defineComponent({
         if (!ticket || disposed) return
         await userApi.contactCode({ ...target, ticket })
         if (disposed) return
-        seconds.value = 60
-        timer = setInterval(() => {
-          if (--seconds.value <= 0) clearInterval(timer)
-        }, 1000)
+        startCountdown()
         ElMessage.success(t('account.sent'))
       } catch (error) {
         notifyFailure(error)
@@ -191,8 +231,12 @@ export default defineComponent({
         ElMessage.warning(t('account.invalidName'))
         return
       }
+      if (props.type === 'password' && forgot.value && !Auth.CODE_PATTERN.test(form.code)) {
+        ElMessage.warning(t('account.invalidCode'))
+        return
+      }
       if (props.type === 'password' && !Auth.PASSWORD_PATTERN.test(form.password)) {
-        ElMessage.warning(t('account.passwordRule'))
+        ElMessage.warning(t('account.passwordRuleFormat'))
         return
       }
       if (props.type === 'password' && form.password !== form.confirmPassword) {
@@ -219,11 +263,18 @@ export default defineComponent({
           ElMessage.success(t('account.folderCreated'))
           emit('saved')
         } else if (props.type === 'password') {
-          await userApi.password({
-            oldPassword: form.oldPassword,
-            password: form.password,
-            confirmPassword: form.confirmPassword,
-          })
+          if (forgot.value)
+            await userApi.myResetPassword({
+              code: form.code,
+              password: form.password,
+              confirmPassword: form.confirmPassword,
+            })
+          else
+            await userApi.password({
+              oldPassword: form.oldPassword,
+              password: form.password,
+              confirmPassword: form.confirmPassword,
+            })
           user.clear()
           ElMessage.success(t('account.passwordChanged'))
           router.replace({ name: RouteName.LOGIN })
@@ -288,9 +339,16 @@ export default defineComponent({
       title: computed(() => t('account.' + keys[props.type])),
       dialogIcon: computed(() => icons[props.type]),
       dialogFace: computed(() => t(faces[props.type])),
+      // 脱敏手机号拆成区号和后面的部分：+886***678 写成 (+886) ***678
+      maskedPhone: computed(() => {
+        const [, code = '', rest = props.profile.phone || ''] =
+          /^(\+\d+)(.*)$/.exec(props.profile.phone || '') || []
+        return { code, rest }
+      }),
       confirmText: computed(() => {
         if (props.type === 'folder') return t('account.confirmCreate')
-        if (props.type === 'password') return t('account.confirmPasswordChange')
+        if (props.type === 'password')
+          return t(forgot.value ? 'account.confirmPasswordReset' : 'account.confirmPasswordChange')
         if (props.type === 'phone')
           return t(props.profile.phone ? 'account.confirmPhoneChange' : 'account.confirmBind')
         if (props.type === 'email')
@@ -314,6 +372,18 @@ export default defineComponent({
       close,
       selectCover,
       clearCover,
+      cropFile,
+      cropped,
+      coverPresets: computed(() =>
+        FolderCoverPresets.map((preset) => ({
+          ...preset,
+          label: t('account.coverPresets.' + preset.key),
+        })),
+      ),
+      forgot,
+      mockCode,
+      toggleForgot,
+      sendResetCode,
       sendCode,
       submit,
       remove,

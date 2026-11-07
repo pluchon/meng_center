@@ -60,6 +60,7 @@ export default {
   footerContact: '联系',
   contactEmail: '联系邮箱',
   feedback: '意见反馈',
+  feedbackSubject: '萌部落意见反馈',
   terms: '用户协议',
   privacy: '隐私政策',
   time: {

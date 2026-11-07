@@ -39,6 +39,22 @@
   animation: folder-appear 300ms var(--meng-motion-ease) var(--folder-delay, 0ms) backwards;
 }
 
+// 私密收藏夹：整张卡片蒙一层很淡的灰，带一点向内的阴影，悬停时稍微再淡一点
+.account-folder.is-private::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--meng-folder-private-veil);
+  box-shadow: inset 0 0 18px var(--meng-folder-private-shade);
+  pointer-events: none;
+  transition: opacity 180ms ease;
+}
+
+.account-folder.is-private:hover::after {
+  opacity: 0.6;
+}
+
 .account-folder:hover {
   transform: translateY(-3px);
   box-shadow: 0 7px 0 var(--folder-fill, var(--meng-creator-yellow));

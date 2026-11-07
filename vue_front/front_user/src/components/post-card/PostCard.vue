@@ -75,6 +75,9 @@
     />
     <div class="post-actions">
       <span
+        class="post-tag"
+        :class="'category-'+post.category.toLowerCase()"
+      >{{ t('home.categories.'+post.category) }}</span><span
         class="views-action"
         :aria-label="t('home.views')"
       ><el-icon><ViewIcon /></el-icon>{{ post.viewCount }}</span><button
@@ -104,18 +107,15 @@
         @click="toggle('favorite')"
       >
         <el-icon><CollectionTag /></el-icon>{{ post.favoriteCount }}
-      </button><span
+      </button><button
         v-if="post.reason"
-        class="recommend-meta"
-      ><span class="recommend-reason">{{ t('ai.reasons.'+post.reason.type,post.reason) }}</span><button
         type="button"
-        class="recommend-dismiss"
+        class="dismiss-action"
         :disabled="pending.dismiss"
         @click.stop="dismiss"
-      >{{ t('ai.feedback') }}</button></span><span
-        class="post-type category-badge"
-        :class="'category-'+post.category.toLowerCase()"
-      >{{ t('home.categories.'+post.category) }}</span>
+      >
+        <el-icon><IconEyeOff /></el-icon>{{ t('ai.feedback') }}
+      </button>
     </div>
   </article>
 </template>

@@ -28,13 +28,6 @@
           :class="side"
           aria-hidden="true"
         />
-        <img
-          class="account-mascot"
-          :src="editorCirnoMascot"
-          alt=""
-          aria-hidden="true"
-          draggable="false"
-        >
         <span
           class="account-face"
           aria-hidden="true"
@@ -89,7 +82,7 @@
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
                   hidden
-                  @change="uploadAvatar"
+                  @change="pickAvatar"
                 >
               </template>
             </div>
@@ -106,16 +99,16 @@
                 </component><span
                   class="account-sparkle"
                   aria-hidden="true"
-                />
-              </div><p
-                class="account-bio"
-                :class="{ 'is-empty': !profile.data.bio }"
-              >
-                <i
-                  class="account-bio-mark"
-                  aria-hidden="true"
-                />{{ profile.data.bio || t(other ? 'account.otherBio' : 'account.noBio') }}
-              </p>
+                /><p
+                  class="account-bio"
+                  :class="{ 'is-empty': !profile.data.bio }"
+                >
+                  <i
+                    class="account-bio-mark"
+                    aria-hidden="true"
+                  />{{ profile.data.bio || t(other ? 'account.otherBio' : 'account.noBio') }}
+                </p>
+              </div>
               <div class="account-social">
                 <button
                   class="account-social-sticker blue"
@@ -127,12 +120,6 @@
                   @click="followDialog = 'followers'"
                 >
                   <el-icon><IconUsers /></el-icon>{{ t('account.fansCount') }} <b>{{ profile.data.followerCount }}</b>
-                </button><button
-                  v-if="!other"
-                  class="account-social-sticker gold"
-                  @click="pointsOpen = true"
-                >
-                  <el-icon><IconCoin /></el-icon>{{ t('account.pointsSticker') }} <b>{{ pointsBalance }}</b>
                 </button>
               </div>
             </div>
@@ -230,11 +217,9 @@
               v-if="pane === AccountPane.SETTINGS"
               key="settings"
               ref="settings"
-              :logging-out="loggingOut"
               :profile="profile.data"
               @saved="updatedProfile"
               @dialog="openDialog"
-              @logout="logout"
             />
             <AccountPosts
               v-else-if="secondPane || folderId"
@@ -275,18 +260,33 @@
         @close="dialog = null"
         @saved="dialogSaved"
         @changed="$refs.settings?.refresh($event)"
+        @logout="logout"
+      />
+      <ImageCropDialog
+        v-if="avatarFile"
+        :file="avatarFile"
+        :aspect="1"
+        :frame-width="Account.AVATAR_FRAME"
+        :output-width="Account.AVATAR_OUTPUT"
+        :preset-columns="4"
+        :preset-rows="2"
+        :presets="avatarPresets"
+        :max-bytes="Account.AVATAR_BYTES"
+        :title="t('account.cropAvatar')"
+        :invalid-text="t('account.avatarInvalid')"
+        file-name="avatar.webp"
+        round
+        @confirm="uploadAvatar"
+        @close="avatarFile = null"
       />
       <FollowDialog
         v-if="followDialog"
+        :key="followDialog"
         :user-id="other ? viewedId : profile.data.id"
-        :initial="followDialog"
-        :counts="{ following: profile.data.followingCount, followers: profile.data.followerCount }"
+        :kind="followDialog"
+        :count="followDialog === 'following' ? profile.data.followingCount : profile.data.followerCount"
         @close="closeFollowDialog"
         @changed="loadProfile"
-      />
-      <PointsDialog
-        v-if="pointsOpen"
-        @close="closePoints"
       />
     </main>
   </CommunityLayout>

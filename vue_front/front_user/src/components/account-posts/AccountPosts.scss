@@ -8,7 +8,15 @@
   gap: 18px;
 }
 
-// 加载、出错、没有帖子时，状态图在标题和翻页之间的空地正中
+// 标题和翻页之间的列表区：占满剩下的高度，一页的条数按它的高度算
+.account-post-area {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+// 加载、出错、没有帖子时，状态图在列表区正中
 .account-post-state {
   flex: 1;
   align-content: center;
@@ -163,9 +171,12 @@
   max-width: calc(100% - 58px);
 }
 
+// 名字胶囊：名字后面跟着改名的笔，改名时笔换成确认的勾，都在胶囊里面
 .account-folder-tools h2 > span {
-  display: inline-block;
-  padding: 2px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px 2px 16px;
   border-radius: 20px;
   background: var(--folder-bg);
   box-shadow: 0 4px 0 var(--folder-fill);
@@ -176,9 +187,45 @@
     box-shadow 300ms ease;
   max-width: 100%;
   box-sizing: border-box;
+  white-space: nowrap;
+}
+
+.account-folder-tools h2 > span > b {
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: inherit;
+}
+
+// 笔和勾都不带底色和边框，只是一个跟主题色的小图标
+.account-name-action {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--folder-edge);
+  font-size: 20px;
+  cursor: pointer;
+  transition: transform 160ms var(--meng-motion-ease);
+
+  &:hover:not(:disabled) {
+    transform: scale(1.12);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
 }
 
 .account-folder-tools h2 > span.is-editing {
@@ -204,8 +251,7 @@
   transform: rotate(0deg);
 }
 
-.account-folder-back,
-.account-folder-edit {
+.account-folder-back {
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -228,16 +274,6 @@
   margin-bottom: 4px;
 }
 
-.account-folder-edit {
-  width: 36px;
-  height: 36px;
-  border: 0;
-  background: transparent;
-  color: var(--folder-edge);
-  box-shadow: none;
-  font-size: 19px;
-}
-
 .account-folder-sparkle {
   color: var(--folder-fill);
   font-size: 24px;
@@ -247,23 +283,16 @@
   content: '✦';
 }
 
-.account-folder-back:hover,
-.account-folder-edit:hover {
+.account-folder-back:hover {
   transform: translateY(-2px);
 }
 
-.account-folder-edit:hover {
-  background: var(--meng-tint);
-}
-
-.account-folder-back:active,
-.account-folder-edit:active {
+.account-folder-back:active {
   transform: translateY(3px) scale(0.97);
   box-shadow: none;
 }
 
-.account-folder-back:focus-visible,
-.account-folder-edit:focus-visible {
+.account-folder-back:focus-visible {
   outline: 3px solid var(--meng-primary);
   outline-offset: 3px;
 }
@@ -298,14 +327,15 @@
 }
 
 // 公开或私密：私密是淡蓝灰贴纸，公开是薄荷色
+// 公开 / 私密：这一行最右边的圆形图标贴纸，点一下切换；私密是灰色的锁，公开是薄荷色的地球
 .account-folder-summary > .account-visibility {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  display: inline-grid;
+  place-items: center;
+  width: 38px;
   height: 38px;
-  padding: 0 15px 0 11px;
+  padding: 0;
   border: 3px solid var(--meng-surface);
-  border-radius: 22px;
+  border-radius: 50%;
   background: var(--meng-bg);
   box-shadow: 0 4px 0 var(--meng-border);
   color: var(--meng-shadow-hard);
@@ -325,7 +355,7 @@
 }
 
 .account-visibility .el-icon {
-  font-size: 16px;
+  font-size: 18px;
 }
 
 .account-folder-summary > .account-visibility:hover:not(:disabled) {
@@ -350,6 +380,7 @@
 .account-post-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
   gap: 14px 18px;
 }
 
@@ -601,90 +632,51 @@
   gap: 4px;
 }
 
-.account-folder-description p {
-  margin: 0;
+.account-folder-description {
+  overflow: hidden;
+}
+
+// 简介胶囊：宽度跟着文字走，笔和勾在胶囊里、文字后面，和收藏夹名一样
+.account-description-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
   min-width: 0;
-  color: var(--meng-tool-text);
-  font-size: 14px;
-  overflow-wrap: anywhere;
-  padding: 4px 12px;
-  background: var(--folder-soft);
+  padding: 2px 6px 2px 12px;
   border-left: 4px solid var(--folder-fill);
   border-radius: 4px 12px 12px 4px;
+  background: var(--folder-soft);
+  color: var(--meng-tool-text);
+  font-size: 14px;
+}
+
+.account-description-chip > span {
+  min-width: 0;
+  padding-block: 4px;
+  overflow-wrap: anywhere;
+}
+
+.account-description-chip.is-editing {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 2px;
+}
+
+.account-description-chip .account-name-action {
+  width: 26px;
+  height: 26px;
+  font-size: 16px;
 }
 
 .account-inline-description {
-  flex: 1;
-  width: 0;
+  max-width: 100%;
   min-width: 0;
-  padding: 4px 12px;
+  padding: 4px 0;
   border: 0;
-  border-left: 4px solid var(--folder-fill);
-  border-radius: 4px 12px 12px 4px;
-  background: var(--folder-soft);
-  color: var(--meng-tool-text);
+  outline: none;
+  background: transparent;
+  color: inherit;
   font: inherit;
-  font-size: 14px;
-}
-
-.account-folder-description button {
-  background: none;
-  border: 0;
-  cursor: pointer;
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  display: inline-grid;
-  place-items: center;
-  font-size: 17px;
-  color: var(--folder-edge);
-  transition:
-    transform 180ms var(--meng-motion-ease),
-    background-color 180ms;
-}
-
-.account-folder-description button:hover {
-  background: var(--meng-tint);
-}
-
-.account-inline-confirm,
-.account-folder-description .account-inline-confirm {
-  display: grid;
-  place-items: center;
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--meng-success);
-  color: var(--meng-success-shadow);
-  box-shadow: 0 2px 0 var(--meng-creator-green);
-  font-size: 19px;
-  cursor: pointer;
-  animation: account-mark 260ms var(--meng-motion-ease);
-  transition:
-    transform 180ms var(--meng-motion-ease),
-    box-shadow 180ms;
-}
-
-.account-inline-confirm:hover:not(:disabled),
-.account-folder-description button:hover:not(:disabled) {
-  transform: translateY(-2px);
-}
-
-.account-inline-confirm:active:not(:disabled),
-.account-folder-description button:active:not(:disabled) {
-  transform: translateY(2px) scale(0.94);
-  box-shadow: none;
-}
-
-.account-inline-confirm:disabled,
-.account-folder-edit:disabled,
-.account-folder-description button:disabled {
-  opacity: 0.6;
-  cursor: wait;
 }
 
 .account-post-footer {
@@ -799,9 +791,7 @@
   .account-post,
   .account-post-action,
   .account-folder-back,
-  .account-folder-edit,
-  .account-inline-confirm,
-  .account-folder-description button,
+  .account-name-action,
   .account-folder-tools h2 > span,
   .account-folder-summary > .account-delete,
   .account-folder-summary > .account-visibility {
@@ -809,10 +799,6 @@
   }
 
   .account-post-action.selected svg {
-    animation: none;
-  }
-
-  .account-inline-confirm {
     animation: none;
   }
 }

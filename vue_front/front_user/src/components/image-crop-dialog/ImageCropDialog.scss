@@ -1,0 +1,278 @@
+// 裁剪区宽度固定；预设图栏绝对定位在它右边，不撑高弹窗。弹窗变宽时外层裁掉还没露出来的部分，
+// 看起来就是从右边自然伸开
+.crop-body {
+  position: relative;
+  overflow: hidden;
+}
+
+.crop-main {
+  width: min(var(--crop-main), 100%);
+}
+
+// 裁剪框：白边圆角，里面的图片按位移和宽度摆放，上面叠一层三等分的参考线
+.crop-frame {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 3px solid var(--meng-surface);
+  border-radius: 18px;
+  background: var(--meng-tint);
+  box-shadow: 0 4px 0 var(--meng-border);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    max-width: none;
+    pointer-events: none;
+  }
+}
+
+// 三等分参考线：每条是白线贴一条深色细边，浅色和深色的图上都看得清
+.crop-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.crop-grid::before,
+.crop-grid::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+.crop-grid::before {
+  left: 33.33%;
+  right: 33.33%;
+  border-inline: 1px solid var(--meng-crop-guide);
+  box-shadow:
+    inset 1px 0 0 var(--meng-crop-guide-edge),
+    inset -1px 0 0 var(--meng-crop-guide-edge),
+    -1px 0 0 var(--meng-crop-guide-edge),
+    1px 0 0 var(--meng-crop-guide-edge);
+}
+
+.crop-grid::after {
+  top: 33.33%;
+  bottom: 33.33%;
+  border-block: 1px solid var(--meng-crop-guide);
+  box-shadow:
+    inset 0 1px 0 var(--meng-crop-guide-edge),
+    inset 0 -1px 0 var(--meng-crop-guide-edge),
+    0 -1px 0 var(--meng-crop-guide-edge),
+    0 1px 0 var(--meng-crop-guide-edge);
+}
+
+// 头像：圆形取景，圆外压一层半透明白，看得出最后的头像是哪一块
+.crop-round {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed var(--meng-crop-guide);
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px var(--meng-crop-round-veil);
+  pointer-events: none;
+}
+
+.crop-zoom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  color: var(--meng-muted);
+  font-size: 18px;
+
+  input {
+    flex: 1;
+    accent-color: var(--meng-category-daily);
+  }
+}
+
+// 预设图栏：左边一条竖虚线，平时透明且不能点，展开时随弹窗变宽淡入滑入
+.crop-presets {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(var(--crop-main) + 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: calc(var(--crop-panel) + 10px);
+  padding-left: 10px;
+  border-left: 2px dashed var(--meng-tint);
+  opacity: 0;
+  translate: 24px 0;
+  pointer-events: none;
+  transition:
+    opacity 260ms ease,
+    translate 420ms var(--meng-slide-ease);
+}
+
+.crop-body.with-presets .crop-presets {
+  opacity: 1;
+  translate: 0 0;
+  pointer-events: auto;
+  transition-delay: 120ms, 0ms;
+}
+
+// 卡片区占满栏里剩下的高度、从顶部排，翻页器就一直贴在栏底，不管这一页有几张
+.crop-preset-grid {
+  display: grid;
+  flex: 1 1 auto;
+  align-content: start;
+  gap: 8px;
+}
+
+.crop-preset {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 4px 3px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 12px;
+  background: var(--meng-bg);
+  box-shadow: 0 3px 0 var(--meng-border);
+  color: var(--meng-tool-text);
+  font: inherit;
+  cursor: pointer;
+  transition:
+    translate 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+
+  small {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 800;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    translate: 0 -2px;
+    box-shadow: 0 5px 0 var(--meng-border);
+  }
+
+  &.active {
+    background: var(--meng-warning);
+    box-shadow: 0 3px 0 var(--meng-category-daily);
+    outline: 2px solid var(--meng-category-daily);
+    outline-offset: 1px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 2px;
+  }
+}
+
+// 预设图：和取景一样的比例；还没画好的是虚线框加图标的占位
+.crop-preset-art {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  overflow: hidden;
+  border: 2px dashed var(--meng-border);
+  border-radius: 8px;
+  background: var(--meng-tint);
+  color: var(--meng-muted);
+  font-size: 18px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.crop-preset.round .crop-preset-art {
+  border-radius: 50%;
+}
+
+.crop-preset-art:has(img) {
+  border-style: solid;
+  border-color: var(--meng-surface);
+}
+
+// 翻页时新的一页依次弹出
+.crop-preset-enter-active {
+  transition:
+    opacity 220ms ease,
+    scale 260ms var(--meng-slide-ease);
+  transition-delay: calc(var(--i, 0) * 30ms);
+}
+
+.crop-preset-enter-from {
+  opacity: 0;
+  scale: 0.85;
+}
+
+.crop-preset-leave-active {
+  display: none;
+}
+
+// 翻页器自带的上边距去掉，位置只由栏底决定
+.crop-presets .crop-preset-pager {
+  flex: none;
+  align-self: center;
+  margin: 0;
+}
+
+// 底部按钮平分一行：有预设图时是预设图片、更换图片、确定三个
+.crop-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+
+  &.three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .el-button {
+    width: 100%;
+    margin: 0;
+  }
+
+  .crop-preset-toggle.on {
+    background: var(--meng-warning);
+    box-shadow: 0 4px 0 var(--meng-category-daily);
+    color: var(--meng-favorite-text);
+  }
+}
+
+// 窄屏放不下两栏：预设图排到裁剪区下面，正常占高度
+@media (width <= 760px) {
+  .crop-presets {
+    position: static;
+    display: none;
+    width: auto;
+    margin-top: 16px;
+    padding: 16px 0 0;
+    border-top: 2px dashed var(--meng-tint);
+    border-left: 0;
+    translate: none;
+  }
+
+  .crop-body.with-presets .crop-presets {
+    display: flex;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crop-preset,
+  .crop-presets,
+  .crop-preset-enter-active {
+    transition: none;
+  }
+}

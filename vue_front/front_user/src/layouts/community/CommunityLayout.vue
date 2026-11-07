@@ -138,6 +138,15 @@
             />
           </div>
         </div>
+        <button
+          v-if="user.loggedIn"
+          type="button"
+          class="nav-points"
+          :aria-label="t('account.pointsSticker')+' '+points"
+          @click="pointsOpen=true"
+        >
+          <el-icon><IconCoin /></el-icon><b>{{ points }}</b>
+        </button>
         <router-link
           class="nav-avatar"
           :to="{name:RouteName.ACCOUNT}"
@@ -154,6 +163,10 @@
     <main class="community-main">
       <slot />
     </main>
+    <PointsDialog
+      v-if="pointsOpen"
+      @close="closePoints"
+    />
     <footer
       v-if="route.name!==RouteName.CREATOR&&route.name!==RouteName.GROWTH&&route.name!==RouteName.ACCOUNT"
       class="community-footer"
@@ -184,17 +197,11 @@
             </router-link>
           </div>
           <div>
-            <h2>{{ t('home.footerContact') }}</h2><button
-              type="button"
-              @click="unavailable"
-            >
+            <h2>{{ t('home.footerContact') }}</h2><a :href="'mailto:'+Contact.EMAIL">
               {{ t('home.contactEmail') }}
-            </button><button
-              type="button"
-              @click="unavailable"
-            >
+            </a><a :href="'mailto:'+Contact.EMAIL+'?subject='+encodeURIComponent(t('home.feedbackSubject'))">
               {{ t('home.feedback') }}
-            </button>
+            </a>
           </div>
         </div>
         <div

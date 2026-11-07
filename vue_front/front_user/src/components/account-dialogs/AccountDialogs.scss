@@ -201,6 +201,28 @@
   overflow-wrap: anywhere;
 }
 
+.account-password-rule {
+  margin: 0;
+  padding: 6px 12px;
+  list-style: none;
+}
+
+.account-password-rule li + li {
+  margin-top: 2px;
+}
+
+// 模拟发码：薄荷色的小便签，把码直接给用户看
+.account-mock-sms {
+  margin: 0;
+  padding: 6px 12px;
+  border: 2px dashed var(--meng-growth-mint-edge);
+  border-radius: 12px;
+  background: var(--meng-success);
+  color: var(--meng-success-shadow);
+  font-size: 13px;
+  font-weight: 800;
+}
+
 .account-password-rule,
 .account-block-hint {
   padding: 6px 12px;
@@ -226,21 +248,35 @@
   margin-bottom: 16px;
 }
 
+// 右上角关闭：和公共对话框一样的蓝色圆贴纸，悬停转 90 度
 .account-dialog .el-dialog__headerbtn {
-  top: 32px;
+  top: 28px;
   right: 28px;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-tint) url('../../assets/message-close.svg') center / 22px no-repeat;
+  box-shadow: 0 4px 0 var(--meng-category-anime);
+  transition:
+    rotate 320ms var(--meng-slide-ease),
+    translate 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .account-dialog .el-dialog__headerbtn:hover {
-  background: var(--meng-tint);
+  box-shadow: 0 6px 0 var(--meng-category-anime);
+  rotate: 90deg;
+  translate: 0 -2px;
+}
+
+.account-dialog .el-dialog__headerbtn:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 3px;
 }
 
 .account-dialog .el-dialog__close {
-  color: var(--meng-muted);
-  font-size: 20px;
+  display: none;
 }
 
 .account-dialog-title {
@@ -530,6 +566,58 @@
   box-shadow: 0 4px 0 var(--meng-creator-green);
 }
 
+// 绑定、换绑邮箱和手机号：确认按钮独占一行
+.account-dialog-email .account-dialog-actions .el-button--primary,
+.account-dialog-phone .account-dialog-actions .el-button--primary {
+  flex: 1;
+}
+
+// 修改密码：最左边的「忘记了原密码？」，虚线下划线的小字按钮；没绑手机号时是灰的
+.account-forgot-wrap {
+  margin-right: auto;
+  align-self: center;
+}
+
+.account-forgot {
+  padding: 4px 2px;
+  border: 0;
+  border-bottom: 2px dashed var(--dialog-edge, var(--meng-border));
+  background: none;
+  color: var(--meng-tool-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: color 160ms ease;
+
+  &:hover:not(:disabled) {
+    color: var(--meng-primary);
+  }
+
+  &:disabled {
+    border-bottom-color: var(--meng-border);
+    color: var(--meng-muted);
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 2px;
+  }
+}
+
+// 当前设备下线：金色，和左边粉色的「其他设备全部下线」区分开
+.account-dialog-actions .account-offline-current {
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  box-shadow: 0 4px 0 var(--meng-category-daily);
+
+  .el-icon {
+    margin-right: 6px;
+  }
+}
+
 .account-dialog-folder .account-dialog-actions .el-button--primary {
   background: var(--folder-bg);
   color: var(--folder-ink);
@@ -726,8 +814,9 @@
   font-size: 18px;
 }
 
+// 两个下线按钮并排挨在一起，居中
 .account-device-actions {
-  justify-content: space-between;
+  justify-content: center;
 }
 
 .account-device-actions .account-offline-others {
@@ -735,10 +824,6 @@
   color: var(--meng-like-text);
   box-shadow: 0 4px 0 var(--meng-category-creation);
   padding-inline: 20px;
-}
-
-.account-device-actions .el-button--primary {
-  margin-left: auto;
 }
 
 .account-dialog > .el-dialog__body > .el-pagination {
@@ -794,7 +879,9 @@
 @media (prefers-reduced-motion: reduce) {
   .account-dialog-actions .el-button,
   .account-dialog-title > span,
-  .account-cover-picker {
+  .account-cover-picker,
+  .account-dialog .el-dialog__headerbtn,
+  .account-forgot {
     transition: none;
   }
 }

@@ -8,12 +8,22 @@
       tabindex="-1"
       @change="coverSelected"
     >
+    <ImageCropDialog
+      v-if="crop"
+      :file="crop.file"
+      :aspect="Account.COVER_ASPECT"
+      :presets="coverPresets"
+      :title="t('account.cropCover')"
+      :invalid-text="t('account.coverInvalid')"
+      @confirm="cropped"
+      @close="crop = null"
+    />
     <div class="account-folder-grid">
       <button
         v-for="(folder, index) in rows"
         :key="folder.id"
         class="account-folder"
-        :class="'folder-' + (folder.color || 'GOLD').toLowerCase()"
+        :class="['folder-' + (folder.color || 'GOLD').toLowerCase(), { 'is-private': folder.visibility !== FolderVisibility.PUBLIC }]"
         :style="{ '--folder-delay': index % 8 * 35 + 'ms' }"
         @click="$emit('open', folder)"
       >

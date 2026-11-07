@@ -103,7 +103,24 @@ public final class CodeDeliveryService {
         );
     }
 
-    // 票据和限流通过后才发送；收到成功回执才保存验证码，用户不会拿到一个用不了的码
+    // 登录后忘记原密码：验证码发到账号绑定的手机号。短信通道没开通、但开了模拟时不真的发，
+    // 把码返回给页面显示；真的发了短信就返回空
+    public String myResetCode(ContactService.Contact contact, String ticket, String ip) {
+        captcha.consume(ticket, ip);
+        limits.send(contact, ip);
+        if (smsEnabled(contact)) {
+            deliver(contact, VerificationPurpose.PASSWORD_RESET);
+            return null;
+        }
+        if (!properties.sms().mock()) {
+            throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
+        }
+        String code = codes.generate();
+        codes.store(contact, code, VerificationPurpose.PASSWORD_RESET);
+        return code;
+    }
+
+    // 票据和限流通过后才发送
     private void send(
         ContactService.Contact contact,
         String ticket,
@@ -112,9 +129,14 @@ public final class CodeDeliveryService {
     ) {
         captcha.consume(ticket, ip);
         limits.send(contact, ip);
-        if (contact.channel() == ContactChannel.SMS) {
-            requireSmsChannel(contact);
+        if (contact.channel() == ContactChannel.SMS && !smsEnabled(contact)) {
+            throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
         }
+        deliver(contact, purpose);
+    }
+
+    // 收到成功回执才保存验证码，用户不会拿到一个用不了的码
+    private void deliver(ContactService.Contact contact, VerificationPurpose purpose) {
         String code = codes.generate();
         // 过了等回执的时限请求方已经放弃，消费者此后再拿到这条指令就不该发了
         var command = new DeliveryCommand(
@@ -141,14 +163,11 @@ public final class CodeDeliveryService {
         codes.store(contact, code, purpose);
     }
 
-    // 国内和国际短信是两条通道，对应的那条没开通就明确告诉用户
-    private void requireSmsChannel(ContactService.Contact contact) {
+    // 国内和国际短信是两条通道，看手机号属于哪一条、那条开没开通
+    private boolean smsEnabled(ContactService.Contact contact) {
         String region = contacts.countryCode(cipher.decrypt(contact.cipher()));
-        boolean enabled = PhoneRegion.DOMESTIC.equals(region)
+        return PhoneRegion.DOMESTIC.equals(region)
             ? properties.sms().enabled()
             : properties.internationalSms().enabled();
-        if (!enabled) {
-            throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
-        }
     }
 }

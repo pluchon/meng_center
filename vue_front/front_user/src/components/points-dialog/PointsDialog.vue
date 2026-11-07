@@ -94,28 +94,35 @@
             state="loading"
             size="small"
           />
-          <div
+          <Transition
             v-else
-            class="points-bars"
-            :class="{ dense: days > 7, busy: stats.loading }"
-            role="img"
-            :aria-label="t('account.pointsRangeAria', { days })"
+            name="points-swap"
+            mode="out-in"
           >
             <div
-              v-for="(row, index) in shownDays"
-              :key="row.date"
-              class="points-bar"
-              :title="row.date.slice(5) + ' +' + row.amount"
+              :key="chartKey"
+              class="points-bars"
+              :class="{ dense: days > 7, busy: stats.loading }"
+              role="img"
+              :aria-label="t('account.pointsRangeAria', { days })"
             >
-              <span class="bar-value">{{ row.amount }}</span>
-              <span
-                class="bar-fill"
-                :class="['tone-' + barTone(index), { zero: !row.amount }]"
-                :style="{ height: barHeight(row.amount) + '%' }"
-              />
-              <span class="bar-label">{{ barLabel(row, index) }}</span>
+              <div
+                v-for="(row, index) in shownDays"
+                :key="row.date"
+                class="points-bar"
+                :style="{ '--i': index }"
+                :title="row.date.slice(5) + ' +' + row.amount"
+              >
+                <span class="bar-value">{{ row.amount }}</span>
+                <span
+                  class="bar-fill"
+                  :class="['tone-' + barTone(index), { zero: !row.amount }]"
+                  :style="{ height: barHeight(row.amount) + '%' }"
+                />
+                <span class="bar-label">{{ barLabel(row, index) }}</span>
+              </div>
             </div>
-          </div>
+          </Transition>
         </section>
         <section class="points-section">
           <header class="points-section-head">
@@ -189,28 +196,35 @@
           size="large"
           :text="t('account.pointsEmpty')"
         />
-        <ul
+        <Transition
           v-else
-          class="ledger-list"
-          :aria-label="t('account.pointsLedger')"
+          name="points-swap"
+          mode="out-in"
         >
-          <li
-            v-for="(row, index) in records.data.records"
-            :key="page + '-' + index"
-            class="ledger-row"
+          <ul
+            :key="ledgerKey"
+            class="ledger-list"
+            :aria-label="t('account.pointsLedger')"
           >
-            <span
-              class="ledger-icon"
-              :class="'tone-' + sourceTone(row.source)"
-              aria-hidden="true"
-            ><el-icon><component :is="sourceIcon(row.source)" /></el-icon></span>
-            <div>
-              <strong>{{ t('account.sources.' + row.source) }}</strong>
-              <small>{{ date(row.time) }}</small>
-            </div>
-            <span class="ledger-amount"><b>{{ signed(row.amount) }}</b>{{ t('account.pointsPer') }}</span>
-          </li>
-        </ul>
+            <li
+              v-for="(row, index) in records.data.records"
+              :key="page + '-' + index"
+              class="ledger-row"
+              :style="{ '--i': index }"
+            >
+              <span
+                class="ledger-icon"
+                :class="'tone-' + sourceTone(row.source)"
+                aria-hidden="true"
+              ><el-icon><component :is="sourceIcon(row.source)" /></el-icon></span>
+              <div>
+                <strong>{{ t('account.sources.' + row.source) }}</strong>
+                <small>{{ date(row.time) }}</small>
+              </div>
+              <span class="ledger-amount"><b>{{ signed(row.amount) }}</b>{{ t('account.pointsPer') }}</span>
+            </li>
+          </ul>
+        </Transition>
         <div class="ledger-pager-slot">
           <FeedPagination
             v-if="totalPages > 1"

@@ -22,7 +22,7 @@ const weekday = new Intl.DateTimeFormat('zh-CN', { weekday: 'narrow' })
 // 积分弹窗：余额与获得规则、近几天每天获得的积分、来源占比、分页明细
 export default defineComponent({
   name: 'PointsDialog',
-  components: { DialogShell, FeedPagination, PageState },
+  components: { DialogShell, FeedPagination, PageState, IconCoin },
   emits: ['close'],
   setup() {
     const { t } = useI18n()
@@ -50,6 +50,11 @@ export default defineComponent({
     const today = computed(() => shownDays.value.at(-1)?.amount ?? 0)
     const week = computed(() =>
       shownDays.value.slice(-7).reduce((sum, row) => sum + row.amount, 0),
+    )
+    // 切换 7 / 30 天或换页、换来源时，新数据到了才整块换掉并播放切换动画
+    const chartKey = computed(() => shownDays.value.length + ':' + (shownDays.value[0]?.date ?? ''))
+    const ledgerKey = computed(
+      () => records.data.records.map((row) => row.time + row.source).join('|') || 'empty',
     )
     const peak = computed(() => Math.max(1, ...shownDays.value.map((row) => row.amount)))
     const totalPages = computed(() => Math.ceil(records.data.total / Points.SIZE))
@@ -94,6 +99,8 @@ export default defineComponent({
       today,
       week,
       totalPages,
+      chartKey,
+      ledgerKey,
       sourceFilters,
       ruleKeys: RuleKeys,
       reload,

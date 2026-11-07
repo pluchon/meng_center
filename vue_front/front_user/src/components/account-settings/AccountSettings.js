@@ -10,7 +10,6 @@ import {
   IconMail as Message,
   IconDeviceMobile as Iphone,
   IconBan as CircleClose,
-  IconLogout,
   IconCheck,
 } from '@tabler/icons-vue'
 import { userApi } from '@/api/user'
@@ -30,15 +29,15 @@ export default defineComponent({
     Message,
     Iphone,
     CircleClose,
-    IconLogout,
     IconCheck,
   },
-  props: { profile: { type: Object, required: true }, loggingOut: Boolean },
-  emits: ['saved', 'dialog', 'logout'],
+  props: { profile: { type: Object, required: true } },
+  emits: ['saved', 'dialog'],
   setup(props, { emit, expose }) {
     const { t } = useI18n(),
       form = reactive({ nickname: '', bio: '', username: '' }),
-      saving = ref(false)
+      // 正在保存的是哪一项
+      saving = ref(null)
     const devices = useRequestResource((signal) => userApi.devices({ signal }), null)
     const blocks = useRequestResource(
       (signal) => imApi.blocks({ page: 1, size: 1 }, { signal }),
@@ -66,9 +65,9 @@ export default defineComponent({
       },
       { immediate: true },
     )
-    const changed = computed(() =>
-      Object.entries(fields(props.profile)).some(([key, value]) => form[key].trim() !== value),
-    )
+    // 每一项改过才在输入框里、字数右边出现自己的确定按钮
+    const dirty = (key) => form[key].trim() !== fields(props.profile)[key]
+    const length = (key) => Array.from(form[key]).length
     const cooldown = computed(
       () =>
         props.profile.usernameAvailableAt &&
@@ -81,47 +80,45 @@ export default defineComponent({
           )
         : '',
     )
-    async function save() {
-      if (saving.value || !changed.value) return
-      const value = Object.fromEntries(
-        Object.entries(form).map(([key, text]) => [key, text.trim()]),
-      )
-      value.username = value.username.toLowerCase()
-      if (
-        value.nickname &&
-        (Array.from(value.nickname).length < 2 || Array.from(value.nickname).length > 16)
-      ) {
-        ElMessage.warning(t('account.invalidNickname'))
+    function valid(key, text) {
+      if (key === 'nickname' && text && (Array.from(text).length < 2 || Array.from(text).length > 16))
+        return 'account.invalidNickname'
+      if (key === 'bio' && (Array.from(text).length > Account.BIO_MAX || /[\r\n]/.test(text)))
+        return 'account.invalidBio'
+      if (key === 'username' && !Auth.USERNAME_PATTERN.test(text)) return 'account.invalidUsername'
+      return null
+    }
+    // 只提交这一项，其余两项用已保存的值，别的输入框里没确定的改动不会被顺带存掉
+    async function saveField(key) {
+      if (saving.value || !dirty(key)) return
+      let text = form[key].trim()
+      if (key === 'username') text = text.toLowerCase()
+      const problem = valid(key, text)
+      if (problem) {
+        ElMessage.warning(t(problem))
         return
       }
-      if (Array.from(value.bio).length > Account.BIO_MAX || /[\r\n]/.test(form.bio)) {
-        ElMessage.warning(t('account.invalidBio'))
-        return
-      }
-      if (!Auth.USERNAME_PATTERN.test(value.username)) {
-        ElMessage.warning(t('account.invalidUsername'))
-        return
-      }
-      saving.value = true
+      saving.value = key
       try {
-        await userApi.profile(value)
-        Object.assign(form, value)
+        await userApi.profile({ ...fields(props.profile), [key]: text })
+        form[key] = text
         emit('saved', await userApi.me())
         ElMessage.success(t('account.saved'))
       } catch (error) {
         notifyFailure(error)
       } finally {
-        saving.value = false
+        saving.value = null
       }
     }
     return {
       t,
       form,
       saving,
-      changed,
+      dirty,
+      length,
       cooldown,
       availableDate,
-      save,
+      saveField,
       devices: devices.state,
       blocks: blocks.state,
       Account,

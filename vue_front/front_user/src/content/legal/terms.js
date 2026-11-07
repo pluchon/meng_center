@@ -1,5 +1,5 @@
 export default {
-  published: false,
+  published: true,
   titleKey: 'auth.register.terms',
   version: '2026-10-09',
   sections: [

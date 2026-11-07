@@ -20,7 +20,6 @@ import { authHeartIcon, authLockIcon, authUserIcon } from '@/assets/images'
 import AuthLayout from '@/layouts/auth/AuthLayout.vue'
 import ContactField from '@/components/contact-field/ContactField.vue'
 import VerificationCodeField from '@/components/verification-code-field/VerificationCodeField.vue'
-import ReasonEditor from '@/components/reason-editor/ReasonEditor.vue'
 import LegalConsent from '@/components/legal-consent/LegalConsent.vue'
 import CaptchaDialog from '@/components/captcha/CaptchaDialog.vue'
 export default defineComponent({
@@ -31,7 +30,6 @@ export default defineComponent({
     AuthLayout,
     CaptchaDialog,
     LegalConsent,
-    ReasonEditor,
     ContactField,
     VerificationCodeField,
   },
@@ -52,7 +50,6 @@ export default defineComponent({
       countryCode: Regions[0].code,
       phone: '',
       code: '',
-      applyReason: '',
     })
     const { seconds, start: startCountdown } = useCodeCountdown(CodeScope.REGISTER)
     watch(channel, () => {
@@ -97,7 +94,6 @@ export default defineComponent({
           confirmPassword: form.confirmPassword,
           ...contact(),
           code: form.code,
-          applyReason: form.applyReason,
           ticket,
           termsVersion: LegalVersion.TERMS,
           privacyVersion: LegalVersion.PRIVACY,

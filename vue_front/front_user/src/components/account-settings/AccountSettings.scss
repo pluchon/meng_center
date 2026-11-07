@@ -208,81 +208,57 @@
   color: var(--meng-muted);
 }
 
-.account-settings-footer {
-  flex-shrink: 0;
-  display: flex;
-  justify-content: space-between;
-  border-top: 2px dashed var(--meng-tint);
-  margin-top: auto;
-  padding-top: 18px;
+// 输入框右侧：字数，改过之后字数右边多一个薄荷色的小圆勾，点了只保存这一项
+.account-count {
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
 }
 
-.account-settings-footer :deep(.el-button) {
-  height: 44px;
-  margin-bottom: 4px;
-  border: 0;
-  padding: 0 22px 0 16px;
-  border-radius: 22px;
-  font-size: 15px;
-  font-weight: 800;
-  transition: transform 180ms var(--meng-motion-ease);
-}
-
-.account-settings-footer :deep(.account-logout) {
-  background: var(--meng-danger);
-  color: var(--meng-like-text);
-  box-shadow: 0 4px 0 var(--meng-category-creation);
-}
-
-.account-logout .el-icon {
-  margin-right: 8px;
-  font-size: 18px;
-}
-
-.account-settings-footer :deep(.account-save) {
-  position: relative;
-  height: 46px;
-  padding: 0 22px 0 9px;
-  border: 3px solid var(--meng-surface);
-  border-radius: 26px;
-  background: var(--meng-success);
-  color: var(--meng-success-shadow);
-  box-shadow: 0 4px 0 var(--meng-creator-green);
-}
-
-.account-save-symbol {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  display: inline-grid;
+.account-field-save {
+  display: grid;
   place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-left: 8px;
+  padding: 0;
+  border: 2px solid var(--meng-surface);
   border-radius: 50%;
-  background: var(--meng-surface);
+  background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-creator-green);
   color: var(--meng-success-text);
-  margin-right: 9px;
-  font-size: 16px;
+  font-size: 14px;
+  cursor: pointer;
+  animation: field-save-pop 260ms var(--meng-motion-ease);
+  transition: translate 160ms ease;
+
+  &:hover:not(:disabled) {
+    translate: 0 -1px;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: wait;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 2px;
+  }
 }
 
-.account-save-sparkle {
-  position: absolute;
-  right: -8px;
-  top: -14px;
-  font-size: 18px;
-  color: var(--meng-category-daily);
-  pointer-events: none;
+@keyframes field-save-pop {
+  from {
+    scale: 0.4;
+    opacity: 0;
+  }
 }
 
-.account-save-sparkle::before {
-  content: '✦';
-}
-
-.account-setting :deep(.el-button:hover:not(:disabled)),
-.account-settings-footer :deep(.el-button:hover:not(:disabled)) {
+.account-setting :deep(.el-button:hover:not(:disabled)) {
   transform: translateY(-2px);
 }
 
-.account-setting :deep(.el-button:active:not(:disabled)),
-.account-settings-footer :deep(.el-button:active:not(:disabled)) {
+.account-setting :deep(.el-button:active:not(:disabled)) {
   transform: translateY(3px);
 }
 
@@ -298,10 +274,6 @@
   .account-settings-columns {
     grid-template-columns: minmax(0, 1fr);
     gap: 18px;
-  }
-
-  .account-settings-footer {
-    margin-top: 12px;
   }
 
   .account-setting {
@@ -333,10 +305,6 @@
     min-height: 34px;
   }
 
-  .account-settings-footer {
-    padding-top: 12px;
-  }
-
   .account-setting :deep(.el-button) {
     height: 32px;
     margin-bottom: 2px;
@@ -344,8 +312,12 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .account-setting :deep(.el-button),
-  .account-settings-footer :deep(.el-button) {
+  .account-setting :deep(.el-button) {
+    transition: none;
+  }
+
+  .account-field-save {
+    animation: none;
     transition: none;
   }
 }

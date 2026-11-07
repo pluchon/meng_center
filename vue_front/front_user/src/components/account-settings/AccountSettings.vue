@@ -1,23 +1,50 @@
 <template>
-  <form
+  <section
     class="account-settings"
     :aria-label="t('account.settings')"
-    @submit.prevent="save"
   >
     <div class="account-settings-columns">
       <div class="account-settings-column">
         <label class="account-setting blue"><span><el-icon><User /></el-icon>{{ t('account.nickname') }}</span><el-input
           v-model="form.nickname"
           :maxlength="16"
-          show-word-limit
           :aria-label="t('account.nickname')"
-        /></label>
+          @keydown.enter.prevent="saveField('nickname')"
+        >
+          <template #suffix>
+            <span class="account-count">{{ t('account.wordCount', { count: length('nickname'), max: 16 }) }}</span><button
+              v-if="dirty('nickname')"
+              type="button"
+              class="account-field-save"
+              :aria-label="t('account.confirmField')"
+              :title="t('account.confirmField')"
+              :disabled="saving === 'nickname'"
+              @click="saveField('nickname')"
+            >
+              <el-icon><IconCheck /></el-icon>
+            </button>
+          </template>
+        </el-input></label>
         <label class="account-setting gold"><span><el-icon><EditPen /></el-icon>{{ t('account.bio') }}</span><el-input
           v-model="form.bio"
           :maxlength="Account.BIO_MAX"
-          show-word-limit
           :aria-label="t('account.bio')"
-        /></label>
+          @keydown.enter.prevent="saveField('bio')"
+        >
+          <template #suffix>
+            <span class="account-count">{{ t('account.wordCount', { count: length('bio'), max: Account.BIO_MAX }) }}</span><button
+              v-if="dirty('bio')"
+              type="button"
+              class="account-field-save"
+              :aria-label="t('account.confirmField')"
+              :title="t('account.confirmField')"
+              :disabled="saving === 'bio'"
+              @click="saveField('bio')"
+            >
+              <el-icon><IconCheck /></el-icon>
+            </button>
+          </template>
+        </el-input></label>
         <section class="account-setting violet">
           <h3><el-icon><Lock /></el-icon>{{ t('account.password') }}</h3><div>
             <span
@@ -41,10 +68,24 @@
           v-model="form.username"
           :disabled="cooldown"
           :maxlength="32"
-          show-word-limit
           :title="cooldown ? t('account.cooldown', { date: availableDate }) : undefined"
           :aria-label="t('account.username')"
-        /><small v-if="cooldown">{{ t('account.cooldown', { date: availableDate }) }}</small></label>
+          @keydown.enter.prevent="saveField('username')"
+        >
+          <template #suffix>
+            <span class="account-count">{{ t('account.wordCount', { count: length('username'), max: 32 }) }}</span><button
+              v-if="dirty('username')"
+              type="button"
+              class="account-field-save"
+              :aria-label="t('account.confirmField')"
+              :title="t('account.confirmField')"
+              :disabled="saving === 'username'"
+              @click="saveField('username')"
+            >
+              <el-icon><IconCheck /></el-icon>
+            </button>
+          </template>
+        </el-input><small v-if="cooldown">{{ t('account.cooldown', { date: availableDate }) }}</small></label>
         <section class="account-setting pink">
           <h3><el-icon><Message /></el-icon>{{ t('account.email') }}</h3><div>
             <span>{{ profile.email || t('account.unbound') }}</span><el-button @click="$emit('dialog', 'email')">
@@ -68,33 +109,7 @@
         </section>
       </div>
     </div>
-    <footer class="account-settings-footer">
-      <el-button
-        class="account-logout"
-        :loading="loggingOut"
-        @click="$emit('logout')"
-      >
-        <el-icon><IconLogout /></el-icon>
-        {{ t('account.logout') }}
-      </el-button><el-button
-        class="account-save"
-        native-type="submit"
-        :disabled="!changed"
-        :loading="saving"
-      >
-        <span
-          v-if="!saving"
-          class="account-save-symbol"
-          aria-hidden="true"
-        ><el-icon><IconCheck /></el-icon></span>
-        {{ t('account.save') }}
-        <span
-          class="account-save-sparkle"
-          aria-hidden="true"
-        />
-      </el-button>
-    </footer>
-  </form>
+  </section>
 </template>
 <script src="./AccountSettings.js"></script>
 <style lang="scss" scoped src="./AccountSettings.scss"></style>

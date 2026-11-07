@@ -16,6 +16,8 @@ public final class UserRoutes {
     public static final String PASSWORD_RESET_CODES = "/password-reset-codes";
     public static final String PASSWORD_RESETS = "/password-resets";
     public static final String PASSWORD = "/me/password";
+    public static final String MY_PASSWORD_RESET_CODES = "/me/password-reset-codes";
+    public static final String MY_PASSWORD_RESETS = "/me/password-resets";
     public static final String ADMIN_REGISTRATIONS = "/admin/registrations";
     public static final String APPROVAL = "/admin/registrations/{userId}/approval";
     public static final String REJECTION = "/admin/registrations/{userId}/rejection";

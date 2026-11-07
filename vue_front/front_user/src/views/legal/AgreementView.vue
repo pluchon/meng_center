@@ -95,18 +95,6 @@
           :key="selected"
           @scroll="updateActive"
         >
-          <div class="legal-title-row">
-            <h1>
-              <span><img
-                :src="selected === LegalDocument.PRIVACY ? legalPrivacyIcon : legalTermsIcon"
-                alt=""
-                aria-hidden="true"
-              >{{ t(document.titleKey) }}</span>
-            </h1>
-            <p class="legal-meta">
-              {{ t('auth.legal.metadata', { version: document.version }) }}
-            </p>
-          </div>
           <aside class="legal-overview">
             <h2>
               <img

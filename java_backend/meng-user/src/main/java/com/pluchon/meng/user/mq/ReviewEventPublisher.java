@@ -27,20 +27,7 @@ public final class ReviewEventPublisher {
     // 通过时给下游发 user.approved 事件；有联系方式的账号再发一条通知
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void committed(ReviewCommitted review) {
-        if (review.kind() == NotificationKind.APPROVED) {
-            String id = UUID.randomUUID().toString();
-            rabbit.convertAndSend(
-                UserApprovedEvent.EXCHANGE,
-                UserApprovedEvent.EVENT_TYPE,
-                new EventEnvelope<>(
-                    id,
-                    UserApprovedEvent.EVENT_TYPE,
-                    clock.instant(),
-                    id,
-                    new UserApprovedEvent(review.userId())
-                )
-            );
-        }
+        if (review.kind() == NotificationKind.APPROVED) approved(review.userId());
         if (review.recipientCipher() != null) {
             var command = new DeliveryCommand(
                 UUID.randomUUID().toString(),
@@ -52,5 +39,20 @@ public final class ReviewEventPublisher {
             );
             rabbit.convertAndSend(UserMqNames.INTERNAL_EXCHANGE, UserMqNames.NOTIFICATION_ROUTE, command);
         }
+    }
+
+    // 免审核注册直接可用，下游照样收到 user.approved；不发审核通过的短信或邮件
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void activated(RegistrationActivated registration) {
+        approved(registration.userId());
+    }
+
+    private void approved(long userId) {
+        String id = UUID.randomUUID().toString();
+        rabbit.convertAndSend(
+            UserApprovedEvent.EXCHANGE,
+            UserApprovedEvent.EVENT_TYPE,
+            new EventEnvelope<>(id, UserApprovedEvent.EVENT_TYPE, clock.instant(), id, new UserApprovedEvent(userId))
+        );
     }
 }

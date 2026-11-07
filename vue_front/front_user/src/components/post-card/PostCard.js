@@ -18,6 +18,7 @@ import HighlightText from '@/components/highlight-text/HighlightText.vue'
 import { RouteName } from '@/router/names'
 import { useFavoriteStore } from '@/stores/favorites'
 import { avatarUrl } from '@/api/user'
+import { IconEyeOff } from '@tabler/icons-vue'
 // 卡片上最多摆几张缩略图，其余的从大图查看里翻
 const SHOWN_IMAGES = 5
 export default defineComponent({
@@ -31,6 +32,7 @@ export default defineComponent({
     Star,
     ChatDotRound,
     CollectionTag,
+    IconEyeOff,
   },
   props: { post: { type: Object, required: true } },
   emits: ['change', 'dismiss'],

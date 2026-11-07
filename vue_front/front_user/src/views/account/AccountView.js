@@ -16,7 +16,6 @@ import {
   IconStar as Star,
   IconHeart,
   IconChevronLeft,
-  IconCoin,
   IconMessageCircle as IconMessage,
   IconPencil,
   IconUserCheck,
@@ -25,18 +24,16 @@ import {
 } from '@tabler/icons-vue'
 import { avatarUrl, userApi } from '@/api/user'
 import { contentApi } from '@/api/content'
-import { growthApi } from '@/api/growth'
 import { useUserStore } from '@/stores/user'
 import { useFavoriteStore } from '@/stores/favorites'
 import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
 import { RouteName } from '@/router/names'
-import { Account, AccountPane } from '@/constants/account'
+import { Account, AccountPane, AvatarPresets } from '@/constants/account'
 import {
   userAvatar,
   detailBubble,
   detailFlower,
-  editorCirnoMascot,
   accountCameraIcon,
 } from '@/assets/images'
 import PageState from '@/components/page-state/PageState.vue'
@@ -57,7 +54,6 @@ export default defineComponent({
     Star,
     IconHeart,
     IconChevronLeft,
-    IconCoin,
     IconMessage,
     IconPencil,
     IconUserCheck,
@@ -68,7 +64,9 @@ export default defineComponent({
       () => import('@/components/account-dialogs/AccountDialogs.vue'),
     ),
     FollowDialog: defineAsyncComponent(() => import('@/components/follow-dialog/FollowDialog.vue')),
-    PointsDialog: defineAsyncComponent(() => import('@/components/points-dialog/PointsDialog.vue')),
+    ImageCropDialog: defineAsyncComponent(
+      () => import('@/components/image-crop-dialog/ImageCropDialog.vue'),
+    ),
   },
   setup() {
     const profileReview = useRequestResource((signal) => userApi.profileReview({ signal }), null)
@@ -92,8 +90,7 @@ export default defineComponent({
             ? contentApi.userCounts(viewedId.value, { signal })
             : contentApi.myCounts({ signal }),
         null,
-      ),
-      pointsResource = useRequestResource((signal) => growthApi.points({ signal }), null)
+      )
     onMounted(() => {
       if (!other.value) void profileReview.load()
     })
@@ -102,7 +99,6 @@ export default defineComponent({
       folderRevision = ref(0),
       dialog = ref(null),
       followDialog = ref(null),
-      pointsOpen = ref(false),
       followBusy = ref(false),
       uploading = ref(false),
       deleting = ref(false),
@@ -132,7 +128,6 @@ export default defineComponent({
         profileResource.state.data?.username ||
         t('home.authorFallback'),
     )
-    const pointsBalance = computed(() => pointsResource.state.data?.balance ?? 0)
     const sectionTitle = computed(() => {
       const total = countsResource.state.data
       if (pane.value === AccountPane.POSTS)
@@ -202,11 +197,6 @@ export default defineComponent({
     function closeFollowDialog() {
       followDialog.value = null
     }
-    // 关掉积分弹窗后余额可能已经变了，重新取一次
-    function closePoints() {
-      pointsOpen.value = false
-      void pointsResource.load()
-    }
     async function toggleFollow() {
       if (followBusy.value || !profileResource.state.data) return
       followBusy.value = true
@@ -225,7 +215,12 @@ export default defineComponent({
     function message() {
       void router.push({ name: RouteName.MESSAGES, query: { with: viewedId.value } })
     }
-    async function uploadAvatar(event) {
+    // 选好图先进裁剪弹窗（右侧可以挑预设头像），点确定才上传
+    const avatarFile = ref(null)
+    const avatarPresets = computed(() =>
+      AvatarPresets.map((preset) => ({ ...preset, label: t('account.avatarPresets.' + preset.key) })),
+    )
+    function pickAvatar(event) {
       const file = event.target.files[0]
       event.target.value = ''
       if (!file || uploading.value) return
@@ -236,6 +231,10 @@ export default defineComponent({
         ElMessage.warning(t('account.avatarInvalid'))
         return
       }
+      avatarFile.value = file
+    }
+    async function uploadAvatar(file) {
+      avatarFile.value = null
       uploading.value = true
       try {
         await userApi.avatar(file)
@@ -301,7 +300,6 @@ export default defineComponent({
       leaveIfSelf()
       void loadProfile()
       void countsResource.load()
-      if (!other.value) void pointsResource.load()
       if (folderId.value) void loadFolders()
     })
     watch(viewedId, leaveIfSelf)
@@ -310,7 +308,6 @@ export default defineComponent({
       profileReview: profileReview.state,
       t,
       profile: profileResource.state,
-      pointsBalance,
       loadCounts: countsResource.load,
       loadProfile,
       viewedId,
@@ -327,7 +324,6 @@ export default defineComponent({
       folderRevision,
       dialog,
       followDialog,
-      pointsOpen,
       followBusy,
       uploading,
       deleting,
@@ -340,17 +336,19 @@ export default defineComponent({
       updatedFolder,
       dialogSaved,
       closeFollowDialog,
-      closePoints,
       toggleFollow,
       message,
       uploadAvatar,
+      pickAvatar,
+      avatarFile,
+      avatarPresets,
+      Account,
       deleteFolder,
       logout,
       avatarUrl,
       userAvatar,
       detailBubble,
       detailFlower,
-      editorCirnoMascot,
       cameraIcon: accountCameraIcon,
       AccountPane,
       RouteName,

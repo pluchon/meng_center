@@ -49,17 +49,6 @@
 }
 
 // 水印放在右下角，垫在内容底下：收藏夹、喜欢列表没排满时右下角不空
-.account-mascot {
-  position: absolute;
-  z-index: -1;
-  right: 22px;
-  bottom: 56px;
-  width: clamp(150px, 22%, 240px);
-  opacity: 0.14;
-  pointer-events: none;
-  user-select: none;
-}
-
 .account-face,
 .account-bottom-face {
   position: absolute;
@@ -203,21 +192,21 @@
   transition: transform 180ms var(--meng-motion-ease);
 }
 
-// 签名：奶油色的对话气泡，左上角有一个小尾巴，前面是闪闪的小星星
+// 签名：挂在名字和称号后面的奶油色小气泡，尾巴朝左指着名字，前面是闪闪的小星星
 .account-bio {
   position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  max-width: min(520px, 100%);
-  margin: 12px 0 0;
-  padding: 4px 18px 4px 12px;
+  gap: 6px;
+  max-width: min(420px, 100%);
+  margin: 0 0 0 6px;
+  padding: 2px 14px 2px 10px;
   border: 3px solid var(--meng-surface);
-  border-radius: 18px;
+  border-radius: 16px;
   background: var(--meng-warning);
   box-shadow: 0 3px 0 var(--meng-creator-yellow);
   color: var(--meng-favorite-text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   overflow-wrap: anywhere;
   rotate: -1.5deg;
@@ -227,11 +216,12 @@
 .account-bio::before {
   content: '';
   position: absolute;
-  top: -8px;
-  left: 24px;
-  width: 12px;
-  height: 12px;
-  border-radius: 3px 0 0;
+  top: 50%;
+  left: -8px;
+  width: 11px;
+  height: 11px;
+  margin-top: -5.5px;
+  border-radius: 0 0 0 3px;
   background: var(--meng-warning);
   rotate: 45deg;
 }
@@ -311,7 +301,7 @@
   transform: rotate(0deg) translateY(-2px);
 }
 
-// 签名下面一排小贴纸：关注、粉丝，自己的页面再多一个积分
+// 名字下面一排小贴纸：关注、粉丝
 .account-social {
   display: flex;
   flex-wrap: wrap;
@@ -351,14 +341,6 @@
   --social-ink: var(--meng-like-text);
 
   rotate: 2deg;
-}
-
-.account-social-sticker.gold {
-  --social-fill: var(--meng-warning);
-  --social-edge: var(--meng-creator-yellow);
-  --social-ink: var(--meng-favorite-text);
-
-  rotate: -2deg;
 }
 
 .account-social-sticker b {
@@ -841,10 +823,6 @@
 
   .account-face {
     right: 24px;
-  }
-
-  .account-mascot {
-    display: none;
   }
 
   .account-bottom-face {
