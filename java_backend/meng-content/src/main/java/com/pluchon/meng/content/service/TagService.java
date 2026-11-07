@@ -16,10 +16,10 @@ public class TagService {
     @Autowired
     private TagMapper tags;
 
-    // 优先匹配系统已有标签并转义通配符
+    // 匹配系统已有标签（含关键字即可，开头对上的优先），先转义通配符
     public List<String> suggest(String keyword, int size) {
         return tags
-                .selectByPrefix(
+                .selectMatching(
                         PostRules.tagKey(keyword)
                                 .replace("\\", "\\\\")
                                 .replace("%", "\\%")

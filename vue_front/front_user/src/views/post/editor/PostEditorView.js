@@ -65,6 +65,8 @@ export default defineComponent({
       editor = ref(null),
       imageInput = ref(null),
       coverInput = ref(null),
+      videoInput = ref(null),
+      clip = ref(null),
       preview = ref(false),
       video = ref(false),
       loading = ref(false),
@@ -72,8 +74,6 @@ export default defineComponent({
       busy = ref(false),
       draftId = ref(null),
       tagInput = ref(''),
-      tagField = ref(null),
-      tagFocused = ref(false),
       highlightedTag = ref(-1),
       suggestions = ref([]),
       errors = reactive({ title: '', body: '', images: '', tags: '' })
@@ -157,7 +157,34 @@ export default defineComponent({
       form.title = chars.slice(0, PostEditor.TITLE_MAX).join('')
       event.target.value = form.title
     }
-    const unavailable = () => ElMessage.info(t('home.unavailable'))
+    // 视频是模拟上传：选好后在本页预览，进度条走完就算「传好」，发布时不带视频
+    let clipTimer
+    function pickClip(event) {
+      const file = event.target.files?.[0]
+      event.target.value = ''
+      if (!file) return
+      if (!file.type.startsWith('video/') || file.size > PostEditor.VIDEO_MAX_MB * 1024 * 1024) {
+        ElMessage.warning(t('editor.videoLimit', { size: PostEditor.VIDEO_MAX_MB }))
+        return
+      }
+      removeClip()
+      clip.value = { name: file.name, url: URL.createObjectURL(file), progress: 0 }
+      const started = performance.now()
+      clipTimer = setInterval(() => {
+        const progress = Math.min(
+          100,
+          Math.round(((performance.now() - started) / PostEditor.VIDEO_MOCK_MS) * 100),
+        )
+        if (clip.value) clip.value.progress = progress
+        if (progress >= 100) clearInterval(clipTimer)
+      }, 80)
+    }
+    function removeClip() {
+      clearInterval(clipTimer)
+      if (clip.value) URL.revokeObjectURL(clip.value.url)
+      clip.value = null
+    }
+    onUnmounted(removeClip)
     const formatIcons = {
       quote: editorQuoteIcon,
       list: editorListIcon,
@@ -183,16 +210,25 @@ export default defineComponent({
         .trim()
         .toLowerCase()
     }
+    // 含有输入内容的已有标签：完全一样的排最前，其次开头对上的，最多三个
     const tagOptions = computed(() => {
       const key = tagKey(tagInput.value)
       const selected = new Set(form.tags.map(tagKey))
+      const rank = (name) => (tagKey(name) === key ? 2 : tagKey(name).startsWith(key) ? 1 : 0)
       return suggestions.value
-        .filter((name) => key && tagKey(name).startsWith(key) && !selected.has(tagKey(name)))
-        .sort((a, b) => Number(tagKey(b) === key) - Number(tagKey(a) === key))
+        .filter((name) => key && tagKey(name).includes(key) && !selected.has(tagKey(name)))
+        .sort((a, b) => rank(b) - rank(a))
+        .slice(0, PostEditor.TAG_MATCHES)
     })
+    // 标签卡最下面一行：正在输入且有相近的已有标签时显示它们，否则显示 AI 推荐；都没有就空着
+    const tagRow = computed(() =>
+      tagInput.value.trim() && tagOptions.value.length
+        ? tagOptions.value.map((name) => ({ name, match: true }))
+        : visibleAiTags.value.map((tag) => ({ name: tag.name, match: false })),
+    )
     const tagMenuVisible = computed(() =>
       Boolean(
-        tagFocused.value &&
+        tagInput.value.trim() &&
         tagOptions.value.length &&
         form.tags.length < PostEditor.TAG_MAX &&
         !busy.value &&
@@ -201,7 +237,6 @@ export default defineComponent({
       ),
     )
     function navigateTags(direction) {
-      tagFocused.value = true
       if (!tagOptions.value.length) return
       highlightedTag.value =
         (highlightedTag.value + direction + tagOptions.value.length) % tagOptions.value.length
@@ -447,14 +482,17 @@ export default defineComponent({
       editor,
       imageInput,
       coverInput,
+      videoInput,
+      clip,
+      pickClip,
+      removeClip,
+      tagRow,
       preview,
       video,
       loading,
       loadError,
       busy,
       tagInput,
-      tagField,
-      tagFocused,
       highlightedTag,
       tagOptions,
       tagMenuVisible,
@@ -467,11 +505,9 @@ export default defineComponent({
       formats,
       addTag,
       limitTitle,
-      unavailable,
       aiOpen,
       aiDraft,
       aiTags,
-      visibleAiTags,
       aiPending,
       generateAi,
       insertInspiration,

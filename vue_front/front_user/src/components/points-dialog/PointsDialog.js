@@ -1,6 +1,6 @@
 import { computed, defineComponent, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { IconCheck, IconCoin, IconMessageDots, IconPencil } from '@tabler/icons-vue'
+import { IconCheck, IconCoin, IconHeart, IconMessageDots, IconPencil } from '@tabler/icons-vue'
 import { growthApi } from '@/api/growth'
 import { useRequestResource } from '@/composables/useRequestResource'
 import { Points } from '@/constants/growth'
@@ -9,12 +9,18 @@ import DialogShell from '@/components/dialog-shell/DialogShell.vue'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import PageState from '@/components/page-state/PageState.vue'
 // 每种来源的颜色、图标，和每条规则的文案
-const SourceTones = { CHECK_IN: 'mint', POST: 'blue', COMMENT: 'violet' }
-const SourceIcons = { CHECK_IN: IconCheck, POST: IconPencil, COMMENT: IconMessageDots }
+const SourceTones = { CHECK_IN: 'mint', POST: 'blue', COMMENT: 'violet', LIKE: 'pink' }
+const SourceIcons = {
+  CHECK_IN: IconCheck,
+  POST: IconPencil,
+  COMMENT: IconMessageDots,
+  LIKE: IconHeart,
+}
 const RuleKeys = {
   CHECK_IN: 'account.ruleDaily',
   POST: 'account.rulePost',
   COMMENT: 'account.ruleComment',
+  LIKE: 'account.ruleLike',
 }
 // 柱子按顺序轮着用的颜色
 const BarTones = ['mint', 'gold', 'pink', 'violet', 'blue']

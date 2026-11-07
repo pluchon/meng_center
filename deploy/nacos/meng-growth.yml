@@ -22,12 +22,15 @@ meng.growth:
   check-in-exp: 5
   post-exp: 10
   comment-exp: 2
+  like-exp: 1
   post-daily-max: 3
   comment-daily-max: 10
+  like-daily-max: 5
   thresholds: [0, 50, 150, 300, 500, 800, 1200, 1700, 2300, 3000]
   check-in-points: 5
   post-points: 10
   comment-points: 2
+  like-points: 1
 spring.cloud.openfeign.client.config.growthAi:
   connectTimeout: 500
   readTimeout: 15000

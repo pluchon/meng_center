@@ -40,7 +40,7 @@
 | `comment.created` | content | commentId、postId、postTitle、authorId、targetUserId、parentCommentId、excerpt、originalExcerpt、mentionedUserIds、content、imageThumbs | im：通知被评论或被回复的人，以及被 @ 到的人；growth：加经验；ai：审核 |
 | `comment.moderated` | ai | commentId、modelVersion、verdict、labels、reason | content：记录结论，按审核开关处理 |
 | `comment.review-changed` | content | commentId、postId、postTitle、authorId、excerpt、reviewState、labels | im：通知评论作者 |
-| `post.liked` | content | postId、postTitle、actorId、authorId | im：通知作者 |
+| `post.liked` | content | postId、postTitle、actorId、authorId | im：通知作者；growth：给点赞的人加经验 |
 | `post.favorited` | content | postId、postTitle、actorId、authorId | im：通知作者；某人对这篇帖子的第一行收藏记录插入成功时发一次，之后放进别的收藏夹不重复发 |
 | `comment.liked` | content | commentId、postId、postTitle、excerpt、actorId、authorId | im：通知评论作者 |
 | `growth.level-changed` | growth | userId、level | user：同步展示用等级；im：升级通知 |
@@ -71,6 +71,7 @@
 |---|---|---|---|---|
 | `GET /user/internal/users?ids=` | user | content、im | 正常账号的 id、昵称（没填昵称时是用户名）、头像、等级 | 降级成占位昵称和默认头像，列表照常返回；im 发送前需确认对方存在且正常，查询失败时拒绝发送，不伪装成不存在 |
 | `POST /ai/internal/creator-reviews` | ai | content | 创作总结和建议 | 返回 503 `AI_UNAVAILABLE` |
+| `POST /ai/internal/creator-suggestions` | ai | content | 沿用这次复盘的统计，换一批不重复的建议 | 返回 503 `AI_UNAVAILABLE`，content 退还这次换建议的次数 |
 | `POST /ai/internal/ranker-trainings` | ai | content | 排序模型的权重和 AUC | 本周不换模型，下周再试 |
 | `GET /user/internal/users/{id}/followees` | user | content | 某人关注的人的 id，按关注时间倒序，最多 500 个 | 推荐流跳过「关注」这一路，其余照常 |
 | `POST /ai/internal/embeddings` | ai | content | 每段文本的向量；请求必须带 `textType`（帖子为 `document`，搜索词为 `query`） | AI 语义搜索返回 `AI_UNAVAILABLE`，不退回关键词 |

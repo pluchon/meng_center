@@ -180,6 +180,19 @@ export default defineComponent({
         block: 'start',
       })
     }
+    // 回复时想再看一眼原评论：滚过去并让那条气泡闪一下，输入框里写了一半的内容不受影响
+    function locate(comment) {
+      const element = document.getElementById('comment-' + comment.id)
+      if (!element) return
+      element.scrollIntoView({
+        behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'center',
+      })
+      element.classList.remove('is-located')
+      void element.offsetWidth
+      element.classList.add('is-located')
+      setTimeout(() => element.classList.remove('is-located'), 1800)
+    }
     async function toggleComposer() {
       open.value = !open.value
       if (open.value) {
@@ -312,6 +325,7 @@ export default defineComponent({
       loadReplies,
       expand,
       reply,
+      locate,
       toggleComposer,
       like,
       remove,

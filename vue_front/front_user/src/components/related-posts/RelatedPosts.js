@@ -1,10 +1,13 @@
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { contentApi } from '@/api/content'
+import { contentApi, contentImage } from '@/api/content'
 import { RouteName } from '@/router/names'
 import { useRequestResource } from '@/composables/useRequestResource'
 import { notifyFailure } from '@/composables/useFailureNotice'
-import { IconChevronLeft, IconChevronRight, IconRefresh } from '@tabler/icons-vue'
+import { IconChevronLeft, IconChevronRight, IconRefresh, IconSparkles } from '@tabler/icons-vue'
+import { avatarUrl } from '@/api/user'
+import { accountScenes, userAvatar } from '@/assets/images'
+import CategoryTag from '@/components/category-tag/CategoryTag.vue'
 import PageState from '@/components/page-state/PageState.vue'
 
 // 每组几篇，总数由后端限定（最多 50 篇）
@@ -12,7 +15,7 @@ const PAGE_SIZE = 5
 
 export default defineComponent({
   name: 'RelatedPosts',
-  components: { IconChevronLeft, IconChevronRight, IconRefresh, PageState },
+  components: { IconChevronLeft, IconChevronRight, IconRefresh, IconSparkles, CategoryTag, PageState },
   props: { postId: { type: [Number, String], required: true } },
   setup(props) {
     // 换一换取下一组替换当前这组；换过的组都留着，左右箭头翻回去看
@@ -62,6 +65,10 @@ export default defineComponent({
     return {
       ...useI18n(),
       RouteName,
+      contentImage,
+      avatarUrl,
+      accountScenes,
+      userAvatar,
       resource: resource.state,
       load: resource.load,
       pages,

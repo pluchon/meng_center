@@ -1,5 +1,6 @@
 package com.pluchon.meng.content.client;
 
+import java.util.List;
 import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -76,6 +77,12 @@ public interface AiClient {
         feign.Request.Options options
     );
 
+    @PostMapping("/ai/internal/creator-suggestions")
+    AiComputation.SuggestionsResponse computeSuggestions(
+        @RequestBody AiComputation.CreatorSuggestionRequest body,
+        feign.Request.Options options
+    );
+
     @PostMapping("/ai/internal/ranker-trainings")
     AiComputation.TrainingResponse computeTraining(
         @RequestBody AiComputation.TrainingRequest body,
@@ -123,6 +130,16 @@ public interface AiClient {
                 deadline(15000)
             )
         );
+    }
+
+    default List<String> suggestions(Map<String, Object> stats, List<String> previous) {
+        return computeSuggestions(
+            new AiComputation.CreatorSuggestionRequest(
+                JSON.convertValue(stats, AiComputation.CreatorRequest.class),
+                previous
+            ),
+            deadline(15000)
+        ).suggestions();
     }
 
     default Map<String, Object> train(Map<String, Object> body) {

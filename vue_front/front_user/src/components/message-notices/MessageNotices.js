@@ -8,34 +8,27 @@ import { CreatorTab } from '@/constants/content'
 import {
   authCodeIcon,
   authHeartIcon,
-  growthFlagIcon,
   messageHeartIcon,
   messageShieldIcon,
   navGrowthIcon,
   navMessageIcon,
 } from '@/assets/images'
-import CommentBody from '@/components/comment-body/CommentBody.vue'
+import { IconNotes } from '@tabler/icons-vue'
+import { commentSegments } from '@/constants/comments'
 import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
 import MessageAvatar from '@/components/message-avatar/MessageAvatar.vue'
 import PageState from '@/components/page-state/PageState.vue'
-// 每种通知对应的小图标
-const typeIcons = {
-  [NoticeType.POST_COMMENT]: authCodeIcon,
-  [NoticeType.COMMENT_REPLY]: authCodeIcon,
-  [NoticeType.COMMENT_MENTION]: authCodeIcon,
-  [NoticeType.POST_LIKED]: messageHeartIcon,
-  [NoticeType.COMMENT_LIKED]: messageHeartIcon,
-  [NoticeType.POST_FAVORITED]: growthFlagIcon,
-  [NoticeType.LEVEL_CHANGED]: navGrowthIcon,
-  [NoticeType.USER_APPROVED]: authHeartIcon,
-  [NoticeType.FOLLOWED]: authHeartIcon,
-  [NoticeType.POST_REVIEW_CHANGED]: messageShieldIcon,
-  [NoticeType.COMMENT_REVIEW_CHANGED]: messageShieldIcon,
-  [NoticeType.PROFILE_REVIEW_CHANGED]: messageShieldIcon,
-}
+// 这几种通知的帖子标题嵌在第一行里：「谁 在《标题》评论了你的帖子」；其余的标题放第二行
+const INLINE_POST = new Set([
+  NoticeType.POST_COMMENT,
+  NoticeType.COMMENT_REPLY,
+  NoticeType.COMMENT_MENTION,
+])
+// 评论摘要那一行最多带几个表情，多的显示成「+N」
+const EXCERPT_EMOTIONS = 6
 export default defineComponent({
   name: 'MessageNotices',
-  components: { MessageAvatar, CommentBody, FeedPagination, PageState },
+  components: { IconNotes, MessageAvatar, FeedPagination, PageState },
   props: {
     tab: { type: String, required: true },
     group: { type: String, required: true },
@@ -93,6 +86,27 @@ export default defineComponent({
     }
     const names = (item) =>
       item.actors.map((actor) => actor.nickname || t('home.authorFallback')).join('、')
+    // 评论摘要拆成一行文字和跟在后面的表情
+    const excerptCache = new WeakMap()
+    function excerpt(item) {
+      const cached = excerptCache.get(item)
+      if (cached) return cached
+      const segments = commentSegments(item.notice.excerpt || '')
+      const value = {
+        text: segments
+          .filter((segment) => !segment.image)
+          .map((segment) => segment.text)
+          .join('')
+          .replace(/\s+/g, ' ')
+          .trim(),
+        emotions: segments.filter((segment) => segment.image),
+      }
+      excerptCache.set(item, value)
+      return value
+    }
+    // 原评论只占一行小字，表情记号换成「[表情]」
+    const plain = (value) =>
+      value.replace(/\[表情:[^\s[\]]{1,12}\]/gu, t('im.emotionPreview')).replace(/\s+/g, ' ')
     function levelName(level) {
       const names = tm('growth.levels')
       return names[level - 1] ? rt(names[level - 1]) : ''
@@ -104,7 +118,10 @@ export default defineComponent({
       levelName,
       view,
       headerIcon,
-      typeIcon: (item) => typeIcons[item.notice.type] || navMessageIcon,
+      excerpt,
+      plain,
+      inlinePost: (item) => INLINE_POST.has(item.notice.type) && Boolean(item.notice.postTitle),
+      EXCERPT_EMOTIONS,
       relativeTime: usePostTime(),
       MessageTab,
       NoticeType,

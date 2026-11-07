@@ -14,6 +14,8 @@ public record AiProperties(
     @DefaultValue("1") int coversMinute,
     @DefaultValue("5") int reviewsDaily,
     @DefaultValue("2") int reviewsMinute,
+    // 一次创作复盘里「可以试试看」能换几次建议
+    @DefaultValue("2") int suggestionRefreshes,
     @DefaultValue("100") int feedbackDaily,
     @DefaultValue("20") int feedbackMinute
 ) {}

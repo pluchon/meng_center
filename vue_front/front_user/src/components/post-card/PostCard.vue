@@ -1,6 +1,6 @@
 <template>
   <article
-    class="post-card"
+    class="post-card tag-sway-host"
     :class="'card-'+post.category.toLowerCase()"
     @click="openCard"
     @pointerenter="preloadDetail"
@@ -74,10 +74,7 @@
       @close="previewIndex=null"
     />
     <div class="post-actions">
-      <span
-        class="post-tag"
-        :class="'category-'+post.category.toLowerCase()"
-      >{{ t('home.categories.'+post.category) }}</span><span
+      <CategoryTag :category="post.category" /><span
         class="views-action"
         :aria-label="t('home.views')"
       ><el-icon><ViewIcon /></el-icon>{{ post.viewCount }}</span><button

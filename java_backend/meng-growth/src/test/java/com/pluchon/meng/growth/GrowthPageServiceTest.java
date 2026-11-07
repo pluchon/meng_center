@@ -47,7 +47,7 @@ class GrowthPageServiceTest {
         UserContext.bind(new RequestIdentity(7L, "USER", "growth-test"));
         ReflectionTestUtils.setField(service, "pageMapper", page);
         ReflectionTestUtils.setField(service, "mapper", mapper);
-        ReflectionTestUtils.setField(service, "properties", new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L), 5, 10, 2));
+        ReflectionTestUtils.setField(service, "properties", new GrowthProperties("Asia/Taipei", 5, 10, 2, 1, 3, 10, 5, List.of(0L, 50L, 150L), 5, 10, 2, 1));
         ReflectionTestUtils.setField(service, "clock", Clock.fixed(Instant.parse("2026-10-11T16:00:01Z"), ZoneOffset.UTC));
     }
 
@@ -126,7 +126,7 @@ class GrowthPageServiceTest {
         assertEquals(start, result.days().get(0).date());
         assertEquals(17, result.days().get(29).amount());
         assertEquals(0, result.days().get(0).amount());
-        assertEquals(3, result.sources().size());
+        assertEquals(PointSource.values().length, result.sources().size());
         assertEquals(0, result.sources().get(0).amount());
         assertEquals(17, result.sources().stream().mapToLong(source -> source.amount()).sum());
         assertThrows(BusinessException.class, () -> service.pointStats(8));

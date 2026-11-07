@@ -10,4 +10,6 @@ export const aiApi = {
     request.post('/growth/ai-summaries', { days }, { timeout: 18000, ...config }),
   creator: (days, config = {}) =>
     request.post('/content/creator/ai-reviews', { days }, { timeout: 18000, ...config }),
+  creatorSuggestions: (days, config = {}) =>
+    request.post('/content/creator/ai-reviews/suggestions', { days }, { timeout: 18000, ...config }),
 }

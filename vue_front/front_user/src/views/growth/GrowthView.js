@@ -22,6 +22,7 @@ import {
   editorMagicIcon,
   editorPencilIcon,
   creatorCommentsIcon,
+  creatorLikesIcon,
 } from '@/assets/images'
 import { useCountUp } from '@/composables/useCountUp'
 import { growthApi } from '@/api/growth'
@@ -288,6 +289,7 @@ export default defineComponent({
         CHECK_IN: growthCalendarIcon,
         POST: editorPencilIcon,
         COMMENT: creatorCommentsIcon,
+        LIKE: creatorLikesIcon,
       },
       calendarCounts,
       overview: overview.state,
@@ -316,7 +318,6 @@ export default defineComponent({
       checkIn,
       toggleVisual,
       retryOverview: overview.load,
-      retrySeven: seven.load,
       retryStats: () => visibleStats.value.load(),
     }
   },

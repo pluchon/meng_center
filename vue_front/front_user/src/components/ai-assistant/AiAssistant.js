@@ -1,6 +1,8 @@
 import { computed, defineComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { IconRefresh } from '@tabler/icons-vue'
 import { aiApi } from '@/api/ai'
+import { notifyFailure } from '@/composables/useFailureNotice'
 import { useRequestResource } from '@/composables/useRequestResource'
 import {
   editorMagicIcon,
@@ -16,7 +18,7 @@ import GlowRing from '@/components/glow-ring/GlowRing.vue'
 import PageState from '@/components/page-state/PageState.vue'
 export default defineComponent({
   name: 'AiAssistant',
-  components: { GlowRing, PageState },
+  components: { GlowRing, PageState, IconRefresh },
   props: {
     open: Boolean,
     mode: { type: String, required: true },
@@ -25,7 +27,8 @@ export default defineComponent({
   emits: ['update:open', 'insert'],
   setup(props, { emit }) {
     const days = ref(7),
-      revision = ref(0)
+      revision = ref(0),
+      refreshing = ref(false)
     const resource = useRequestResource(
       (signal) =>
         props.mode === 'inspirations'
@@ -36,16 +39,44 @@ export default defineComponent({
     async function load() {
       if (await resource.load()) revision.value++
     }
+    // 切换天数要重新生成：先清掉上一段的结果，让等待时的流光占位重新出来
     watch(
       () => [props.open, days.value],
-      ([open]) => {
+      ([open], previous) => {
+        if (open && previous && previous[1] !== days.value) resource.clear()
         if (open) void load()
         else resource.clear()
       },
       { immediate: true },
     )
+    // 总结按点展示：模型按行分点，旧的缓存是一整段，就按句末标点切开
+    const points = computed(() =>
+      (resource.state.data?.result?.summary || '')
+        .split(/\n|(?<=[。！？!?；;])/u)
+        .map((point) => point.trim())
+        .filter(Boolean),
+    )
+    const refreshesLeft = computed(() => resource.state.data?.suggestionRefreshes ?? 0)
+    // 只换「可以试试看」的建议，次数按这次复盘算，用完按钮变灰
+    async function refreshSuggestions() {
+      if (refreshing.value || !refreshesLeft.value) return
+      refreshing.value = true
+      const period = days.value
+      try {
+        const result = await aiApi.creatorSuggestions(period)
+        if (period === days.value && resource.state.data) resource.state.data = result
+      } catch (error) {
+        if (!error.cancelled) notifyFailure(error)
+      } finally {
+        refreshing.value = false
+      }
+    }
     return {
       ...useI18n(),
+      points,
+      refreshesLeft,
+      refreshing,
+      refreshSuggestions,
       editorMagicIcon,
       messageCloseIcon,
       days,

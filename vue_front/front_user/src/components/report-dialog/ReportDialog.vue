@@ -32,11 +32,7 @@
     />
     <template #footer>
       <el-button
-        :disabled="busy"
-        @click="$emit('close')"
-      >
-        {{ t('detail.cancel') }}
-      </el-button><el-button
+        class="report-submit"
         type="primary"
         :disabled="!reason"
         :loading="busy"

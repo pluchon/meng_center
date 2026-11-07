@@ -211,11 +211,15 @@
   --action-fill: var(--meng-tint);
   --action-edge: var(--meng-category-anime);
 
+  // 操作行的按钮一律同高同内边距，最小宽度一致，数字少的也不会显得小一圈
   display: inline-flex;
   align-items: center;
-  gap: var(--meng-space-2);
-  min-height: 44px;
-  padding: 0 var(--meng-space-4);
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 40px;
+  min-width: 68px;
+  padding: 0 14px;
   border: 2px solid var(--meng-surface);
   border-radius: var(--meng-radius-pill);
   background: var(--action-fill);
@@ -265,10 +269,10 @@
   color: var(--meng-like-text);
 }
 
+// 已喜欢、已收藏只把白边换成同色深边，不再套外圈，按钮大小不变
 .detail-actions button.liked,
 .detail-actions button.favorited {
-  outline: 2px solid var(--action-edge);
-  outline-offset: 2px;
+  border-color: var(--action-edge);
 }
 
 .detail-actions button.liked svg {
@@ -288,7 +292,7 @@
 }
 
 .detail-actions .el-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .detail-actions button:active:not(:disabled),
@@ -334,43 +338,6 @@
   gap: var(--meng-space-2);
   align-items: center;
   margin-left: auto;
-}
-
-.detail-category {
-  --category-edge: var(--meng-category-daily);
-
-  padding: var(--meng-space-1) var(--meng-space-4);
-  border: 2px solid var(--meng-surface);
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-warning);
-  box-shadow: 0 3px 0 var(--category-edge);
-  font-size: 12px;
-  font-weight: 800;
-  rotate: 3deg;
-}
-
-.category-anime {
-  --category-edge: var(--meng-category-anime);
-
-  background: var(--meng-tint);
-}
-
-.category-creation {
-  --category-edge: var(--meng-category-creation);
-
-  background: var(--meng-danger);
-}
-
-.category-game {
-  --category-edge: var(--meng-category-game-dot);
-
-  background: var(--meng-category-game);
-}
-
-.category-tech {
-  --category-edge: var(--meng-growth-mint-edge);
-
-  background: var(--meng-success);
 }
 
 .detail-decor {
@@ -575,4 +542,122 @@
   background: var(--meng-warning);
   color: var(--meng-text);
   font-weight: 700;
+}
+
+// 换帖子：旧帖淡出下沉，骨架或新帖淡入上浮
+.detail-swap-enter-active,
+.detail-swap-leave-active {
+  transition:
+    opacity 220ms ease,
+    translate 260ms var(--meng-slide-ease);
+}
+
+.detail-swap-enter-from {
+  opacity: 0;
+  translate: 0 14px;
+}
+
+.detail-swap-leave-to {
+  opacity: 0;
+  translate: 0 -8px;
+}
+
+// 加载中的骨架：和正文同样的卡片，里面是作者行、标题、几行字、配图和操作行的浅色占位，带一道扫过的光
+.detail-skeleton i {
+  display: block;
+  border-radius: var(--meng-radius-pill);
+  background: linear-gradient(100deg, var(--meng-tint) 30%, var(--meng-surface) 50%, var(--meng-tint) 70%);
+  background-size: 300% 100%;
+  animation: skeleton-shine 1.4s ease-in-out infinite;
+}
+
+.skeleton-author {
+  display: flex;
+  align-items: center;
+  gap: var(--meng-space-3);
+  margin-bottom: var(--meng-space-6);
+  padding-bottom: var(--meng-space-5);
+  border-bottom: 2px dashed var(--meng-tint);
+}
+
+.detail-skeleton .skeleton-dot {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+}
+
+.detail-skeleton .skeleton-dot.large {
+  width: 56px;
+  height: 56px;
+}
+
+.detail-skeleton .skeleton-bar {
+  height: 14px;
+  margin-bottom: 12px;
+}
+
+.detail-skeleton .skeleton-bar.title {
+  width: min(420px, 70%);
+  height: 30px;
+  margin-bottom: var(--meng-space-6);
+}
+
+.detail-skeleton .skeleton-bar.medium {
+  width: 60%;
+}
+
+.skeleton-author .skeleton-bar.short {
+  width: 120px;
+  margin: 0;
+}
+
+.skeleton-author .skeleton-bar.tiny {
+  width: 48px;
+  margin: 0;
+}
+
+.skeleton-images {
+  display: flex;
+  gap: var(--meng-space-3);
+  margin-block: var(--meng-space-5);
+}
+
+.detail-skeleton .skeleton-images i {
+  width: 160px;
+  height: 110px;
+  border-radius: 18px;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: var(--meng-space-2);
+  margin-top: var(--meng-space-6);
+  padding-top: var(--meng-space-3);
+  border-top: 2px dashed var(--meng-tint);
+}
+
+.detail-skeleton .skeleton-actions i {
+  width: 68px;
+  height: 40px;
+}
+
+@keyframes skeleton-shine {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-swap-enter-active,
+  .detail-swap-leave-active {
+    transition: none;
+  }
+
+  .detail-skeleton i {
+    animation: none;
+  }
 }

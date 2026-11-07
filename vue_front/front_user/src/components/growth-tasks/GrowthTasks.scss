@@ -12,12 +12,36 @@
   animation: task-in 460ms var(--meng-slide-ease) backwards;
 }
 
-.task:nth-child(2) {
-  animation-delay: 80ms;
+// 任务卡依次滑进来
+.task {
+  animation-delay: calc(var(--i, 0) * 80ms);
 }
 
-.task:nth-child(3) {
-  animation-delay: 160ms;
+// 任务列表撑满卡片，翻页器固定在最下面，任务少了也不跟着往上跑
+.growth-tasks {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.task-list {
+  flex: 1;
+}
+
+.task-pager {
+  flex: none;
+  margin: 0;
+  padding-top: 4px;
+}
+
+.task-page-enter-active,
+.task-page-leave-active {
+  transition: opacity 200ms ease;
+}
+
+.task-page-enter-from,
+.task-page-leave-to {
+  opacity: 0;
 }
 
 @keyframes task-in {
@@ -132,115 +156,16 @@
   translate: 0 -2px;
 }
 
-.weekly-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 2px dashed var(--meng-tint);
-  color: var(--meng-growth-green);
-}
-
-.weekly-heading strong {
-  color: var(--meng-tool-text);
-  background: var(--meng-creator-highlight);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.weekly-heading strong::before {
-  content: '';
-  width: 6px;
-  height: 16px;
-  border-radius: 6px;
-  background: var(--meng-creator-green);
-}
-
-.weekly-heading strong::after {
-  content: '';
-  width: 12px;
-  height: 12px;
-  background: var(--meng-decor-sparkle);
-  mask: var(--growth-sparkle) center / contain no-repeat;
-}
-
-.weekly-heading > span {
-  font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
-  font-size: 24px;
-}
-
-.weekly-bars {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  align-items: end;
-  gap: 12px;
-  height: 114px;
-  padding-top: 14px;
-}
-
-.weekly-day {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  align-items: center;
-  color: var(--meng-muted);
-  font-size: 12px;
-}
-
-.weekly-day > span {
-  display: block;
-  width: 30px;
-  max-width: 100%;
-  border: 2px solid var(--meng-surface);
-  border-radius: 12px 12px 5px 5px;
-  background: var(--growth-fill);
-  box-shadow: 0 0 0 1.5px var(--growth-edge);
-  animation: bar-grow 700ms var(--meng-slide-ease) both;
-  animation-delay: calc(var(--i, 0) * 70ms);
-  transform-origin: bottom;
-  transition:
-    height 300ms var(--meng-slide-ease),
-    translate 200ms var(--meng-slide-ease);
-}
-
-.weekly-day:hover > span {
-  translate: 0 -4px;
-}
-
-.weekly-day strong {
-  font-family: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
-  font-size: 14px;
-  font-weight: 400;
-}
-
-.weekly-day small {
-  font-weight: 800;
-}
-
-@keyframes bar-grow {
-  from {
-    transform: scaleY(0);
-  }
-}
-
-@media (width <= 720px) {
-  .weekly-bars {
-    gap: 7px;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .task,
   .task-icon,
   .task-status > a,
-  .weekly-day > span {
+  .task-page-enter-active,
+  .task-page-leave-active {
     transition: none;
   }
 
-  .task,
-  .weekly-day > span {
+  .task {
     animation: none;
   }
 }

@@ -1,10 +1,20 @@
 <template>
   <section class="message-chat">
     <header class="chat-header">
-      <MessageAvatar
-        :user="im.current.peer"
-        :size="62"
-      />
+      <span
+        class="presence-avatar"
+        :class="{online:im.current.online}"
+        :title="t(im.current.online?'im.online':'im.offline')"
+      >
+        <MessageAvatar
+          :user="im.current.peer"
+          :size="62"
+        /><i
+          class="presence-dot"
+          role="img"
+          :aria-label="t(im.current.online?'im.online':'im.offline')"
+        />
+      </span>
       <h2>{{ im.current.peer.nickname||t('home.authorFallback') }}</h2>
       <div class="chat-actions">
         <label
@@ -25,10 +35,6 @@
             alt=""
           ></span>{{ t('im.block') }}
         </label>
-        <span
-          class="presence-pill"
-          :class="{online:im.current.online}"
-        ><i />{{ t(im.current.online?'im.online':'im.offline') }}</span>
         <button
           v-if="im.current.id"
           class="delete-chat"
@@ -136,11 +142,33 @@
                     large
                     :items="item.items"
                   />
+                  <Transition name="revoke-btn">
+                    <button
+                      v-if="canRevoke(item)&&item.items.length<=1"
+                      class="message-revoke"
+                      type="button"
+                      :disabled="revoking===item.id"
+                      @click="revoke(item)"
+                    >
+                      <el-icon><IconArrowBackUp /></el-icon>{{ t('im.revoke') }}
+                    </button>
+                  </Transition>
                 </div>
                 <MessageImages
                   v-if="item.items.length>1"
                   :items="item.items"
                 />
+                <Transition name="revoke-btn">
+                  <button
+                    v-if="canRevoke(item)&&item.items.length>1"
+                    class="message-revoke"
+                    type="button"
+                    :disabled="revoking===item.id"
+                    @click="revoke(item)"
+                  >
+                    <el-icon><IconArrowBackUp /></el-icon>{{ t('im.revoke') }}
+                  </button>
+                </Transition>
               </div>
               <button
                 v-if="item.error"
@@ -158,26 +186,11 @@
                   aria-hidden="true"
                 >{{ t('im.failed') }}
               </button>
-              <div
+              <small
                 v-else
-                class="message-meta"
-              >
-                <Transition name="revoke-btn">
-                  <button
-                    v-if="canRevoke(item)"
-                    class="message-revoke"
-                    type="button"
-                    :disabled="revoking===item.id"
-                    @click="revoke(item)"
-                  >
-                    <el-icon><IconArrowBackUp /></el-icon>{{ t('im.revoke') }}
-                  </button>
-                </Transition>
-                <small
-                  class="message-receipt"
-                  :class="{unread:item.senderId===im.userId&&item.id>im.current.peerReadMessageId}"
-                >{{ t(item.pending?'im.sending':item.id<=(item.senderId===im.userId?im.current.peerReadMessageId:im.current.lastReadMessageId)?'im.read':'im.unread') }}</small>
-              </div>
+                class="message-receipt"
+                :class="{unread:item.senderId===im.userId&&item.id>im.current.peerReadMessageId}"
+              >{{ t(item.pending?'im.sending':item.id<=(item.senderId===im.userId?im.current.peerReadMessageId:im.current.lastReadMessageId)?'im.read':'im.unread') }}</small>
             </div>
           </Transition>
         </div>

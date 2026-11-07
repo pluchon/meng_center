@@ -14,9 +14,11 @@ import { contentImage } from '@/api/content'
 import { RouteName } from '@/router/names'
 import { usePostTime } from '@/composables/usePostTime'
 import { communitySparkle } from '@/assets/images'
+import CategoryTag from '@/components/category-tag/CategoryTag.vue'
 export default defineComponent({
   name: 'CreatorEntry',
   components: {
+    CategoryTag,
     IconClock,
     IconPencil,
     IconTrash,

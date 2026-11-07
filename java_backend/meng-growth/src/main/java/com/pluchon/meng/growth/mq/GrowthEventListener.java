@@ -1,6 +1,7 @@
 package com.pluchon.meng.growth.mq;
 
 import com.pluchon.meng.api.content.event.CommentCreatedEvent;
+import com.pluchon.meng.api.content.event.ContentInteractionEvent;
 import com.pluchon.meng.api.content.event.PostPublishedEvent;
 import com.pluchon.meng.common.core.event.EventEnvelope;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
@@ -19,6 +20,12 @@ public class GrowthEventListener {
 
     // 评论发布事件消费队列
     public static final String COMMENT_QUEUE = "meng.growth.comment.created";
+
+    // 帖子被喜欢事件消费队列
+    public static final String LIKE_QUEUE = "meng.growth.post.liked";
+
+    // 帖子被喜欢的事件名
+    public static final String POST_LIKED = "post.liked";
 
     // 成长业务操作
     @Autowired
@@ -43,6 +50,19 @@ public class GrowthEventListener {
                 e.body().authorId(),
                 ExpSource.COMMENT,
                 Long.toString(e.body().commentId()),
+                e.occurredAt());
+    }
+
+    // 点赞别人的帖子给点赞的人发经验；同一篇帖子只算一次，给自己点赞不算
+    @RabbitListener(queues = LIKE_QUEUE)
+    public void like(EventEnvelope<ContentInteractionEvent> e) {
+        if (!POST_LIKED.equals(e.eventType()))
+            throw new IllegalArgumentException("Wrong event type");
+        if (e.body().actorId() == e.body().authorId()) return;
+        growth.earned(
+                e.body().actorId(),
+                ExpSource.LIKE,
+                Long.toString(e.body().postId()),
                 e.occurredAt());
     }
 }

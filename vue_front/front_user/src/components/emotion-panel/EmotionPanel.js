@@ -6,22 +6,15 @@ export default defineComponent({
   emits: ['select'],
   setup() {
     const catalog = useEmotionStore(),
-      active = ref('classic'),
-      query = ref('')
+      active = ref('classic')
     onMounted(() => void catalog.load())
     return {
       ...useI18n(),
       active,
       catalog,
-      query,
       EmotionSeries: computed(() => catalog.series),
       current: computed(() => ({
-        items: (catalog.series.find((series) => series.key === active.value)?.items || []).filter(
-          (item) =>
-            [item.name, item.description, item.meaning, ...(item.tags || [])]
-              .join(' ')
-              .includes(query.value.trim()),
-        ),
+        items: catalog.series.find((series) => series.key === active.value)?.items || [],
       })),
     }
   },

@@ -1,0 +1,90 @@
+// 分类小吊牌：左端打孔穿一根细绳，微微歪着；外层元素带 tag-sway-host 时，悬停外层它会轻轻晃一下
+.category-tag {
+  --tag-fill: var(--meng-tint);
+  --tag-edge: var(--meng-category-anime);
+
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: none;
+  margin-left: 10px;
+  padding: 3px 12px 3px 20px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 6px 12px 12px 6px;
+  background: var(--tag-fill);
+  box-shadow: 0 3px 0 var(--tag-edge);
+  color: var(--meng-text);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.4;
+  white-space: nowrap;
+  rotate: -5deg;
+  transform-origin: 0 50%;
+}
+
+.category-tag::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 6px;
+  width: 7px;
+  height: 7px;
+  border: 2px solid var(--tag-edge);
+  border-radius: 50%;
+  background: var(--meng-surface);
+  translate: 0 -50%;
+}
+
+.category-tag::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -12px;
+  width: 20px;
+  height: 12px;
+  border: 1.5px solid var(--tag-edge);
+  border-right: 0;
+  border-bottom: 0;
+  border-radius: 12px 0 0;
+  translate: 0 -100%;
+}
+
+.tag-creation {
+  --tag-fill: var(--meng-danger);
+  --tag-edge: var(--meng-category-creation);
+}
+
+.tag-game {
+  --tag-fill: var(--meng-category-game);
+  --tag-edge: var(--meng-category-game-dot);
+}
+
+.tag-tech {
+  --tag-fill: var(--meng-success);
+  --tag-edge: var(--meng-growth-mint-edge);
+}
+
+.tag-daily {
+  --tag-fill: var(--meng-warning);
+  --tag-edge: var(--meng-category-daily);
+}
+
+.tag-sway-host:hover .category-tag {
+  animation: category-tag-sway 900ms var(--meng-slide-ease);
+}
+
+@keyframes category-tag-sway {
+  30% {
+    rotate: 4deg;
+  }
+
+  60% {
+    rotate: -8deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tag-sway-host:hover .category-tag {
+    animation: none;
+  }
+}

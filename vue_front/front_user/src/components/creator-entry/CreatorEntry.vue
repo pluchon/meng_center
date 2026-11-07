@@ -1,6 +1,6 @@
 <template>
   <article
-    class="creator-entry"
+    class="creator-entry tag-sway-host"
     :class="{published:!draft}"
     :tabindex="draft?undefined:0"
     @click="open"
@@ -58,6 +58,10 @@
       </div>
     </div>
     <footer class="entry-actions">
+      <CategoryTag
+        v-if="entry.category"
+        :category="entry.category"
+      />
       <div
         v-if="!draft"
         class="entry-counts"
@@ -80,11 +84,6 @@
           <IconTrash :size="17" />{{ t('creator.delete') }}
         </button>
       </div>
-      <span
-        v-if="entry.category"
-        class="entry-category"
-        :class="'category-'+entry.category.toLowerCase()"
-      >{{ t('home.categories.'+entry.category) }}</span>
     </footer>
   </article>
 </template>

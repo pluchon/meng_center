@@ -63,7 +63,7 @@ class GrowthServiceTest {
         ReflectionTestUtils.setField(
                 service,
                 "properties",
-                new GrowthProperties("Asia/Taipei", 5, 10, 2, 3, 10, List.of(0L, 50L, 150L, 300L), 5, 10, 2));
+                new GrowthProperties("Asia/Taipei", 5, 10, 2, 1, 3, 10, 5, List.of(0L, 50L, 150L, 300L), 5, 10, 2, 1));
         ReflectionTestUtils.setField(
                 service,
                 "clock",
@@ -143,6 +143,15 @@ class GrowthServiceTest {
         when(mapper.countDailyRecords(eq(7L), eq("COMMENT"), any())).thenReturn(10);
         service.earned(7, ExpSource.COMMENT, "1", Instant.now());
         verify(mapper, never()).updateAccountExperience(anyLong(), anyLong(), anyInt());
+    }
+
+    @Test
+    void likeUsesItsOwnRewardAndLimit() {
+        service.earned(7, ExpSource.LIKE, "9", Instant.now());
+        verify(mapper).insertExperienceRecord(eq(7L), eq("LIKE"), eq("9"), eq(1), any());
+        when(mapper.countDailyRecords(eq(7L), eq("LIKE"), any())).thenReturn(5);
+        service.earned(7, ExpSource.LIKE, "10", Instant.now());
+        verify(mapper, never()).insertExperienceRecord(eq(7L), eq("LIKE"), eq("10"), anyInt(), any());
     }
 
     @Test

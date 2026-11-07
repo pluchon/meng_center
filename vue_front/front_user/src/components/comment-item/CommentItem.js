@@ -1,7 +1,7 @@
 import { defineComponent, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Delete, ArrowDown, Location } from '@element-plus/icons-vue'
-import { IconHeart, IconFlag, IconPin } from '@tabler/icons-vue'
+import { IconHeart, IconFlag, IconPin, IconCornerDownRight } from '@tabler/icons-vue'
 import { useUserStore } from '@/stores/user'
 import { usePostTime } from '@/composables/usePostTime'
 import CommentBody from '@/components/comment-body/CommentBody.vue'
@@ -14,6 +14,7 @@ export default defineComponent({
     CommentBody,
     PostImages,
     IconHeart,
+    IconCornerDownRight,
     IconFlag,
     IconPin,
     Delete,

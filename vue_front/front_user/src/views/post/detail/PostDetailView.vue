@@ -18,28 +18,52 @@
           decoding="async"
         >
       </picture>
-      <PageState
-        v-if="loading"
-        class="detail-state"
-        state="loading"
-      />
-      <div
-        v-else-if="error"
-        class="detail-state"
+      <Transition
+        name="detail-swap"
+        mode="out-in"
       >
-        <PageState
-          :state="error.status===404?'empty':'error'"
-          :art="error.status===404?'postMissing':''"
-          :error="error"
-          size="page"
-          :text="error.status===404?t('detail.missing'):''"
-          @retry="load"
-        /><router-link :to="homeLink">
-          {{ t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back') }}
-        </router-link>
-      </div>
-      <template v-else-if="post">
-        <article class="detail-card">
+        <article
+          v-if="loading"
+          key="skeleton"
+          class="detail-card detail-skeleton"
+          role="status"
+          :aria-label="t('common.loading')"
+        >
+          <div class="detail-content">
+            <div class="skeleton-author">
+              <i class="skeleton-dot" /><i class="skeleton-dot large" /><i class="skeleton-bar short" /><i class="skeleton-bar tiny" />
+            </div>
+            <i class="skeleton-bar title" />
+            <i class="skeleton-bar" /><i class="skeleton-bar" /><i class="skeleton-bar medium" />
+            <div class="skeleton-images">
+              <i /><i /><i />
+            </div>
+            <div class="skeleton-actions">
+              <i /><i /><i /><i />
+            </div>
+          </div>
+        </article>
+        <div
+          v-else-if="error"
+          key="error"
+          class="detail-state"
+        >
+          <PageState
+            :state="error.status===404?'empty':'error'"
+            :art="error.status===404?'postMissing':''"
+            :error="error"
+            size="page"
+            :text="error.status===404?t('detail.missing'):''"
+            @retry="load"
+          /><router-link :to="homeLink">
+            {{ t(homeLink.name===RouteName.CREATOR?'creator.back':homeLink.name===RouteName.SEARCH?'search.back':'detail.back') }}
+          </router-link>
+        </div>
+        <article
+          v-else-if="post"
+          :key="post.id"
+          class="detail-card"
+        >
           <div
             class="detail-decor"
             aria-hidden="true"
@@ -99,8 +123,8 @@
                 :key="tag"
               >{{ t('detail.tag',{name:tag}) }}</span>
             </div>
-            <footer class="detail-actions">
-              <span
+            <footer class="detail-actions tag-sway-host">
+              <CategoryTag :category="post.category" /><span
                 class="view-count"
                 :aria-label="t('home.views')"
               ><el-icon><ViewIcon /></el-icon>{{ post.viewCount }}</span>
@@ -129,7 +153,7 @@
                 :disabled="pending.favorite"
                 @click="toggle('favorite')"
               >
-                <el-icon><IconStar /></el-icon>{{ t('home.favorite') }}<span>{{ post.favoriteCount }}</span>
+                <el-icon><IconStar /></el-icon>{{ post.favoriteCount }}
               </button>
               <div class="detail-moderation">
                 <template v-if="own">
@@ -149,7 +173,7 @@
                   @click="reportTarget={targetType:ReportTarget.POST,targetId:post.id}"
                 >
                   <el-icon><IconFlag /></el-icon>{{ t('detail.report') }}
-                </button><span :class="['detail-category','category-'+post.category.toLowerCase()]">{{ t('home.categories.'+post.category) }}</span>
+                </button>
               </div>
             </footer>
             <div class="comments-card">
@@ -169,7 +193,7 @@
             </div>
           </div>
         </article>
-      </template>
+      </Transition>
       <RelatedPosts
         v-if="post"
         :post-id="post.id"

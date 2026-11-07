@@ -40,7 +40,9 @@ export default defineComponent({
         base: token('bg'),
         lines: ['creator-green', 'creator-pink', 'creator-purple', 'creator-yellow'].map(token),
         bars: ['creator-yellow', 'creator-pink', 'category-anime', 'creator-green', 'creator-purple'].map(token),
-        sources: ['category-anime', 'category-daily', 'category-game-dot'].map(token),
+        sources: ['category-anime', 'category-daily', 'category-game-dot', 'category-creation'].map(
+          token,
+        ),
       }
     }
     function update(reveal = false) {

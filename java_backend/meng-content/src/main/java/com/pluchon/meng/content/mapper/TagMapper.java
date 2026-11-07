@@ -28,10 +28,12 @@ public interface TagMapper {
     })
     List<PostTagName> selectNamesByPostIds(@Param("ids") List<Long> ids);
 
+    // 名字里含有关键字的标签：开头就对上的排前面，再按使用次数
     @Select(
             "SELECT id,name,name_key,use_count FROM tag WHERE delete_state=0 AND name_key LIKE"
-                    + " CONCAT(#{prefix},'%') ORDER BY use_count DESC,name_key LIMIT #{size}")
-    List<TagEntity> selectByPrefix(@Param("prefix") String prefix, @Param("size") int size);
+                    + " CONCAT('%',#{keyword},'%') ORDER BY name_key LIKE CONCAT(#{keyword},'%') DESC,"
+                    + "use_count DESC,name_key LIMIT #{size}")
+    List<TagEntity> selectMatching(@Param("keyword") String keyword, @Param("size") int size);
 
     @Insert("INSERT INTO tag(name,name_key) VALUES(#{name},#{key}) ON DUPLICATE KEY UPDATE id=id")
     int insertIfAbsent(@Param("name") String name, @Param("key") String key);

@@ -21,6 +21,7 @@
         :target="target"
         @sent="sent"
         @clear-target="target=null"
+        @locate="locate"
       />
     </CollapsePanel>
     <PageState

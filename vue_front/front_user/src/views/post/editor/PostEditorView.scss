@@ -796,6 +796,46 @@ small {
   rotate: 0deg;
 }
 
+// 封面标题行：「AI 生成封面」后面跟一个薄荷色的「更换」
+.cover-panel .panel-heading {
+  justify-content: flex-start;
+  gap: 8px;
+}
+
+.cover-panel .panel-heading h2 {
+  margin-right: auto;
+}
+
+.ai-tool.replace-cover {
+  background: var(--meng-success);
+  box-shadow: 0 3px 0 var(--meng-creator-green-shadow);
+  color: var(--meng-success-shadow);
+  rotate: 2deg;
+}
+
+.ai-tool.replace-cover:enabled:hover {
+  box-shadow: 0 5px 0 var(--meng-creator-green-shadow);
+}
+
+.tool-pop-enter-active {
+  transition:
+    opacity 220ms ease,
+    scale 320ms var(--meng-slide-ease);
+}
+
+.tool-pop-leave-active {
+  transition: opacity 160ms ease;
+}
+
+.tool-pop-enter-from {
+  opacity: 0;
+  scale: 0.6;
+}
+
+.tool-pop-leave-to {
+  opacity: 0;
+}
+
 .ai-tool:enabled:hover .ai-icon {
   animation: editor-wiggle 480ms ease-in-out;
 }
@@ -1164,6 +1204,41 @@ small {
   color: var(--meng-danger-text);
 }
 
+// 视频（演示上传）：本地预览，右上角移除，左下角一枚「演示」小签
+.video-slot {
+  position: relative;
+  min-height: 136px;
+  overflow: hidden;
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-note);
+  background: var(--meng-shadow-hard);
+  box-shadow: 0 0 0 2px var(--meng-border);
+}
+
+.video-slot video {
+  display: block;
+  width: 100%;
+  height: 136px;
+  object-fit: contain;
+}
+
+.video-slot .remove-image {
+  z-index: 1;
+}
+
+.video-mock {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  padding: 1px 8px;
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-warning);
+  color: var(--meng-favorite-text);
+  font-size: 11px;
+  font-weight: 800;
+  pointer-events: none;
+}
+
 .upload-progress {
   position: absolute;
   bottom: 4px;
@@ -1385,14 +1460,22 @@ small {
   font-size: 12px;
 }
 
+// 最下面一行：输入时是相近的已有标签，否则是 AI 推荐，等 AI 时是三枚流光小胶囊；有几个放几个，没有就整行收起
 .tag-recommendations {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 6px;
+  min-height: 30px;
   margin-top: 10px;
 }
 
+.tag-recommendations.empty {
+  min-height: 0;
+  margin-top: 0;
+}
+
 .tag-recommendations span {
+  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1797,6 +1880,7 @@ small {
 }
 
 .tag-recommendations button {
+  max-width: 100%;
   padding: 6px 10px;
   display: inline-flex;
   align-items: center;
@@ -1820,6 +1904,22 @@ small {
     opacity: 0.5;
     cursor: default;
   }
+}
+
+// 相近的已有标签是白底蓝边，和 AI 推荐的暖黄色分开；键盘上下选中的那个描一圈
+.tag-recommendations button.match {
+  background: var(--meng-surface);
+  border-color: var(--meng-category-anime);
+  color: var(--meng-shadow-hard);
+}
+
+.tag-recommendations button.match.highlighted {
+  outline: 2px solid var(--meng-primary);
+  outline-offset: 1px;
+}
+
+.tag-suggest-leave-active {
+  display: none;
 }
 
 @keyframes tag-pop {

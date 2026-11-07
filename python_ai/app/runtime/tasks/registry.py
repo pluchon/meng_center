@@ -18,6 +18,7 @@ from app.schemas.models import (
     GrowthSummary,
     Inspirations,
     Moderation,
+    Suggestions,
     Summary,
     Tags,
     Understanding,
@@ -53,6 +54,9 @@ TASKS = {
     ),
     "growth": TaskSpec("assist", GrowthSummary, evaluation="tests/test_boundary.py"),
     "creator": TaskSpec("assist", Summary, evaluation="tests/test_boundary.py"),
+    "creator_suggestions": TaskSpec(
+        "assist", Suggestions, temperature=0.7, evaluation="tests/test_boundary.py"
+    ),
     "memory_consolidate": TaskSpec(
         "memory",
         Consolidation,

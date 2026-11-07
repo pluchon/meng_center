@@ -19,7 +19,7 @@
         :key="target.id"
         class="composer-target"
       >
-        {{ t('detail.replyTo', { name: target.author.nickname || t('home.authorFallback') })
+        <span class="target-chip">{{ t('detail.replyTo', { name: target.author.nickname || t('home.authorFallback') })
         }}<button
           type="button"
           :aria-label="t('detail.removeReply')"
@@ -27,6 +27,16 @@
           @click="$emit('clear-target')"
         >
           <el-icon><Close /></el-icon>
+        </button></span><q
+          class="target-quote"
+          :title="targetExcerpt"
+        >{{ targetExcerpt }}</q><button
+          type="button"
+          class="target-locate"
+          :title="t('detail.locateReply')"
+          @click="$emit('locate', target)"
+        >
+          <el-icon><IconArrowDownCircle /></el-icon>{{ t('detail.locateReply') }}
         </button>
       </div>
     </Transition>
@@ -79,16 +89,7 @@
           t('editor.uploadProgress', { progress: image.progress })
         }}</small>
       </div>
-      <button
-        v-if="attachmentCount < Comment.ATTACHMENTS"
-        type="button"
-        class="add-image"
-        :aria-label="t('editor.addImage')"
-        :disabled="busy"
-        @click="input.click()"
-      >
-        <el-icon><Plus /></el-icon>
-      </button><small class="composer-image-count">{{
+      <small class="composer-image-count">{{
         t('editor.counters', { count: attachmentCount, max: Comment.ATTACHMENTS })
       }}</small>
     </div>

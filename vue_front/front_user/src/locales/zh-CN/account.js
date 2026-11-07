@@ -61,6 +61,7 @@ export default {
   ruleDaily: '每天 {count} 次',
   rulePost: '每天前 {count} 帖',
   ruleComment: '每天前 {count} 条',
+  ruleLike: '每天前 {count} 篇',
   sources: {
     CHECK_IN: '签到',
     POST: '发帖',

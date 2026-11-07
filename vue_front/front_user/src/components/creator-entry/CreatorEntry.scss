@@ -232,13 +232,15 @@ p {
   color: var(--meng-creator-yellow);
 }
 
+// 分类吊牌挂在最左边，和首页卡片一样；编辑和删除靠右
 .entry-tools {
   display: flex;
   gap: 10px;
+  margin-left: auto;
 }
 
-.published .entry-tools {
-  margin-left: auto;
+.entry-actions > .category-tag {
+  margin-right: 14px;
 }
 
 // 编辑是薄荷色贴纸、删除是粉色贴纸，悬停上浮并加厚底影，不铺底色
@@ -293,57 +295,6 @@ p {
 .entry-tools button:disabled {
   cursor: progress;
   opacity: 0.5;
-}
-
-.entry-category {
-  position: relative;
-  margin-left: auto;
-  flex: none;
-  padding: 5px 14px;
-  border: 2px solid var(--meng-surface);
-  border-radius: var(--meng-radius-pill);
-  box-shadow: 0 3px 0 var(--entry-edge);
-  font-size: 14px;
-  font-weight: 800;
-  background: var(--meng-warning);
-  color: var(--meng-nav-gold);
-  rotate: 2deg;
-}
-
-// 已发布的卡片里，编辑删除和分类之间隔一条竖虚线
-.published .entry-category {
-  margin-left: 26px;
-}
-
-.published .entry-category::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -16px;
-  height: 26px;
-  border-left: 2px dashed var(--entry-edge);
-  rotate: -2deg;
-  translate: 0 -50%;
-}
-
-.category-anime {
-  background: var(--meng-tint);
-  color: var(--meng-shadow-hard);
-}
-
-.category-creation {
-  background: var(--meng-danger);
-  color: var(--meng-like-text);
-}
-
-.category-game {
-  background: var(--meng-category-game);
-  color: var(--meng-creator-purple-text);
-}
-
-.category-tech {
-  background: var(--meng-success);
-  color: var(--meng-success-shadow);
 }
 
 .draft-images {
@@ -415,17 +366,6 @@ p {
     width: 100%;
   }
 
-  .published .entry-tools {
-    margin-left: 0;
-  }
-
-  .published .entry-category {
-    margin-left: auto;
-  }
-
-  .published .entry-category::before {
-    display: none;
-  }
 
   .draft-images > div {
     width: 72px;

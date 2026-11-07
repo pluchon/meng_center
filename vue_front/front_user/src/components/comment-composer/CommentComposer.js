@@ -1,8 +1,8 @@
 import { computed, defineComponent, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Close, Plus, Picture as PictureIcon, Refresh } from '@element-plus/icons-vue'
-import { IconMoodSmile, IconSend } from '@tabler/icons-vue'
+import { Close, Picture as PictureIcon, Refresh } from '@element-plus/icons-vue'
+import { IconArrowDownCircle, IconMoodSmile, IconSend } from '@tabler/icons-vue'
 import CollapsePanel from '@/components/collapse-panel/CollapsePanel.vue'
 import EmotionPanel from '@/components/emotion-panel/EmotionPanel.vue'
 import { contentApi } from '@/api/content'
@@ -10,15 +10,15 @@ import { userAvatar, communitySparkle } from '@/assets/images'
 import { avatarUrl } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useEditorUploads } from '@/composables/useEditorUploads'
-import { Comment, emotionToken } from '@/constants/comments'
+import { Comment, commentSegments, emotionToken } from '@/constants/comments'
 import { notifyFailure } from '@/composables/useFailureNotice'
 export default defineComponent({
   name: 'CommentComposer',
   components: {
     Close,
-    Plus,
     PictureIcon,
     IconMoodSmile,
+    IconArrowDownCircle,
     IconSend,
     Refresh,
     CollapsePanel,
@@ -28,7 +28,7 @@ export default defineComponent({
     postId: { type: [String, Number], required: true },
     target: { type: Object, default: null },
   },
-  emits: ['sent', 'clear-target'],
+  emits: ['sent', 'clear-target', 'locate'],
   setup(props, { emit, expose }) {
     const user = useUserStore()
     const { t } = useI18n(),
@@ -242,7 +242,20 @@ export default defineComponent({
         addFiles(files)
       }
     }
+    // 回复谁就把他那条评论的文字摘一行放在输入框上面，只有表情或图片时写「[图片]」
+    const targetExcerpt = computed(() => {
+      if (!props.target) return ''
+      const segments = commentSegments(props.target.content || '')
+      const text = segments
+        .filter((item) => !item.image)
+        .map((item) => item.text)
+        .join('')
+        .replace(/\s+/g, ' ')
+        .trim()
+      return text || (segments.length || props.target.images?.length ? t('detail.quoteImage') : '')
+    })
     return {
+      targetExcerpt,
       avatar: computed(() => user.current?.avatar || userAvatar),
       t,
       text,

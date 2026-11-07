@@ -28,7 +28,7 @@
         <span
           v-if="comment.replyToUserId"
           class="reply-target"
-        >{{ t('detail.replyTo',{name:comment.replyToNickname||t('home.authorFallback')}) }}</span><CommentBody
+        ><el-icon><IconCornerDownRight /></el-icon>{{ t('detail.replyLead') }}<b>{{ t('detail.replyTo',{name:comment.replyToNickname||t('home.authorFallback')}) }}</b></span><CommentBody
           :content="comment.content"
           :mentions="comment.mentions"
         />

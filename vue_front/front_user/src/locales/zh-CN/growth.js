@@ -3,7 +3,7 @@ export default {
   calendar: '每日签到',
   tasks: '今日任务',
   records: '经验明细',
-  source: { CHECK_IN: '签到', POST: '发帖', COMMENT: '评论' },
+  source: { CHECK_IN: '签到', POST: '发帖', COMMENT: '评论', LIKE: '点赞' },
   levels: ['小水滴', '小溪', '池塘', '小河', '湖泊', '大河', '海湾', '大海', '云海', '星海'],
   level: 'Lv.{level}',
   road: '等级之路',

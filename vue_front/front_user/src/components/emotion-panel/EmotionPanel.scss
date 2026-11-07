@@ -1,4 +1,4 @@
-// 表情面板：上面是当前系列的表情，系列内上下滚动；最下面一行是系列栏，后面留着位置给以后的新系列
+// 表情面板：上面是当前系列的表情，最多显示三行，多了在里面上下滚动；最下面一行是系列栏，后面留着位置给以后的新系列
 .emotion-panel {
   display: flex;
   flex-direction: column;
@@ -7,15 +7,17 @@
 
 .emotion-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+  grid-template-columns: repeat(auto-fill, 56px);
+  grid-auto-rows: 56px;
+  place-content: start space-between;
   gap: 10px;
-  height: 232px;
+  box-sizing: content-box;
+  max-height: calc(56px * 3 + 10px * 2);
   padding: 4px 4px 8px;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: var(--meng-border) transparent;
-  align-content: start;
 }
 
 .emotion-grid button {
@@ -150,9 +152,3 @@
   }
 }
 
-.emotion-panel > input {
-  width: 100%;
-  padding: 6px 10px;
-  box-sizing: border-box;
-  font: inherit;
-}

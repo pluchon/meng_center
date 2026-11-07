@@ -73,3 +73,9 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+// 只有一个提交按钮，独占底部一行；关闭用右上角
+.report-submit {
+  width: 100%;
+  margin: 0;
+}

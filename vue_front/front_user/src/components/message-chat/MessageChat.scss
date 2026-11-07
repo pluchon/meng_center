@@ -45,6 +45,20 @@
   animation-delay: -1.2s;
 }
 
+// 对方头像右下角的在线圆点
+.presence-avatar {
+  position: relative;
+  flex: none;
+  line-height: 0;
+}
+
+.presence-avatar .presence-dot {
+  right: -1px;
+  bottom: -1px;
+  width: 18px;
+  height: 18px;
+}
+
 .chat-header :deep(.el-avatar) {
   border: 3px solid var(--meng-surface);
   box-shadow:
@@ -194,38 +208,6 @@
   outline-offset: 3px;
 }
 
-.presence-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 14px;
-  border: 2px solid var(--meng-surface);
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-category-anime);
-  color: var(--meng-muted);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.presence-pill i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--meng-border);
-}
-
-.presence-pill.online {
-  background: var(--meng-success);
-  box-shadow: 0 3px 0 var(--meng-creator-green);
-  color: var(--meng-success-text);
-}
-
-.presence-pill.online i {
-  background: var(--meng-success-text);
-  animation: presence-pulse 2s ease-in-out infinite;
-}
-
 // 删除会话：一枚粉色的小圆章，悬停时歪一下
 .delete-chat {
   display: grid;
@@ -262,13 +244,6 @@
   }
 }
 
-@keyframes presence-pulse {
-  50% {
-    opacity: 0.45;
-    scale: 0.75;
-  }
-}
-
 .chat-history {
   flex: 1;
   min-height: 0;
@@ -280,6 +255,12 @@
 
   // 淡淡的圆点底纹
   background: radial-gradient(circle, var(--meng-tint) 1.6px, transparent 1.8px) 0 0 / 26px 26px;
+}
+
+// 还没有消息时，占位在聊天区里水平垂直都居中
+.chat-history > .page-state {
+  min-height: 100%;
+  align-content: center;
 }
 
 .history-more,
@@ -352,6 +333,8 @@
 }
 
 .message-bubble {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
   max-width: 100%;
   padding: 8px 15px;
@@ -385,31 +368,22 @@
   margin-top: 0;
 }
 
-// 已读未读和它上面的撤回按钮竖着排在气泡旁边
-.message-meta {
-  display: flex;
-  flex: none;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-}
-
-.self .message-meta {
-  align-items: flex-end;
-}
-
+// 撤回：收在气泡里的右下角，一枚小白签；多张图的图集没有气泡，就跟在图集下面
 .message-revoke {
   display: inline-flex;
+  align-self: flex-end;
   align-items: center;
-  gap: 3px;
-  padding: 1px 10px;
-  border: 2px solid var(--meng-surface);
+  gap: 2px;
+  margin: 6px -6px 0 0;
+  padding: 0 8px;
+  border: 0;
   border-radius: 20px;
-  background: var(--meng-bg);
-  box-shadow: 0 2px 0 var(--meng-tint);
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--meng-category-anime);
   color: var(--meng-muted);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 20px;
   cursor: pointer;
   transition:
     transform 180ms var(--meng-motion-ease),
@@ -418,7 +392,7 @@
 }
 
 .message-revoke:hover:not(:disabled) {
-  box-shadow: 0 4px 0 var(--meng-tint);
+  box-shadow: 0 3px 0 var(--meng-category-anime);
   color: var(--meng-primary);
   transform: translateY(-2px);
 }

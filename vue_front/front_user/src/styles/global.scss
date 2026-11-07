@@ -100,3 +100,57 @@ html.detail-scrollbar-hidden body::-webkit-scrollbar {
   width: 0;
   height: 0;
 }
+
+// 打开弹窗时 Element Plus 会把 body 缩窄一个滚动条宽度来补位；这些页面本来就没有可见的滚动条，
+// 再缩就会让整页往左挤一下，所以在这些页面上不缩
+html.account-scrollbar-hidden body.el-popup-parent--hidden,
+html.search-scrollbar-hidden body.el-popup-parent--hidden,
+html.growth-scrollbar-hidden body.el-popup-parent--hidden,
+html.creator-scrollbar-hidden body.el-popup-parent--hidden,
+html.home-scrollbar-hidden body.el-popup-parent--hidden,
+html.detail-scrollbar-hidden body.el-popup-parent--hidden,
+html.messages-scrollbar-hidden body.el-popup-parent--hidden {
+  width: 100% !important;
+}
+
+// 头像右下角的在线圆点：外层带 online 时是绿点并向外扩一圈光晕，否则是灰点；外层需要 position: relative
+.presence-dot {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 16px;
+  height: 16px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-presence-off);
+  transition: background-color 260ms ease;
+}
+
+.online > .presence-dot {
+  background: var(--meng-presence-on);
+}
+
+.online > .presence-dot::after {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 0 var(--meng-presence-on);
+  content: '';
+  animation: presence-ring 2.2s ease-out infinite;
+}
+
+@keyframes presence-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--meng-presence-on) 70%, transparent);
+  }
+
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .online > .presence-dot::after {
+    animation: none;
+  }
+}

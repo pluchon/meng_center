@@ -61,6 +61,7 @@ meng.content.ai:
   covers-minute: 1
   reviews-daily: 5
   reviews-minute: 2
+  suggestion-refreshes: 2
   feedback-daily: 100
   feedback-minute: 20
 meng.content.rec:

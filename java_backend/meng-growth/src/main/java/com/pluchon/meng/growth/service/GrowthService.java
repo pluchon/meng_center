@@ -85,11 +85,9 @@ public class GrowthService {
                 source,
                 sourceId,
                 date,
-                source == ExpSource.POST ? properties.postExp() : properties.commentExp(),
-                source == ExpSource.POST ? properties.postPoints() : properties.commentPoints(),
-                source == ExpSource.POST
-                        ? properties.postDailyMax()
-                        : properties.commentDailyMax());
+                properties.exp(source),
+                properties.points(source),
+                properties.dailyMax(source));
     }
 
     // 按需创建并锁定成长账户

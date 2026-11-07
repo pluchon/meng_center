@@ -1,11 +1,5 @@
 <template>
   <div class="emotion-panel">
-    <input
-      v-model="query"
-      type="search"
-      :placeholder="t('im.searchEmotion')"
-      :aria-label="t('im.searchEmotion')"
-    >
     <button
       v-if="catalog.error"
       type="button"

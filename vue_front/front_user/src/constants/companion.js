@@ -1,6 +1,11 @@
 export const Companion = Object.freeze({
   MAX_LENGTH: 1000,
-  MAX_IMAGES: 6,
+  // 一条消息里图片和表情合计最多几个
+  MAX_MEDIA: 5,
+  // 奶糖离线那句提示的配音时长（毫秒）
+  OFFLINE_VOICE_MS: 8280,
+  // 奶糖离线时隔多久再探一次她回来没有
+  PRESENCE_PROBE_MS: 15000,
   PLANE_MS: 1300,
   PLANE_ARC: 60,
   LANDING_MS: 420,
@@ -16,13 +21,6 @@ export const Companion = Object.freeze({
   RETRY_DELAYS_MS: [1000, 2000, 4000],
   SCROLL_THRESHOLD: 60,
   VOICE_OUTSIDE_LINES: 3,
-  PET_CHEER_MS: 1100,
-  PET_CHEER_CHANCE: 0.2,
-  PET_IDLE_CHECK_MS: 60_000,
-  PET_IDLE_CHEER_CHANCE: 0.03,
-  PET_SYLLABLE_MS: 100,
-  // 1 闭嘴 2 微张 3 半张 4 大张 5 圆嘴 6 展开，带句间停顿
-  PET_SYLLABLES: [1, 3, 4, 3, 1, 6, 3, 2, 5, 3, 4, 2, 1, 1, 3, 6, 4, 3, 2, 5, 2, 1, 3, 4, 6, 3, 2, 1, 1, 1],
 })
 export const CompanionEvent = Object.freeze({
   STATUS: 'status',

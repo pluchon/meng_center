@@ -183,9 +183,9 @@
 }
 
 // 四周留出的边给等待时的光晕，不然会被滚动区域切掉
+// 弹窗内容区高度固定，等待、生成后、换建议时弹窗都不变大小；内容多了整块一起滚动
 .ai-content {
-  min-height: 250px;
-  max-height: 65vh;
+  height: min(560px, 65vh);
   padding: 20px;
   margin: -20px;
   overflow-y: auto;
@@ -198,7 +198,7 @@
   }
 }
 
-// 内容区所有块的大小都是固定的：等待时的占位和生成后的内容一样大，内容多了在块里滚动
+// 等待时的占位和生成后的内容差不多大；块本身不滚动，随内容长高
 .ai-inspirations,
 .ai-analysis {
   display: grid;
@@ -216,9 +216,9 @@
 
   position: relative;
   display: grid;
-  grid-template: auto auto minmax(0, 1fr) / minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
   gap: 8px;
-  height: 196px;
   padding: 14px 16px;
   border-radius: var(--glow-radius);
   background: var(--meng-tint);
@@ -239,12 +239,9 @@
   }
 
   blockquote {
-    min-height: 0;
     padding-left: 12px;
-    overflow-y: auto;
     border-left: 2px dashed var(--meng-primary);
     font-size: 14px;
-    scrollbar-width: none;
   }
 }
 
@@ -397,7 +394,7 @@
   --glow-radius: 20px;
 
   position: relative;
-  height: 148px;
+  min-height: 120px;
   border: 3px solid var(--meng-surface);
   border-radius: var(--glow-radius);
   background: var(--meng-tint);
@@ -432,28 +429,55 @@
   }
 }
 
+// 总结一点一行，前面是彩色的圆点，太长就省略，悬停看全文
 .ai-summary {
-  height: 100%;
+  display: grid;
+  gap: 6px;
   padding: 18px 22px;
   margin: 0;
-  overflow-y: auto;
-  line-height: 1.9;
-  scrollbar-width: none;
-  white-space: pre-wrap;
+  list-style: none;
+  line-height: 1.8;
+
+  li {
+    position: relative;
+    overflow: hidden;
+    padding-left: 18px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 2px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--meng-category-anime);
+      box-shadow: 0 0 0 2px var(--meng-surface);
+      translate: 0 -50%;
+    }
+
+    &:nth-child(2)::before {
+      background: var(--meng-category-creation);
+    }
+
+    &:nth-child(3)::before {
+      background: var(--meng-category-daily);
+    }
+  }
 }
 
 // 建议：一张暖色卡，每条建议是带序号的小条
 .ai-suggest {
   --glow-radius: 20px;
 
-  height: 196px;
+  min-height: 196px;
   padding: 14px 16px;
-  overflow-y: auto;
   border: 3px solid var(--meng-surface);
   border-radius: var(--glow-radius);
   background: color-mix(in srgb, var(--meng-warning) 75%, var(--meng-surface));
   box-shadow: 0 4px 0 var(--meng-category-daily);
-  scrollbar-width: none;
 
   h3 {
     display: flex;
@@ -482,8 +506,9 @@
 
   li {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 10px;
+    min-width: 0;
     padding: 8px 12px 8px 8px;
     border-radius: 14px;
     background: color-mix(in srgb, var(--meng-surface) 85%, transparent);
@@ -498,7 +523,6 @@
       place-items: center;
       width: 24px;
       height: 24px;
-      margin-top: 1px;
       border-radius: 50%;
       background: var(--meng-category-anime);
       color: var(--meng-text);
@@ -515,10 +539,120 @@
     &:nth-child(3)::before {
       background: var(--meng-category-daily);
     }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   }
 }
 
+// 「可以试试看」这一行：标题在左，最右边是换一批的小圆钮，右上角的数字是这次复盘还能换几次
+.ai-suggest-head {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+
+  h3 {
+    margin-bottom: 0;
+  }
+}
+
+.ai-suggest-refresh {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin-left: auto;
+  padding: 0;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-warning);
+  box-shadow: 0 3px 0 var(--meng-category-daily);
+  color: var(--meng-favorite-text);
+  cursor: pointer;
+  transition:
+    translate 200ms var(--meng-slide-ease),
+    box-shadow 200ms ease,
+    opacity 200ms ease;
+
+  svg {
+    transition: rotate 420ms var(--meng-slide-ease);
+  }
+
+  b {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    display: grid;
+    place-items: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border: 2px solid var(--meng-surface);
+    border-radius: 9px;
+    background: var(--meng-category-creation);
+    color: var(--meng-surface);
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  &:hover:enabled {
+    box-shadow: 0 5px 0 var(--meng-category-daily);
+    translate: 0 -2px;
+
+    svg {
+      rotate: 180deg;
+    }
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &.spinning {
+    cursor: progress;
+    opacity: 1;
+
+    svg {
+      animation: ai-spin 800ms linear infinite;
+    }
+  }
+}
+
+@keyframes ai-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+// 换来的新建议依次弹进来
+.ai-tip-enter-active {
+  transition:
+    opacity 260ms ease,
+    translate 320ms var(--meng-slide-ease);
+  transition-delay: calc(var(--i, 0) * 70ms);
+}
+
+.ai-tip-leave-active {
+  display: none;
+}
+
+.ai-tip-enter-from {
+  opacity: 0;
+  translate: 12px 0;
+}
+
 // ---------- 等待时的占位：灰条代替文字，边框上有光转圈
+// 等待时的灵感卡和生成后一张卡差不多高；生成后卡片按内容长高，不留空行
+.ai-card.ai-glowing {
+  min-height: 150px;
+}
+
 .ai-card.ai-glowing,
 .ai-suggest.ai-glowing {
   h3 {
@@ -559,10 +693,8 @@
 }
 
 .ai-bar-block {
-  align-self: stretch;
   width: 100%;
-  height: auto;
-  min-height: 0;
+  height: 40px;
   border-radius: 12px;
 }
 
@@ -632,9 +764,7 @@
     order: 3;
   }
 
-  .ai-card {
-    height: 212px;
-  }
+
 
   .ai-metrics {
     gap: 8px;
@@ -666,6 +796,9 @@
   .ai-period > span,
   .ai-result-enter-active,
   .ai-result-leave-active,
+  .ai-suggest-refresh,
+  .ai-suggest-refresh svg,
+  .ai-tip-enter-active,
   .ai-refreshing {
     animation: none;
     transition: none;

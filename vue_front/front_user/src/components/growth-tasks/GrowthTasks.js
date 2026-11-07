@@ -1,43 +1,50 @@
-import { computed, defineComponent } from 'vue'
+import { computed, defineComponent, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   growthCalendarIcon,
   growthCheckIcon,
   editorPencilIcon,
   creatorCommentsIcon,
+  creatorLikesIcon,
 } from '@/assets/images'
-import { ExpSource, SourceTones, WeekTones } from '@/constants/growth'
+import { ExpSource, SourceTones, GrowthCenter } from '@/constants/growth'
 import { RouteName } from '@/router/names'
-import PageState from '@/components/page-state/PageState.vue'
+import FeedPagination from '@/components/feed-pagination/FeedPagination.vue'
+// 今日任务：任务种类是后端配置的固定几项，按页显示，翻页器固定在卡片底部，只有一页也显示
 export default defineComponent({
   name: 'GrowthTasks',
-  components: { PageState },
-  props: { tasks: { type: Array, required: true }, stats: { type: Object, required: true } },
-  emits: ['retry'],
+  components: { FeedPagination },
+  props: { tasks: { type: Array, required: true } },
   setup(props) {
-    const { t, tm, rt } = useI18n()
+    const { t } = useI18n()
     const icons = {
       CHECK_IN: growthCalendarIcon,
       POST: editorPencilIcon,
       COMMENT: creatorCommentsIcon,
+      LIKE: creatorLikesIcon,
     }
-    const weekly = computed(() => props.stats.data?.days ?? [])
-    const maximum = computed(() => Math.max(1, ...weekly.value.map((row) => row.amount)))
-    function weekday(date) {
-      return rt(tm('growth.weekdays')[(new Date(date + 'T12:00:00Z').getUTCDay() + 6) % 7])
-    }
+    const page = ref(1)
+    const totalPages = computed(() =>
+      Math.max(1, Math.ceil(props.tasks.length / GrowthCenter.TASK_SIZE)),
+    )
+    watch(totalPages, (value) => {
+      if (page.value > value) page.value = value
+    })
     return {
       t,
       icons,
       checkIcon: growthCheckIcon,
       ExpSource,
       SourceTones,
-      weekdayTone: (date) => WeekTones[(new Date(date + 'T12:00:00Z').getUTCDay() + 6) % 7],
       RouteName,
-      weekly,
-      maximum,
-      weekday,
-      total: computed(() => weekly.value.reduce((sum, row) => sum + row.amount, 0)),
+      page,
+      totalPages,
+      visible: computed(() =>
+        props.tasks.slice(
+          (page.value - 1) * GrowthCenter.TASK_SIZE,
+          page.value * GrowthCenter.TASK_SIZE,
+        ),
+      ),
     }
   },
 })

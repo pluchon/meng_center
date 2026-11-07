@@ -236,16 +236,20 @@ public class ContentAssistantService {
         );
         body.put("writtenTopics",writtenTopics(user,start,end));
         body.put("interestTopics",interestTopics(user));
-        String key = "content:ai:creator-review:" + user + ":" + days;
+        String key = reviewKey(user, days);
         String digest = org.springframework.util.DigestUtils.md5DigestAsHex(
             json.writeValueAsBytes(body)
         );
         String cached = redis.opsForValue().get(key);
         if (cached != null) {
             var entry = json.readTree(cached);
-            if (digest.equals(entry.path("digest").asString())) return json.convertValue(
-                entry.path("result"),
-                new tools.jackson.core.type.TypeReference<Map<String, Object>>() {}
+            if (digest.equals(entry.path("digest").asString())) return withRefreshes(
+                json.convertValue(
+                    entry.path("result"),
+                    new tools.jackson.core.type.TypeReference<Map<String, Object>>() {}
+                ),
+                key,
+                digest
             );
         }
         quota.take("creator", user, properties.reviewsDaily(), properties.reviewsMinute());
@@ -258,7 +262,87 @@ public class ContentAssistantService {
                 json.writeValueAsString(Map.of("digest", digest, "result", response)),
                 Duration.between(now, end.toInstant().atZone(now.getZone()))
             );
-        return response;
+        return withRefreshes(response, key, digest);
+    }
+
+    // 在缓存着的这次复盘里换一批建议：统计沿用缓存里的，次数按这次复盘计，连点也不会多扣
+    public Map<String, Object> refreshSuggestions(int days) {
+        if (days != 7 && days != 30) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+        long user = UserContext.require().userId();
+        String key = reviewKey(user, days);
+        String cached = redis.opsForValue().get(key);
+        Long ttl = redis.getExpire(key);
+        if (cached == null || ttl == null || ttl <= 0) throw new BusinessException(
+            AiErrorCode.REVIEW_EXPIRED
+        );
+        var entry = json.readTree(cached);
+        String digest = entry.path("digest").asString();
+        String counter = refreshKey(key, digest);
+        Long used = redis.opsForValue().increment(counter);
+        redis.expire(counter, Duration.ofSeconds(ttl));
+        int limit = properties.suggestionRefreshes();
+        if (used == null || used > limit) throw new BusinessException(
+            AiErrorCode.REFRESH_EXHAUSTED
+        );
+        var response = json.convertValue(
+            entry.path("result"),
+            new tools.jackson.core.type.TypeReference<Map<String, Object>>() {}
+        );
+        var given = new ArrayList<String>();
+        entry.path("given").forEach(item -> given.add(item.asString()));
+        entry
+            .path("result")
+            .path("result")
+            .path("suggestions")
+            .forEach(item -> given.add(item.asString()));
+        @SuppressWarnings("unchecked")
+        var stats = (Map<String, Object>) response.get("stats");
+        List<String> fresh;
+        try {
+            fresh = call(() -> ai.suggestions(stats, List.copyOf(new java.util.LinkedHashSet<>(given))));
+        } catch (BusinessException error) {
+            // 没换成就把这次还回去
+            redis.opsForValue().decrement(counter);
+            throw error;
+        }
+        var result = new java.util.LinkedHashMap<String, Object>(
+            json.convertValue(
+                response.get("result"),
+                new tools.jackson.core.type.TypeReference<Map<String, Object>>() {}
+            )
+        );
+        result.put("suggestions", fresh);
+        var updated = new java.util.LinkedHashMap<String, Object>(response);
+        updated.put("result", result);
+        redis
+            .opsForValue()
+            .set(
+                key,
+                json.writeValueAsString(
+                    Map.of("digest", digest, "result", updated, "given", given)
+                ),
+                Duration.ofSeconds(ttl)
+            );
+        return withRefreshes(updated, key, digest);
+    }
+
+    // 返回给页面的复盘带上这次复盘还能换几次建议；次数只记在计数键里，不写进缓存
+    private Map<String, Object> withRefreshes(Map<String, Object> response, String key, String digest) {
+        String used = redis.opsForValue().get(refreshKey(key, digest));
+        var value = new java.util.LinkedHashMap<String, Object>(response);
+        value.put(
+            "suggestionRefreshes",
+            Math.max(0, properties.suggestionRefreshes() - (used == null ? 0 : Long.parseLong(used)))
+        );
+        return value;
+    }
+
+    private static String reviewKey(long user, int days) {
+        return "content:ai:creator-review:" + user + ":" + days;
+    }
+
+    private static String refreshKey(String reviewKey, String digest) {
+        return reviewKey + ":refresh:" + digest;
     }
 
     // 从作者本人近期帖子的主题中统计方向，每篇帖子对同一主题只计一次。

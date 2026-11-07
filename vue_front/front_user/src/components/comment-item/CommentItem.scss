@@ -24,6 +24,27 @@
   min-width: 0;
 }
 
+// 头像不跟着气泡高度居中，固定对着气泡的第一行：上边距等于名字那一行加它下面的间距
+.comment-item > :deep(.user-contact-avatar) {
+  align-self: flex-start;
+  margin-top: var(--comment-head, 36px);
+}
+
+// 「看原评论」定位过来时，这条气泡闪一下金色描边
+.comment-item.is-located .comment-content {
+  animation: comment-located 1.6s ease;
+}
+
+@keyframes comment-located {
+  0%,
+  60% {
+    border-color: var(--meng-category-daily);
+    box-shadow:
+      0 3px 0 var(--comment-edge, var(--meng-tint)),
+      0 0 0 4px var(--meng-warning);
+  }
+}
+
 .comment-item header {
   display: flex;
   align-items: center;
@@ -117,43 +138,30 @@
   outline: 3px solid var(--comment-edge, var(--meng-category-anime));
 }
 
-// 「回复 @某某」：蓝色贴纸，前面一个小圆点，右上角一颗小星星
+// 「↳ 回复 @某某」：气泡里第一行的扁平小标签，和正文之间留一点空，不歪也不探出气泡
 .reply-target {
-  position: relative;
-  display: inline-block;
-  color: var(--meng-shadow-hard);
-  font-weight: 800;
-  padding: 0 var(--meng-space-3) 0 22px;
-  border: 2px solid var(--meng-surface);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 6px;
+  padding: 1px 10px 1px 6px;
+  border-radius: var(--meng-radius-pill);
   background: var(--meng-tint);
-  box-shadow: 0 3px 0 var(--meng-category-anime);
-  border-radius: var(--meng-radius-pill);
-  margin-right: var(--meng-space-3);
-  rotate: -2deg;
-}
+  box-shadow: inset 0 0 0 1.5px var(--meng-category-anime);
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.6;
 
-.reply-target::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 5px;
-  width: 12px;
-  height: 12px;
-  border: 3px solid var(--meng-surface);
-  border-radius: var(--meng-radius-pill);
-  background: var(--meng-category-anime);
-  translate: 0 -50%;
-}
+  .el-icon {
+    color: var(--meng-category-anime);
+    font-size: 14px;
+  }
 
-.reply-target::after {
-  content: '';
-  position: absolute;
-  top: -7px;
-  right: -6px;
-  width: 12px;
-  height: 12px;
-  background: var(--meng-decor-sparkle);
-  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+  b {
+    color: var(--meng-shadow-hard);
+    font-weight: 800;
+  }
 }
 
 .comment-item footer {
@@ -310,6 +318,11 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .comment-item.is-located .comment-content {
+    animation: none;
+    outline: 3px solid var(--meng-category-daily);
+  }
+
   .comment-item button,
   .comment-item .el-icon {
     transition: none;

@@ -1,5 +1,6 @@
 package com.pluchon.meng.content.client;
 
+import com.fasterxml.jackson.annotation.JsonUnwrapped;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +73,14 @@ public final class AiComputation {
     ) {}
 
     public record SummaryResponse(String summary, List<String> suggestions) {}
+
+    // 换一批建议：沿用复盘的统计，带上已经给过的建议避免重复
+    public record CreatorSuggestionRequest(
+        @JsonUnwrapped CreatorRequest stats,
+        List<String> previous
+    ) {}
+
+    public record SuggestionsResponse(List<String> suggestions) {}
 
     public record TrainingSample(
         List<Double> features,

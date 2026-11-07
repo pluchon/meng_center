@@ -46,4 +46,10 @@ public class ContentAiController {
     public ApiResponse<Map<String, Object>> review(@RequestBody Period body) {
         return ApiResponse.success(assistant.review(body.days()));
     }
+
+    /** 在当前创作复盘里换一批建议，次数有限。 */
+    @PostMapping("/creator/ai-reviews/suggestions")
+    public ApiResponse<Map<String, Object>> suggestions(@RequestBody Period body) {
+        return ApiResponse.success(assistant.refreshSuggestions(body.days()));
+    }
 }

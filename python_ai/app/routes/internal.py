@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request, Response
 from app.schemas.models import (
     CoverRequest,
     CreatorStats,
+    CreatorSuggestionRequest,
     Draft,
     EmbeddingsRequest,
     GrowthStats,
@@ -65,6 +66,11 @@ async def growth(body: GrowthStats, request: Request) -> dict:
 @router.post("/creator-reviews")
 async def creator(body: CreatorStats, request: Request) -> dict:
     return await request.app.state.assistant.suggest("creator", body)
+
+
+@router.post("/creator-suggestions")
+async def creator_suggestions(body: CreatorSuggestionRequest, request: Request) -> dict:
+    return await request.app.state.assistant.suggest("creator_suggestions", body)
 
 
 @router.post("/ranker-trainings")

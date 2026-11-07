@@ -3,8 +3,20 @@
     class="related-posts"
     :aria-label="t('ai.related')"
   >
+    <span
+      class="related-tape"
+      aria-hidden="true"
+    /><span
+      class="related-sticker"
+      aria-hidden="true"
+    >{{ t('ai.relatedFace') }}</span>
     <header class="related-head">
-      <h2>{{ t('ai.related') }}</h2>
+      <h2>
+        <span
+          class="related-icon"
+          aria-hidden="true"
+        ><el-icon><IconSparkles /></el-icon></span><span class="related-title">{{ t('ai.related') }}</span>
+      </h2>
       <div
         v-if="records.length"
         class="related-tools"
@@ -56,18 +68,43 @@
       :state="resource.error?'error':'loading'"
       @retry="load"
     />
-    <div
+    <TransitionGroup
       v-else-if="records.length"
+      tag="div"
+      name="related-card"
       class="related-grid"
     >
       <router-link
-        v-for="post in records"
+        v-for="(post, order) in records"
         :key="post.id"
+        class="related-card tag-sway-host"
+        :class="'card-' + post.category.toLowerCase()"
+        :style="{ '--i': order }"
         :to="{name:RouteName.POST_DETAIL,params:{id:post.id}}"
       >
-        <small>{{ t('home.categories.'+post.category) }}</small><strong>{{ post.title }}</strong><span>{{ post.author.nickname }}</span>
+        <span class="related-cover"><img
+          v-if="post.images[0]"
+          :src="contentImage(post.images[0].thumbUrl)"
+          alt=""
+          loading="lazy"
+          decoding="async"
+        ><svg
+          v-else
+          viewBox="0 0 96 72"
+          aria-hidden="true"
+          preserveAspectRatio="xMidYMid slice"
+        ><use :href="accountScenes + '#post-' + post.category.toLowerCase()" /></svg></span>
+        <CategoryTag
+          class="related-tag"
+          :category="post.category"
+        />
+        <strong>{{ post.title }}</strong>
+        <span class="related-author"><img
+          :src="avatarUrl(post.author.avatar) || userAvatar"
+          alt=""
+        >{{ post.author.nickname || t('home.authorFallback') }}</span>
       </router-link>
-    </div>
+    </TransitionGroup>
     <PageState
       v-else
       state="empty"

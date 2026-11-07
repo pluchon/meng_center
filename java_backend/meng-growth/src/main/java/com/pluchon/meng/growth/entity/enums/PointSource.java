@@ -4,5 +4,6 @@ package com.pluchon.meng.growth.entity.enums;
 public enum PointSource {
     CHECK_IN,
     POST,
-    COMMENT
+    COMMENT,
+    LIKE
 }

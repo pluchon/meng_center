@@ -1,4 +1,5 @@
 import RelatedPosts from '@/components/related-posts/RelatedPosts.vue'
+import CategoryTag from '@/components/category-tag/CategoryTag.vue'
 import {
   computed,
   defineComponent,
@@ -49,6 +50,7 @@ export default defineComponent({
   name: 'PostDetailView',
   components: {
     RelatedPosts,
+    CategoryTag,
     UserContact,
     CommunityLayout,
     MarkdownBody,
@@ -124,7 +126,19 @@ export default defineComponent({
         if (current === generation) loading.value = false
       }
     }
-    watch(() => route.params.id, load, { immediate: true })
+    // 从这篇进另一篇（比如点相关推荐）：先平滑回到顶部，旧帖淡出、骨架占位，加载完再淡入新帖
+    watch(
+      () => route.params.id,
+      (id, previous) => {
+        if (previous)
+          window.scrollTo({
+            top: 0,
+            behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+          })
+        void load()
+      },
+      { immediate: true },
+    )
     onUnmounted(() => generation++)
     async function toggle(kind) {
       if (pending[kind] || !post.value) return

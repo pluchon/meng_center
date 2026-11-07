@@ -15,6 +15,7 @@ import { notifyFailure } from '@/composables/useFailureNotice'
 import { userAvatar, regionSilhouettes } from '@/assets/images'
 import { postRegion } from '@/utils/postRegion'
 import HighlightText from '@/components/highlight-text/HighlightText.vue'
+import CategoryTag from '@/components/category-tag/CategoryTag.vue'
 import { RouteName } from '@/router/names'
 import { useFavoriteStore } from '@/stores/favorites'
 import { avatarUrl } from '@/api/user'
@@ -26,6 +27,7 @@ export default defineComponent({
   components: {
     ImageViewer: defineAsyncComponent(() => import('@/components/image-viewer/ImageViewer.vue')),
     HighlightText,
+    CategoryTag,
     PictureIcon,
     Clock,
     ViewIcon,

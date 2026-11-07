@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.main import app
-from app.schemas.models import GrowthSummary, Summary
+from app.schemas.models import GrowthSummary, Suggestions, Summary
 
 
 @pytest.mark.parametrize("claim", [
@@ -60,6 +60,16 @@ async def test_provider_failure_returns_sanitized_error_without_logging_payload(
 def test_only_the_offending_sentences_are_dropped() -> None:
     narrative = "整体节奏很稳。收获了 3 篇浏览。继续保持这份分享的习惯。"
     value = Summary(summary=narrative, suggestions=["继续分享"])
-    assert value.summary == "整体节奏很稳。继续保持这份分享的习惯。"
+    assert value.summary == "整体节奏很稳。\n继续保持这份分享的习惯。"
     growth = GrowthSummary(summary="分享留下了足迹。等级往上走了。再接再厉。", suggestions=["继续分享"])
-    assert growth.summary == "分享留下了足迹。再接再厉。"
+    assert growth.summary == "分享留下了足迹。\n再接再厉。"
+
+
+def test_summary_is_at_most_three_points_and_suggestions_one_line_each() -> None:
+    value = Summary(
+        summary="分享很稳。\n互动在变多。读者喜欢日常。还想看更多。",
+        suggestions=["多写日常\n分享", "  ", "试试新的标题"],
+    )
+    assert value.summary == "分享很稳。\n互动在变多。\n读者喜欢日常。"
+    assert value.suggestions == ["多写日常 分享", "试试新的标题"]
+    assert Suggestions(suggestions=["换个开头\n试试"]).suggestions == ["换个开头 试试"]

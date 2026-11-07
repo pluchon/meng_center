@@ -144,18 +144,7 @@ export { default as statePageNetworkArt } from './states/state-page-network.webp
 export { default as statePagePostMissingArt } from './states/state-page-post-missing.webp'
 
 export { default as companionNekoAvatar } from './companion/avatars/neko-avatar.png?w=384&format=webp&quality=90'
-export { default as companionPetBody } from './companion/pet/body.webp'
-export { default as companionPetEyesClosed } from './companion/pet/eyes-closed.webp'
-export { default as companionPetEyesHalf } from './companion/pet/eyes-half.webp'
-export { default as companionPetMouth1 } from './companion/pet/mouth-1.webp'
-export { default as companionPetMouth2 } from './companion/pet/mouth-2.webp'
-export { default as companionPetMouth3 } from './companion/pet/mouth-3.webp'
-export { default as companionPetMouth4 } from './companion/pet/mouth-4.webp'
-export { default as companionPetMouth5 } from './companion/pet/mouth-5.webp'
-export { default as companionPetMouth6 } from './companion/pet/mouth-6.webp'
-export { default as companionPetPoseCrouch } from './companion/pet/pose-crouch.webp'
-export { default as companionPetPoseLeap } from './companion/pet/pose-leap.webp'
-export { default as companionPetPoseSmile } from './companion/pet/pose-smile.webp'
-export { default as companionPetTailStrip } from './companion/pet/tail-strip.webp'
+// 奶糖离线时那句提示的配音，事先录好的
+export { default as companionOfflineVoice } from './companion/voice/offline.mp3'
 
 export { default as emotionPickerIcon } from './emotion-picker.svg'

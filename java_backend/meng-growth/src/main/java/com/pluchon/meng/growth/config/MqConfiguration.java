@@ -31,6 +31,10 @@ public class MqConfiguration {
                 QueueBuilder.durable(GrowthEventListener.COMMENT_QUEUE)
                         .deadLetterExchange(dead.getName())
                         .build();
+        var likes =
+                QueueBuilder.durable(GrowthEventListener.LIKE_QUEUE)
+                        .deadLetterExchange(dead.getName())
+                        .build();
         return new Declarables(
                 content,
                 growth,
@@ -38,8 +42,10 @@ public class MqConfiguration {
                 dq,
                 posts,
                 comments,
+                likes,
                 BindingBuilder.bind(dq).to(dead),
                 BindingBuilder.bind(posts).to(content).with(PostPublishedEvent.EVENT_TYPE),
-                BindingBuilder.bind(comments).to(content).with(CommentCreatedEvent.EVENT_TYPE));
+                BindingBuilder.bind(comments).to(content).with(CommentCreatedEvent.EVENT_TYPE),
+                BindingBuilder.bind(likes).to(content).with(GrowthEventListener.POST_LIKED));
     }
 }

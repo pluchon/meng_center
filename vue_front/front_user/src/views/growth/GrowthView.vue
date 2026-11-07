@@ -91,8 +91,6 @@
           <GrowthTasks
             v-else
             :tasks="overview.data.tasks"
-            :stats="seven"
-            @retry="retrySeven"
           />
         </GrowthPanel>
       </div>

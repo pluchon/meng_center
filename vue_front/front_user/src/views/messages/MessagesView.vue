@@ -217,51 +217,32 @@
           </Transition>
         </div>
         <footer class="messages-profile">
-          <el-avatar
-            :src="user.current?.avatar||userAvatar"
-            :size="52"
-          /><strong>{{ user.current?.nickname||user.current?.username }}</strong><el-popover
-            v-model:visible="presenceOpen"
-            placement="top-end"
-            :width="170"
-            trigger="click"
+          <span
+            class="presence-avatar"
+            :class="{online:!im.hidden}"
           >
-            <template #reference>
-              <button
-                class="presence-toggle"
-                type="button"
-                :class="{hidden:im.hidden}"
-                :disabled="changingPresence"
-                :aria-expanded="presenceOpen"
-                :aria-label="t('im.presence')"
-              >
-                <i />{{ t(im.hidden?'im.hidden':'im.online') }}<img
-                  class="message-art-icon"
-                  :src="messageChevronIcon"
-                  width="14"
-                  height="14"
-                  alt=""
-                  aria-hidden="true"
-                >
-              </button>
-            </template><div class="presence-options">
-              <button
-                type="button"
-                :class="{selected:!im.hidden}"
-                :disabled="changingPresence"
-                @click="setPresence(false)"
-              >
-                {{ t('im.automatic') }}
-              </button><button
-                type="button"
-                :class="{selected:im.hidden}"
-                :disabled="changingPresence"
-                @click="setPresence(true)"
-              >
-                {{ t('im.hidden') }}
-              </button>
-            </div>
-          </el-popover>
+            <el-avatar
+              :src="user.current?.avatar||userAvatar"
+              :size="52"
+            /><i
+              class="presence-dot"
+              aria-hidden="true"
+            />
+          </span><strong>{{ user.current?.nickname||user.current?.username }}</strong><button
+            class="presence-switch"
+            type="button"
+            role="switch"
+            :class="{hidden:im.hidden}"
+            :aria-checked="!im.hidden"
+            :aria-label="t('im.presence')"
+            :disabled="changingPresence"
+            @click="setPresence(!im.hidden)"
+          >
+            <span
+              class="switch-knob"
+              aria-hidden="true"
+            /><span class="switch-label">{{ t('im.online') }}</span><span class="switch-label">{{ t('im.hidden') }}</span>
+          </button>
         </footer>
       </aside>
       <section

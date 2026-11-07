@@ -20,6 +20,7 @@ export default {
   favorites: '收获收藏',
   review: '审核中',
   related: '也许你还想看看',
+  relatedFace: '翻到宝了 ✧',
   relatedMore: '换一换',
   relatedPrev: '上一组',
   relatedNext: '下一组',
@@ -32,4 +33,6 @@ export default {
   },
   feedback: '不感兴趣',
   suggestions: '可以试试看',
+  refreshSuggestions: '换一批建议，这次复盘还能换 {count} 次',
+  refreshUsedUp: '这次复盘的建议已经换完啦',
 }

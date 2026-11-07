@@ -92,6 +92,10 @@ class CreatorStats(Schema):
     interest_topics: list[str] = Field(default_factory=list, max_length=3)
 
 
+class CreatorSuggestionRequest(CreatorStats):
+    previous: list[str] = Field(default_factory=list, max_length=12)
+
+
 _SENTENCE_END = re.compile(r"(?<=[。！？!?；;\n])")
 _STATISTIC = re.compile(
     r"(?<![A-Za-z每])(?:\d+(?:\.\d+)?|[零〇一二三四五六七八九十百千万两]+)"
@@ -100,31 +104,64 @@ _STATISTIC = re.compile(
 _LEVEL = re.compile(r"等级|升级|晋级|解锁")
 
 
+# 总结在页面上按点展示，最多三点
+SUMMARY_POINTS = 3
+
+
 def _without(value: str, pattern: re.Pattern[str], message: str) -> str:
-    # 模型偶尔会在某一句里写出统计数字或等级：整句去掉，剩下的照用；一句不剩才算不合格并重试
-    kept = "".join(s for s in _SENTENCE_END.split(value) if s.strip() and not pattern.search(s)).strip()
+    # 模型偶尔会在某一句里写出统计数字或等级：整句去掉，剩下的照用；一句不剩才算不合格并重试。
+    # 留下的每句是一点，用换行分隔
+    kept = [s.strip() for s in _SENTENCE_END.split(value) if s.strip() and not pattern.search(s)]
     if not kept:
         raise ValueError(message)
-    return kept
+    return "\n".join(kept[:SUMMARY_POINTS])
+
+
+def _lines(values: list[str]) -> list[str]:
+    # 建议各占一行：去掉换行和首尾空白，丢掉空的
+    lines = [line for line in (" ".join(value.split()) for value in values) if line]
+    if not lines:
+        raise ValueError("At least one suggestion is required")
+    return lines
 
 
 class Summary(Schema):
     summary: str = Field(
         min_length=1,
         max_length=600,
-        description="只总结统计支持的活动，不复述数字或虚构升级、成果、情绪；建议放 suggestions。",
+        description="两到三点，每点一句、不超过 28 个字，点与点之间换行；只总结统计支持的活动，"
+        "不复述数字或虚构升级、成果、情绪；建议放 suggestions。",
     )
     suggestions: list[str] = Field(
         min_length=1,
         max_length=3,
-        description="具体可实行的内容或互动建议；不虚构读者活跃时段，不推荐无统计依据的发布时间。",
+        description="每条一句、不超过 28 个字的具体可实行建议；"
+        "不虚构读者活跃时段，不推荐无统计依据的发布时间。",
     )
+
+    @field_validator("suggestions")
+    @classmethod
+    def one_line_each(cls, value: list[str]) -> list[str]:
+        return _lines(value)
 
     @field_validator("summary")
     @classmethod
     def numbers_belong_to_java(cls, value: str) -> str:
         # Topic names such as Vue3 remain valid; generated statistical claims do not.
         return _without(value, _STATISTIC, "Keep statistical numbers in the Java metrics, not the narrative")
+
+
+class Suggestions(Schema):
+    suggestions: list[str] = Field(
+        min_length=1,
+        max_length=3,
+        description="每条一句、不超过 28 个字的具体可实行建议，和 previous 里已给过的建议不重复。",
+    )
+
+    @field_validator("suggestions")
+    @classmethod
+    def one_line_each(cls, value: list[str]) -> list[str]:
+        return _lines(value)
 
 
 class GrowthSummary(Summary):

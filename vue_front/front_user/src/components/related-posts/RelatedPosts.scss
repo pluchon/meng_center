@@ -1,57 +1,265 @@
 .related-posts {
+  position: relative;
   margin-top: 24px;
-  padding: 20px;
-  border: 1px dashed var(--meng-border);
+  padding: 22px 22px 24px;
+  border: 3px solid var(--meng-surface);
   border-radius: var(--meng-radius-card);
-  background: var(--meng-bg);
-
-  h2 {
-    margin: 0;
-    font-size: 20px;
-    color: var(--meng-text);
-  }
+  background: var(--meng-detail-card);
+  box-shadow: var(--meng-shadow-card);
 }
 
-// 标题一行：左边标题，右边看更多的圆形图标按钮
+// 外围一圈和帖子卡片同款的粉彩渐变描边
+.related-posts::before {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  padding: 3px;
+  border-radius: inherit;
+  background: linear-gradient(100deg, var(--meng-card-ring));
+  mask:
+    linear-gradient(var(--meng-edge-mask) 0 0) content-box,
+    linear-gradient(var(--meng-edge-mask) 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+// 左上角一条胶带，右上角探出一个颜文字贴纸
+.related-tape {
+  position: absolute;
+  top: -12px;
+  left: 120px;
+  width: 90px;
+  height: 24px;
+  background: var(--meng-detail-tape);
+  rotate: -4deg;
+  pointer-events: none;
+}
+
+.related-sticker {
+  position: absolute;
+  top: -16px;
+  right: 120px;
+  padding: 3px 12px;
+  border: 2px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-success);
+  box-shadow: 0 3px 0 var(--meng-growth-mint-edge);
+  color: var(--meng-success-text);
+  font-family: 'ZCOOL KuaiLe', sans-serif;
+  font-size: 13px;
+  rotate: 5deg;
+  pointer-events: none;
+  animation: related-float 5s ease-in-out infinite;
+}
+
+// 标题一行：左边是图标贴纸加歪着的标签，右边是翻页和换一换
 .related-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 2px dashed var(--meng-tint);
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: var(--meng-text);
+    font-family: 'ZCOOL KuaiLe', sans-serif;
+    font-size: 22px;
+    font-weight: 400;
+  }
 }
 
+.related-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 50%;
+  background: var(--meng-danger);
+  box-shadow: 0 3px 0 var(--meng-category-creation);
+  color: var(--meng-like-text);
+  font-size: 20px;
+  animation: related-float 4s ease-in-out infinite;
+}
+
+.related-title {
+  padding: 2px 14px;
+  border-radius: 14px;
+  background: var(--meng-detail-highlight);
+  rotate: -2deg;
+}
+
+// 推荐卡片：分类配色的小贴纸卡，上面是封面（没有配图用分类插画），封面下沿挂着分类吊牌，
+// 下面是标题和作者；卡片轮流微微歪着，悬停时扶正上浮
 .related-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px;
+}
 
-  a {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    padding: 16px;
-    border-radius: 18px;
-    background: var(--meng-tint);
-    color: var(--meng-text);
-    text-decoration: none;
-    transition: transform 180ms ease;
+.related-card {
+  --card-fill: var(--meng-tint);
+  --card-edge: var(--meng-category-anime);
 
-    &:hover {
-      transform: translateY(-2px);
-    }
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px 8px 12px;
+  border: 3px solid var(--meng-surface);
+  border-radius: 20px;
+  background: var(--card-fill);
+  box-shadow: 0 4px 0 var(--card-edge);
+  color: var(--meng-text);
+  text-decoration: none;
+  rotate: -1deg;
+  transition:
+    rotate 260ms var(--meng-slide-ease),
+    translate 260ms var(--meng-slide-ease),
+    box-shadow 200ms ease;
+
+  &:nth-child(even) {
+    rotate: 1.2deg;
+  }
+
+  &:hover {
+    rotate: 0deg;
+    translate: 0 -4px;
+    box-shadow: 0 8px 0 var(--card-edge);
+  }
+
+  &:focus-visible {
+    outline: 3px solid var(--meng-primary);
+    outline-offset: 3px;
   }
 
   strong {
+    display: -webkit-box;
+    min-height: 3.2em;
+    overflow: hidden;
+    padding: 0 4px;
     font-size: 14px;
     line-height: 1.6;
     overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
   }
+}
 
-  small,
-  span {
-    color: var(--meng-muted);
-    font-size: 12px;
+// 每隔一张卡片顶上贴一条小胶带
+.related-card:nth-child(odd)::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -10px;
+  left: 50%;
+  width: 54px;
+  height: 18px;
+  background: var(--meng-detail-tape);
+  translate: -50% 0;
+  rotate: 3deg;
+}
+
+.card-creation {
+  --card-fill: var(--meng-danger);
+  --card-edge: var(--meng-category-creation);
+}
+
+.card-game {
+  --card-fill: var(--meng-category-game);
+  --card-edge: var(--meng-category-game-dot);
+}
+
+.card-tech {
+  --card-fill: var(--meng-success);
+  --card-edge: var(--meng-growth-mint-edge);
+}
+
+.card-daily {
+  --card-fill: var(--meng-warning);
+  --card-edge: var(--meng-category-daily);
+}
+
+.related-cover {
+  display: block;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  border: 2px solid var(--meng-surface);
+  border-radius: 14px;
+  background: var(--meng-surface);
+
+  img,
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: scale 320ms var(--meng-slide-ease);
+  }
+}
+
+.related-card:hover .related-cover img,
+.related-card:hover .related-cover svg {
+  scale: 1.06;
+}
+
+.related-tag {
+  align-self: flex-start;
+  margin-top: -18px;
+  margin-left: 16px;
+}
+
+.related-author {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-top: auto;
+  padding: 0 4px;
+  overflow: hidden;
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  img {
+    flex: none;
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--meng-surface);
+    border-radius: 50%;
+    object-fit: cover;
+  }
+}
+
+// 换一组时整组依次弹入
+.related-card-enter-active {
+  transition:
+    opacity 260ms ease,
+    translate 320ms var(--meng-slide-ease);
+  transition-delay: calc(var(--i, 0) * 50ms);
+}
+
+.related-card-enter-from {
+  opacity: 0;
+  translate: 0 12px;
+}
+
+.related-card-leave-active {
+  display: none;
+}
+
+@keyframes related-float {
+  50% {
+    translate: 0 -3px;
   }
 }
 
@@ -177,6 +385,11 @@
   .related-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .related-tape,
+  .related-sticker {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -190,11 +403,15 @@
     animation: none;
   }
 
-  .related-grid a {
+  .related-card,
+  .related-cover img,
+  .related-cover svg,
+  .related-card-enter-active {
     transition: none;
+  }
 
-    &:hover {
-      transform: none;
-    }
+  .related-sticker,
+  .related-icon {
+    animation: none;
   }
 }

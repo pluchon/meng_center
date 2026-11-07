@@ -5,7 +5,9 @@ import com.pluchon.meng.common.core.error.ErrorCode;
 // AI 辅助功能的失败语义
 public enum AiErrorCode implements ErrorCode {
     UNAVAILABLE("AI_UNAVAILABLE", "AI 暂时没空", 503),
-    REJECTED("AI_CONTENT_REJECTED", "这份内容暂时无法生成封面", 422);
+    REJECTED("AI_CONTENT_REJECTED", "这份内容暂时无法生成封面", 422),
+    REVIEW_EXPIRED("AI_REVIEW_EXPIRED", "复盘已更新，请重新打开", 409),
+    REFRESH_EXHAUSTED("AI_REFRESH_EXHAUSTED", "这次复盘的建议已经换完啦", 429);
 
     private final String code;
     private final String message;

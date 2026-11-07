@@ -313,22 +313,52 @@
                       aria-hidden="true"
                     >{{ t('editor.video') }}
                   </button>
-                </div><small>{{ t('editor.counters',{count:images.length,max:PostEditor.IMAGE_MAX}) }}</small>
+                </div><small>{{ video?t('editor.counters',{count:clip?1:0,max:1}):t('editor.counters',{count:images.length,max:PostEditor.IMAGE_MAX}) }}</small>
               </div>
               <div class="media-content">
                 <Transition name="media-swap">
+                  <div
+                    v-if="video&&clip"
+                    class="video-slot"
+                  >
+                    <video
+                      :src="clip.url"
+                      muted
+                      playsinline
+                      controls
+                      preload="metadata"
+                      :aria-label="t('editor.videoAlt',{name:clip.name})"
+                    /><span class="video-mock">{{ t('editor.videoMock') }}</span><button
+                      type="button"
+                      class="remove-image"
+                      :aria-label="t('editor.removeVideo')"
+                      @click="removeClip"
+                    >
+                      <el-icon><Close /></el-icon>
+                    </button><el-progress
+                      v-if="clip.progress<100"
+                      class="upload-progress"
+                      :percentage="clip.progress"
+                      :show-text="false"
+                    />
+                  </div>
                   <button
-                    v-if="video"
+                    v-else-if="video"
                     class="video-placeholder"
                     type="button"
-                    @click="unavailable"
+                    @click="videoInput.click()"
                   >
                     <img
                       :src="icons.video"
                       class="empty-icon"
                       alt=""
                       aria-hidden="true"
-                    ><span>{{ t('editor.videoPlaceholder') }}</span>
+                    ><span class="cover-hint"><img
+                      :src="icons.plus"
+                      class="cover-plus"
+                      alt=""
+                      aria-hidden="true"
+                    >{{ t('editor.videoPlaceholder') }}</span>
                   </button>
                   <div
                     v-else
@@ -408,6 +438,12 @@
                 accept="image/jpeg,image/png,image/webp,image/gif"
                 multiple
                 @change="picked($event)"
+              ><input
+                ref="videoInput"
+                class="file-input"
+                type="file"
+                accept="video/mp4,video/webm,video/quicktime"
+                @change="pickClip"
               >
             </section>
             <section
@@ -436,32 +472,45 @@
                     alt=""
                     aria-hidden="true"
                   >{{ t(aiPending.covers?'ai.coverLoading':'editor.generateCover') }}
-                </button>
+                </button><Transition name="tool-pop">
+                  <button
+                    v-if="coverPreview"
+                    type="button"
+                    class="ai-tool replace-cover"
+                    :disabled="aiPending.covers"
+                    @click="coverInput.click()"
+                  >
+                    <el-icon><Refresh /></el-icon>{{ t('editor.replaceCover') }}
+                  </button>
+                </Transition>
               </div><div class="cover-box">
-                <button
+                <div
+                  v-if="coverPreview"
+                  class="choose-cover"
+                >
+                  <img
+                    class="cover-preview"
+                    :src="coverPreview.preview"
+                    :alt="t('editor.coverAlt')"
+                  >
+                </div><button
+                  v-else
                   class="choose-cover"
                   type="button"
                   :aria-label="t('editor.coverPlaceholder')"
                   @click="coverInput.click()"
                 >
                   <img
-                    v-if="coverPreview"
-                    class="cover-preview"
-                    :src="coverPreview.preview"
-                    :alt="t('editor.coverAlt')"
-                  ><template v-else>
-                    <img
-                      :src="icons.cover"
-                      class="cover-art"
-                      alt=""
-                      aria-hidden="true"
-                    ><span class="cover-hint"><img
-                      :src="icons.plus"
-                      class="cover-plus"
-                      alt=""
-                      aria-hidden="true"
-                    >{{ t('editor.coverPlaceholder') }}</span>
-                  </template>
+                    :src="icons.cover"
+                    class="cover-art"
+                    alt=""
+                    aria-hidden="true"
+                  ><span class="cover-hint"><img
+                    :src="icons.plus"
+                    class="cover-plus"
+                    alt=""
+                    aria-hidden="true"
+                  >{{ t('editor.coverPlaceholder') }}</span>
                 </button><Transition name="cover-making">
                   <div
                     v-if="aiPending.covers"
@@ -541,7 +590,6 @@
                   @click="form.tags.splice(form.tags.indexOf(tag),1)"
                 ><el-icon><Close /></el-icon></button></span>
               </TransitionGroup><div
-                ref="tagField"
                 class="input-shell tag-input"
                 :class="{invalid:errors.tags}"
               >
@@ -555,75 +603,59 @@
                   aria-controls="editor-tag-options"
                   :aria-expanded="tagMenuVisible"
                   :aria-activedescendant="tagMenuVisible&&highlightedTag>=0?'editor-tag-option-'+highlightedTag:undefined"
-                  @focus="tagFocused=true"
-                  @blur="tagFocused=false"
-                  @input="tagFocused=true"
                   @keydown.down.prevent="navigateTags(1)"
                   @keydown.up.prevent="navigateTags(-1)"
-                  @keydown.esc.prevent="tagFocused=false"
+                  @keydown.esc.prevent="tagInput=''"
                   @keydown.enter.prevent="confirmTag($event)"
                 ><span
                   v-if="errors.tags"
                   class="field-error"
                   role="alert"
                 >{{ errors.tags }}</span>
-              </div><el-popover
-                :visible="tagMenuVisible"
-                :virtual-ref="tagField"
-                virtual-triggering
-                :width="tagField?.offsetWidth"
-                placement="bottom-start"
-                :show-arrow="false"
-                popper-class="editor-tag-dropdown"
-              >
-                <div
-                  id="editor-tag-options"
-                  class="editor-tag-options"
-                  role="listbox"
-                  :aria-label="t('editor.tags')"
-                >
-                  <button
-                    v-for="(tag,index) in tagOptions"
-                    :id="'editor-tag-option-'+index"
-                    :key="tag"
-                    type="button"
-                    role="option"
-                    :aria-selected="highlightedTag===index"
-                    @mousedown.prevent
-                    @mouseenter="highlightedTag=index"
-                    @click="addTag(tag)"
-                  >
-                    {{ tag }}
-                  </button>
-                </div>
-              </el-popover><div
+              </div><TransitionGroup
+                id="editor-tag-options"
+                name="tag-suggest"
+                tag="div"
                 class="tag-recommendations"
+                :class="{empty:!tagRow.length&&!aiPending.tags}"
+                role="listbox"
+                :aria-label="t('editor.tagSuggestions')"
                 :aria-busy="aiPending.tags"
               >
-                <button
-                  v-for="(tag,index) in visibleAiTags"
-                  :key="tag.name"
-                  type="button"
-                  :style="{'--tag-order':index}"
-                  :disabled="form.tags.includes(tag.name)||form.tags.length>=PostEditor.TAG_MAX"
-                  @click="addTag(tag.name)"
-                >
-                  <img
+                <template v-if="aiPending.tags">
+                  <span
+                    v-for="slot in 3"
+                    :key="'pending-'+slot"
+                    class="pending"
+                  ><img
                     :src="icons.magic"
                     class="ai-icon"
                     alt=""
-                  >{{ tag.name }}
-                </button>
-                <span
-                  v-for="slot in Math.max(0,3-visibleAiTags.length)"
-                  :key="slot"
-                  :class="{pending:aiPending.tags}"
-                ><img
-                  :src="icons.magic"
-                  class="ai-icon"
-                  alt=""
-                >{{ t(aiPending.tags?'ai.tagsLoading':'editor.recommendedTagPlaceholder') }}</span>
-              </div>
+                  >{{ t('ai.tagsLoading') }}</span>
+                </template>
+                <template v-else>
+                  <button
+                    v-for="(tag,index) in tagRow"
+                    :id="tag.match?'editor-tag-option-'+index:undefined"
+                    :key="(tag.match?'match-':'ai-')+tag.name"
+                    type="button"
+                    role="option"
+                    :class="{match:tag.match,highlighted:tag.match&&highlightedTag===index}"
+                    :aria-selected="tag.match&&highlightedTag===index"
+                    :style="{'--tag-order':index}"
+                    :disabled="form.tags.includes(tag.name)||form.tags.length>=PostEditor.TAG_MAX"
+                    @mousedown.prevent
+                    @mouseenter="tag.match&&(highlightedTag=index)"
+                    @click="addTag(tag.name)"
+                  >
+                    <img
+                      :src="tag.match?icons.tag:icons.magic"
+                      class="ai-icon"
+                      alt=""
+                    >{{ tag.name }}
+                  </button>
+                </template>
+              </TransitionGroup>
             </section>
           </aside>
         </div>

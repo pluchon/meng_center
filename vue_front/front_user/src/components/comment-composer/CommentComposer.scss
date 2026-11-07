@@ -347,22 +347,22 @@
   font-size: 10px;
 }
 
-.add-image {
-  width: 56px;
-  height: 56px;
-  border: 1px dashed var(--meng-primary);
-  border-radius: var(--meng-space-2);
-  background: var(--meng-surface);
-  color: var(--meng-primary);
-}
-
 .file-input {
   display: none;
 }
 
+// 回复对象这一行：左边是「@谁」小贴纸（可以取消），中间摘一行原评论，右边「看原评论」滚过去看一眼
 .composer-target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.target-chip {
   position: relative;
   display: inline-flex;
+  flex: none;
   gap: var(--meng-space-2);
   align-items: center;
   padding: 2px var(--meng-space-2) 2px 22px;
@@ -373,10 +373,9 @@
   border-radius: var(--meng-radius-pill);
   font-size: 13px;
   font-weight: 800;
-  rotate: -2deg;
 }
 
-.composer-target::before {
+.target-chip::before {
   content: '';
   position: absolute;
   top: 50%;
@@ -389,15 +388,47 @@
   translate: 0 -50%;
 }
 
-.composer-target::after {
-  content: '';
-  position: absolute;
-  top: -7px;
-  right: -6px;
-  width: 12px;
-  height: 12px;
-  background: var(--meng-decor-sparkle);
-  clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%);
+.target-quote {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 10px;
+  border-left: 3px solid var(--meng-tint);
+  color: var(--meng-muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-quote::before,
+.target-quote::after {
+  content: none;
+}
+
+.target-locate {
+  display: inline-flex;
+  flex: none;
+  gap: 4px;
+  align-items: center;
+  padding: 2px 10px;
+  border: 0;
+  border-radius: var(--meng-radius-pill);
+  background: none;
+  color: var(--meng-primary);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 160ms ease;
+
+  &:hover {
+    background: var(--meng-tint);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--meng-primary);
+    outline-offset: 2px;
+  }
 }
 
 .reply-target-enter-active,
@@ -413,7 +444,7 @@
   transform: translateY(-4px) scale(0.96);
 }
 
-.composer-target button {
+.target-chip button {
   display: grid;
   place-items: center;
   width: 20px;
@@ -426,7 +457,7 @@
   transition: rotate 0.25s var(--meng-slide-ease);
 }
 
-.composer-target button:hover:not(:disabled) {
+.target-chip button:hover:not(:disabled) {
   rotate: 90deg;
 }
 
@@ -436,12 +467,6 @@
   border-radius: var(--meng-radius-note);
   background: var(--meng-surface);
   box-shadow: inset 0 0 0 2px var(--meng-tint);
-}
-
-// 评论区的表情最多露两行，多的在里面滚动，不占太多地方
-.composer-emotions :deep(.emotion-grid) {
-  height: auto;
-  max-height: 132px;
 }
 
 @media (prefers-reduced-motion: reduce) {

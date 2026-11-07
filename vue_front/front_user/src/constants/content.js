@@ -27,6 +27,11 @@ export const PostEditor = Object.freeze({
   IMAGE_EDGE: 2560,
   UPLOAD_CONCURRENCY: 3,
   TAG_DEBOUNCE: 300,
+  // 输入标签时下面一行最多给几个相近的已有标签
+  TAG_MATCHES: 3,
+  // 视频是模拟上传：只在本页预览，不随帖子提交
+  VIDEO_MAX_MB: 100,
+  VIDEO_MOCK_MS: 1600,
 })
 export const MarkdownFormats = Object.freeze([
   { key: 'bold', before: '**', after: '**' },

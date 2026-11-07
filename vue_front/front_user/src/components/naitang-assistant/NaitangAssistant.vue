@@ -7,10 +7,7 @@
       :aria-expanded="opened"
       @click="opened ? close() : open()"
     >
-      <NaitangPet
-        :talking="petTalking"
-        :cheers="petCheers"
-      />
+      <NaitangPet />
     </button>
     <span
       ref="plane"
@@ -36,19 +33,37 @@
         />
         <section
           class="naitang-panel"
+          :class="{ 'network-down': offline }"
           role="dialog"
           aria-labelledby="naitang-title"
           @keydown.esc.stop="close"
         >
           <header class="naitang-header">
-            <img
-              class="naitang-avatar"
-              :src="companionNekoAvatar"
-              alt=""
+            <span
+              class="naitang-presence"
+              :class="{ online: naitangOnline }"
+              role="img"
+              :aria-label="t(naitangOnline ? 'companion.online' : 'companion.offline')"
+              :title="t(naitangOnline ? 'companion.online' : 'companion.offline')"
             >
-            <h2 id="naitang-title">
-              {{ t('companion.title') }}
-            </h2>
+              <img
+                class="naitang-avatar"
+                :src="companionNekoAvatar"
+                alt=""
+              ><i class="presence-dot" />
+            </span>
+            <div class="naitang-title">
+              <h2 id="naitang-title">
+                {{ t('companion.title') }}
+              </h2>
+              <Transition name="naitang-tag">
+                <span
+                  v-if="offline"
+                  class="naitang-network"
+                  role="status"
+                ><IconWifiOff />{{ t('companion.networkDown') }}</span>
+              </Transition>
+            </div>
             <span
               class="naitang-spark first"
               aria-hidden="true"
@@ -172,7 +187,7 @@
                 {{ t('companion.loading') }}
               </p>
               <div
-                v-if="loadError"
+                v-if="loadError && !isUserNetwork(loadError)"
                 class="naitang-error"
                 role="alert"
               >
@@ -202,6 +217,17 @@
                   :src="companionNekoAvatar"
                   :alt="t('companion.name')"
                 >
+                <button
+                  v-if="message.role === 'USER' && (message.failed || message.turnState === 'FAILED')"
+                  class="naitang-retry"
+                  type="button"
+                  :disabled="sending > 0 || blocked"
+                  :title="t('companion.retrySend')"
+                  :aria-label="t('companion.retrySend')"
+                  @click="retry(message)"
+                >
+                  <IconRefresh />
+                </button>
                 <div class="naitang-message-body">
                   <img
                     v-if="message.kind === 'STICKER' && sticker(message.sticker)"
@@ -210,7 +236,7 @@
                     :alt="message.sticker"
                   >
                   <div
-                    v-else-if="message.content"
+                    v-else-if="bubbleText(message)"
                     class="naitang-bubble-row"
                   >
                     <p
@@ -218,7 +244,7 @@
                       class="naitang-bubble"
                     >
                       <span
-                        v-for="(part, index) in segments(message.content)"
+                        v-for="(part, index) in segments(bubbleText(message))"
                         :key="index"
                         :class="{ action: part.action }"
                       >{{ part.text }}</span>
@@ -238,7 +264,7 @@
                     />
                   </div>
                   <MessageImages
-                    v-if="message.imageIds?.length"
+                    v-if="gallery(message).length"
                     :items="gallery(message)"
                   />
                   <ul
@@ -268,15 +294,6 @@
                       </router-link>
                     </li>
                   </ul>
-                  <button
-                    v-if="message.failed || message.turnState === 'FAILED'"
-                    class="naitang-retry"
-                    type="button"
-                    :disabled="sending > 0 || blocked"
-                    @click="retry(message)"
-                  >
-                    {{ t('companion.retrySend') }}
-                  </button>
                 </div>
               </article>
               <p
@@ -287,7 +304,7 @@
                 {{ t('companion.networkLost') }}
               </p>
               <article
-                v-if="thinking"
+                v-if="thinking && !offline"
                 class="naitang-message naitang-thinking"
                 role="status"
                 :aria-label="t('companion.typing')"
@@ -351,9 +368,26 @@
                 {{ t('companion.quota') }}
               </p>
               <div
-                v-if="attachments.length"
+                v-if="attachments.length || picked.length"
                 class="naitang-attachments"
               >
+                <div
+                  v-for="emotion in picked"
+                  :key="emotion.key"
+                  class="emotion"
+                >
+                  <img
+                    :src="emotion.image"
+                    :alt="emotion.name"
+                  >
+                  <button
+                    type="button"
+                    :aria-label="t('companion.removeEmotion')"
+                    @click="removeEmotion(emotion)"
+                  >
+                    <IconX />
+                  </button>
+                </div>
                 <div
                   v-for="image in attachments"
                   :key="image.preview"
@@ -389,12 +423,35 @@
                 <button
                   class="naitang-pick"
                   type="button"
-                  :disabled="blocked || !selected || attachments.length >= Companion.MAX_IMAGES"
+                  :disabled="blocked || !selected || mediaFull"
                   :aria-label="t('companion.addImage')"
+                  :title="t('companion.addImage')"
                   @click="picker.click()"
                 >
                   <IconPhoto />
                 </button>
+                <el-popover
+                  v-model:visible="emotionOpen"
+                  placement="top-start"
+                  width="min(388px, calc(100vw - 32px))"
+                  popper-class="message-emotion-popper"
+                  trigger="click"
+                  :disabled="blocked || !selected || mediaFull"
+                >
+                  <template #reference>
+                    <button
+                      class="naitang-pick"
+                      type="button"
+                      :disabled="blocked || !selected || mediaFull"
+                      :aria-label="t('companion.addEmotion')"
+                      :title="t('companion.addEmotion')"
+                      :aria-expanded="emotionOpen"
+                    >
+                      <IconMoodSmile />
+                    </button>
+                  </template>
+                  <EmotionPanel @select="addEmotion" />
+                </el-popover>
                 <div class="naitang-field">
                   <textarea
                     ref="editor"

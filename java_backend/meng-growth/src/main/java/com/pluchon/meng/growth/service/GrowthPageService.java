@@ -59,17 +59,13 @@ public class GrowthPageService {
         var tasks = new ArrayList<GrowthOverviewVO.Task>();
         for (var source : ExpSource.values()) {
             var row = totals.getOrDefault(source, new SourceExperience(source, 0, 0, 0));
-            int reward = switch (source) {
-                case CHECK_IN -> properties.checkInExp();
-                case POST -> properties.postExp();
-                case COMMENT -> properties.commentExp();
-            };
-            int maximum = switch (source) {
-                case CHECK_IN -> 1;
-                case POST -> properties.postDailyMax();
-                case COMMENT -> properties.commentDailyMax();
-            };
-            tasks.add(new GrowthOverviewVO.Task(source, reward, maximum, row.count(), row.earned(), row.activeDays()));
+            tasks.add(new GrowthOverviewVO.Task(
+                    source,
+                    properties.exp(source),
+                    properties.dailyMax(source),
+                    row.count(),
+                    row.earned(),
+                    row.activeDays()));
         }
         var levels = new ArrayList<GrowthOverviewVO.Level>();
         for (int index = 0; index < properties.thresholds().size(); index++) {
@@ -135,10 +131,12 @@ public class GrowthPageService {
         long user = UserContext.require().userId();
         return new PointsVO(
                 pageMapper.selectPointBalance(user),
-                List.of(
-                        new PointsVO.Rule(PointSource.CHECK_IN, properties.checkInPoints(), 1),
-                        new PointsVO.Rule(PointSource.POST, properties.postPoints(), properties.postDailyMax()),
-                        new PointsVO.Rule(PointSource.COMMENT, properties.commentPoints(), properties.commentDailyMax())));
+                java.util.Arrays.stream(ExpSource.values())
+                        .map(source -> new PointsVO.Rule(
+                                PointSource.valueOf(source.name()),
+                                properties.points(source),
+                                properties.dailyMax(source)))
+                        .toList());
     }
 
     // 固定业务时区计算连续日期的积分并补全零值，来源合计与每日合计同一区间

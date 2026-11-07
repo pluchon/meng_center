@@ -80,6 +80,18 @@
   }
 }
 
+// 空、加载、出错的占位在列表区里水平垂直都居中
+.notices-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.notices-body > .page-state {
+  flex: 1;
+  align-content: center;
+}
+
 .notices-list {
   flex: 1;
   min-height: 0;
@@ -96,9 +108,10 @@
 .notice-card {
   position: relative;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   width: 100%;
+  min-height: 64px;
   margin-bottom: 18px;
   padding: 14px 16px;
   border: 3px solid var(--meng-surface);
@@ -153,38 +166,71 @@
 }
 
 .notice-main {
+  display: grid;
   flex: 1;
+  gap: 8px;
   min-width: 0;
 }
 
+.notice-main p {
+  margin: 0;
+}
+
+// 第一行：「谁 在《标题》做了什么」，名字加粗，标题是一枚小书签
 .notice-heading {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
+  min-width: 0;
   font-size: 14px;
+  white-space: nowrap;
 }
 
-.actor-tag {
-  padding: 1px 8px;
-  border-radius: 12px;
-  background: var(--meng-category-game);
+.actor-name {
+  flex: none;
+  max-width: 40%;
+  overflow: hidden;
   font-weight: 800;
+  text-overflow: ellipsis;
 }
 
-.post_liked .actor-tag {
-  background: var(--meng-danger);
+.notice-heading > span:not(.notice-post, .new-label, .notice-level) {
+  flex: none;
+  font-weight: 700;
 }
 
-.post_favorited .actor-tag {
-  background: var(--meng-warning);
+// 帖子标题：白底虚线框的小书签，左边一枚本子图标，太长就省略
+.notice-post {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 1px 10px 1px 8px;
+  border: 2px dashed var(--notice-edge, var(--meng-card-base));
+  border-radius: 8px 14px 14px 8px;
+  background: var(--meng-surface);
+  color: var(--meng-text);
+  font-size: 13px;
+  font-weight: 700;
+  rotate: -1.5deg;
 }
 
-.comment_liked .actor-tag {
-  background: var(--meng-danger);
+.notice-post > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notice-post .el-icon {
+  flex: none;
+  color: var(--notice-edge, var(--meng-primary));
+  font-size: 15px;
 }
 
 .new-label {
+  flex: none;
   padding: 0 6px;
   border-radius: 10px;
   background: var(--meng-category-game-dot);
@@ -197,38 +243,82 @@
   background: var(--meng-like-icon);
 }
 
-.notice-post {
-  max-width: 100%;
-  padding: 1px 8px;
-  border-radius: 12px;
-  background: var(--meng-warning);
-  color: var(--meng-favorite-text);
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.notice-main :deep(.comment-body) {
-  margin: 10px 0 0;
+// 评论内容只占一行：文字太长就省略，表情排在这一行最右边，最多六个
+.notice-excerpt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 28px;
   font-size: 14px;
 }
 
-.notice-main :deep(.comment-body img) {
+.excerpt-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.excerpt-emotions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.excerpt-emotions img {
   width: 28px;
   height: 28px;
+  object-fit: contain;
+}
+
+.excerpt-emotions small {
+  padding: 0 7px;
+  border-radius: 10px;
+  background: var(--meng-surface);
+  color: var(--meng-muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .original-comment {
-  margin: 8px 0 0;
-  color: var(--meng-muted);
-  font-size: 12px;
-  padding: 5px 10px;
+  overflow: hidden;
+  padding: 4px 10px;
   border-left: 3px solid var(--meng-category-game-dot);
   border-radius: 3px 12px 12px 3px;
   background: var(--meng-surface);
+  color: var(--meng-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+// 第二行：喜欢、收藏、审核类的帖子标题
+.notice-second {
+  display: flex;
+  min-width: 0;
+}
+
+.notice-level {
+  flex: none;
+  margin-left: 4px;
+  padding: 1px 12px;
+  border: 2px solid var(--meng-surface);
+  border-radius: 14px;
+  background: var(--meng-surface);
+  box-shadow: 0 2px 0 var(--notice-edge, var(--meng-card-base));
+  color: var(--meng-success-text);
+  font-weight: 800;
+  rotate: -1.5deg;
+}
+
+// 时间放在第一行最右边，下面的评论那一行就能一直铺到卡片右缘
 .notice-card time {
   flex: none;
+  margin-left: auto;
   padding: 1px 10px;
   border-radius: 20px;
   background: var(--meng-surface);
@@ -252,31 +342,6 @@
   margin-left: -18px;
 }
 
-// 没有头像的通知（升级、审核）：用一枚白色圆章放对应图标
-.notice-badge {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--meng-surface);
-  border-radius: 50%;
-  background: var(--meng-surface);
-  box-shadow: 0 3px 0 var(--notice-edge, var(--meng-card-base));
-  rotate: -8deg;
-  transition: rotate 260ms var(--meng-slide-ease);
-}
-
-.notice-card:hover .notice-badge {
-  rotate: 0deg;
-}
-
-.notice-type {
-  display: inline-block;
-  margin-right: 4px;
-  vertical-align: -3px;
-}
-
 // 还没看的通知：右上角闪一颗小星星
 .notice-card.new::after {
   position: absolute;
@@ -296,30 +361,7 @@
   }
 }
 
-.notice-level {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin: 12px 0 0;
-}
-
-.notice-level span:first-child {
-  padding: 2px 8px;
-  border-radius: 14px;
-  background: var(--meng-tint);
-  font-size: 13px;
-}
-
-.notice-level strong {
-  padding: 3px 10px;
-  border-radius: 14px;
-  background: var(--meng-success);
-  color: var(--meng-success-text);
-}
-
 .notice-welcome {
-  margin-bottom: 0;
   font-size: 14px;
 }
 
@@ -389,13 +431,8 @@
   }
 
   .notice-card {
-    flex-wrap: wrap;
     gap: 10px;
     padding: 14px;
-  }
-
-  .notice-card time {
-    margin-left: auto;
   }
 
   .notice-avatars {

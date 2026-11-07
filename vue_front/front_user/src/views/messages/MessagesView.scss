@@ -433,54 +433,103 @@
   white-space: nowrap;
 }
 
-.presence-toggle {
-  display: flex;
+// 自己头像右下角的在线圆点：隐身时变灰
+.presence-avatar {
+  position: relative;
   flex: none;
-  align-items: center;
-  gap: 6px;
+  line-height: 0;
+}
+
+// 在线和隐身的左右滑块：底是点点纸，一枚圆角滑块弹着滑到选中的那一边，在线是薄荷绿，隐身是淡紫
+.presence-switch {
+  --switch-pad: 4px;
+
+  position: relative;
+  display: grid;
+  flex: none;
+  grid-template-columns: 1fr 1fr;
   margin-left: auto;
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 20px;
-  background: var(--meng-bg);
+  padding: var(--switch-pad);
+  border: 3px solid var(--meng-surface);
+  border-radius: var(--meng-radius-pill);
+  background:
+    radial-gradient(circle, var(--meng-card-base) 1.2px, transparent 1.6px) 0 0 / 9px 9px,
+    var(--meng-bg);
   box-shadow: 0 3px 0 var(--meng-card-base);
-  color: var(--meng-text);
+  color: var(--meng-muted);
   font: inherit;
   font-size: 13px;
   font-weight: 800;
   cursor: pointer;
+  rotate: -2deg;
+  transition: rotate 260ms var(--meng-slide-ease);
 }
 
-.presence-toggle i {
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--meng-success-text);
+.presence-switch:hover:enabled {
+  rotate: 0deg;
 }
 
-.presence-toggle.hidden i {
-  background: var(--meng-border);
+.presence-switch:disabled {
+  cursor: progress;
 }
 
-.presence-options {
-  display: grid;
-  gap: 6px;
+.presence-switch:focus-visible {
+  outline: 3px solid var(--meng-primary);
+  outline-offset: 2px;
 }
 
-.presence-options button {
-  padding: 8px 12px;
-  border: 0;
-  border-radius: 14px;
-  background: transparent;
-  color: var(--meng-text);
-  font: inherit;
-  text-align: start;
-  cursor: pointer;
+.switch-knob {
+  position: absolute;
+  top: var(--switch-pad);
+  bottom: var(--switch-pad);
+  left: var(--switch-pad);
+  width: calc(50% - var(--switch-pad));
+  border-radius: var(--meng-radius-pill);
+  background: var(--meng-success);
+  box-shadow: 0 2px 0 var(--meng-creator-green);
+  transition:
+    translate 460ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    background-color 260ms ease,
+    box-shadow 260ms ease;
 }
 
-.presence-options button:hover,
-.presence-options button.selected {
-  background: var(--meng-tint);
+.switch-knob::after {
+  position: absolute;
+  top: -7px;
+  right: -3px;
+  color: var(--meng-category-daily);
+  font-size: 12px;
+  content: '✦';
+  animation: switch-twinkle 2.4s ease-in-out infinite;
+}
+
+.presence-switch.hidden .switch-knob {
+  background: var(--meng-category-game);
+  box-shadow: 0 2px 0 var(--meng-category-game-dot);
+  translate: 100% 0;
+}
+
+.switch-label {
+  position: relative;
+  padding: 4px 12px;
+  text-align: center;
+  white-space: nowrap;
+  transition: color 260ms ease;
+}
+
+.presence-switch:not(.hidden) .switch-label:first-of-type {
+  color: var(--meng-success-text);
+}
+
+.presence-switch.hidden .switch-label:last-of-type {
+  color: var(--meng-creator-purple-text);
+}
+
+@keyframes switch-twinkle {
+  50% {
+    opacity: 0.4;
+    scale: 0.7;
+  }
 }
 
 .messages-main {
@@ -547,8 +596,19 @@
   opacity: 0;
 }
 
+// 列表为空、加载、出错时，占位在左栏列表区里水平垂直都居中
 .sidebar-pane {
+  display: flex;
+  flex-direction: column;
   min-height: 100%;
+}
+
+.sidebar-pane > .sidebar-state,
+.sidebar-pane > .page-state {
+  display: grid;
+  flex: 1;
+  align-content: center;
+  justify-items: center;
 }
 
 .messages-main {
@@ -722,6 +782,12 @@
     height: 38px;
   }
 
+  .presence-avatar .presence-dot {
+    width: 13px;
+    height: 13px;
+    border-width: 2px;
+  }
+
   .messages-profile > strong {
     font-size: 18px;
   }
@@ -754,6 +820,9 @@
     animation: none;
   }
 
+  .switch-knob,
+  .switch-knob::after,
+  .presence-switch,
   .message-tabs button,
   .messages-title a,
   .conversation-row,

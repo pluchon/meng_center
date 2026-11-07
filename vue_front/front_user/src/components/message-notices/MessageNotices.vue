@@ -69,65 +69,65 @@
                   :user="actor"
                 />
               </div>
-              <span
-                v-else
-                class="notice-badge"
-                aria-hidden="true"
-              ><img
-                class="message-art-icon"
-                :src="typeIcon(item)"
-                width="28"
-                height="28"
-                alt=""
-              ></span>
               <div class="notice-main">
-                <div class="notice-heading">
+                <p class="notice-heading">
+                  <template v-if="item.actors.length">
+                    <strong class="actor-name">{{ item.notice.actorCount>2?t('im.actors',{names:names(item),count:item.notice.actorCount}):names(item) }}</strong>
+                    <template v-if="inlinePost(item)">
+                      <span>{{ t('im.inPost') }}</span><span class="notice-post">
+                        <el-icon><IconNotes /></el-icon><span>{{ item.notice.postTitle }}</span>
+                      </span>
+                    </template>
+                    <span>{{ t((inlinePost(item)?'im.inlineAction.':'im.action.')+item.notice.type) }}</span>
+                  </template>
+                  <strong v-else>{{ t('im.action.'+item.notice.type) }}</strong>
                   <span
-                    v-if="item.actors.length"
-                    class="actor-tag"
-                  >{{ item.notice.actorCount>2?t('im.actors',{names:names(item),count:item.notice.actorCount}):names(item) }}</span>
-                  <strong><img
-                    v-if="item.actors.length"
-                    class="message-art-icon notice-type"
-                    :src="typeIcon(item)"
-                    width="18"
-                    height="18"
-                    alt=""
-                    aria-hidden="true"
-                  >{{ t('im.action.'+item.notice.type) }}</strong>
+                    v-if="item.notice.type===NoticeType.LEVEL_CHANGED"
+                    class="notice-level"
+                  >{{ t('im.toLevel',{level:item.notice.level,name:levelName(item.notice.level)}) }}</span>
                   <span
                     v-if="!item.notice.readState"
                     class="new-label"
                   >{{ t('im.new') }}</span>
-                  <span
-                    v-if="item.notice.postTitle"
-                    class="notice-post"
-                  >{{ t('im.postTitle',{title:item.notice.postTitle}) }}</span>
-                </div>
-                <CommentBody
+                  <time :datetime="item.notice.createTime">{{ relativeTime(item.notice.createTime) }}</time>
+                </p>
+                <p
                   v-if="item.notice.excerpt"
-                  :content="item.notice.excerpt"
-                />
+                  class="notice-excerpt"
+                >
+                  <span class="excerpt-text">{{ excerpt(item).text }}</span><span
+                    v-if="excerpt(item).emotions.length"
+                    class="excerpt-emotions"
+                  ><img
+                    v-for="(emotion,position) in excerpt(item).emotions.slice(0,EXCERPT_EMOTIONS)"
+                    :key="position"
+                    :src="emotion.image"
+                    :alt="emotion.name"
+                    loading="lazy"
+                    decoding="async"
+                  ><small v-if="excerpt(item).emotions.length>EXCERPT_EMOTIONS">{{ t('im.album',{count:excerpt(item).emotions.length-EXCERPT_EMOTIONS}) }}</small></span>
+                </p>
                 <p
                   v-if="item.notice.originalExcerpt"
                   class="original-comment"
                 >
-                  {{ t('im.original',{text:item.notice.originalExcerpt}) }}
+                  {{ t('im.original',{text:plain(item.notice.originalExcerpt)}) }}
                 </p>
                 <p
-                  v-if="item.notice.type===NoticeType.LEVEL_CHANGED"
-                  class="notice-level"
+                  v-if="item.notice.postTitle&&!inlinePost(item)"
+                  class="notice-second"
                 >
-                  <strong>{{ t('im.toLevel',{level:item.notice.level,name:levelName(item.notice.level)}) }}</strong>
+                  <span class="notice-post">
+                    <el-icon><IconNotes /></el-icon><span>{{ item.notice.postTitle }}</span>
+                  </span>
                 </p>
                 <p
                   v-if="item.notice.type===NoticeType.USER_APPROVED"
-                  class="notice-welcome"
+                  class="notice-second notice-welcome"
                 >
                   {{ t('im.welcome') }}
                 </p>
               </div>
-              <time :datetime="item.notice.createTime">{{ relativeTime(item.notice.createTime) }}</time>
             </button>
           </TransitionGroup>
         </div>

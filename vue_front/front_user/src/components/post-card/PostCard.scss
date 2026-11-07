@@ -172,83 +172,6 @@ time {
   overflow-wrap: anywhere;
 }
 
-// 分类是挂在动作行最左边的小吊牌：左端打孔穿一根细绳，微微歪着，悬停时轻轻晃一下
-.post-tag {
-  position: relative;
-  margin-left: 10px;
-  padding: 3px 12px 3px 20px;
-  border: 2px solid var(--meng-surface);
-  border-radius: 6px 12px 12px 6px;
-  box-shadow: 0 3px 0 var(--card-edge);
-  color: var(--meng-text);
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
-  rotate: -5deg;
-  transform-origin: 0 50%;
-}
-
-.post-tag::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 6px;
-  width: 7px;
-  height: 7px;
-  border: 2px solid var(--card-edge);
-  border-radius: 50%;
-  background: var(--meng-surface);
-  translate: 0 -50%;
-}
-
-.post-tag::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: -12px;
-  width: 20px;
-  height: 12px;
-  border: 1.5px solid var(--card-edge);
-  border-right: 0;
-  border-bottom: 0;
-  border-radius: 12px 0 0;
-  translate: 0 -100%;
-}
-
-.post-card:hover .post-tag {
-  animation: post-tag-sway 900ms var(--meng-slide-ease);
-}
-
-@keyframes post-tag-sway {
-  30% {
-    rotate: 4deg;
-  }
-
-  60% {
-    rotate: -8deg;
-  }
-}
-
-.category-anime {
-  background: var(--meng-tint);
-}
-
-.category-creation {
-  background: var(--meng-danger);
-}
-
-.category-game {
-  background: var(--meng-category-game);
-}
-
-.category-tech {
-  background: var(--meng-success);
-}
-
-.category-daily {
-  background: var(--meng-warning);
-}
-
 .post-summary {
   line-height: 1.8;
   color: var(--meng-muted);
@@ -452,9 +375,6 @@ time {
     transform: none;
   }
 
-  .post-card:hover .post-tag {
-    animation: none;
-  }
 }
 
 

@@ -177,20 +177,45 @@
               ><small>{{ t('ai.'+metric.label) }}</small><strong>{{ metric.value }}</strong></span>
             </div>
             <div class="ai-note">
-              <p class="ai-summary">
-                {{ resource.data.result.summary }}
-              </p>
-            </div>
-            <section class="ai-suggest">
-              <h3>{{ t('ai.suggestions') }}</h3>
-              <ul>
+              <ul class="ai-summary">
                 <li
-                  v-for="suggestion in resource.data.result.suggestions"
-                  :key="suggestion"
+                  v-for="point in points"
+                  :key="point"
+                  :title="point"
                 >
-                  {{ suggestion }}
+                  {{ point }}
                 </li>
               </ul>
+            </div>
+            <section class="ai-suggest">
+              <header class="ai-suggest-head">
+                <h3>{{ t('ai.suggestions') }}</h3>
+                <button
+                  v-if="mode==='creator'"
+                  type="button"
+                  class="ai-suggest-refresh"
+                  :class="{spinning:refreshing}"
+                  :disabled="refreshing||resource.loading||!refreshesLeft"
+                  :title="t(refreshesLeft?'ai.refreshSuggestions':'ai.refreshUsedUp',{count:refreshesLeft})"
+                  :aria-label="t(refreshesLeft?'ai.refreshSuggestions':'ai.refreshUsedUp',{count:refreshesLeft})"
+                  @click="refreshSuggestions"
+                >
+                  <IconRefresh :size="17" /><b>{{ refreshesLeft }}</b>
+                </button>
+              </header>
+              <TransitionGroup
+                name="ai-tip"
+                tag="ul"
+              >
+                <li
+                  v-for="(suggestion,index) in resource.data.result.suggestions"
+                  :key="suggestion"
+                  :title="suggestion"
+                  :style="{'--i':index}"
+                >
+                  <span>{{ suggestion }}</span>
+                </li>
+              </TransitionGroup>
             </section>
           </div>
         </div>

@@ -1,7 +1,6 @@
 import {
   messageBackIcon,
   navMessageIcon,
-  messageChevronIcon,
   authHeartIcon,
   navGrowthIcon,
   messageHeartIcon,
@@ -79,7 +78,6 @@ export default defineComponent({
       total = ref(0),
       loading = ref(false),
       error = ref(''),
-      presenceOpen = ref(false),
       changingPresence = ref(false)
     let groupsController,
       noticesController,
@@ -236,7 +234,6 @@ export default defineComponent({
       changingPresence.value = true
       try {
         await im.setHidden(hidden)
-        presenceOpen.value = false
       } catch (failure) {
         notifyFailure(failure)
       } finally {
@@ -258,12 +255,8 @@ export default defineComponent({
       return t('im.action.' + notice.type)
     }
     const nickname = (item) => item?.latest?.actors[0]?.nickname
-    const escapePresence = (event) => {
-      if (event.key === 'Escape') presenceOpen.value = false
-    }
     onMounted(() => {
       document.documentElement.classList.add('messages-scrollbar-hidden')
-      document.addEventListener('keydown', escapePresence)
     })
     onUnmounted(() => {
       disposed = true
@@ -275,13 +268,11 @@ export default defineComponent({
       noticesController?.abort()
       clearTimeout(refreshing)
       im.close()
-      document.removeEventListener('keydown', escapePresence)
       document.documentElement.classList.remove('messages-scrollbar-hidden')
     })
     return {
       messageBackIcon,
       navMessageIcon,
-      messageChevronIcon,
       authHeartIcon,
       navGrowthIcon,
       messageHeartIcon,
@@ -304,7 +295,6 @@ export default defineComponent({
       total,
       loading,
       error,
-      presenceOpen,
       changingPresence,
       availableGroups,
       totalPages: computed(() => Math.max(1, Math.ceil(total.value / Im.NOTICE_SIZE))),
