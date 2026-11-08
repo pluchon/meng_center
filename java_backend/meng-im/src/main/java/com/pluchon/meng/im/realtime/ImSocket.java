@@ -49,6 +49,18 @@ public class ImSocket extends TextWebSocketHandler {
     // 连接最长存活时间，撤销事件丢失时也能在这段时间内收回
     private static final long MAX_AGE_MILLIS = TimeUnit.MINUTES.toMillis(30);
 
+    // 同一用户超过连接上限：拒绝新连接，前端按退避节奏再试
+    private static final CloseStatus TOO_MANY = new CloseStatus(4429, "too many connections");
+
+    // 同一用户最多同时保持的连接数（标签页）
+    private static final int MAX_CONNECTIONS_PER_USER = 8;
+
+    // 单条连接在一个窗口内最多接收的帧数；正常只有 25 秒一次心跳和偶尔的订阅切换
+    private static final int MAX_FRAMES_PER_WINDOW = 20;
+
+    // 入站帧计数窗口
+    private static final long FRAME_WINDOW_MILLIS = 10_000;
+
     // 连接自己的身份和单个订阅对象
     private static final class Connection {
 
@@ -58,6 +70,9 @@ public class ImSocket extends TextWebSocketHandler {
         final long openedAt = System.currentTimeMillis();
         volatile long heartbeat = openedAt;
         volatile Long watching;
+        // 同一会话的入站帧按顺序处理，计数不需要额外同步
+        long windowStart = openedAt;
+        int frames;
 
         Connection(WebSocketSession session, long user, String loginSession) {
             this.session = session;
@@ -82,8 +97,13 @@ public class ImSocket extends TextWebSocketHandler {
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) {
+    public void afterConnectionEstablished(WebSocketSession session) throws IOException {
         long user = (Long) session.getAttributes().get("userId");
+        // 先挡掉超额连接，再做查库等工作
+        if (connections.values().stream().filter(value -> value.user == user).count() >= MAX_CONNECTIONS_PER_USER) {
+            session.close(TOO_MANY);
+            return;
+        }
         boolean wasOnline = online(user);
         hidden.put(user, Boolean.TRUE.equals(mapper.hidden(user)));
         connections.put(
@@ -105,6 +125,10 @@ public class ImSocket extends TextWebSocketHandler {
     ) throws Exception {
         var connection = connections.get(session.getId());
         if (connection == null) return;
+        if (flooding(connection)) {
+            close(connection, CloseStatus.POLICY_VIOLATION);
+            return;
+        }
         var frame = JSON.readTree(message.getPayload());
         String type = frame.path("type").asString();
         if (type.equals("ping")) {
@@ -196,6 +220,16 @@ public class ImSocket extends TextWebSocketHandler {
         } catch (IOException | RuntimeException failure) {
             close(value);
         }
+    }
+
+    // 固定窗口计数，超过上限说明客户端异常或在刷帧
+    private static boolean flooding(Connection connection) {
+        long now = System.currentTimeMillis();
+        if (now - connection.windowStart >= FRAME_WINDOW_MILLIS) {
+            connection.windowStart = now;
+            connection.frames = 0;
+        }
+        return ++connection.frames > MAX_FRAMES_PER_WINDOW;
     }
 
     // 断开属于这些登录会话的连接

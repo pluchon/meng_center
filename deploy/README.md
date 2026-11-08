@@ -63,6 +63,15 @@ QQ SMTP 使用现有环境凭据，主机 `smtp.qq.com`、SSL 465；实际认证
 
 RabbitMQ 管理界面：<http://127.0.0.1:25673>，用户名与密码读取 `MENG_RABBITMQ_USERNAME`、`MENG_RABBITMQ_PASSWORD`。
 
+消费重试用尽的消息留在各服务的死信队列（`meng.im.dead`、`meng.growth.dead`、`meng.companion.dead` 等）。先修好失败原因，再用下面的命令放回原队列：
+
+```powershell
+./deploy/scripts/Replay-DeadLetters.ps1 -Queue meng.im.dead -DryRun
+./deploy/scripts/Replay-DeadLetters.ps1 -Queue meng.im.dead
+```
+
+`-DryRun` 只按原队列统计条数和最多死过几次，不移动消息。放回时按 `x-death` 记录的原队列直接投递，不经主题交换机，其他服务不会重复收到；同一条在原队列死过 5 次（`-MaxDeaths`）的留在死信队列等人工处理。
+
 Nacos 控制台：<http://127.0.0.1:18080>，用户名与密码读取 `MENG_NACOS_USERNAME`、`MENG_NACOS_PASSWORD`；namespace 为 `meng-dev`。初始化采用官方管理员 API，已经初始化的密码不会重置。
 
 ## 持久化与账号

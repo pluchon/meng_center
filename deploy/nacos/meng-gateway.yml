@@ -13,15 +13,24 @@ spring:
         webflux:
           default-filters:
             - SecureHeaders
+          # 下游连不上 2 秒失败，普通接口 30 秒没响应就返回 504，不让卡住的下游一直占着连接；
+          # 奶糖一轮和 AI 生成封面本身就慢，单独放宽，WebSocket 长连接不设响应超时
+          httpclient:
+            connect-timeout: 2000
+            response-timeout: 30s
           routes:
             - id: meng-companion
               uri: lb://meng-companion
               predicates:
                 - Path=/companion/**
+              metadata:
+                response-timeout: 130000
             - id: meng-im-websocket
               uri: lb:ws://meng-im
               predicates:
                 - Path=/im/ws
+              metadata:
+                response-timeout: -1
             - id: meng-im
               uri: lb://meng-im
               predicates:
@@ -30,6 +39,12 @@ spring:
               uri: lb://meng-user
               predicates:
                 - Path=/user/**
+            - id: meng-content-ai
+              uri: lb://meng-content
+              predicates:
+                - Path=/content/ai/**
+              metadata:
+                response-timeout: 130000
             - id: meng-content
               uri: lb://meng-content
               predicates:

@@ -169,8 +169,9 @@ public class ImService {
         if (user == dto.peerId()) throw new BusinessException(ImError.SELF);
         var existing = mapper.duplicate(user, dto.clientMsgId());
         if (existing != null) return messageVOs(List.of(existing), user).get(0);
-        peers.require(dto.peerId());
+        // 先限流再远程核对对方账号，发给不存在的人也计次，不能借此反复调用 user 服务
         limits.message(user);
+        peers.require(dto.peerId());
         try {
             return new TransactionTemplate(transactions).execute(status ->
                 sendLocked(user, dto)

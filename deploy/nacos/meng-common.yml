@@ -15,11 +15,14 @@ spring:
     publisher-returns: true
     listener:
       simple:
+        # 指数退避：1s、3s、9s、27s 后再试，约 40 秒内的数据库或下游抖动不会让消息进死信。
+        # Boot 4 改用 max-retries（首次之后的重试次数），旧的 max-attempts 已废弃且不生效
         retry:
           enabled: true
-          max-attempts: 3
+          max-retries: 4
           initial-interval: 1s
-          max-interval: 3s
+          multiplier: 3
+          max-interval: 30s
         default-requeue-rejected: false
         concurrency: 2
         prefetch: 8
