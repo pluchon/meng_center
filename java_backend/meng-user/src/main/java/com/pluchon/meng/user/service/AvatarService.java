@@ -36,6 +36,14 @@ public class AvatarService {
     @Autowired
     private UserMapper users;
 
+    // 按账号限制每日换头像次数
+    @Autowired
+    private com.pluchon.meng.user.service.security.RateLimitService limits;
+
+    // 限流阈值
+    @Autowired
+    private com.pluchon.meng.user.config.UserProperties properties;
+
     @Autowired
     private AuthorizationService authorization;
 
@@ -75,6 +83,12 @@ public class AvatarService {
         if (file.isEmpty() || file.getSize() > 2 * 1024 * 1024) throw new BusinessException(
             CommonErrorCode.INVALID_ARGUMENT
         );
+        // 解码和重新编码都很耗资源，先按账号限次再处理图片
+        limits.chargeDaily(
+            "avatar-account",
+            String.valueOf(UserContext.require().userId()),
+            properties.limits().avatarDailyMax()
+        );
         byte[] bytes = file.getBytes();
         boolean allowed =
             bytes.length >= 12 &&
@@ -98,11 +112,14 @@ public class AvatarService {
                 reader.setInput(input);
                 int w = reader.getWidth(0),
                     h = reader.getHeight(0);
-                if (w <= 0 || h <= 0 || (long) w * h > 40_000_000) throw new BusinessException(
-                    CommonErrorCode.INVALID_ARGUMENT
-                );
+                if (
+                    w <= 0 || h <= 0 || w > 16384 || h > 16384 || (long) w * h > 40_000_000
+                ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
+                // 头像只用居中的正方形，只解码这一块并按它降采样，细长图不会整张展开占满内存
                 var parameters = reader.getDefaultReadParam();
-                int sample = Math.max(1, Math.min(w, h) / 512);
+                int edge = Math.min(w, h);
+                parameters.setSourceRegion(new java.awt.Rectangle((w - edge) / 2, (h - edge) / 2, edge, edge));
+                int sample = Math.max(1, edge / 512);
                 parameters.setSourceSubsampling(sample, sample, 0, 0);
                 source = reader.read(0, parameters);
             } finally {

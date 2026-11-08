@@ -17,6 +17,9 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class AiResultService {
 
+    // 索引写失败的告警
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AiResultService.class);
+
     // 仅访问本域数据库
     @Autowired
     private JdbcTemplate jdbc;
@@ -124,7 +127,9 @@ public class AiResultService {
         );
         if (enforce && "BLOCK".equals(effectiveVerdict)) {
             long draftId = postService.withdrawToDraft(post);
-            vectors.delete(post.getId());
+            final long withdrawn = post.getId();
+            // 退回结论必须落库；残留向量在召回时会按库内状态过滤掉
+            indexOrRetryLater(withdrawn, () -> vectors.delete(withdrawn));
             notify(
                 "post.review-changed",
                 Map.<String, Object>of(
@@ -180,19 +185,43 @@ public class AiResultService {
         }
         // 审核开关只控制可见状态，明确违规的内容始终不进入向量索引。
         if ("BLOCK".equals(effectiveVerdict)) {
-            vectors.delete(post.getId());
+            final long blocked = post.getId();
+            indexOrRetryLater(blocked, () -> vectors.delete(blocked));
             events.publishEvent(new Indexed(post.getId()));
             return;
         }
-        vectors.write(
-            post,
-            result.embedding(),
-            result.topics(),
-            result.quality(),
-            effectiveVerdict,
-            result.modelVersion()
+        final var analyzed = post;
+        final String indexedVerdict = effectiveVerdict;
+        indexOrRetryLater(analyzed.getId(), () ->
+            vectors.write(
+                analyzed,
+                result.embedding(),
+                result.topics(),
+                result.quality(),
+                indexedVerdict,
+                result.modelVersion()
+            )
         );
         events.publishEvent(new Indexed(post.getId()));
+    }
+
+    // 向量索引的一步写操作
+    @FunctionalInterface
+    private interface IndexWrite {
+        void run() throws java.io.IOException;
+    }
+
+    // 索引写失败不回滚审核结论，标为分析失败，由每小时的失败重审任务重新分析并补写向量
+    private void indexOrRetryLater(long postId, IndexWrite write) {
+        try {
+            write.run();
+        } catch (java.io.IOException | RuntimeException unavailable) {
+            LOG.warn("Vector index write failed for post {}; scheduled for reanalysis", postId);
+            jdbc.update(
+                "UPDATE post_ai_feature SET analyze_state='FAILED' WHERE post_id=?",
+                postId
+            );
+        }
     }
 
     // 保存评论审核结果并尊重人工复核

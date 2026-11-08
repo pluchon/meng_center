@@ -1,6 +1,7 @@
 package com.pluchon.meng.user.service;
 
 import com.pluchon.meng.common.core.error.BusinessException;
+import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.entity.enums.ContactChannel;
 import com.pluchon.meng.user.entity.enums.PhoneRegion;
@@ -95,25 +96,34 @@ public final class CodeDeliveryService {
         String ticket,
         String ip
     ) {
-        send(
-            contacts.normalize(email, countryCode, phone),
-            ticket,
-            ip,
-            VerificationPurpose.CONTACT_CHANGE
+        var contact = contacts.normalize(email, countryCode, phone);
+        if (contact.channel() == ContactChannel.SMS && !smsEnabled(contact)) {
+            throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
+        }
+        captcha.consume(ticket, ip);
+        // 换绑发码在联系方式的限制之外，再按账号限制每天次数
+        limits.chargeDaily(
+            "contact-code-account",
+            String.valueOf(UserContext.require().userId()),
+            properties.limits().contactCodeDailyMax()
         );
+        limits.send(contact, ip);
+        deliver(contact, ip, VerificationPurpose.CONTACT_CHANGE);
     }
 
     // 登录后忘记原密码：验证码发到账号绑定的手机号。短信通道没开通、但开了模拟时不真的发，
     // 把码返回给页面显示；真的发了短信就返回空
     public String myResetCode(ContactService.Contact contact, String ticket, String ip) {
+        boolean enabled = smsEnabled(contact);
+        // 通道没开通又不模拟时直接拒绝，不消耗滑块票据和发码额度
+        if (!enabled && !properties.sms().mock()) {
+            throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
+        }
         captcha.consume(ticket, ip);
         limits.send(contact, ip);
-        if (smsEnabled(contact)) {
-            deliver(contact, VerificationPurpose.PASSWORD_RESET);
+        if (enabled) {
+            deliver(contact, ip, VerificationPurpose.PASSWORD_RESET);
             return null;
-        }
-        if (!properties.sms().mock()) {
-            throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
         }
         String code = codes.generate();
         codes.store(contact, code, VerificationPurpose.PASSWORD_RESET);
@@ -127,16 +137,30 @@ public final class CodeDeliveryService {
         String ip,
         VerificationPurpose purpose
     ) {
-        captcha.consume(ticket, ip);
-        limits.send(contact, ip);
+        // 通道没开通时直接拒绝，不消耗滑块票据和发码额度
         if (contact.channel() == ContactChannel.SMS && !smsEnabled(contact)) {
             throw new BusinessException(UserErrorCode.SMS_UNAVAILABLE);
         }
-        deliver(contact, purpose);
+        captcha.consume(ticket, ip);
+        limits.send(contact, ip);
+        deliver(contact, ip, purpose);
     }
 
-    // 收到成功回执才保存验证码，用户不会拿到一个用不了的码
-    private void deliver(ContactService.Contact contact, VerificationPurpose purpose) {
+    // 收到成功回执才保存验证码，用户不会拿到一个用不了的码；没发出去就退回发码额度
+    private void deliver(ContactService.Contact contact, String ip, VerificationPurpose purpose) {
+        try {
+            dispatch(contact, purpose);
+        } catch (BusinessException failure) {
+            try {
+                limits.refundSend(contact, ip);
+            } catch (RuntimeException refundFailure) {
+                failure.addSuppressed(refundFailure);
+            }
+            throw failure;
+        }
+    }
+
+    private void dispatch(ContactService.Contact contact, VerificationPurpose purpose) {
         String code = codes.generate();
         // 过了等回执的时限请求方已经放弃，消费者此后再拿到这条指令就不该发了
         var command = new DeliveryCommand(

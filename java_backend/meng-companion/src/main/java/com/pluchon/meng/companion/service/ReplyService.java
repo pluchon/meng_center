@@ -25,6 +25,9 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class ReplyService {
 
+    // 轮次失败的日志
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ReplyService.class);
+
     @Autowired
     private CompanionService companion;
 
@@ -422,6 +425,13 @@ public class ReplyService {
                 error instanceof BusinessException business
                     ? business.errorCode()
                     : CompanionError.AI_UNAVAILABLE;
+            // 业务拒绝（限次、冷却等）只记一行，意外异常留堆栈；不记录用户输入
+            if (error instanceof BusinessException) LOG.info(
+                "Companion turn {} rejected: {}",
+                submittedId,
+                code.code()
+            );
+            else LOG.error("Companion turn {} failed", submittedId, error);
             if (!committed) voice.discard(voices);
             if (prepared != null) {
                 if (!committed) runtime.groupState(

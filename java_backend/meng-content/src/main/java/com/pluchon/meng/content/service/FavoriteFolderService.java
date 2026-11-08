@@ -157,7 +157,7 @@ public class FavoriteFolderService {
     ) {
         return new PageResult<>(
             folders
-                .folders(owner, visibility, (page - 1) * size, size)
+                .folders(owner, visibility, PageResult.offset(page, size), size)
                 .stream()
                 .map(r ->
                     new FolderVO(
@@ -529,8 +529,8 @@ public class FavoriteFolderService {
     ) {
         var rows =
             folder == null
-                ? folders.likes(owner, (page - 1) * size, size)
-                : folders.posts(owner, folder, (page - 1) * size, size);
+                ? folders.likes(owner, PageResult.offset(page, size), size)
+                : folders.posts(owner, folder, PageResult.offset(page, size), size);
         var people = authors.batch(
             rows
                 .stream()

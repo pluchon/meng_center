@@ -9,6 +9,7 @@ import com.pluchon.meng.growth.controller.vo.GrowthVO;
 import com.pluchon.meng.growth.entity.GrowthAccountEntity;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
 import com.pluchon.meng.growth.mapper.GrowthMapper;
+import com.pluchon.meng.growth.mapper.LevelOutboxMapper;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
@@ -19,10 +20,13 @@ import java.time.Clock;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.UUID;
 
 // 成长账户、签到、经验奖励与升级
 @Service
@@ -39,6 +43,10 @@ public class GrowthService {
     // 发布领域事件
     @Autowired
     private ApplicationEventPublisher events;
+
+    // 等级事件发件箱
+    @Autowired
+    private LevelOutboxMapper outbox;
 
     // 业务时钟
     @Autowired
@@ -118,7 +126,15 @@ public class GrowthService {
         for (int i = 0; i < properties.thresholds().size(); i++)
             if (exp >= properties.thresholds().get(i)) level = Math.max(level, i + 1);
         mapper.updateAccountExperience(a.getUserId(), exp, level);
-        if (level > a.getLevel()) events.publishEvent(new LevelChangedEvent(a.getUserId(), level));
+        if (level > a.getLevel()) {
+            // 事件和升级同一事务落库，提交后由发件箱投递，消息队列故障也不丢
+            outbox.insert(
+                    UUID.randomUUID().toString(),
+                    a.getUserId(),
+                    level,
+                    LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC));
+            events.publishEvent(new LevelChangedEvent(a.getUserId(), level));
+        }
         a.setExp(exp);
         a.setLevel(level);
     }

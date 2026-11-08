@@ -1,6 +1,6 @@
 import { Im } from '@/constants/im'
 // 全站共享连接，账号切换时完整释放计时器和监听器
-export function connectIm({ frame, connected, state }) {
+export function connectIm({ frame, connected, state, revoked }) {
   let socket,
     retry,
     heartbeat,
@@ -41,9 +41,16 @@ export function connectIm({ frame, connected, state }) {
       else frame(value)
     }
     socket.onerror = () => socket.close()
-    socket.onclose = () => {
+    socket.onclose = (event) => {
       clearInterval(heartbeat)
       if (stopped) return
+      // 登录会话已在别处被撤销，重连只会被拒，交给页面去重新登录
+      if (event.code === Im.CLOSE_SESSION_REVOKED) {
+        stopped = true
+        state('revoked')
+        revoked()
+        return
+      }
       state('reconnecting')
       retry = setTimeout(open, delay)
       delay = Math.min(Im.RECONNECT_MAX, delay * 2)

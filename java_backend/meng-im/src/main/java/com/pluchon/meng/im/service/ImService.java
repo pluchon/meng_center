@@ -41,7 +41,7 @@ public class ImService {
 
     public PageResult<BlockedPeer> blocks(long page, long size) {
         long user = UserContext.require().userId();
-        var rows = mapper.blocks(user, (page - 1) * size, size);
+        var rows = mapper.blocks(user, PageResult.offset(page, size), size);
         var profiles = peers.batch(
             rows.stream().map(ImMapper.BlockRow::getUserId).toList()
         );

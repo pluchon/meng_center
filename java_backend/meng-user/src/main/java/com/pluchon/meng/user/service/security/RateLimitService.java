@@ -63,6 +63,23 @@ public final class RateLimitService {
         }
     }
 
+    // 计数大于零才减一，不改过期时间
+    private static final DefaultRedisScript<Long> DECREMENT = new DefaultRedisScript<>(
+        "local v=tonumber(redis.call('GET',KEYS[1]) or '0');if v>0 then return redis.call('DECR',KEYS[1]) end;return 0",
+        Long.class
+    );
+
+    // 投递失败时退回本次发码占用的间隔、窗口和短信日额度，用户不用干等就能重试
+    public void refundSend(ContactService.Contact contact, String ip) {
+        for (String key : sendKeys(contact, ip)) redis.execute(DECREMENT, List.of(key));
+    }
+
+    private List<String> sendKeys(ContactService.Contact contact, String ip) {
+        var keys = new java.util.ArrayList<>(List.of(key("send-interval", contact.hash()), key("send-window", contact.hash())));
+        if (contact.channel() == ContactChannel.SMS) keys.add(key("sms-ip", ip));
+        return keys;
+    }
+
     // 该用户名是否已因连续输错密码被锁定
     public boolean loginLocked(String username) {
         String value = redis.opsForValue().get(key(LOGIN_SCOPE, username));

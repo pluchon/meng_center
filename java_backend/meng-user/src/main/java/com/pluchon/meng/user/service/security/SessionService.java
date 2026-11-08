@@ -1,5 +1,6 @@
 package com.pluchon.meng.user.service.security;
 
+import com.pluchon.meng.api.user.event.SessionsRevokedEvent;
 import com.pluchon.meng.common.core.security.AuthConstants;
 import com.pluchon.meng.common.core.security.JwtCodec;
 import com.pluchon.meng.common.core.security.SessionKey;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -31,6 +33,10 @@ public final class SessionService {
 
     @Autowired
     private StringRedisTemplate redis;
+
+    // 撤销后通知持有长连接的服务断开对应连接
+    @Autowired
+    private ApplicationEventPublisher events;
 
     @Autowired
     private JwtCodec jwt;
@@ -119,6 +125,7 @@ public final class SessionService {
             ),
             sessionId
         );
+        events.publishEvent(SessionsRevokedEvent.one(userId, sessionId));
     }
 
     // 改密或重置密码后让所有设备下线
@@ -128,5 +135,6 @@ public final class SessionService {
             List.of(AuthConstants.USER_SESSIONS_PREFIX + userId),
             AuthConstants.SESSION_PREFIX
         );
+        events.publishEvent(SessionsRevokedEvent.all(userId));
     }
 }

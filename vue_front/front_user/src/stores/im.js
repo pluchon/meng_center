@@ -57,6 +57,8 @@ export const useImStore = defineStore('im', {
           this.connection = value
         },
         connected: () => this.resync(),
+        // 会话失效后的第一次请求会得到 401，由全站的未登录处理跳转登录页
+        revoked: () => this.resync(),
         frame: (value) => this.frame(value),
       })
       void this.resync()

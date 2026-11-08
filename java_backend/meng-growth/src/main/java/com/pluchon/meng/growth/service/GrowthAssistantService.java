@@ -60,6 +60,15 @@ public class GrowthAssistantService {
 
     // 复用 JSON 编解码器
     private final JsonMapper json = JsonMapper.builder().findAndAddModules().build();
+    // 当日计数大于零才减一
+    private static final DefaultRedisScript<Long> REFUND = new DefaultRedisScript<>(
+        "local d=tonumber(redis.call('GET',KEYS[1]) or '0');if d>0 then return redis.call('DECR',KEYS[1]) end;return 0",
+        Long.class
+    );
+
+    // 缓存写失败的告警
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GrowthAssistantService.class);
+
     private static final DefaultRedisScript<Long> TAKE = new DefaultRedisScript<>(
         "if tonumber(redis.call('GET',KEYS[1]) or '0')>=tonumber(ARGV[1]) or tonumber(redis.call('GET',KEYS[2]) or '0')>=tonumber(ARGV[2]) then return 0 end;redis.call('INCR',KEYS[1]);redis.call('EXPIRE',KEYS[1],ARGV[3]);redis.call('INCR',KEYS[2]);redis.call('EXPIRE',KEYS[2],120);return 1",
         Long.class
@@ -146,16 +155,28 @@ public class GrowthAssistantService {
         try {
             result = ai.summarize(body);
         } catch (RuntimeException error) {
-            throw new BusinessException(AiError.UNAVAILABLE);
+            // 没生成成功就退还当日次数；分钟计数保留，防止故障期间连点放大请求
+            var failure = new BusinessException(AiError.UNAVAILABLE);
+            try {
+                redis.execute(REFUND, List.of(root + today));
+            } catch (RuntimeException refundFailure) {
+                failure.addSuppressed(refundFailure);
+            }
+            throw failure;
         }
         var response = Map.<String, Object>of("stats", body, "result", result);
-        redis
-            .opsForValue()
-            .set(
-                key,
-                json.writeValueAsString(Map.of("digest", digest, "response", response)),
-                Duration.ofSeconds(ttl)
-            );
+        // 结果已经生成，缓存写不进去只影响下次复用，照常返回
+        try {
+            redis
+                .opsForValue()
+                .set(
+                    key,
+                    json.writeValueAsString(Map.of("digest", digest, "response", response)),
+                    Duration.ofSeconds(ttl)
+                );
+        } catch (RuntimeException cacheUnavailable) {
+            LOG.warn("Growth summary cache write skipped: {}", cacheUnavailable.getClass().getSimpleName());
+        }
         return response;
     }
 }

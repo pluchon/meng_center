@@ -102,6 +102,9 @@ java_backend/
 - Controller 只做参数绑定、调用 Service、返回统一响应；入参用 DTO，出参用 VO，不直接返回 Entity。
 - Service 是授权、事务、状态流转的最终裁决者。
 - 对象转换放 `converter` 包；跨服务调用放 `client` 包。
+- 未预期异常统一记错误日志并带堆栈，响应不带细节。数据库、Redis、RabbitMQ 连不上或超时、下游服务连不上，返回 503 `COMMON_UNAVAILABLE`；其余返回 500 `COMMON_INTERNAL_ERROR`。网关找不到下游实例或下游超时同样返回 503。
+- 事务提交后才发的通知类消息（点赞收藏、注册通过、会话撤销）发送失败只记错误日志，不把已经提交的请求变成失败。会改变其他域状态的事件走事务发件箱（content 的 AI 事件、growth 的等级事件）。
+- 分页偏移统一用 `PageResult.offset` 计算，页码溢出按参数错误返回 400。
 - content、growth 的 Spring 依赖使用 `@Autowired` 字段注入；事务显式声明 `rollbackFor = Exception.class`。类、字段和 Service 方法用中文单行注释，Controller 接口用一句话 Javadoc；不使用通配符导入，每行只写一条语句或一个依赖。
 - content 的新实体计数在字段处初始化为零。DTO 与实体同名同类型字段由 converter 使用 Hutool 5.8.47 `BeanUtil.copyProperties` 拷贝，record 来源已经实测；归一化、摘要、属地和当前用户仍显式赋值，每个转换方法用单元测试覆盖字段。
 

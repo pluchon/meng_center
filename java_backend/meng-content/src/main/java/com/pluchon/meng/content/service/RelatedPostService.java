@@ -254,7 +254,8 @@ public class RelatedPostService {
                     List<Map<String, Object>>
                 >() {}
             );
-            try {
+            // user 服务不可用时结果为空，不缓存，恢复后下一次请求就能拿到完整列表
+            if (!all.isEmpty()) try {
                 redis
                     .opsForValue()
                     .set(key, json.writeValueAsString(all), AUTHORS_TTL);

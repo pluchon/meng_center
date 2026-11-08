@@ -87,7 +87,7 @@ public class FollowService {
         checkPage(page, size);
         requireNormal(users.selectById(id));
         long total = follows.countFollowing(id);
-        var edges = follows.following(id, (page - 1) * size, size);
+        var edges = follows.following(id, PageResult.offset(page, size), size);
         return new PageResult<>(items(edges), total, page, size);
     }
 
@@ -96,7 +96,7 @@ public class FollowService {
         checkPage(page, size);
         requireNormal(users.selectById(id));
         long total = follows.countFollowers(id);
-        var edges = follows.followers(id, (page - 1) * size, size);
+        var edges = follows.followers(id, PageResult.offset(page, size), size);
         return new PageResult<>(items(edges), total, page, size);
     }
 

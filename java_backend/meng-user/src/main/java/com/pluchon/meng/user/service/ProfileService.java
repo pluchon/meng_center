@@ -43,6 +43,10 @@ public class ProfileService {
     @Autowired
     private RateLimitService limits;
 
+    // 限流阈值
+    @Autowired
+    private com.pluchon.meng.user.config.UserProperties properties;
+
     @Autowired
     private ContactService contacts;
 
@@ -57,9 +61,15 @@ public class ProfileService {
 
     @Transactional(rollbackFor = Exception.class)
     public void update(ProfileDTO dto) {
-        UserEntity user = authorization.requireActive(
-            users.lockById(UserContext.require().userId())
+        long userId = UserContext.require().userId();
+        // 每次改资料都会触发 AI 审核，按账号限频
+        limits.charge(
+            "profile-account",
+            String.valueOf(userId),
+            properties.limits().profileMinuteMax(),
+            java.time.Duration.ofMinutes(1)
         );
+        UserEntity user = authorization.requireActive(users.lockById(userId));
         String nickname = dto.nickname().strip(),
             bio = dto.bio().strip(),
             name = UsernamePolicy.normalize(dto.username());

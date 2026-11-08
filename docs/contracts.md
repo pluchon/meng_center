@@ -28,6 +28,7 @@
 | 事件 | 生产者 | 关键字段 | 消费者及用途 |
 |---|---|---|---|
 | `user.approved` | user | userId | im：欢迎通知 |
+| `user.sessions-revoked` | user | userId、sessionId（只撤销一个时）、keepSessionId（退出其他设备时保留的那个） | im：断开对应的实时连接；每个实例绑一条匿名队列，都能收到 |
 | `user.followed` | user | followerId、followeeId | im：通知被关注的人（系统频道的「关注」分类）；只在新增关注时发，取消不发 |
 | `user.profile-updated` | user | userId、version、nickname、signature、avatarChanged、avatarThumb（更换或尚无审核结果时才有） | ai：资料审核 |
 | `user.profile-moderated` | ai | userId、version、modelVersion、verdict、labels、reason、avatarChanged、imageReviews | user：记录结论，按开关处理；沿用未变化头像的逐图结论 |

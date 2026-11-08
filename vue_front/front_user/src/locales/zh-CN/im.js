@@ -26,6 +26,7 @@ export default {
   presence: '在线状态',
   connecting: '正在连接',
   reconnecting: '连接中断，正在重连',
+  revoked: '登录已失效，请重新登录',
   connected: '消息已同步',
   noConversations: '还没有私信',
   noConversationsHint: '从帖子里的头像卡片发起聊天吧',

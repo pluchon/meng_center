@@ -34,7 +34,9 @@ public class PrivateImages {
         if (file.isEmpty() || file.getSize() > 10_000_000) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         String key = "meng:companion:upload:" + user;
         Long count = redis.opsForValue().increment(key);
-        if (Long.valueOf(1).equals(count)) redis.expire(key, java.time.Duration.ofMinutes(1));
+        // 首次计数设过期；上次设过期失败留下没有过期时间的键时补上，避免永久锁住上传
+        if (Long.valueOf(1).equals(count) || Long.valueOf(-1).equals(redis.getExpire(key)))
+            redis.expire(key, java.time.Duration.ofMinutes(1));
         if (count == null || count > 10) throw new BusinessException(CompanionError.COMPANION_QUOTA_EXCEEDED);
         mapper.ensureBond(user, "NEKO");
         mapper.lockBond(user, "NEKO");

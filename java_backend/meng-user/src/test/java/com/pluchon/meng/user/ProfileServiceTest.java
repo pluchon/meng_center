@@ -97,7 +97,9 @@ class ProfileServiceTest {
             "clock",
             clock,
             "notifications",
-            notifications
+            notifications,
+            "properties",
+            mock(com.pluchon.meng.user.config.UserProperties.class, org.mockito.Answers.RETURNS_DEEP_STUBS)
         ).forEach((name, value) -> ReflectionTestUtils.setField(service, name, value));
     }
 

@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -38,6 +40,9 @@ import tools.jackson.databind.json.JsonMapper;
 // 并行召回、排序打散与稳定分页快照
 @Service
 public class RecommendationService {
+
+    // 旁路日志失败时的告警
+    private static final Logger LOG = LoggerFactory.getLogger(RecommendationService.class);
 
     // 帖子数据与内容版本
     @Autowired
@@ -132,19 +137,22 @@ public class RecommendationService {
                     return p.recommended(reason);
                 })
                 .toList();
+            var logs = new ArrayList<Object[]>();
             for (int i = 0; i < selected.size(); i++) {
                 var e = selected.get(i);
                 if (!rows.containsKey(e.id())) continue;
                 var features = new ArrayList<>(e.features());
                 features.add((double) (start + i + 1));
-                jdbc.update(
+                logs.add(new Object[] { user, e.id(), e.route(), start + i + 1, json.writeValueAsString(features) });
+            }
+            // 曝光日志只供排序训练，写失败不影响已经算好的推荐结果
+            try {
+                if (!logs.isEmpty()) jdbc.batchUpdate(
                     "INSERT INTO recommend_log(user_id,post_id,route,position,features) VALUES (?,?,?,?,?)",
-                    user,
-                    e.id(),
-                    e.route(),
-                    start + i + 1,
-                    json.writeValueAsString(features)
+                    logs
                 );
+            } catch (RuntimeException logFailure) {
+                LOG.warn("Recommendation exposure log skipped: {}", logFailure.getClass().getSimpleName());
             }
             return new PageResult<>(result, entries.size(), page, size);
         } catch (RuntimeException unavailable) {

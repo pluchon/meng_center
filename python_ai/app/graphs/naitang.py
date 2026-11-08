@@ -65,11 +65,19 @@ def build():
     def merge(state):
         return {}
 
+    def entry(state, runtime: Runtime[Context]):
+        # 次数用完时只跑主 agent 判断是否危机，不并行起草和预审，省掉注定被丢弃的模型调用
+        if not runtime.context.data["request"].message_allowed:
+            return ["agent"]
+        return ["agent", "speculate"]
+
     def route(state, runtime: Runtime[Context]):
         ctx = runtime.context.data
         directive = state["directive"]
         if directive.label in {"CRISIS", "SEXUAL", "JAILBREAK"}:
             return "block"
+        if not ctx["request"].message_allowed:
+            return "exhausted"
         # 草稿或预审失败不等于不安全：照常重说并经过打分，打分仍失败才用兜底台词。
         if directive.mention_memory_id or directive.clock_needed or ctx["toolUsage"] or ctx["request"].images:
             return "respeak"
@@ -152,6 +160,11 @@ def build():
             billable=state["directive"].label != "CRISIS",
         )
 
+    def exhausted(state, runtime: Runtime[Context]):
+        # 计次回复交回 companion，由它按额度返回「次数用完」；危机已在 block 分支单独放行
+        card = runtime.context.data["request"].card
+        return result(state, runtime, card.get("fallback", "今天先聊到这里。"))
+
     def fallback(state, runtime: Runtime[Context]):
         return result(
             state,
@@ -177,18 +190,18 @@ def build():
         "judge": judge,
         "block": block,
         "emit": emit,
+        "exhausted": exhausted,
         "fallback": fallback,
     }.items():
         field = {"respeak": "reply", "judge": "judgment"}.get(name)
         graph.add_node(name, recoverable(name, node, field) if field else node)
     graph.add_node("merge", merge, defer=True)
-    graph.add_edge(START, "agent")
-    graph.add_edge(START, "speculate")
+    graph.add_conditional_edges(START, entry, ["agent", "speculate"])
     graph.add_edge("agent", "merge")
     graph.add_edge("speculate", "merge")
     graph.add_conditional_edges("merge", route)
     graph.add_edge("respeak", "judge")
     graph.add_conditional_edges("judge", after_judge)
-    for name in ("emit", "block", "fallback"):
+    for name in ("emit", "block", "exhausted", "fallback"):
         graph.add_edge(name, END)
     return graph.compile()

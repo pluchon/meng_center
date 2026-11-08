@@ -5,6 +5,9 @@ import com.pluchon.meng.common.core.event.EventEnvelope;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -17,6 +20,9 @@ public final class ReviewEventPublisher {
 
     // 审核通知一天内没发出去就不再发
     private static final Duration NOTIFICATION_TTL = Duration.ofDays(1);
+
+    // 事件发送失败的日志
+    private static final Logger LOG = LoggerFactory.getLogger(ReviewEventPublisher.class);
 
     @Autowired
     private RabbitTemplate rabbit;
@@ -37,7 +43,11 @@ public final class ReviewEventPublisher {
                 review.encryptedReason(),
                 clock.instant().plus(NOTIFICATION_TTL)
             );
-            rabbit.convertAndSend(UserMqNames.INTERNAL_EXCHANGE, UserMqNames.NOTIFICATION_ROUTE, command);
+            try {
+                rabbit.convertAndSend(UserMqNames.INTERNAL_EXCHANGE, UserMqNames.NOTIFICATION_ROUTE, command);
+            } catch (AmqpException unavailable) {
+                LOG.error("Review notification {} not published", command.deliveryId(), unavailable);
+            }
         }
     }
 
@@ -47,12 +57,17 @@ public final class ReviewEventPublisher {
         approved(registration.userId());
     }
 
+    // 账号已经创建或审核已经提交，消息队列不可用时只记错误日志，不让注册或审核接口报失败
     private void approved(long userId) {
         String id = UUID.randomUUID().toString();
-        rabbit.convertAndSend(
-            UserApprovedEvent.EXCHANGE,
-            UserApprovedEvent.EVENT_TYPE,
-            new EventEnvelope<>(id, UserApprovedEvent.EVENT_TYPE, clock.instant(), id, new UserApprovedEvent(userId))
-        );
+        try {
+            rabbit.convertAndSend(
+                UserApprovedEvent.EXCHANGE,
+                UserApprovedEvent.EVENT_TYPE,
+                new EventEnvelope<>(id, UserApprovedEvent.EVENT_TYPE, clock.instant(), id, new UserApprovedEvent(userId))
+            );
+        } catch (AmqpException unavailable) {
+            LOG.error("User approved event {} not published", id, unavailable);
+        }
     }
 }

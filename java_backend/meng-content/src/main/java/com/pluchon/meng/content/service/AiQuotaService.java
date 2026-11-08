@@ -31,20 +31,31 @@ public class AiQuotaService {
         Long.class
     );
 
-    // 原子扣减每日和分钟额度，超限明确拒绝
-    public void take(String feature, long user, int daily, int minute) {
+    private static final DefaultRedisScript<Long> REFUND = new DefaultRedisScript<>(
+        "local d=tonumber(redis.call('GET',KEYS[1]) or '0');if d>0 then return redis.call('DECR',KEYS[1]) end;return 0",
+        Long.class
+    );
+
+    // 没生成成功时退还当日次数；分钟计数保留，AI 故障期间连点不会放大请求
+    public void refund(String dailyKey) {
+        redis.execute(REFUND, List.of(dailyKey));
+    }
+
+    // 原子扣减每日和分钟额度，超限明确拒绝；返回当日计数键，失败时据此退还
+    public String take(String feature, long user, int daily, int minute) {
         var now = clock.instant().atZone(ZoneId.of("Asia/Taipei"));
         long ttl = Duration.between(
             now,
             now.toLocalDate().plusDays(1).atStartOfDay(now.getZone())
         ).toSeconds();
         String root = "content:ai:quota:" + feature + ":" + user + ":";
+        String dailyKey = root + now.toLocalDate();
         if (
             !Long.valueOf(1).equals(
                 redis.execute(
                     TAKE,
                     List.of(
-                        root + now.toLocalDate(),
+                        dailyKey,
                         root + "minute:" + clock.instant().getEpochSecond() / 60
                     ),
                     String.valueOf(daily),
@@ -53,5 +64,6 @@ public class AiQuotaService {
                 )
             )
         ) throw new BusinessException(CommonErrorCode.RATE_LIMITED);
+        return dailyKey;
     }
 }

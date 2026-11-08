@@ -22,6 +22,7 @@ import com.pluchon.meng.growth.config.GrowthProperties;
 import com.pluchon.meng.growth.entity.GrowthAccountEntity;
 import com.pluchon.meng.growth.entity.enums.ExpSource;
 import com.pluchon.meng.growth.mapper.GrowthMapper;
+import com.pluchon.meng.growth.mapper.LevelOutboxMapper;
 import com.pluchon.meng.growth.service.GrowthService;
 
 import org.junit.jupiter.api.AfterEach;
@@ -42,6 +43,8 @@ class GrowthServiceTest {
 
     ApplicationEventPublisher events;
 
+    LevelOutboxMapper outbox;
+
     GrowthService service;
 
     GrowthAccountEntity a;
@@ -60,6 +63,8 @@ class GrowthServiceTest {
         service = new GrowthService();
         ReflectionTestUtils.setField(service, "mapper", mapper);
         ReflectionTestUtils.setField(service, "events", events);
+        outbox = mock(LevelOutboxMapper.class);
+        ReflectionTestUtils.setField(service, "outbox", outbox);
         ReflectionTestUtils.setField(
                 service,
                 "properties",
@@ -160,6 +165,8 @@ class GrowthServiceTest {
         service.earned(7, ExpSource.POST, "5", Instant.now());
         assertEquals(3, a.getLevel());
         verify(events, times(1)).publishEvent(new LevelChangedEvent(7, 3));
+        // 事件和升级在同一事务写进发件箱
+        verify(outbox, times(1)).insert(anyString(), eq(7L), eq(3), any());
     }
 
     @Test
@@ -168,6 +175,7 @@ class GrowthServiceTest {
         service.earned(7, ExpSource.POST, "5", Instant.now());
         assertEquals(4, a.getLevel());
         verify(events, never()).publishEvent(any(Object.class));
+        verify(outbox, never()).insert(anyString(), anyLong(), anyInt(), any());
     }
 
     @Test

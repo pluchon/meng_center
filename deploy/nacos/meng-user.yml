@@ -83,6 +83,9 @@ meng:
       reapplication-daily-max: 1
       login-max-failures: 5
       login-lock-duration: 15m
+      profile-minute-max: 10
+      avatar-daily-max: 10
+      contact-code-daily-max: 10
     phone-patterns:
       '[+886]': '9[0-9]{8}'
       '[+852]': '[4-9][0-9]{7}'

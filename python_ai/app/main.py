@@ -49,6 +49,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             port=settings.redis_port,
             password=settings.redis_password.get_secret_value(),
             decode_responses=True,
+            # 网络卡住时快速失败，不让熔断检查和限流排队拖住整轮模型调用
+            socket_connect_timeout=2,
+            socket_timeout=3,
         )
         stack.push_async_callback(redis.aclose)
         await redis.ping()

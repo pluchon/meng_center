@@ -21,6 +21,7 @@ export const Im = Object.freeze({
   HEARTBEAT_TIMEOUT: 60000,
   RECONNECT_MIN: 1000,
   RECONNECT_MAX: 30000,
+  CLOSE_SESSION_REVOKED: 4401,
   REFRESH_DELAY: 120,
 })
 export const MessageKind = Object.freeze({ TEXT: 'TEXT', IMAGE: 'IMAGE' })

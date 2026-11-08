@@ -61,7 +61,13 @@ public record UserProperties(
         @Min(1) int registrationIpDailyMax,
         @Min(1) int reapplicationDailyMax,
         @Min(1) int loginMaxFailures,
-        @NotNull Duration loginLockDuration
+        @NotNull Duration loginLockDuration,
+        // 同账号每分钟改资料次数
+        @Min(1) int profileMinuteMax,
+        // 同账号每天换头像次数
+        @Min(1) int avatarDailyMax,
+        // 同账号每天发换绑验证码次数
+        @Min(1) int contactCodeDailyMax
     ) {}
 
     public record Notification(

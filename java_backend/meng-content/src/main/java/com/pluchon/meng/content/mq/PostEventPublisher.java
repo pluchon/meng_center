@@ -6,6 +6,9 @@ import com.pluchon.meng.api.content.event.PostPublishedEvent;
 import com.pluchon.meng.common.core.event.EventEnvelope;
 import java.time.Clock;
 import java.util.UUID;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.amqp.AmqpException;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -15,15 +18,22 @@ import org.springframework.transaction.event.TransactionalEventListener;
 @Component
 public class PostEventPublisher {
 
-    // 互动关系真正创建后才发布通知事件
+    // 事件发送失败的日志
+    private static final Logger LOG = LoggerFactory.getLogger(PostEventPublisher.class);
+
+    // 互动关系真正创建后才发布通知事件；点赞收藏已经提交，消息队列不可用时只记错误日志
     @TransactionalEventListener
     public void committed(ContentInteractionEvent interaction) {
         String id = UUID.randomUUID().toString();
-        rabbit.convertAndSend(
-            ContentInteractionEvent.EXCHANGE,
-            interaction.eventType(),
-            new EventEnvelope<>(id, interaction.eventType(), clock.instant(), id, interaction)
-        );
+        try {
+            rabbit.convertAndSend(
+                ContentInteractionEvent.EXCHANGE,
+                interaction.eventType(),
+                new EventEnvelope<>(id, interaction.eventType(), clock.instant(), id, interaction)
+            );
+        } catch (AmqpException unavailable) {
+            LOG.error("Interaction event {} {} not published", interaction.eventType(), id, unavailable);
+        }
     }
 
     @TransactionalEventListener

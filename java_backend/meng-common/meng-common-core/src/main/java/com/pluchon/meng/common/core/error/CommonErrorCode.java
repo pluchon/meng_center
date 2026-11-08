@@ -9,7 +9,8 @@ public enum CommonErrorCode implements ErrorCode {
     METHOD_NOT_ALLOWED("COMMON_METHOD_NOT_ALLOWED", "请求方法不支持", 405),
     CONFLICT("COMMON_CONFLICT", "当前状态不允许此操作", 409),
     RATE_LIMITED("COMMON_RATE_LIMITED", "操作过于频繁", 429),
-    INTERNAL_ERROR("COMMON_INTERNAL_ERROR", "服务异常", 500);
+    INTERNAL_ERROR("COMMON_INTERNAL_ERROR", "服务异常", 500),
+    UNAVAILABLE("COMMON_UNAVAILABLE", "服务暂时不可用，请稍后重试", 503);
 
     private final String code;
     private final String message;

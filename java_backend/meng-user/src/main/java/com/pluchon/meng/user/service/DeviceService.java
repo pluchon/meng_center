@@ -1,5 +1,6 @@
 package com.pluchon.meng.user.service;
 
+import com.pluchon.meng.api.user.event.SessionsRevokedEvent;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.core.security.AuthConstants;
@@ -8,6 +9,7 @@ import com.pluchon.meng.user.service.security.SessionService;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
@@ -20,6 +22,10 @@ public class DeviceService {
 
     @Autowired
     private SessionService sessions;
+
+    // 撤销后通知持有长连接的服务断开对应连接
+    @Autowired
+    private ApplicationEventPublisher events;
 
     private final DefaultRedisScript<Long> legacy = new DefaultRedisScript<>(
         "if redis.call('HGET',KEYS[1],'userId')~=ARGV[1] then return 0 end redis.call('HSETNX',KEYS[1],'deviceId',ARGV[2]) redis.call('HSETNX',KEYS[1],'deviceName','未知设备') return 1",
@@ -127,5 +133,6 @@ public class DeviceService {
             identity.sessionId(),
             AuthConstants.SESSION_PREFIX
         );
+        events.publishEvent(SessionsRevokedEvent.others(identity.userId(), identity.sessionId()));
     }
 }

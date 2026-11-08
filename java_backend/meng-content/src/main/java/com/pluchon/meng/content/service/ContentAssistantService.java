@@ -77,13 +77,16 @@ public class ContentAssistantService {
             String.class
         );
         input.put("candidates", candidates);
-        quota.take(
+        var response = metered(
             "tags",
-            UserContext.require().userId(),
             properties.tagsDaily(),
-            properties.tagsMinute()
+            properties.tagsMinute(),
+            () -> {
+                var reply = call(() -> ai.tags(input));
+                if (!(reply.get("tags") instanceof List<?>)) throw new BusinessException(AiErrorCode.UNAVAILABLE);
+                return reply;
+            }
         );
-        var response = call(() -> ai.tags(input));
         var selected = new HashSet<>(
             (body.selectedTags() == null ? List.<String>of() : body.selectedTags())
                 .stream()
@@ -110,37 +113,38 @@ public class ContentAssistantService {
     // 生成供用户选择的切入角度与开头
     public Map<String, Object> inspirations(AiDraftDTO body) {
         var input = draft(body);
-        quota.take(
+        return metered(
             "inspirations",
-            UserContext.require().userId(),
             properties.inspirationsDaily(),
-            properties.inspirationsMinute()
+            properties.inspirationsMinute(),
+            () -> call(() -> ai.inspirations(input))
         );
-        return call(() -> ai.inspirations(input));
     }
 
     // 生成封面并沿用普通图片入库处理
     public ImageVO cover(AiDraftDTO body) {
         var input = draft(body);
-        quota.take(
+        // 生成或入库任一步失败都按没生成成功处理，退还次数
+        return metered(
             "covers",
-            UserContext.require().userId(),
             properties.coversDaily(),
-            properties.coversMinute()
+            properties.coversMinute(),
+            () -> {
+                byte[] bytes = call(() ->
+                    ai.covers(
+                        Map.of(
+                            "title",
+                            input.get("title"),
+                            "summary",
+                            input.get("content"),
+                            "category",
+                            input.get("category")
+                        )
+                    )
+                );
+                return images.uploadGenerated(bytes);
+            }
         );
-        byte[] bytes = call(() ->
-            ai.covers(
-                Map.of(
-                    "title",
-                    input.get("title"),
-                    "summary",
-                    input.get("content"),
-                    "category",
-                    input.get("category")
-                )
-            )
-        );
-        return images.uploadGenerated(bytes);
     }
 
     // 先统计本域创作数据，再复用或生成总结
@@ -252,8 +256,12 @@ public class ContentAssistantService {
                 digest
             );
         }
-        quota.take("creator", user, properties.reviewsDaily(), properties.reviewsMinute());
-        var result = call(() -> ai.review(body));
+        var result = metered(
+            "creator",
+            properties.reviewsDaily(),
+            properties.reviewsMinute(),
+            () -> call(() -> ai.review(body))
+        );
         var response = Map.<String, Object>of("stats", body, "result", result);
         redis
             .opsForValue()
@@ -374,6 +382,21 @@ public class ContentAssistantService {
     }
 
     // 统一模型拒绝、超时与不可用语义
+    // 先扣次数再执行，任何一步失败都退还当日次数并抛出原错误
+    private <T> T metered(String feature, int daily, int minute, Supplier<T> work) {
+        String dailyKey = quota.take(feature, UserContext.require().userId(), daily, minute);
+        try {
+            return work.get();
+        } catch (RuntimeException failure) {
+            try {
+                quota.refund(dailyKey);
+            } catch (RuntimeException refundFailure) {
+                failure.addSuppressed(refundFailure);
+            }
+            throw failure;
+        }
+    }
+
     private <T> T call(Supplier<T> operation) {
         try {
             return operation.get();

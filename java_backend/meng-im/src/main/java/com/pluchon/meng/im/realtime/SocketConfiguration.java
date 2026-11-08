@@ -51,7 +51,13 @@ public class SocketConfiguration implements WebSocketConfigurer {
                                     .getHeaders()
                                     .getFirst(IdentityHeaders.USER_ROLE) == null
                             ) throw new IllegalArgumentException();
+                            String session = request
+                                .getHeaders()
+                                .getFirst(IdentityHeaders.SESSION_ID);
+                            if (session == null || session.isBlank()) throw new IllegalArgumentException();
                             attributes.put("userId", user);
+                            // 记下登录会话，会话被撤销时据此断开这条连接
+                            attributes.put("sessionId", session);
                             return true;
                         } catch (RuntimeException invalid) {
                             response.setStatusCode(HttpStatus.UNAUTHORIZED);

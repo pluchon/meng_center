@@ -198,7 +198,10 @@ class ModelGateway:
                     type(error).__name__,
                     getattr(error, "status_code", 0),
                 )
-                await self.failure(model)
+                # 只有超时、连不上、限流和 5xx 说明模型侧出了问题；
+                # 内容审核之类的 4xx 由单条输入引起，不能让它把整个模型熔断
+                if self.retryable(error):
+                    await self.failure(model)
                 if retry and self.retryable(error):
                     raise RetryableRequest() from error
                 raise

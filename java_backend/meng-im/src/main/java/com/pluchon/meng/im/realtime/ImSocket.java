@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,17 +40,29 @@ public class ImSocket extends TextWebSocketHandler {
     @Autowired
     private ImMapper mapper;
 
+    // 会话被撤销：前端不再重连，转去重新登录
+    public static final CloseStatus SESSION_REVOKED = new CloseStatus(4401, "session revoked");
+
+    // 到达最长存活时间：前端照常重连，握手时由网关重新校验会话
+    private static final CloseStatus REAUTHENTICATE = new CloseStatus(4000, "reauthenticate");
+
+    // 连接最长存活时间，撤销事件丢失时也能在这段时间内收回
+    private static final long MAX_AGE_MILLIS = TimeUnit.MINUTES.toMillis(30);
+
     // 连接自己的身份和单个订阅对象
     private static final class Connection {
 
         final WebSocketSession session;
         final long user;
-        volatile long heartbeat = System.currentTimeMillis();
+        final String loginSession;
+        final long openedAt = System.currentTimeMillis();
+        volatile long heartbeat = openedAt;
         volatile Long watching;
 
-        Connection(WebSocketSession session, long user) {
+        Connection(WebSocketSession session, long user, String loginSession) {
             this.session = session;
             this.user = user;
+            this.loginSession = loginSession;
         }
     }
 
@@ -77,7 +90,8 @@ public class ImSocket extends TextWebSocketHandler {
             session.getId(),
             new Connection(
                 new ConcurrentWebSocketSessionDecorator(session, 3000, 65536),
-                user
+                user,
+                (String) session.getAttributes().get("sessionId")
             )
         );
         offlineAt.remove(user);
@@ -184,11 +198,24 @@ public class ImSocket extends TextWebSocketHandler {
         }
     }
 
+    // 断开属于这些登录会话的连接
+    public void revoke(long user, Predicate<String> covered) {
+        connections
+            .values()
+            .stream()
+            .filter(value -> value.user == user && covered.test(value.loginSession))
+            .forEach(value -> close(value, SESSION_REVOKED));
+    }
+
     private void close(Connection value) {
+        close(value, CloseStatus.SERVER_ERROR);
+    }
+
+    private void close(Connection value, CloseStatus status) {
         try {
-            value.session.close(CloseStatus.SERVER_ERROR);
+            value.session.close(status);
         } catch (IOException ignored) {}
-        afterConnectionClosed(value.session, CloseStatus.SERVER_ERROR);
+        afterConnectionClosed(value.session, status);
     }
 
     private void sweep() {
@@ -198,6 +225,11 @@ public class ImSocket extends TextWebSocketHandler {
             .stream()
             .filter(value -> now - value.heartbeat > 60000)
             .forEach(this::close);
+        connections
+            .values()
+            .stream()
+            .filter(value -> now - value.openedAt > MAX_AGE_MILLIS)
+            .forEach(value -> close(value, REAUTHENTICATE));
         offlineAt.forEach((user, time) -> {
             if (time <= now && offlineAt.remove(user, time)) {
                 changed(user);

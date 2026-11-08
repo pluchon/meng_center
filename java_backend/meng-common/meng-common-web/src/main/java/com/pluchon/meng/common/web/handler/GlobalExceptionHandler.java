@@ -2,8 +2,11 @@ package com.pluchon.meng.common.web.handler;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
+import com.pluchon.meng.common.core.error.DependencyFailures;
 import com.pluchon.meng.common.core.response.ApiResponse;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -19,6 +22,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 // 统一异常处理：业务异常按错误码返回，其余异常不向外透露细节
 @RestControllerAdvice
 public final class GlobalExceptionHandler {
+
+    // 未预期异常的日志
+    private static final Logger LOG = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Object>> business(BusinessException exception) {
@@ -52,8 +58,14 @@ public final class GlobalExceptionHandler {
         return ResponseEntity.status(405).body(ApiResponse.failure(CommonErrorCode.METHOD_NOT_ALLOWED, null));
     }
 
+    // 依赖不可用返回 503，其余返回 500；两种都留下堆栈，响应里不带细节
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> unexpected(Exception exception) {
+        if (DependencyFailures.unavailable(exception)) {
+            LOG.error("Dependency unavailable: {}", exception.getClass().getName(), exception);
+            return ResponseEntity.status(503).body(ApiResponse.failure(CommonErrorCode.UNAVAILABLE, null));
+        }
+        LOG.error("Unhandled exception: {}", exception.getClass().getName(), exception);
         return ResponseEntity.internalServerError().body(ApiResponse.failure(CommonErrorCode.INTERNAL_ERROR, null));
     }
 }
