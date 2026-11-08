@@ -169,6 +169,16 @@ public class ReplyService {
                         .readTree(previous.getImageIds())
                         .equals(json.valueToTree(body.imageIds()))
                 ) throw new BusinessException(CommonErrorCode.CONFLICT);
+                // 生成到一半、却已没有进程持有会话锁的轮次（进程崩溃或重启留下的）按失败处理，让这次重试重新开始
+                if (
+                    List.of("CONTEXT_READY", "GENERATING", "CHECKED").contains(previous.getTurnState()) &&
+                    !limits.held(sessionId)
+                ) {
+                    long turn = previous.getTurnId() == null ? previous.getId() : previous.getTurnId();
+                    runtime.groupState(turn, "FAILED");
+                    runtime.state(previous.getId(), turn, "FAILED");
+                    previous.setTurnState("FAILED");
+                }
                 if ("FAILED".equals(previous.getTurnState())) {
                     limits.checkCooldown(user);
                     runtime.retry(
@@ -212,7 +222,7 @@ public class ReplyService {
                     : submitted.getTurnId()
             ))
                 replay(channel, user, message);
-            channel.done(limits.usage(user, timeZone));
+            channel.done(limits.usage(user));
             return channel.response;
         }
         subscribers
@@ -231,7 +241,7 @@ public class ReplyService {
                 "queued",
                 Map.of("clientMessageId", body.clientMessageId())
             );
-            channel.done(limits.usage(user, timeZone));
+            channel.done(limits.usage(user));
             subscribers.computeIfPresent(submitted.getId(), (key, list) -> {
                 list.remove(channel);
                 return list.isEmpty() ? null : list;
@@ -348,6 +358,8 @@ public class ReplyService {
         CompanionLimits.Reservation reservation = null;
         boolean committed = false;
         List<CompanionVoice.Saved> voices = List.of();
+        // 模型和语音可能接近两分钟，整轮期间续租，不让锁中途过期放进并发轮次
+        var lease = limits.keepAlive(user, sessionId, token);
         try {
             prepared = prepare(user, sessionId);
             if (prepared == null) {
@@ -360,7 +372,7 @@ public class ReplyService {
             }
             long turn = prepared.inputs().get(0).getId();
             String zone = prepared.inputs().get(0).getTimeZone();
-            reservation = limits.reserve(user, zone);
+            reservation = limits.reserve(user);
             var request = context(user, prepared, reservation);
             runtime.groupState(turn, "GENERATING");
             var current = prepared;
@@ -419,7 +431,7 @@ public class ReplyService {
                     input.getId(),
                     new CopyOnWriteArrayList<>()
                 ))
-                    channel.done(limits.usage(user, zone));
+                    channel.done(limits.usage(user));
         } catch (Exception error) {
             ErrorCode code =
                 error instanceof BusinessException business
@@ -453,6 +465,7 @@ public class ReplyService {
                     channel.error(code);
             }
         } finally {
+            lease.close();
             try {
                 if (reservation != null) limits.finish(reservation, List.of());
             } finally {

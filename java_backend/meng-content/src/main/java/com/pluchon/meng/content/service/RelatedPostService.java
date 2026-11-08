@@ -62,6 +62,10 @@ public class RelatedPostService {
     @Autowired
     private AiClient ai;
 
+    // AI 读路径熔断
+    @Autowired
+    private com.pluchon.meng.content.client.AiReadCircuit circuit;
+
     // 向量提供公开候选，由 rerank 判断与源帖的相关性；AI 不可用时按向量相似度返回，不按标签补齐。
     public PageResult<PostFeedVO> related(long id, long page, long size) {
         var post = posts.selectById(id);
@@ -122,7 +126,7 @@ public class RelatedPostService {
                                 post.getTitle() +
                                 "\n" +
                                 Objects.toString(post.getSummary(), "");
-                            var result = ai.retrieve(
+                            var result = circuit.call(() -> ai.retrieve(
                                 new AiComputation.RetrievalRequest(
                                     query,
                                     candidates
@@ -140,7 +144,7 @@ public class RelatedPostService {
                                     MAX_RELATED,
                                     UserContext.require().userId(), "related"
                                 )
-                            );
+                            ));
                             if (
                                 result == null ||
                                 result.ranked() == null ||

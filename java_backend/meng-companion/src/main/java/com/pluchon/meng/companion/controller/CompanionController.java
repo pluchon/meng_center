@@ -78,8 +78,8 @@ public class CompanionController {
     }
     /** 返回今日剩余次数和冷却秒数。 */
     @GetMapping("/usage")
-    public ApiResponse<Map<String,Object>> usage(@RequestHeader(value="X-Time-Zone",required=false) String zone) {
-        return ApiResponse.success(limits.usage(user(), CompanionContext.zone(zone)));
+    public ApiResponse<Map<String,Object>> usage() {
+        return ApiResponse.success(limits.usage(user()));
     }
     /** 上传私人对话图片。 */
     @PostMapping("/images")

@@ -74,6 +74,7 @@ class SemanticRetrievalTest {
         );
         when(feed.hydrate(anyList())).thenReturn(List.of());
         ReflectionTestUtils.setField(service, "ai", ai);
+        ReflectionTestUtils.setField(service, "circuit", AiReadCircuitTest.circuit());
         ReflectionTestUtils.setField(service, "vectors", vectors);
         ReflectionTestUtils.setField(service, "posts", posts);
         ReflectionTestUtils.setField(service, "feed", feed);

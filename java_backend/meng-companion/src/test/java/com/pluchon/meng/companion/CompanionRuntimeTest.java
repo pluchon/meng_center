@@ -193,7 +193,9 @@ public class CompanionRuntimeTest {
             .unlock(anyLong(), anyString());
         when(limits.activate(anyLong(), anyString())).thenReturn(true);
         when(limits.locked(anyLong(), anyString())).thenReturn(true);
-        when(limits.reserve(anyLong(), anyString())).thenReturn(
+        when(limits.keepAlive(anyLong(), anyLong(), anyString())).thenReturn(() -> {});
+        when(limits.held(anyLong())).thenAnswer(invocation -> locks.contains(invocation.<Long>getArgument(0)));
+        when(limits.reserve(anyLong())).thenReturn(
             new CompanionLimits.Reservation(
                 41,
                 "2026-10-17",
@@ -202,7 +204,7 @@ public class CompanionRuntimeTest {
                 true
             )
         );
-        when(limits.usage(anyLong(), anyString())).thenReturn(
+        when(limits.usage(anyLong())).thenReturn(
             Map.of("messages", 199)
         );
         jdbc.update(
@@ -307,6 +309,20 @@ public class CompanionRuntimeTest {
         assertEquals(1, count("role='CHARACTER'"));
         verify(ai, times(1)).reply(anyMap(), any());
         replies.send(41, 1, send("same", "今天有点累"), "Asia/Taipei", "test");
+        verify(ai, times(1)).reply(anyMap(), any());
+    }
+
+    @Test
+    void retryRestartsATurnAbandonedByACrashedWorker() throws Exception {
+        // 模拟进程崩溃：消息停在生成中，会话锁已经没人持有
+        jdbc.update(
+            "INSERT INTO companion_message(session_id,role,content,image_ids,client_message_id,turn_state,kind,request_revision,time_zone) VALUES(1,'USER','今天有点累','[]','crashed','GENERATING','TEXT',0,'Asia/Taipei')"
+        );
+        record("[]");
+        release.countDown();
+        replies.send(41, 1, send("crashed", "今天有点累"), "Asia/Taipei", "test");
+        until(() -> count("turn_state='COMMITTED'") == 1);
+        assertEquals(1, count("role='USER'"));
         verify(ai, times(1)).reply(anyMap(), any());
     }
 

@@ -2,6 +2,7 @@ package com.pluchon.meng.im.service;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
+import com.pluchon.meng.common.core.image.BoundedImageReader;
 import jakarta.annotation.PostConstruct;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -27,6 +28,9 @@ public class ImageStorage {
 
     // 原图像素总数上限
     private static final long MAX_PIXELS = 40_000_000;
+
+    // 保存的长边上限，超出时解码阶段降采样；常见的 1200 万像素手机照片不受影响
+    private static final int MAX_EDGE = 4096;
 
     // 缩略图最大宽度
     private static final int THUMB_WIDTH = 480;
@@ -72,7 +76,7 @@ public class ImageStorage {
                 if (
                     w <= 0 || h <= 0 || (long) w * h > MAX_PIXELS
                 ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
-                source = reader.read(0);
+                source = BoundedImageReader.read(reader, MAX_EDGE);
             } finally {
                 reader.dispose();
             }

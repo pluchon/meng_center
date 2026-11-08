@@ -26,6 +26,10 @@ public class SemanticSearchService {
     @Autowired
     private AiClient ai;
 
+    // AI 读路径熔断
+    @Autowired
+    private com.pluchon.meng.content.client.AiReadCircuit circuit;
+
     // 帖子向量读写与召回
     @Autowired
     private PostVectorIndex vectors;
@@ -119,7 +123,7 @@ public class SemanticSearchService {
                 new tools.jackson.core.type.TypeReference<List<Float>>() {}
             );
             else {
-                var response = ai.embeddings(Map.of("texts", List.of(q), "textType", "query"));
+                var response = circuit.call(() -> ai.embeddings(Map.of("texts", List.of(q), "textType", "query")));
                 var batches = json.convertValue(
                     response.get("vectors"),
                     new tools.jackson.core.type.TypeReference<
@@ -159,7 +163,7 @@ public class SemanticSearchService {
                 size,
                 true
             );
-            var decision = ai.retrieve(
+            var decision = circuit.call(() -> ai.retrieve(
                 new AiComputation.RetrievalRequest(
                     input,
                     candidates
@@ -182,7 +186,7 @@ public class SemanticSearchService {
                     20,
                     com.pluchon.meng.common.web.context.UserContext.require().userId(), "search"
                 )
-            );
+            ));
             if (
                 decision == null ||
                 decision.ranked() == null ||

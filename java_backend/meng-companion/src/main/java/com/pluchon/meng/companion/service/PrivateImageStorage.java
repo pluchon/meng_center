@@ -2,6 +2,7 @@ package com.pluchon.meng.companion.service;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
+import com.pluchon.meng.common.core.image.BoundedImageReader;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -37,7 +38,8 @@ public class PrivateImageStorage {
                 long width = reader.getWidth(0);
                 long height = reader.getHeight(0);
                 if (width <= 0 || height <= 0 || width * height > 24_000_000) throw new IOException("Invalid dimensions");
-                original = reader.read(0);
+                // 模型只看长边 512 的缩略图，原图保留到长边 2048 足够查看，解码内存因此有上限
+                original = BoundedImageReader.read(reader, 2048);
             } finally { reader.dispose(); }
             Files.createDirectories(root);
             String name = UUID.randomUUID() + ".png";

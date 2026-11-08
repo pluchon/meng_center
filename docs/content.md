@@ -641,7 +641,7 @@
 - 喜欢、收藏接口成功返回 `data=null`；所有写操作沿用网关的 Cookie 与 Origin 检查。第一页可用 `GET /content/posts?sort=LATEST&page=1&size=10` 查看。
 - 浏览计数和热榜事件使用短事务；作者资料的远程读取及详情组装在事务外执行，避免查询时长期占用数据库连接和帖子行锁。
 - 分页、作者资料和当前用户关系均按页批量查询。user 调用设置连接 2 秒、读取 3 秒超时，失败时返回空展示名和默认等级，前端显示「部落成员」及默认头像。
-- 本地上传目录是用户环境变量 `MENG_CONTENT_IMAGE_ROOT`，默认在用户 LocalAppData 下，文件不进仓库。数据库事务回滚时清理本次上传文件；解码前限制 4000 万像素，避免小体积超大尺寸图片耗尽内存。JPEG、PNG 重新编码以清除拍摄元数据；WebP 清除 EXIF、XMP 分块，保留图像和动画数据；GIF 原图保留。缩略图为 PNG 的第一帧。
+- 本地上传目录是用户环境变量 `MENG_CONTENT_IMAGE_ROOT`，默认在用户 LocalAppData 下，文件不进仓库。数据库事务回滚时清理本次上传文件；解码前限制 4000 万像素；长边超过 4096 时在解码阶段整数倍降采样，内存只和这个上限有关，常见的 1200 万像素手机照片按原尺寸保存。私信图片同样如此，奶糖的私人图片长边上限 2048。JPEG、PNG 重新编码以清除拍摄元数据；WebP 清除 EXIF、XMP 分块，保留图像和动画数据；GIF 原图保留。缩略图为 PNG 的第一帧。
 - IP 离线数据及 Java 查询库来自 [ip2region 官方项目](https://github.com/lionsoul2014/ip2region)，同时支持 IPv4、IPv6，内网或无法解析的地址不展示属地。正文摘要通过 CommonMark 文本渲染生成；主页只展示转义文本，不解析正文 HTML。
 - 初始化与运行见 `deploy/README.md`，长期回归脚本见 `verification/README.md`。
 

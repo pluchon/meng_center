@@ -120,6 +120,7 @@
 ```
 
 - 轮状态：`RECEIVED → CONTEXT_READY → GENERATING → CHECKED → COMMITTED`，失败为 `FAILED`（不计次、输入保留、可重发）。
+- 进程崩溃或重启留下的半截轮次（停在 `CONTEXT_READY`、`GENERATING`、`CHECKED`，且会话锁已经没人持有）：同一 `clientMessageId` 重发时当作 `FAILED` 重新开始，不再只回「已排队」；没人重发的仍由维护任务在 3 分钟后置为 `FAILED`。
 - 幂等：前端每条消息带 `clientMessageId`，重复提交返回同一轮的结果。
 - 生成和连接解耦：浏览器断开或关掉对话框，服务端照样把这一轮跑完并落库；再打开时从历史补齐。
 - 前端不直接访问 ai。用户消息最长 1000 字，可带 0～6 张图（私人上传、鉴权读取，模型只收长边 512 的缩略图）；用户发的表情以 `[表情:名字]` 记号写在正文末尾，和评论、私信同一套记号。前端把图片和表情合计限制在 5 个。
@@ -221,7 +222,7 @@
 
 - 搜索次数由 companion 计：随请求下发 `webSearchRemaining`，为 0 时这轮不开放搜索，她说今天查不了了，聊天照常；ai 返回实际搜索次数后扣减，缓存命中和失败的搜索不扣。额度按联网的轮次计，一轮扣 1 次；百炼一次请求内做了多次内置搜索的，实际次数只记进用量统计。
 - 这是防刷，不是 token 计费。阈值放 Nacos，超了返回 429，前端由奶糖说「今天聊太多啦，明天再来」，输入区置灰。
-- 计次在 companion 的 Redis，按用户时区的自然日清零（时区缺失时用 Asia/Taipei）；危机回复和失败的轮次不计。
+- 计次在 companion 的 Redis，按 Asia/Taipei 的自然日清零，不随客户端时区变化：时区由请求头上报、可以随意改，按它计日会让同一时刻落到不同日期，多领额度。用户时区仍用于对话里的时间理解。危机回复和失败的轮次不计。
 - 次数用完后（`messageAllowed=false`）ai 只跑主 agent 判断是不是危机，不起草、不预审、不重写也不打分：危机照常回固定的危机台词，其余交回 companion 返回 429。超额的一条只花一次模型调用。
 - 按 IP 再加一层分钟级限流。
 - 模型账号的限流排队超时时，返回 503 `AI_UNAVAILABLE`，前端显示「奶糖去休息了」。
@@ -305,9 +306,9 @@ Redis：
 
 | 键 | 内容 | 过期 |
 |---|---|---|
-| `meng:companion:usage:{userId}:{date}` | 当天消息与搜索次数（按用户时区的日期） | 2 天 |
+| `meng:companion:usage:{userId}:{date}` | 当天消息与搜索次数（Asia/Taipei 的日期） | 2 天 |
 | `meng:companion:cooldown:{userId}` | 冷却标记 | 30 分钟 |
-| `meng:companion:lock:{sessionId}` | 正在处理的一轮（带租约） | 2 分钟 |
+| `meng:companion:lock:{sessionId}` | 正在处理的一轮（带租约，处理期间每 15 秒续租，同时刷新并发占位） | 45 秒 |
 | `meng:companion:active:{userId}` | 同时进行的轮次计数 | 2 分钟 |
 | `meng:companion:memo:{userId}` | 有效记忆和向量的热缓存，记忆变化时删除 | 1 小时 |
 

@@ -9,6 +9,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -26,6 +31,74 @@ public class CompanionLimits {
 
     @Autowired
     private CompanionProperties properties;
+
+    // 会话锁租约：持有者活着就每 15 秒续一次，进程崩溃后最多 45 秒释放
+    private static final Duration LOCK_LEASE = Duration.ofSeconds(45);
+
+    // 续租间隔
+    private static final long RENEW_SECONDS = 15;
+
+    // 仍持有锁才续租，并刷新并发占位的时间，长轮次不会被当作过期占位清掉
+    private static final DefaultRedisScript<Long> RENEW =
+        new DefaultRedisScript<>(
+            """
+            if redis.call('GET',KEYS[1]) ~= ARGV[1] then return 0 end
+            redis.call('PEXPIRE',KEYS[1],ARGV[2])
+            redis.call('ZADD',KEYS[2],'XX',ARGV[3],ARGV[1])
+            return 1
+            """,
+            Long.class
+        );
+
+    // 续租失败的日志
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(CompanionLimits.class);
+
+    // 续租线程
+    private final ScheduledExecutorService renewals = Executors.newSingleThreadScheduledExecutor(task -> {
+        var thread = new Thread(task, "companion-lock-renewal");
+        thread.setDaemon(true);
+        return thread;
+    });
+
+    // 续租句柄，关闭时不抛受检异常
+    public interface Lease extends AutoCloseable {
+        @Override
+        void close();
+    }
+
+    // 持有期间自动续租，关闭时停止续租；锁本身仍由调用方按原流程释放
+    public Lease keepAlive(long user, long session, String token) {
+        ScheduledFuture<?> renewal = renewals.scheduleWithFixedDelay(
+            () -> {
+                try {
+                    redis.execute(
+                        RENEW,
+                        List.of("meng:companion:lock:" + session, "meng:companion:active:" + user),
+                        token,
+                        Long.toString(LOCK_LEASE.toMillis()),
+                        Long.toString(clock.millis())
+                    );
+                } catch (RuntimeException unavailable) {
+                    // 这次续不上就等下一次；真的丢了锁，提交前的 locked 检查会拦住
+                    LOG.warn("Companion lock renewal deferred: {}", unavailable.getClass().getSimpleName());
+                }
+            },
+            RENEW_SECONDS,
+            RENEW_SECONDS,
+            TimeUnit.SECONDS
+        );
+        return () -> renewal.cancel(false);
+    }
+
+    // 会话当前有没有活着的轮次在跑
+    public boolean held(long session) {
+        return Boolean.TRUE.equals(redis.hasKey("meng:companion:lock:" + session));
+    }
+
+    @PreDestroy
+    public void stop() {
+        renewals.shutdownNow();
+    }
 
     private static final DefaultRedisScript<Long> RESERVE =
         new DefaultRedisScript<>(
@@ -81,7 +154,7 @@ public class CompanionLimits {
                     .setIfAbsent(
                         "meng:companion:lock:" + session,
                         token,
-                        Duration.ofMinutes(2)
+                        LOCK_LEASE
                     )
             )
         ) {
@@ -98,7 +171,7 @@ public class CompanionLimits {
                 .setIfAbsent(
                     "meng:companion:lock:" + session,
                     token,
-                    Duration.ofMinutes(2)
+                    LOCK_LEASE
                 )
         )
             ? token
@@ -198,12 +271,9 @@ public class CompanionLimits {
             );
     }
 
+    // 每日次数按业务时区的自然日计：客户端时区可以随意改，用它计日会让同一时刻落到不同日期，多领额度
     public Reservation reserve(long user) {
-        return reserve(user, "Asia/Taipei");
-    }
-
-    public Reservation reserve(long user, String zone) {
-        String date = date(zone), token = UUID.randomUUID().toString();
+        String date = date(), token = UUID.randomUUID().toString();
         var result = redis.execute(RESERVE,keys(user,date,"message"),Long.toString(clock.millis()),token,
             Integer.toString(properties.getMessageDaily()),Integer.toString(properties.getMessageMinute()),"message");
         boolean allowed = Long.valueOf(1).equals(result);
@@ -238,10 +308,8 @@ public class CompanionLimits {
 
     private String reservationToken(String token,String kind) { return kind.contains(":")?token+":"+kind:token; }
 
-    public Map<String,Object> usage(long user) { return usage(user,"Asia/Taipei"); }
-
-    public Map<String,Object> usage(long user,String zone) {
-        var used=redis.opsForHash().get("meng:companion:usage:"+user+":"+date(zone),"message");
+    public Map<String,Object> usage(long user) {
+        var used=redis.opsForHash().get("meng:companion:usage:"+user+":"+date(),"message");
         Long cooldown=redis.getExpire("meng:companion:cooldown:"+user);
         return Map.of("messages",Math.max(0,properties.getMessageDaily()-number(used)),
                       "cooldownSeconds",cooldown==null ? 0L : Math.max(0L,cooldown));
@@ -257,10 +325,6 @@ public class CompanionLimits {
             .atZone(ZoneId.of("Asia/Taipei"))
             .toLocalDate()
             .toString();
-    }
-
-    private String date(String zone) {
-        return clock.instant().atZone(ZoneId.of(zone)).toLocalDate().toString();
     }
 
     private List<String> keys(long user, String date, String kind) {
