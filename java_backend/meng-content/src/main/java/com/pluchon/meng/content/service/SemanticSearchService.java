@@ -2,6 +2,7 @@ package com.pluchon.meng.content.service;
 
 import com.pluchon.meng.content.client.AiClient;
 import com.pluchon.meng.content.client.AiComputation;
+import com.pluchon.meng.content.client.AiReadCircuit;
 import com.pluchon.meng.content.controller.vo.SearchPostVO;
 import com.pluchon.meng.content.converter.SearchHighlight;
 import com.pluchon.meng.content.entity.PostEntity;
@@ -28,7 +29,7 @@ public class SemanticSearchService {
 
     // AI 读路径熔断
     @Autowired
-    private com.pluchon.meng.content.client.AiReadCircuit circuit;
+    private AiReadCircuit circuit;
 
     // 帖子向量读写与召回
     @Autowired

@@ -11,6 +11,8 @@ import com.pluchon.meng.companion.mapper.*;
 import java.time.*;
 import java.util.*;
 import java.util.concurrent.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -26,7 +28,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ReplyService {
 
     // 轮次失败的日志
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ReplyService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ReplyService.class);
 
     @Autowired
     private CompanionService companion;

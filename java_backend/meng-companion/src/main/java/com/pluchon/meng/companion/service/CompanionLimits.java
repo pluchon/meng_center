@@ -2,6 +2,7 @@ package com.pluchon.meng.companion.service;
 
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.companion.config.CompanionProperties;
+import jakarta.annotation.PreDestroy;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.ZoneId;
@@ -13,7 +14,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import jakarta.annotation.PreDestroy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -51,7 +53,7 @@ public class CompanionLimits {
         );
 
     // 续租失败的日志
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(CompanionLimits.class);
+    private static final Logger LOG = LoggerFactory.getLogger(CompanionLimits.class);
 
     // 续租线程
     private final ScheduledExecutorService renewals = Executors.newSingleThreadScheduledExecutor(task -> {

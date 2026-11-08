@@ -3,8 +3,11 @@ package com.pluchon.meng.content.service;
 import com.pluchon.meng.content.controller.dto.PostAnalysisDTO;
 import com.pluchon.meng.content.entity.event.PostReadModelEvent;
 import com.pluchon.meng.content.mapper.PostMapper;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -18,7 +21,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class AiResultService {
 
     // 索引写失败的告警
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(AiResultService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AiResultService.class);
 
     // 仅访问本域数据库
     @Autowired
@@ -208,14 +211,14 @@ public class AiResultService {
     // 向量索引的一步写操作
     @FunctionalInterface
     private interface IndexWrite {
-        void run() throws java.io.IOException;
+        void run() throws IOException;
     }
 
     // 索引写失败不回滚审核结论，标为分析失败，由每小时的失败重审任务重新分析并补写向量
     private void indexOrRetryLater(long postId, IndexWrite write) {
         try {
             write.run();
-        } catch (java.io.IOException | RuntimeException unavailable) {
+        } catch (IOException | RuntimeException unavailable) {
             LOG.warn("Vector index write failed for post {}; scheduled for reanalysis", postId);
             jdbc.update(
                 "UPDATE post_ai_feature SET analyze_state='FAILED' WHERE post_id=?",

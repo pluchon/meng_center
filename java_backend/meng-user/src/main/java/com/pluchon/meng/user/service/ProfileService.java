@@ -5,6 +5,7 @@ import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.core.text.InvisibleText;
 import com.pluchon.meng.common.web.context.UserContext;
+import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.controller.dto.ContactChangeDTO;
 import com.pluchon.meng.user.controller.dto.ProfileDTO;
 import com.pluchon.meng.user.entity.UserEntity;
@@ -19,6 +20,7 @@ import com.pluchon.meng.user.service.security.RateLimitService;
 import com.pluchon.meng.user.service.security.UsernamePolicy;
 import com.pluchon.meng.user.service.security.VerificationCodeService;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +48,7 @@ public class ProfileService {
 
     // 限流阈值
     @Autowired
-    private com.pluchon.meng.user.config.UserProperties properties;
+    private UserProperties properties;
 
     @Autowired
     private ContactService contacts;
@@ -68,7 +70,7 @@ public class ProfileService {
             "profile-account",
             String.valueOf(userId),
             properties.limits().profileMinuteMax(),
-            java.time.Duration.ofMinutes(1)
+            Duration.ofMinutes(1)
         );
         UserEntity user = authorization.requireActive(users.lockById(userId));
         // 去掉零宽字符、文字方向控制等看不见的字符，防止伪装成别人的昵称或藏内容；长度按看得见的字数算

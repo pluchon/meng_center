@@ -3,8 +3,10 @@ package com.pluchon.meng.user.service;
 import com.pluchon.meng.common.core.event.EventEnvelope;
 import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.user.entity.UserEntity;
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
@@ -17,6 +19,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import javax.imageio.ImageIO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,7 +36,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class ProfileModerationService {
 
     // 审核降级的日志
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ProfileModerationService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ProfileModerationService.class);
 
     // 仅访问本域数据库
     @Autowired
@@ -101,16 +105,16 @@ public class ProfileModerationService {
     public record Changed(long id) {}
 
     // 读头像文件并转成白底 JPEG 的 Base64，文件缺失或无法解码时抛出
-    private String avatarThumb(String avatar) throws java.io.IOException {
+    private String avatarThumb(String avatar) throws IOException {
         var root = Path.of(avatarRoot).toAbsolutePath().normalize();
         var path = root.resolve(avatar).normalize();
         if (!path.startsWith(root)) throw new IllegalArgumentException("Invalid avatar path");
         var source = ImageIO.read(path.toFile());
-        if (source == null) throw new java.io.IOException("Avatar cannot be decoded");
+        if (source == null) throw new IOException("Avatar cannot be decoded");
         var image = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_RGB);
         var graphics = image.createGraphics();
         try {
-            graphics.setColor(java.awt.Color.WHITE);
+            graphics.setColor(Color.WHITE);
             graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
             graphics.drawImage(source, 0, 0, null);
         } finally {
@@ -151,7 +155,7 @@ public class ProfileModerationService {
         if (includeAvatar) {
             try {
                 thumb = avatarThumb(user.getAvatar());
-            } catch (java.io.IOException | RuntimeException unreadable) {
+            } catch (IOException | RuntimeException unreadable) {
                 // 新传的头像读不出来就不能上线；只改昵称签名时旧头像文件坏了，照常保存，这次只审文字
                 if (avatarChanged) throw new IllegalStateException("Avatar review thumbnail unavailable", unreadable);
                 LOG.warn("Avatar of user {} unreadable; reviewing text only", user.getId());

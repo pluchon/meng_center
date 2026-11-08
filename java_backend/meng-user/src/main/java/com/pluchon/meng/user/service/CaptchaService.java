@@ -5,6 +5,7 @@ import cloud.tianai.captcha.application.vo.ImageCaptchaVO;
 import cloud.tianai.captcha.common.constant.CaptchaTypeConstant;
 import cloud.tianai.captcha.validator.common.model.dto.ImageCaptchaTrack;
 import com.pluchon.meng.common.core.error.BusinessException;
+import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.controller.vo.CaptchaTicketVO;
 import com.pluchon.meng.user.service.error.UserErrorCode;
@@ -43,7 +44,7 @@ public final class CaptchaService {
         var result = captcha.generateCaptcha(CaptchaTypeConstant.SLIDER);
         // 出题失败是服务端的问题，不是用户的票据无效
         if (!result.isSuccess()) {
-            throw new BusinessException(com.pluchon.meng.common.core.error.CommonErrorCode.UNAVAILABLE);
+            throw new BusinessException(CommonErrorCode.UNAVAILABLE);
         }
         return result.getData();
     }

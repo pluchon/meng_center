@@ -16,6 +16,8 @@ import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -67,7 +69,7 @@ public class GrowthAssistantService {
     );
 
     // 缓存写失败的告警
-    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(GrowthAssistantService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GrowthAssistantService.class);
 
     private static final DefaultRedisScript<Long> TAKE = new DefaultRedisScript<>(
         "if tonumber(redis.call('GET',KEYS[1]) or '0')>=tonumber(ARGV[1]) or tonumber(redis.call('GET',KEYS[2]) or '0')>=tonumber(ARGV[2]) then return 0 end;redis.call('INCR',KEYS[1]);redis.call('EXPIRE',KEYS[1],ARGV[3]);redis.call('INCR',KEYS[2]);redis.call('EXPIRE',KEYS[2],120);return 1",

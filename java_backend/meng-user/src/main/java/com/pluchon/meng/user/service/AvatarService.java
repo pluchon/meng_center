@@ -3,9 +3,12 @@ package com.pluchon.meng.user.service;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
 import com.pluchon.meng.common.web.context.UserContext;
+import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.mapper.UserMapper;
 import com.pluchon.meng.user.service.security.AuthorizationService;
+import com.pluchon.meng.user.service.security.RateLimitService;
 import jakarta.annotation.PostConstruct;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
@@ -38,11 +41,11 @@ public class AvatarService {
 
     // 按账号限制每日换头像次数
     @Autowired
-    private com.pluchon.meng.user.service.security.RateLimitService limits;
+    private RateLimitService limits;
 
     // 限流阈值
     @Autowired
-    private com.pluchon.meng.user.config.UserProperties properties;
+    private UserProperties properties;
 
     @Autowired
     private AuthorizationService authorization;
@@ -118,7 +121,7 @@ public class AvatarService {
                 // 头像只用居中的正方形，只解码这一块并按它降采样，细长图不会整张展开占满内存
                 var parameters = reader.getDefaultReadParam();
                 int edge = Math.min(w, h);
-                parameters.setSourceRegion(new java.awt.Rectangle((w - edge) / 2, (h - edge) / 2, edge, edge));
+                parameters.setSourceRegion(new Rectangle((w - edge) / 2, (h - edge) / 2, edge, edge));
                 int sample = Math.max(1, edge / 512);
                 parameters.setSourceSubsampling(sample, sample, 0, 0);
                 source = reader.read(0, parameters);

@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.web.context.RequestIdentity;
 import com.pluchon.meng.common.web.context.UserContext;
+import com.pluchon.meng.user.config.UserProperties;
 import com.pluchon.meng.user.controller.dto.ContactChangeDTO;
 import com.pluchon.meng.user.controller.dto.ProfileDTO;
 import com.pluchon.meng.user.entity.UserEntity;
@@ -34,6 +35,7 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Answers;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class ProfileServiceTest {
@@ -99,7 +101,7 @@ class ProfileServiceTest {
             "notifications",
             notifications,
             "properties",
-            mock(com.pluchon.meng.user.config.UserProperties.class, org.mockito.Answers.RETURNS_DEEP_STUBS)
+            mock(UserProperties.class, Answers.RETURNS_DEEP_STUBS)
         ).forEach((name, value) -> ReflectionTestUtils.setField(service, name, value));
     }
 

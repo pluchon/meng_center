@@ -6,6 +6,7 @@ import com.pluchon.meng.companion.mapper.CompanionMapper;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Map;
@@ -36,7 +37,7 @@ public class PrivateImages {
         Long count = redis.opsForValue().increment(key);
         // 首次计数设过期；上次设过期失败留下没有过期时间的键时补上，避免永久锁住上传
         if (Long.valueOf(1).equals(count) || Long.valueOf(-1).equals(redis.getExpire(key)))
-            redis.expire(key, java.time.Duration.ofMinutes(1));
+            redis.expire(key, Duration.ofMinutes(1));
         if (count == null || count > 10) throw new BusinessException(CompanionError.COMPANION_QUOTA_EXCEEDED);
         mapper.ensureBond(user, "NEKO");
         mapper.lockBond(user, "NEKO");

@@ -7,6 +7,7 @@ import com.pluchon.meng.common.core.page.PageResult;
 import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.content.client.AiClient;
 import com.pluchon.meng.content.client.AiComputation;
+import com.pluchon.meng.content.client.AiReadCircuit;
 import com.pluchon.meng.content.controller.vo.PostFeedVO;
 import com.pluchon.meng.content.entity.PostEntity;
 import com.pluchon.meng.content.mapper.PostMapper;
@@ -64,7 +65,7 @@ public class RelatedPostService {
 
     // AI 读路径熔断
     @Autowired
-    private com.pluchon.meng.content.client.AiReadCircuit circuit;
+    private AiReadCircuit circuit;
 
     // 向量提供公开候选，由 rerank 判断与源帖的相关性；AI 不可用时按向量相似度返回，不按标签补齐。
     public PageResult<PostFeedVO> related(long id, long page, long size) {
