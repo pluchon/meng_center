@@ -27,7 +27,8 @@ export const useGrowthStore = defineStore('growth', {
       this.loading = true
       this.error = null
       try {
-        const data = await growthApi.me()
+        // 导航每分钟后台刷新一次，失败不弹提示；成长页按 error 自己显示重试
+        const data = await growthApi.me({ silent: true })
         if (token === this.generation) this.data = data
       } catch (e) {
         if (token === this.generation) this.error = e

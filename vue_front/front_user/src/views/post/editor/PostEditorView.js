@@ -281,13 +281,14 @@ export default defineComponent({
       if (!value.trim() || form.tags.length >= PostEditor.TAG_MAX) return
       tagTimer = setTimeout(async () => {
         try {
-          const result = await contentApi.tags({ keyword: value.trim() })
+          const result = await contentApi.tags({ keyword: value.trim() }, { silent: true })
           if (generation === tagGeneration) {
             suggestions.value = result
             highlightedTag.value = tagOptions.value.length ? 0 : -1
           }
-        } catch (error) {
-          notifyFailure(error)
+        } catch {
+          // 联想只是辅助，取不到就不显示候选，输入照常；不然每次打字都弹一次错误
+          suggestions.value = []
         }
       }, PostEditor.TAG_DEBOUNCE)
     })

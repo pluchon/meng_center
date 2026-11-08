@@ -1,7 +1,7 @@
 import request from './request'
 const Root = '/growth'
 export const growthApi = {
-  me: () => request.get(Root + '/me'),
+  me: (config = {}) => request.get(Root + '/me', config),
   checkIn: () => request.post(Root + '/check-ins'),
   checkIns: (month, config = {}) => request.get(Root + '/check-ins', { ...config, params: { month } }),
   overview: (config = {}) => request.get(Root + '/overview', config),

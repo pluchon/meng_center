@@ -20,7 +20,7 @@ export const imApi = {
   groups: (channel, config = {}) =>
     request.get(Root + '/notification-groups', { ...config, params: { channel } }),
   notices: (params, config = {}) => request.get(Root + '/notifications', { ...config, params }),
-  readNotices: (body) => request.put(Root + '/notifications/read', body),
+  readNotices: (body, config = {}) => request.put(Root + '/notifications/read', body, config),
   upload: async (file, config) => {
     const body = new FormData()
     body.append('file', file)

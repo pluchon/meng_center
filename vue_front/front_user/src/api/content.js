@@ -60,7 +60,7 @@ export const contentApi = {
   },
   publish: (body) => request.post(Root + '/posts', body),
   detail: (id, config = {}) => request.get(Root + '/posts/' + id, config),
-  tags: (params) => request.get(Root + '/tags', { params }),
+  tags: (params, config = {}) => request.get(Root + '/tags', { ...config, params }),
   draft: (id) => request.get(Root + '/drafts/' + id),
   saveDraft: (id, body) =>
     id ? request.put(Root + '/drafts/' + id, body) : request.post(Root + '/drafts', body),

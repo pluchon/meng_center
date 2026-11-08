@@ -130,6 +130,16 @@ class ProfileServiceTest {
     }
 
     @Test
+    void invisibleCharactersAreRemovedAndEmojiCountAsOneCharacter() {
+        // 文字方向控制和零宽空格被去掉；16 个 emoji 按 16 个字计，不因 UTF-16 被算成 32
+        service.update(new ProfileDTO("‮新​昵称", "😀".repeat(50), "member"));
+        assertEquals("新昵称", user.getNickname());
+        assertEquals("😀".repeat(50), user.getBio());
+        service.update(new ProfileDTO("🐱".repeat(16), "", "member"));
+        assertEquals("🐱".repeat(16), user.getNickname());
+    }
+
+    @Test
     void trailingLineBreakCannotBypassSingleLineBioPolicy() {
         assertThrows(BusinessException.class, () ->
             service.update(new ProfileDTO("新昵称", "签名\n", "member"))

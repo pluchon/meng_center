@@ -119,7 +119,7 @@
               class="feed-results"
             >
               <PageState
-                v-if="loading&&!hasLoaded"
+                v-if="loading&&(!hasLoaded||error)"
                 state="loading"
               />
               <PageState

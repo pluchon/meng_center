@@ -1,5 +1,6 @@
 package com.pluchon.meng.companion.service;
 
+import com.pluchon.meng.common.core.text.InvisibleText;
 import java.util.regex.Pattern;
 
 // 仅检查记忆长度和格式化联系方式，含义与隐私由独立审核判断。
@@ -13,14 +14,9 @@ public final class CompanionRules {
             "|[\\w.+-]+@[\\w-]+\\.[\\w.-]+|(?<!\\d)\\d{15,17}[\\dXx](?!\\d)"
     );
 
-    // 看不见却会被模型读到的字符：控制符、零宽字符、文字方向控制和 Unicode 标签区。
-    // 零宽连接符和变体选择符是 emoji 的组成部分，保留。
-    private static final Pattern INVISIBLE = Pattern.compile(
-        "[\\p{Cc}&&[^\\n\\t]]|[\\u00AD\\u200B\\u200C\\u2060-\\u2064\\uFEFF\\u202A-\\u202E\\u2066-\\u2069\\uFFF9-\\uFFFB]|[\\x{E0000}-\\x{E007F}]"
-    );
-
+    // 去掉看不见却会被模型读到的字符，规则与资料、昵称共用
     public static String cleanInput(String text) {
-        return text == null ? "" : INVISIBLE.matcher(text).replaceAll("").strip();
+        return InvisibleText.clean(text);
     }
 
     public static boolean validMemory(String text) {

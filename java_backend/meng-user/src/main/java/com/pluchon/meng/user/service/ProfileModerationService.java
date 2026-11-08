@@ -31,6 +31,9 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class ProfileModerationService {
 
+    // 审核降级的日志
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(ProfileModerationService.class);
+
     // 仅访问本域数据库
     @Autowired
     private JdbcTemplate jdbc;
@@ -97,6 +100,27 @@ public class ProfileModerationService {
 
     public record Changed(long id) {}
 
+    // 读头像文件并转成白底 JPEG 的 Base64，文件缺失或无法解码时抛出
+    private String avatarThumb(String avatar) throws java.io.IOException {
+        var root = Path.of(avatarRoot).toAbsolutePath().normalize();
+        var path = root.resolve(avatar).normalize();
+        if (!path.startsWith(root)) throw new IllegalArgumentException("Invalid avatar path");
+        var source = ImageIO.read(path.toFile());
+        if (source == null) throw new java.io.IOException("Avatar cannot be decoded");
+        var image = new BufferedImage(source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_RGB);
+        var graphics = image.createGraphics();
+        try {
+            graphics.setColor(java.awt.Color.WHITE);
+            graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
+            graphics.drawImage(source, 0, 0, null);
+        } finally {
+            graphics.dispose();
+        }
+        var bytes = new ByteArrayOutputStream();
+        ImageIO.write(image, "jpeg", bytes);
+        return Base64.getEncoder().encodeToString(bytes.toByteArray());
+    }
+
     // 更新资料版本并保存完整审核快照
     public void updated(UserEntity user, boolean avatarChanged) {
         if (!enabled) return;
@@ -123,43 +147,19 @@ public class ProfileModerationService {
                     user.getId(),
                     user.getAvatar()
                 ) == 0);
-        body.put("avatarChanged", includeAvatar || user.getAvatar() == null);
+        String thumb = null;
         if (includeAvatar) {
             try {
-                var root = Path.of(avatarRoot).toAbsolutePath().normalize();
-                var path = root.resolve(user.getAvatar()).normalize();
-                if (!path.startsWith(root)) throw new IllegalArgumentException(
-                    "Invalid avatar path"
-                );
-                var source = ImageIO.read(path.toFile());
-                var image = new BufferedImage(
-                    source.getWidth(),
-                    source.getHeight(),
-                    BufferedImage.TYPE_INT_RGB
-                );
-                var graphics = image.createGraphics();
-                try {
-                    graphics.setColor(java.awt.Color.WHITE);
-                    graphics.fillRect(0, 0, image.getWidth(), image.getHeight());
-                    graphics.drawImage(source, 0, 0, null);
-                } finally {
-                    graphics.dispose();
-                }
-                var bytes = new ByteArrayOutputStream();
-                ImageIO.write(image, "jpeg", bytes);
-                body.put(
-                    "avatarThumb",
-                    Map.of(
-                        "id",
-                        user.getId(),
-                        "data",
-                        Base64.getEncoder().encodeToString(bytes.toByteArray())
-                    )
-                );
-            } catch (java.io.IOException error) {
-                throw new IllegalStateException("Avatar review thumbnail unavailable", error);
+                thumb = avatarThumb(user.getAvatar());
+            } catch (java.io.IOException | RuntimeException unreadable) {
+                // 新传的头像读不出来就不能上线；只改昵称签名时旧头像文件坏了，照常保存，这次只审文字
+                if (avatarChanged) throw new IllegalStateException("Avatar review thumbnail unavailable", unreadable);
+                LOG.warn("Avatar of user {} unreadable; reviewing text only", user.getId());
+                includeAvatar = false;
             }
         }
+        body.put("avatarChanged", includeAvatar || user.getAvatar() == null);
+        if (thumb != null) body.put("avatarThumb", Map.of("id", user.getId(), "data", thumb));
         String id = UUID.randomUUID().toString();
         jdbc.update(
             "INSERT INTO profile_ai_outbox(event_id,body) VALUES (?,?)",
@@ -214,9 +214,7 @@ public class ProfileModerationService {
                 });
                 jdbc.update("UPDATE profile_ai_outbox SET sent=1 WHERE id=?", row.get("id"));
             } catch (RuntimeException error) {
-                org.slf4j.LoggerFactory.getLogger(ProfileModerationService.class).warn(
-                    "Profile review dispatch deferred"
-                );
+                LOG.warn("Profile review dispatch deferred");
                 break;
             }
     }

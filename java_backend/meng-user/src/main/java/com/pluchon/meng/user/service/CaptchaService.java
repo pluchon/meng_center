@@ -41,8 +41,9 @@ public final class CaptchaService {
     public ImageCaptchaVO generate(String ip) {
         limits.charge("captcha-ip", ip, properties.limits().captchaIpMinuteMax(), Duration.ofMinutes(1));
         var result = captcha.generateCaptcha(CaptchaTypeConstant.SLIDER);
+        // 出题失败是服务端的问题，不是用户的票据无效
         if (!result.isSuccess()) {
-            throw new BusinessException(UserErrorCode.INVALID_TICKET);
+            throw new BusinessException(com.pluchon.meng.common.core.error.CommonErrorCode.UNAVAILABLE);
         }
         return result.getData();
     }

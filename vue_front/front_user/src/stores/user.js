@@ -10,14 +10,15 @@ export const useUserStore = defineStore('user', {
     clear() {
       this.current = null
     },
+    // 只有拿到资料或确认未登录（401）才算恢复完成；服务暂不可用或断网时保持未恢复，下次导航再试
     async restore() {
       try {
         this.current = await userApi.me(true)
         this.current.avatar = avatarUrl(this.current.avatar)
+        this.restored = true
       } catch (error) {
         this.clear()
         if (error.status !== 401) throw error
-      } finally {
         this.restored = true
       }
     },

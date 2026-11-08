@@ -3,6 +3,7 @@ package com.pluchon.meng.user.service;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.pluchon.meng.common.core.error.BusinessException;
 import com.pluchon.meng.common.core.error.CommonErrorCode;
+import com.pluchon.meng.common.core.text.InvisibleText;
 import com.pluchon.meng.common.web.context.UserContext;
 import com.pluchon.meng.user.controller.dto.ContactChangeDTO;
 import com.pluchon.meng.user.controller.dto.ProfileDTO;
@@ -70,15 +71,18 @@ public class ProfileService {
             java.time.Duration.ofMinutes(1)
         );
         UserEntity user = authorization.requireActive(users.lockById(userId));
-        String nickname = dto.nickname().strip(),
-            bio = dto.bio().strip(),
+        // 去掉零宽字符、文字方向控制等看不见的字符，防止伪装成别人的昵称或藏内容；长度按看得见的字数算
+        String nickname = InvisibleText.clean(dto.nickname()),
+            bio = InvisibleText.clean(dto.bio()),
             name = UsernamePolicy.normalize(dto.username());
         if (
             (!nickname.isEmpty() &&
                 (nickname.codePointCount(0, nickname.length()) < 2 ||
                     nickname.codePointCount(0, nickname.length()) > 16)) ||
-            dto.bio().contains("\n") ||
-            dto.bio().contains("\r")
+            bio.codePointCount(0, bio.length()) > 50 ||
+            // 单行规则看原始输入，首尾换行也不能借去空白绕过
+            dto.nickname().matches("(?s).*[\\n\\r\\t].*") ||
+            dto.bio().matches("(?s).*[\\n\\r\\t].*")
         ) throw new BusinessException(CommonErrorCode.INVALID_ARGUMENT);
         LocalDateTime now = LocalDateTime.ofInstant(clock.instant(), ZoneId.of("Asia/Taipei"));
         if (!name.equals(user.getUsername())) {

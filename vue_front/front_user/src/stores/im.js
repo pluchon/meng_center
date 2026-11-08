@@ -199,7 +199,8 @@ export const useImStore = defineStore('im', {
         if (!this.messages.length) this.hasMore = history.hasMore
         void this.markRead()
       } catch (error) {
-        if (token === this.generation) this.historyError = error.message
+        // 这是后台刷新：已有消息时保持原样，下次推送或切回页面再刷新；还没有内容才显示错误和重试
+        if (token === this.generation && !this.messages.length) this.historyError = error.message
       }
     },
     async earlier() {

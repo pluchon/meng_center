@@ -164,11 +164,15 @@ export default defineComponent({
         if (controller.signal.aborted || disposed) return
         records.value = result.records
         total.value = result.total
-        await imApi.readNotices({
-          channel: params.channel,
-          source: params.source,
-          category: params.category,
-        })
+        // 列表已经拿到，标记已读失败不影响展示，未读数下次进入时再清
+        try {
+          await imApi.readNotices(
+            { channel: params.channel, source: params.source, category: params.category },
+            { silent: true },
+          )
+        } catch {
+          return
+        }
         if (!controller.signal.aborted && !disposed) void loadGroups()
       } catch (failure) {
         if (!controller.signal.aborted && !disposed) error.value = failure.message

@@ -24,6 +24,7 @@ public final class VerificationCodeService {
     private final SecureRandom random = new SecureRandom();
     private final DefaultRedisScript<Long> store = RedisScripts.counting("redis/store-code.lua");
     private final DefaultRedisScript<Long> verify = RedisScripts.counting("redis/verify-code.lua");
+    private final DefaultRedisScript<Long> discard = RedisScripts.counting("redis/discard-code.lua");
 
     @Autowired
     private StringRedisTemplate redis;
@@ -54,6 +55,11 @@ public final class VerificationCodeService {
             cipher.hash(code),
             Long.toString(properties.verification().codeTtl().toSeconds())
         );
+    }
+
+    // 作废这一个码；期间又发了新码时保留新码
+    public void discard(ContactService.Contact contact, String code, VerificationPurpose purpose) {
+        redis.execute(discard, List.of(key(contact, purpose)), cipher.hash(code));
     }
 
     // 校验并消耗验证码，不正确或已失效时抛出业务异常

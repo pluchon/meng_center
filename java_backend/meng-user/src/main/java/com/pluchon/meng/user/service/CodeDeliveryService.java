@@ -171,6 +171,8 @@ public final class CodeDeliveryService {
             cipher.encrypt(code),
             clock.instant().plus(properties.notification().rpcTimeout())
         );
+        // 先存码再发：邮件发得慢、请求方等回执超时之后才送达时，用户收到的码仍然有效
+        codes.store(contact, code, purpose);
         Object reply;
         try {
             reply = rabbit.convertSendAndReceive(
@@ -179,12 +181,14 @@ public final class CodeDeliveryService {
                 command
             );
         } catch (RuntimeException exception) {
+            codes.discard(contact, code, purpose);
             throw new BusinessException(UserErrorCode.DELIVERY_FAILED);
         }
+        // 消费方明确回复失败才作废；等回执超时（reply 为空）时码可能已发出，留到自然过期
+        if (UserMqNames.DELIVERY_FAILED.equals(reply)) codes.discard(contact, code, purpose);
         if (!UserMqNames.DELIVERY_OK.equals(reply)) {
             throw new BusinessException(UserErrorCode.DELIVERY_FAILED);
         }
-        codes.store(contact, code, purpose);
     }
 
     // 国内和国际短信是两条通道，看手机号属于哪一条、那条开没开通

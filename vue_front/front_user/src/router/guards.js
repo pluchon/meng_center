@@ -11,11 +11,11 @@ export function registerGuards(router) {
       try {
         await user.restore()
       } catch {
-        /* The page retains its retry state. */
+        // 不知道登录状态（服务暂不可用或断网），不当成未登录踢去登录页；页面自己的请求会给出错误和重试
       }
     }
     if (user.loggedIn && GuestRoutes.includes(to.name)) return { name: RouteName.HOME }
-    if (to.meta.requiresAuth && !user.loggedIn)
+    if (to.meta.requiresAuth && !user.loggedIn && user.restored)
       return { name: RouteName.LOGIN, query: { redirect: to.fullPath } }
     if (to.meta.admin && user.current?.role !== UserRole.ADMIN) return { name: RouteName.LOGIN }
   })
