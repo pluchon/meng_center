@@ -81,7 +81,8 @@ export default defineComponent({
       plane = ref(null),
       sending = ref(0)
     const voicing = ref(null),
-      longBubbles = ref(new Set())
+      longBubbles = ref(new Set()),
+      petCheers = ref(0)
     const controllers = new Set()
     let timer,
       voice = null,
@@ -127,6 +128,12 @@ export default defineComponent({
       () =>
         typing.value || sessions.value.some((item) => item.id === selected.value && item.generating),
     )
+    const petState = computed(() => {
+      if (offline.value || !naitangOnline.value) return 'offline'
+      if (typing.value || voicing.value !== null || (!opened.value && sending.value)) return 'talk'
+      if (thinking.value || sending.value) return 'think'
+      return 'idle'
+    })
     // 自己发的消息里，表情记号拆出来和图片排在一起，气泡里只留文字
     function ownParts(content) {
       const segments = commentSegments(content || '')
@@ -475,6 +482,8 @@ export default defineComponent({
       const session = sessions.value.find((item) => item.id === id)
       if (session) session.generating = true
       bottom(true).then(flyPlane)
+      let replied = false,
+        completed = false
       const onEvent = async (event, data) => {
         if (disposed || selected.value !== id) return
         if (event === CompanionEvent.STATUS) {
@@ -494,8 +503,10 @@ export default defineComponent({
           )
           await new Promise((resolve) => setTimeout(resolve, delay))
           if (!disposed && selected.value === id) {
-            if (!messages.value.some((message) => message.id === data.id))
+            if (!messages.value.some((message) => message.id === data.id)) {
               messages.value.push(data)
+              replied ||= data.role === 'CHARACTER'
+            }
             typing.value = false
             await bottom()
           }
@@ -509,6 +520,7 @@ export default defineComponent({
             await sendCompanionMessage(id, body, { signal: controller.signal, onEvent })
             if (selected.value === id) offline.value = false
             naitangOnline.value = true
+            completed = true
             break
           } catch (error) {
             const delay = Companion.RETRY_DELAYS_MS[attempt]
@@ -564,6 +576,7 @@ export default defineComponent({
           typing.value = false
           if (!sending.value && !optimistic.failed) {
             status.value = ''
+            if (completed && replied && Math.random() < 0.2) petCheers.value++
             await Promise.all([listSessions(), history()]).catch((error) => {
               loadError.value = error
             })
@@ -688,6 +701,8 @@ export default defineComponent({
       picked,
       emotionOpen,
       naitangOnline,
+      petState,
+      petCheers,
       mediaFull,
       addEmotion,
       removeEmotion,

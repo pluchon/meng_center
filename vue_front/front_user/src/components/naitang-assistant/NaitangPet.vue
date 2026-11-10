@@ -3,7 +3,15 @@
     class="naitang-pet"
     aria-hidden="true"
   >
-    <span class="naitang-pet-ball"><IconCat /></span>
+    <img
+      :key="sequence"
+      :data-sequence="sequence"
+      :src="clip.src"
+      alt=""
+      draggable="false"
+      @load="schedule"
+      @error="fallback"
+    >
   </span>
 </template>
 <script src="./NaitangPet.js"></script>

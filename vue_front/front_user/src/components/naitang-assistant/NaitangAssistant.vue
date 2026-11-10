@@ -7,7 +7,10 @@
       :aria-expanded="opened"
       @click="opened ? close() : open()"
     >
-      <NaitangPet />
+      <NaitangPet
+        :state="petState"
+        :cheers="petCheers"
+      />
     </button>
     <span
       ref="plane"

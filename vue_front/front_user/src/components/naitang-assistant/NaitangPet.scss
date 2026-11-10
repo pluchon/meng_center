@@ -1,4 +1,4 @@
-// 一颗浅蓝的小圆球：白边、底下一圈同色底影，正中印着猫咪；平时轻轻上下浮，脚下的影子跟着缩放
+// 阴影由页面绘制，动图本身保留透明背景。
 .naitang-pet {
   position: relative;
   display: block;
@@ -9,57 +9,21 @@
     position: absolute;
     z-index: -1;
     right: 18%;
-    bottom: -8px;
+    bottom: 1%;
     left: 18%;
-    height: 8px;
+    height: 7%;
     border-radius: 50%;
     background: var(--meng-text);
     content: '';
-    filter: blur(4px);
-    opacity: 0.16;
-    animation: naitang-ball-shadow 3.2s ease-in-out infinite;
+    filter: blur(5px);
+    opacity: 0.14;
   }
-}
 
-.naitang-pet-ball {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  height: 100%;
-  border: 3px solid var(--meng-surface);
-  border-radius: 50%;
-  background:
-    radial-gradient(circle at 32% 28%, var(--meng-surface) 0 12%, transparent 13%),
-    radial-gradient(circle at 50% 60%, var(--meng-tint), var(--meng-category-anime));
-  box-shadow:
-    0 0 0 2px var(--meng-category-anime),
-    0 5px 0 2px var(--meng-primary-light-3);
-  color: var(--meng-primary);
-  animation: naitang-ball-float 3.2s ease-in-out infinite;
-
-  svg {
-    width: 52%;
-    height: 52%;
-    stroke-width: 1.8;
-  }
-}
-
-@keyframes naitang-ball-float {
-  50% {
-    translate: 0 -5px;
-  }
-}
-
-@keyframes naitang-ball-shadow {
-  50% {
-    opacity: 0.08;
-    scale: 0.8;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .naitang-pet::after,
-  .naitang-pet-ball {
-    animation: none;
+  img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
   }
 }

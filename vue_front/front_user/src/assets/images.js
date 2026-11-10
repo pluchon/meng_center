@@ -167,6 +167,18 @@ export { default as statePageNetworkArt } from './states/state-page-network.webp
 export { default as statePagePostMissingArt } from './states/state-page-post-missing.webp'
 
 export { default as companionNekoAvatar } from './companion/avatars/neko-avatar.png?w=384&format=webp&quality=90'
+// 动态 WebP 原样交给浏览器播放，避免构建时只留下第一帧。
+export { default as naitangIdleBreath } from './companion/pet/idle_breath.webp'
+export { default as naitangIdleTail } from './companion/pet/idle_tail.webp'
+export { default as naitangIdleStretch } from './companion/pet/idle_stretch.webp'
+export { default as naitangIdleWash } from './companion/pet/idle_wash.webp'
+export { default as naitangIdleLook } from './companion/pet/idle_look.webp'
+export { default as naitangIdleDoze } from './companion/pet/idle_doze.webp'
+export { default as naitangIdleStill } from './companion/pet/idle_still.webp'
+export { default as naitangThink } from './companion/pet/state_think.webp'
+export { default as naitangTalk } from './companion/pet/state_talk.webp'
+export { default as naitangHappy } from './companion/pet/state_happy.webp'
+export { default as naitangOffline } from './companion/pet/state_offline.webp'
 // 奶糖离线时那句提示的配音，事先录好的
 export { default as companionOfflineVoice } from './companion/voice/offline.mp3'
 
