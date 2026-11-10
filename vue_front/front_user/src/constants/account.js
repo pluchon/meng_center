@@ -1,3 +1,5 @@
+import { avatarPresetImages, folderCoverPresetImages } from '@/assets/images'
+
 export const Account = Object.freeze({
   SIZE: 8,
   // 个人中心帖子列表：量出实际行高前先按这个算，一页最多 20 条（后端上限）
@@ -17,8 +19,7 @@ export const Account = Object.freeze({
   // 收藏夹封面的宽高比，和收藏夹卡片、新建弹窗里的封面框一致
   COVER_ASPECT: 240 / 112,
 })
-// 收藏夹封面的二十张预设图，覆盖常见的收藏夹用途；图还没画好，src 为空时显示占位卡片。
-// 画好后放进 assets 并从 assets/images.js 引入，填到对应的 src
+// 收藏夹封面的二十张预设图，覆盖常见的收藏夹用途。
 export const FolderCoverPresets = Object.freeze(
   [
     'anime',
@@ -41,9 +42,9 @@ export const FolderCoverPresets = Object.freeze(
     'pet',
     'later',
     'quotes',
-  ].map((key) => Object.freeze({ key, src: null })),
+  ].map((key) => Object.freeze({ key, src: folderCoverPresetImages[key] })),
 )
-// 头像的二十张预设图：角色、小动物和小物件；还没画好，src 为空时显示占位卡片
+// 头像的二十张预设图：角色、小动物和小物件。
 export const AvatarPresets = Object.freeze(
   [
     'cirnoSmile',
@@ -66,7 +67,7 @@ export const AvatarPresets = Object.freeze(
     'headphones',
     'book',
     'crystal',
-  ].map((key) => Object.freeze({ key, src: null })),
+  ].map((key) => Object.freeze({ key, src: avatarPresetImages[key] })),
 )
 // 收藏夹可选的主题色，和后端 FolderColor 一一对应
 export const FolderColors = Object.freeze(['GOLD', 'BLUE', 'MINT', 'PINK', 'VIOLET'])

@@ -29,7 +29,30 @@ export { default as detailBubble } from './detail_bubble.svg'
 export { default as detailFlower } from './detail_flower.svg'
 export { default as accountScenes } from './account-scenes.svg?no-inline'
 export { default as regionSilhouettes } from './region-silhouettes.svg?no-inline'
-export { default as accountFolderCover } from './profile_favourite_background .png?w=720&format=webp&quality=82'
+export { default as accountFolderCover } from './profile_favourite_background.png?w=720&format=webp&quality=82'
+
+// 预设文件名的后半段和个人中心使用的分类键一致。
+function presetImages(files) {
+  return Object.freeze(
+    Object.fromEntries(
+      Object.entries(files).map(([path, src]) => [
+        path.slice(path.lastIndexOf('_') + 1, path.lastIndexOf('.')),
+        src,
+      ]),
+    ),
+  )
+}
+
+export const avatarPresetImages = presetImages(
+  import.meta.glob('./account/avatars/avatar_*.webp', { eager: true, import: 'default' }),
+)
+export const folderCoverPresetImages = presetImages(
+  import.meta.glob('./account/folder-covers/folder_cover_*.png', {
+    eager: true,
+    import: 'default',
+    query: '?w=720&format=webp&quality=82',
+  }),
+)
 
 export { default as navHomeIcon } from './nav-home.svg'
 export { default as navCreateIcon } from './nav-create.svg'
