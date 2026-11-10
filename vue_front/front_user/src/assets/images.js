@@ -3,13 +3,13 @@
 export { default as loginPoster } from './login-poster.png?format=webp&quality=82'
 export { default as registerPoster } from './register-poster.png?format=webp&quality=82'
 export { default as legalArtwork } from './legal-cirno-garden.png?format=webp&quality=80'
-export { default as resetAvatar } from './forget_password_avatar.png?w=324&format=webp&quality=85'
+export { default as resetAvatar } from './account/avatars/avatar_naitangSleepy.webp'
 export { default as brandIcon } from './meng_logo.png?w=168&format=webp&quality=90'
 export { default as waterDropIcon } from './meng_center_ico.png?w=84&format=webp&quality=90'
-export { default as userAvatar } from './user_avatar.png?w=256&format=webp&quality=85'
-export { default as articleEditAvatar } from './article_edit.png?w=176&format=webp&quality=85'
+export { default as userAvatar } from './account/avatars/avatar_cirnoSmile.webp'
+export { default as articleEditAvatar } from './account/avatars/avatar_cirnoWink.webp'
 export { default as editorCirnoMascot } from './editor-cirno-mascot.png?w=840&format=webp&quality=90'
-export { default as mengAvatar } from './meng_avatar.png?w=144&format=webp&quality=85'
+export { default as mengAvatar } from './account/avatars/avatar_naitangSmile.webp'
 // 标签页图标要 PNG，由入口脚本写进页面
 export { default as favicon } from './meng_logo.png?w=64&format=png'
 
@@ -61,7 +61,6 @@ export { default as navSearchIcon } from './nav-search.svg'
 export { default as navMessageIcon } from './nav-message.svg'
 
 export { default as messageBackIcon } from './message-back.svg'
-export { default as messageMoreIcon } from './message-more.svg'
 export { default as messageChevronIcon } from './message-chevron.svg'
 export { default as messageHeartIcon } from './message-heart.svg'
 export { default as messageShieldIcon } from './message-shield.svg'
@@ -166,7 +165,7 @@ export { default as statePageMaintenanceArt } from './states/state-page-maintena
 export { default as statePageNetworkArt } from './states/state-page-network.webp'
 export { default as statePagePostMissingArt } from './states/state-page-post-missing.webp'
 
-export { default as companionNekoAvatar } from './companion/avatars/neko-avatar.png?w=384&format=webp&quality=90'
+export { default as companionNekoAvatar } from './account/avatars/avatar_naitangSmile.webp'
 // 动态 WebP 原样交给浏览器播放，避免构建时只留下第一帧。
 export { default as naitangIdleBreath } from './companion/pet/idle_breath.webp'
 export { default as naitangIdleTail } from './companion/pet/idle_tail.webp'

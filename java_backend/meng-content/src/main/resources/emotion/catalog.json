@@ -1,5 +1,5 @@
 {
-  "version": "20261024.1",
+  "version": "20261110.1",
   "emotions": [
     {
       "name": "头像",
@@ -7,7 +7,7 @@
       "imageKey": "userAvatar",
       "sort": 0,
       "enabled": true,
-      "description": "琪露诺举手招呼，身旁有纸飞机",
+      "description": "琪露诺微笑",
       "meaning": "打招呼，表示自己来了",
       "tags": [
         "招呼",
@@ -20,7 +20,7 @@
       "imageKey": "mengAvatar",
       "sort": 1,
       "enabled": true,
-      "description": "琪露诺拿着扩音器",
+      "description": "奶糖张嘴微笑",
       "meaning": "呼唤大家，宣布事情",
       "tags": [
         "呼唤",
@@ -33,7 +33,7 @@
       "imageKey": "articleEditAvatar",
       "sort": 2,
       "enabled": true,
-      "description": "琪露诺闭眼举起双手欢呼",
+      "description": "琪露诺眨眼微笑",
       "meaning": "准备开始，投入创作",
       "tags": [
         "开工",
@@ -46,7 +46,7 @@
       "imageKey": "resetAvatar",
       "sort": 3,
       "enabled": true,
-      "description": "浅色画风的琪露诺举着双手",
+      "description": "奶糖睡眼惺忪",
       "meaning": "温柔招呼，请求回应",
       "tags": [
         "温柔",

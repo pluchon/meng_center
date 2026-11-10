@@ -119,7 +119,7 @@ try {
   let post, rootComment, reply, reply2, image;
   async function comment(body,index=0){await redis.del('meng:content:limit:comment-interval:'+users[index]);return ok(await api('POST','/content/posts/'+post+'/comments',body,index));}
   await check('Create post and count one unique view per person',async()=>{
-    const f=new FormData();f.append('file',new Blob([await fs.readFile(new URL('../../vue_front/front_user/src/assets/forget_password_avatar.png',import.meta.url))],{type:'image/png'}),'image.png');
+    const f=new FormData();f.append('file',new Blob([await fs.readFile(new URL('../../vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png',import.meta.url))],{type:'image/png'}),'image.png');
     image=ok(await api('POST','/content/images',f));postBody.imageIds=[image.id];
     for(let i=0;i<7;i++){const extra=ok(await api('POST','/content/images',f));postBody.imageIds.push(extra.id)}
     await userDb.execute('UPDATE user SET nickname=? WHERE id=?',['云朵收藏家',users[0]]);
@@ -133,7 +133,7 @@ try {
     ok(await api('POST','/content/posts/'+post+'/comments',{content:'[表情:水滴]'.repeat(11)}),400);
     ok(await api('POST','/content/posts/'+post+'/comments',{content:'😀'.repeat(501)}),400);
     ok(await api('POST','/content/posts/'+post+'/comments',{imageIds:[image.id]}),403);
-    const f=new FormData();f.append('file',new Blob([await fs.readFile(new URL('../../vue_front/front_user/src/assets/user_avatar.png',import.meta.url))],{type:'image/png'}),'image.png');
+    const f=new FormData();f.append('file',new Blob([await fs.readFile(new URL('../../vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png',import.meta.url))],{type:'image/png'}),'image.png');
     const ci=ok(await api('POST','/content/comment-images',f));
     ok(await api('POST','/content/posts/'+post+'/comments',{content:'[表情:水滴]'.repeat(10),imageIds:[ci.id]}),400);
     await redis.del('meng:content:limit:comment-interval:'+users[1]);
@@ -269,7 +269,7 @@ try {
     await page.getByRole('button',{name:'水滴',exact:true}).click();
     assert.equal(await page.locator('.composer-images img').count(),1);
     assert.equal(await page.getByRole('textbox',{name:'写评论',exact:true}).inputValue(),'浏览器回复');
-    await page.locator('.comment-composer input[type=file]').setInputFiles(path.resolve('vue_front/front_user/src/assets/user_avatar.png'));
+    await page.locator('.comment-composer input[type=file]').setInputFiles(path.resolve('vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png'));
     await page.waitForFunction(()=>!document.querySelector('.composer-image small'));
     for(let i=0;i<8;i++) await page.getByRole('button',{name:'水滴',exact:true}).click();
     await page.getByRole('button',{name:'水滴',exact:true}).click();

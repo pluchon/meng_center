@@ -147,7 +147,7 @@ try {
    assert.deepEqual(ok(await api(`/im/conversations/${conversation}/messages`,1)).records.map(row=>row.id),[later.id]);
  });
  await check('Private image permissions, album and body boundaries',async()=>{
-   const bytes=await fs.readFile(path.join(root,'vue_front/front_user/src/assets/user_avatar.png'));
+   const bytes=await fs.readFile(path.join(root,'vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png'));
    for(let i=0;i<6;i++) { const body=new FormData(); body.append('file',new Blob([bytes],{type:'image/png'}),'avatar.png'); const image=ok(await api('/im/images',0,'POST',body)); images.push(image.id); }
    const imageIds=images.slice(0,5);
    const body=message(users[1],null,crypto.randomUUID(),imageIds);
@@ -197,7 +197,7 @@ try {
  await check('Message and daily image rate limits and finite MQ dead lettering',async()=>{
    await redis.set('meng:im:rate:msg:'+users[0],'20',{EX:60}); ok(await api('/im/messages',0,'POST',message(users[1])),429); await redis.del('meng:im:rate:msg:'+users[0]);
    const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Taipei',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-   const key='meng:im:rate:image:'+users[0]+':'+today; await redis.set(key,'100',{EX:60}); const form=new FormData();form.append('file',new Blob([await fs.readFile(path.join(root,'vue_front/front_user/src/assets/user_avatar.png'))],{type:'image/png'}),'image.png');ok(await api('/im/images',0,'POST',form),429);await redis.del(key);
+   const key='meng:im:rate:image:'+users[0]+':'+today; await redis.set(key,'100',{EX:60}); const form=new FormData();form.append('file',new Blob([await fs.readFile(path.join(root,'vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png'))],{type:'image/png'}),'image.png');ok(await api('/im/images',0,'POST',form),429);await redis.del(key);
    const before=(await channel.checkQueue('meng.im.dead')).messageCount, id='verify-im-dead-'+nonce;
    channel.publish('meng.content.topic','post.liked',Buffer.from(JSON.stringify({eventId:id,eventType:'wrong',occurredAt:new Date().toISOString(),traceId:id,body:{eventType:'post.liked',postId,postTitle:'fixture',actorId:users[1],authorId:users[0]}})),{contentType:'application/json',persistent:true});
    await eventually(async()=>(await channel.checkQueue('meng.im.dead')).messageCount>before,'finite retries to dead queue');

@@ -124,7 +124,7 @@ try {
         [
           await fs.readFile(
             new URL(
-              "../../vue_front/front_user/src/assets/forget_password_avatar.png",
+              "../../vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png",
               import.meta.url,
             ),
           ),
@@ -426,7 +426,7 @@ try {
       });
       const bytes = await fs.readFile(
         new URL(
-          "../../vue_front/front_user/src/assets/forget_password_avatar.png",
+          "../../vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png",
           import.meta.url,
         ),
       );

@@ -289,7 +289,7 @@ try {
   );
   const imageBytes = await fs.readFile(
     new URL(
-      "../../vue_front/front_user/src/assets/user_avatar.png",
+      "../../vue_front/front_user/src/assets/account/folder-covers/folder_cover_tech.png",
       import.meta.url,
     ),
   );
