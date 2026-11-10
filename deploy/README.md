@@ -59,7 +59,7 @@ Windows Java 17 启动必须带 `-Dfile.encoding=UTF-8`，脚本已设置。IDEA
 
 QQ SMTP 使用现有环境凭据，主机 `smtp.qq.com`、SSL 465；实际认证已验证。国内短信在 `meng-user.yml` 的 `sms` 配置，国际短信在 `international-sms`，补齐对应签名、模板或 Sender ID 后再启用。
 
-正式协议正文位于用户端 `src/content/legal/`。当前只显示待发布说明；运营者提供正式条款后同步前端版本常量、内容版本及 Nacos `legal` 的两个版本号，再将 `published` 改为 true。当前默认 false，后端明确拒绝注册提交。
+默认开放邮箱注册。Nacos 配置中 `meng.user.legal.published` 为 `true`，`meng.user.registration.review-required` 为 `false`，注册成功后可以直接登录使用。协议页面目前显示待发布说明。运营者提供正式条款后，在用户端 `src/content/legal/` 更新正文，同步前端版本常量、内容版本和 Nacos `legal` 的两个版本号。
 
 RabbitMQ 管理界面：<http://127.0.0.1:25673>，用户名与密码读取 `MENG_RABBITMQ_USERNAME`、`MENG_RABBITMQ_PASSWORD`。
 
